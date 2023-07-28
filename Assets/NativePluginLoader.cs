@@ -288,7 +288,6 @@ namespace fts
                                 var fnDelegate = Marshal.GetDelegateForFunctionPointer(fnPtr, field.FieldType);
 
                                 // Set static field value
-                                Debug.Log("Setting " + field.Name);
                                 field.SetValue(null, fnDelegate);
                             }
                         }

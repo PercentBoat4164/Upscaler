@@ -19,9 +19,7 @@ public class NewBehaviourScript : MonoBehaviour
     
     // OnEnable is called when the plugin is enabled
     void OnEnable() {
-        Debug.Log("Hello wrold!");
     	SetDebugCallback(LogDebugMessage);
-    	Debug.Log("Heloo world!");
     }
 	
     // Start is called before the first frame update
