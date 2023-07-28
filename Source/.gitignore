@@ -1,4 +1,8 @@
+# For legal reasons
 DLSS
-.idea
+# IDE project files
+../.idea
 # Project exclude paths
 /cmake-build-debug/
+# Unity's junk
+../Temp
