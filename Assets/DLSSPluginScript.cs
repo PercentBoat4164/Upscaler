@@ -12,20 +12,27 @@ public class NewBehaviourScript : MonoBehaviour
     public static _SetDebugCallback SetDebugCallback = null;  // The first identifier does not matter. The second is the name that will be used in the C# script.
     public delegate void _SetDebugCallback(debugCallback cb);  // Signature must match that of the C++ function.
 
+    [PluginFunctionAttr("InitializeNGX")]
+    public static _InitializeNGX InitializeNGX = null;
+    public delegate void _InitializeNGX();
+
     [MonoPInvokeCallback(typeof(debugCallback))]
     void LogDebugMessage(IntPtr message) {
     	Debug.Log(Marshal.PtrToStringAnsi(message));
     }
-    
+
+    void OnLoad() {
+    }
+
     // OnEnable is called when the plugin is enabled
     void OnEnable() {
     	SetDebugCallback(LogDebugMessage);
+    	InitializeNGX();
     }
 	
     // Start is called before the first frame update
     void Start()
     {
-
     }
 
     // Update is called once per frame
