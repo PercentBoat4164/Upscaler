@@ -348,7 +348,6 @@
 -analyzer:"/home/thaddeus/Unity/Hub/Editor/2022.3.5f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll"
 -analyzer:"/home/thaddeus/Unity/Hub/Editor/2022.3.5f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll"
 "Assets/DLSSPluginScript.cs"
-"Assets/NativePluginLoader.cs"
 -langversion:9.0
 
 /deterministic

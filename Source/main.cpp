@@ -34,7 +34,7 @@ void log(std::string t_actionDescription, NVSDK_NGX_Result t_result) {
   case NVSDK_NGX_Result_FAIL_NotImplemented: log(t_actionDescription + ": Failed | Not implemented."); break;
 
   default:
-    log(t_actionDescription + ": Failed | Unkown Error");
+    log(t_actionDescription + ": Failed | Unknown Error");
   }
 }
 } // namespace Logger
