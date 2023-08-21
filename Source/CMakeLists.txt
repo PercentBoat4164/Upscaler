@@ -16,5 +16,5 @@ add_compile_options(-fms-extensions)
 add_library(DLSSPlugin main.cpp)
 target_link_libraries(DLSSPlugin ngx)
 target_link_options(DLSSPlugin PUBLIC "-ldl")
-add_custom_command(TARGET DLSSPlugin COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libDLSSPlugin.so ${CMAKE_SOURCE_DIR}/../Assets/Plugins POST_BUILD)
+add_custom_command(TARGET DLSSPlugin COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_BINARY_DIR}/libDLSSPlugin.so ${CMAKE_SOURCE_DIR}/../Assets/Plugins POST_BUILD)
 
