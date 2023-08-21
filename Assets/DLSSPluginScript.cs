@@ -14,10 +14,10 @@ public class NewBehaviourScript : MonoBehaviour
 //
 //     [PluginFunctionAttr("InitializeNGX")]
 //     public static _InitializeNGX InitializeNGX = null;
-//     public delegate void _InitializeNGX();
+//     public delegate void _InitializeNGX(String appDataPath);
 
     [DllImport("DLSSPlugin")] public static extern void SetDebugCallback(debugCallback cb);
-    [DllImport("DLSSPlugin")] public static extern void InitializeNGX();
+    [DllImport("DLSSPlugin")] public static extern void InitializeNGX(String appDataPath);
 
     [MonoPInvokeCallback(typeof(debugCallback))]
     void LogDebugMessage(IntPtr message) {
@@ -30,7 +30,7 @@ public class NewBehaviourScript : MonoBehaviour
     // OnEnable is called when the plugin is enabled
     void OnEnable() {
     	SetDebugCallback(LogDebugMessage);
-    	InitializeNGX();
+    	InitializeNGX(Application.dataPath);
     }
 	
     // Start is called before the first frame update
