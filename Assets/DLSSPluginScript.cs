@@ -6,7 +6,8 @@ using UnityEngine;
 public class NewBehaviourScript : MonoBehaviour {
     public delegate void debugCallback(IntPtr message);
     [DllImport("DLSSPlugin")] public static extern void SetDebugCallback(debugCallback cb);
-    [DllImport("DLSSPlugin")] public static extern void InitializeNGX(String appDataPath);
+    [DllImport("DLSSPlugin")] public static extern bool InitializeDLSS();
+    [DllImport("DLSSPlugin")] public static extern void IdentifyApplication(String appDataPath, String appID, String unityVersion);
 
     [MonoPInvokeCallback(typeof(debugCallback))]
     void LogDebugMessage(IntPtr message) {
@@ -19,7 +20,9 @@ public class NewBehaviourScript : MonoBehaviour {
     // OnEnable is called when the plugin is enabled
     void OnEnable() {
     	SetDebugCallback(LogDebugMessage);
-    	InitializeNGX(Application.dataPath);
+    	IdentifyApplication(Application.dataPath, Application.identifier, Application.unityVersion);
+    	if (InitializeDLSS()) Debug.Log("DLSS is supported.");
+    	else Debug.Log("DLSS is not supported.");
     }
 	
     // Start is called before the first frame update

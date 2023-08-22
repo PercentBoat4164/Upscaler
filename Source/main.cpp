@@ -37,20 +37,68 @@ void log(std::string t_actionDescription, NVSDK_NGX_Result t_result) {
     log(t_actionDescription + ": Failed | Unknown Error");
   }
 }
+
+void log(const char *t_message, NVSDK_NGX_Logging_Level t_loggingLevel, NVSDK_NGX_Feature t_sourceComponent) {
+  log(t_message);
+}
 } // namespace Logger
+
+namespace ApplicationInfo {
+  uint64_t identifier;
+  std::wstring dataPath;
+  std::string engineVersion;
+  NVSDK_NGX_Application_Identifier ngxIdentifier;
+}
 
 namespace Unity {
 IUnityGraphicsVulkan *vulkanGraphicsInterface;
 } // namespace Unity
 
-extern "C" UNITY_INTERFACE_EXPORT void InitializeNGX(const wchar_t *t_appDataPath) {
-//  UnityVulkanInstance vulkan = Unity::vulkanGraphicsInterface->Instance();
-  VkInstance instance = Unity::vulkanGraphicsInterface->Instance().instance;
-  VkPhysicalDevice physicalDevice = Unity::vulkanGraphicsInterface->Instance().physicalDevice;
-  VkDevice device = Unity::vulkanGraphicsInterface->Instance().device;
+extern "C" UNITY_INTERFACE_EXPORT void IdentifyApplication(const wchar_t *t_appDataPath, const char *t_appID, const char *t_engineVersion) {
+  ApplicationInfo::identifier = std::hash<std::string>()(std::string(t_appID));
+  ApplicationInfo::dataPath = t_appDataPath;
+  ApplicationInfo::ngxIdentifier =  {
+    .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
+    .v = {
+      .ApplicationId = ApplicationInfo::identifier,
+    }
+  };
+  Logger::log(std::string("Application id: ") + std::to_string(ApplicationInfo::identifier));
+}
+
+extern "C" UNITY_INTERFACE_EXPORT bool InitializeDLSS() {
+  UnityVulkanInstance vulkan = Unity::vulkanGraphicsInterface->Instance();
+
+  // Initialize NGX SDK
   NVSDK_NGX_Result result = NVSDK_NGX_VULKAN_Init(
-      NVSDK_NGX_ENGINE_TYPE_CUSTOM, t_appDataPath, instance, physicalDevice, device);
+      ApplicationInfo::identifier, ApplicationInfo::dataPath.c_str(), vulkan.instance, vulkan.physicalDevice, vulkan.device);
   Logger::log("Initialize NGX SDK", result);
+
+  // Set up the Super Sampling feature
+  NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
+    .PathListInfo = {
+          .Path = nullptr,
+          .Length = 0,
+      },
+    .InternalData = nullptr,
+    .LoggingInfo = {
+        .LoggingCallback = Logger::log,
+        .MinimumLoggingLevel = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+        .DisableOtherLoggingSinks = false,
+    }
+  };
+
+  NVSDK_NGX_FeatureRequirement featureRequirement;
+  NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
+      .SDKVersion = NVSDK_NGX_Version_API,
+      .FeatureID = NVSDK_NGX_Feature_SuperSampling,
+      .Identifier = ApplicationInfo::ngxIdentifier,
+      .ApplicationDataPath = ApplicationInfo::dataPath.c_str(),
+      .FeatureInfo = &featureCommonInfo,
+  };
+  result = NVSDK_NGX_VULKAN_GetFeatureRequirements(vulkan.instance, vulkan.physicalDevice, &featureDiscoveryInfo, &featureRequirement);
+  Logger::log("Get DLSS feature requirements", result);
+  return featureRequirement.FeatureSupported;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void
@@ -68,5 +116,5 @@ UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload() {
-
+  NVSDK_NGX_VULKAN_Shutdown1(Unity::vulkanGraphicsInterface->Instance().device);
 }
