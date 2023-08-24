@@ -15,8 +15,6 @@ set_target_properties(ngx PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DI
 set_property(TARGET ngx APPEND PROPERTY EXTRA_DLLS "${CMAKE_SOURCE_DIR}/DLSS/libvidia-ngx-dlss.so.3.1.30")
 target_include_directories(ngx INTERFACE ${CMAKE_SOURCE_DIR}/DLSS)
 
-add_compile_options(-fms-extensions)
-
 add_library(DLSSPlugin main.cpp)
 target_link_libraries(DLSSPlugin ngx)
 target_link_options(DLSSPlugin PUBLIC "-ldl")

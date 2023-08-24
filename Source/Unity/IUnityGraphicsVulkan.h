@@ -159,7 +159,7 @@ UNITY_DECLARE_INTERFACE(IUnityGraphicsVulkanV2)
     //
     // Must be called before kUnityGfxDeviceEventInitialize (preload plugin)
     // Unity will call 'func' when initializing the Vulkan API
-    // The 'getInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
+    // The 'vkGetInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
     // The function pointer returned from UnityVulkanInitCallback may be a different implementation
     // This allows intercepting all Vulkan API calls
     // This function is equivalent to calling `AddInterceptInitialization` with a priority of `kUnityVulkanInitCallbackMaxPriority`
@@ -238,11 +238,11 @@ UNITY_DECLARE_INTERFACE(IUnityGraphicsVulkanV2)
     //
     // Must be called before kUnityGfxDeviceEventInitialize (preload plugin)
     // Unity will call 'func' when initializing the Vulkan API
-    // The 'getInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
+    // The 'vkGetInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
     // The function pointer returned from UnityVulkanInitCallback may be a different implementation
     // This allows intercepting all Vulkan API calls
     // The priority is used to sort multiple callbacks such that the highest priority will be called last
-    //   with the original Vulkan loader implementation of vkGetInstanceProcAddress passed in as 'getInstanceProcAddr'.
+    //   with the original Vulkan loader implementation of vkGetInstanceProcAddress passed in as 'vkGetInstanceProcAddr'.
     // A priority value of `kUnityVulkanInitCallbackMaxPriority` is used to force a callback to be called immediately before
     //   the original Vulkan loader implementation of `vkGetInstanceProcAddress`.  Only one callback can be registered with a
     //   priority of `kUnityVulkanInitCallbackMaxPriority`, if one already exists it will be replaced.
@@ -264,7 +264,7 @@ UNITY_DECLARE_INTERFACE(IUnityGraphicsVulkan)
     //
     // Must be called before kUnityGfxDeviceEventInitialize (preload plugin)
     // Unity will call 'func' when initializing the Vulkan API
-    // The 'getInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
+    // The 'vkGetInstanceProcAddr' passed to the callback is the function pointer from the Vulkan Loader
     // The function pointer returned from UnityVulkanInitCallback may be a different implementation
     // This allows intercepting all Vulkan API calls
     //
