@@ -293,7 +293,7 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" UNITY_INTERFACE_API void OnFramebufferResize(unsigned int width, unsigned int height) {
+extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void OnFramebufferResize(unsigned int width, unsigned int height) {
     Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string((height)));
 
     // Release any previously existing feature
@@ -325,7 +325,7 @@ extern "C" UNITY_INTERFACE_API void OnFramebufferResize(unsigned int width, unsi
     Plugin::endOneTimeSubmitRecording();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
+extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API bool initializeDLSS() {
     if (!Plugin::DLSSSupported) return false;
 
     UnityVulkanInstance vulkan = Unity::vulkanGraphicsInterface->Instance();
@@ -397,8 +397,8 @@ extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
         );
         std::stringstream stream;
         stream << "DLSS is not available on this hardware or platform. FeatureInitResult = 0x" << std::setfill('0')
-               << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult
-               << ", info: " << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
+               << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult << ", info: "
+               << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
         Logger::log(stream.str());
         Logger::log("Setting DLSSSupport and continuing anyway.");
         DLSSSupported = 1;
@@ -550,7 +550,7 @@ interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void *t
     return Hook_vkGetInstanceProcAddr;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void SetDebugCallback(void (*t_debugFunction)(const char *)) {
     Logger::Info = t_debugFunction;
     Logger::flush();
 }
@@ -572,7 +572,7 @@ extern "C" void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventTyp
     }
 }
 
-extern "C" bool UNITY_INTERFACE_EXPORT IsDLSSSupported() {
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsDLSSSupported() {
     return Plugin::DLSSSupported;
 }
 

@@ -6,3 +6,7 @@ DLSS
 /cmake-build-debug/
 # Unity's junk
 ../Temp
+../Library
+../Logs
+../Packages
+../UserSettings
