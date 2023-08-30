@@ -126,10 +126,8 @@ void loadVulkanFunctionHooks(VkInstance instance) {
       reinterpret_cast<PFN_vkBeginCommandBuffer>(vkGetInstanceProcAddr(instance, "vkBeginCommandBuffer"));
     vkEndCommandBuffer =
       reinterpret_cast<PFN_vkEndCommandBuffer>(vkGetInstanceProcAddr(instance, "vkEndCommandBuffer"));
-    vkQueueSubmit =
-      reinterpret_cast<PFN_vkQueueSubmit>(vkGetInstanceProcAddr(instance, "vkQueueSubmit"));
-    vkQueueWaitIdle =
-      reinterpret_cast<PFN_vkQueueWaitIdle>(vkGetInstanceProcAddr(instance, "vkQueueWaitIdle"));
+    vkQueueSubmit   = reinterpret_cast<PFN_vkQueueSubmit>(vkGetInstanceProcAddr(instance, "vkQueueSubmit"));
+    vkQueueWaitIdle = reinterpret_cast<PFN_vkQueueWaitIdle>(vkGetInstanceProcAddr(instance, "vkQueueWaitIdle"));
     vkResetCommandBuffer =
       reinterpret_cast<PFN_vkResetCommandBuffer>(vkGetInstanceProcAddr(instance, "vkResetCommandBuffer"));
     vkFreeCommandBuffers =
@@ -293,7 +291,8 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void OnFramebufferResize(unsigned int width, unsigned int height) {
+extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void
+OnFramebufferResize(unsigned int width, unsigned int height) {
     Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string((height)));
 
     // Release any previously existing feature
@@ -314,7 +313,7 @@ extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void OnFramebufferResize(u
 
     Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
 
-    VkCommandBuffer commandBuffer = Plugin::beginOneTimeSubmitRecording();
+    VkCommandBuffer  commandBuffer = Plugin::beginOneTimeSubmitRecording();
     NVSDK_NGX_Result result =
       NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
     Logger::log("Create DLSS feature", result);
@@ -439,7 +438,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
 
     // Continue either way
     VkDeviceCreateInfo createInfo = *pCreateInfo;
-    std::string message;
+    std::string        message;
 
     // @todo Detect if device extensions requested are supported before creating device.
     // Find out which extensions need to be added.
@@ -550,7 +549,8 @@ interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * 
     return Hook_vkGetInstanceProcAddr;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void SetDebugCallback(void (*t_debugFunction)(const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void SetDebugCallback(void (*t_debugFunction)(const char *)
+) {
     Logger::Info = t_debugFunction;
     Logger::flush();
 }
