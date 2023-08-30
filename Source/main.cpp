@@ -20,6 +20,7 @@
 #ifndef NDEBUG
 // Usage: Insert this where the debugger should connect. Execute. Connect the debugger. Set 'debuggerConnected' to
 // true. Step.
+// Use 'handle SIGXCPU SIGPWR nostop noprint' to prevent Unity's signals.
 #    define WAIT_FOR_DEBUGGER           \
         bool debuggerConnected = false; \
         while (!debuggerConnected)      \
@@ -64,8 +65,8 @@ void log(const char *t_message, NVSDK_NGX_Logging_Level t_loggingLevel, NVSDK_NG
 }  // namespace Logger
 
 namespace Application {
-uint64_t                         id{0x0023};
-std::wstring                     dataPath{L"."};
+uint64_t                         id{231313132};
+std::wstring                     dataPath{L"./Logs"};
 NVSDK_NGX_Application_Identifier ngxIdentifier{
   .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
   .v              = {
@@ -75,8 +76,8 @@ NVSDK_NGX_Application_Identifier ngxIdentifier{
 NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
   .PathListInfo =
     {
-                   .Path   = nullptr,
-                   .Length = 0,
+                   .Path   = new const wchar_t *{L"./Assets/Plugins"},
+                   .Length = 1,
                    },
   .InternalData = nullptr,
   .LoggingInfo  = {
@@ -118,24 +119,23 @@ decltype(&vkDestroyCommandPool)     vkDestroyCommandPool;
 
 void loadVulkanFunctionHooks(VkInstance instance) {
     vkCreateCommandPool =
-      reinterpret_cast<decltype(&::vkCreateCommandPool)>(vkGetInstanceProcAddr(instance, "vkCreateCommandPool"));
+      reinterpret_cast<PFN_vkCreateCommandPool>(vkGetInstanceProcAddr(instance, "vkCreateCommandPool"));
     vkAllocateCommandBuffers =
-      reinterpret_cast<decltype(
-        &::vkAllocateCommandBuffers)>(vkGetInstanceProcAddr(instance, "vkAllocateCommandBuffers"));
+      reinterpret_cast<PFN_vkAllocateCommandBuffers>(vkGetInstanceProcAddr(instance, "vkAllocateCommandBuffers"));
     vkBeginCommandBuffer =
-      reinterpret_cast<decltype(&::vkBeginCommandBuffer)>(vkGetInstanceProcAddr(instance, "vkBeginCommandBuffer"));
+      reinterpret_cast<PFN_vkBeginCommandBuffer>(vkGetInstanceProcAddr(instance, "vkBeginCommandBuffer"));
     vkEndCommandBuffer =
-      reinterpret_cast<decltype(&::vkEndCommandBuffer)>(vkGetInstanceProcAddr(instance, "vkEndCommandBuffer"));
+      reinterpret_cast<PFN_vkEndCommandBuffer>(vkGetInstanceProcAddr(instance, "vkEndCommandBuffer"));
     vkQueueSubmit =
-      reinterpret_cast<decltype(&::vkQueueSubmit)>(vkGetInstanceProcAddr(instance, "vkQueueSubmit"));
+      reinterpret_cast<PFN_vkQueueSubmit>(vkGetInstanceProcAddr(instance, "vkQueueSubmit"));
     vkQueueWaitIdle =
-      reinterpret_cast<decltype(&::vkQueueWaitIdle)>(vkGetInstanceProcAddr(instance, "vkQueueWaitIdle"));
+      reinterpret_cast<PFN_vkQueueWaitIdle>(vkGetInstanceProcAddr(instance, "vkQueueWaitIdle"));
     vkResetCommandBuffer =
-      reinterpret_cast<decltype(&::vkResetCommandBuffer)>(vkGetInstanceProcAddr(instance, "vkResetCommandBuffer"));
+      reinterpret_cast<PFN_vkResetCommandBuffer>(vkGetInstanceProcAddr(instance, "vkResetCommandBuffer"));
     vkFreeCommandBuffers =
-      reinterpret_cast<decltype(&::vkFreeCommandBuffers)>(vkGetInstanceProcAddr(instance, "vkFreeCommandBuffers"));
+      reinterpret_cast<PFN_vkFreeCommandBuffers>(vkGetInstanceProcAddr(instance, "vkFreeCommandBuffers"));
     vkDestroyCommandPool =
-      reinterpret_cast<decltype(&::vkDestroyCommandPool)>(vkGetInstanceProcAddr(instance, "vkDestroyCommandPool"));
+      reinterpret_cast<PFN_vkDestroyCommandPool>(vkGetInstanceProcAddr(instance, "vkDestroyCommandPool"));
 }
 }  // namespace Hooks
 }  // namespace Unity
@@ -283,10 +283,10 @@ void useOptimalSettings() {
       &sharpness
     );
     if (NVSDK_NGX_FAILED(result)) {
-        renderResolution = presentResolution;
+        renderResolution               = presentResolution;
         dynamicMaximumRenderResolution = presentResolution;
         dynamicMinimumRenderResolution = presentResolution;
-        sharpness = 0.F;
+        sharpness                      = 0.F;
         Logger::log("Get optimal DLSS settings: ", result);
     }
 }
@@ -315,13 +315,13 @@ extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void OnFramebufferResize(u
     Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
 
     VkCommandBuffer commandBuffer = Plugin::beginOneTimeSubmitRecording();
-//    NVSDK_NGX_Result result =
-//      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
-//    Logger::log("Create DLSS feature", result);
-//    if (NVSDK_NGX_FAILED(result)) {
-//        Plugin::cancelOneTimeSubmitRecording();
-//        return;
-//    }
+    NVSDK_NGX_Result result =
+      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
+    Logger::log("Create DLSS feature", result);
+    if (NVSDK_NGX_FAILED(result)) {
+        Plugin::cancelOneTimeSubmitRecording();
+        return;
+    }
     Plugin::endOneTimeSubmitRecording();
 }
 
@@ -397,8 +397,8 @@ extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API bool initializeDLSS() {
         );
         std::stringstream stream;
         stream << "DLSS is not available on this hardware or platform. FeatureInitResult = 0x" << std::setfill('0')
-               << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult << ", info: "
-               << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
+               << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult
+               << ", info: " << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
         Logger::log(stream.str());
         Logger::log("Setting DLSSSupport and continuing anyway.");
         DLSSSupported = 1;
@@ -439,7 +439,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
 
     // Continue either way
     VkDeviceCreateInfo createInfo = *pCreateInfo;
-    std::string        message;
+    std::string message;
 
     // @todo Detect if device extensions requested are supported before creating device.
     // Find out which extensions need to be added.
@@ -453,10 +453,10 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
       &extensions
     );
 
+    std::vector<const char *> enabledExtensions;
     if (NVSDK_NGX_SUCCEED(queryResult)) {
         // Add the extensions that have already been requested to the extensions that need to be added.
         // @todo Consider doing this entirely on the stack for speed.
-        std::vector<const char *> enabledExtensions;
         enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + extensionCount);
         for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
             enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
@@ -472,7 +472,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
     }
 
     // Create the Device
-    VkResult result = Unity::Hooks::vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
+    VkResult result = Unity::Hooks::vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
         Logger::log("DLSS compatible device creation", queryResult);
         if (NVSDK_NGX_SUCCEED(queryResult))
@@ -500,10 +500,10 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
       &extensions
     );
 
+    std::vector<const char *> enabledExtensions;
     if (NVSDK_NGX_SUCCEED(queryResult)) {
         // Add the extensions that have already been requested to the extensions that need to be added.
         // @todo Consider doing this entirely on the stack for speed.
-        std::vector<const char *> enabledExtensions;
         enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + extensionCount);
         for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
             enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
@@ -519,7 +519,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
     }
 
     // Create the Instance.
-    VkResult result       = Unity::Hooks::vkCreateInstance(pCreateInfo, pAllocator, pInstance);
+    VkResult result       = Unity::Hooks::vkCreateInstance(&createInfo, pAllocator, pInstance);
     Unity::vulkanInstance = *pInstance;
     if (result == VK_SUCCESS) {
         Logger::log("DLSS compatible instance creation", queryResult);
@@ -533,19 +533,19 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Hook_vkGetInstanceProcAddr(VkInstance i
     if (pName == nullptr) return nullptr;
     if (strcmp(pName, "vkCreateInstance") == 0) {
         Unity::Hooks::vkCreateInstance =
-          reinterpret_cast<decltype(&vkCreateInstance)>(Unity::Hooks::vkGetInstanceProcAddr(instance, pName));
+          reinterpret_cast<PFN_vkCreateInstance>(Unity::Hooks::vkGetInstanceProcAddr(instance, pName));
         return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateInstance);
     }
     if (strcmp(pName, "vkCreateDevice") == 0) {
         Unity::Hooks::vkCreateDevice =
-          reinterpret_cast<decltype(&vkCreateDevice)>(Unity::Hooks::vkGetInstanceProcAddr(instance, pName));
+          reinterpret_cast<PFN_vkCreateDevice>(Unity::Hooks::vkGetInstanceProcAddr(instance, pName));
         return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateDevice);
     }
     return Unity::Hooks::vkGetInstanceProcAddr(instance, pName);
 }
 
 PFN_vkGetInstanceProcAddr
-interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void *t_userData) {
+interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
     Unity::Hooks::vkGetInstanceProcAddr = t_getInstanceProcAddr;
     return Hook_vkGetInstanceProcAddr;
 }
@@ -566,8 +566,6 @@ extern "C" void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventTyp
         case kUnityGfxDeviceEventShutdown: {
             Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
         }
-        case kUnityGfxDeviceEventBeforeReset: break;
-        case kUnityGfxDeviceEventAfterReset: break;
         default: break;
     }
 }
@@ -578,6 +576,7 @@ extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsDLSSSupported() {
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
     Unity::interfaces              = t_unityInterfaces;
+    // @todo Add a fallback if IUnityGraphicsVulkanV2 is not available.
     Unity::vulkanGraphicsInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
     if (!Unity::vulkanGraphicsInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0)) {
         Logger::log("DLSS Plugin failed to intercept initialization.");
