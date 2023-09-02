@@ -1,21 +1,21 @@
-using AOT;
 using System;
 using System.Runtime.InteropServices;
+using AOT;
 using UnityEngine;
 
 public class EnableDLSS : MonoBehaviour {
-    public delegate void debugCallback(IntPtr message);
-    [DllImport("DLSSPlugin")] public static extern void SetDebugCallback(debugCallback cb);
+    public delegate void DebugCallback(IntPtr message);
+    [DllImport("DLSSPlugin")] public static extern void SetDebugCallback(DebugCallback cb);
     [DllImport("DLSSPlugin")] public static extern bool IsDLSSSupported();
     [DllImport("DLSSPlugin")] public static extern void OnFramebufferResize(long width, long height);
+    [DllImport("DLSSPlugin")] public static extern void PrepareDLSS(IntPtr depthBuffer);
+    [DllImport("DLSSPlugin")] public static extern void EvaluateDLSS();
 
-    private int lastWidth = 0;
-    private int lastHeight = 0;
+    private int _lastWidth;
+    private int _lastHeight;
 
-    [MonoPInvokeCallback(typeof(debugCallback))]
-    void LogDebugMessage(IntPtr message) {
-    	Debug.Log(Marshal.PtrToStringAnsi(message));
-    }
+    [MonoPInvokeCallback(typeof(DebugCallback))]
+    void LogDebugMessage(IntPtr message) => Debug.Log(Marshal.PtrToStringAnsi(message));
 
     // OnEnable is called when the plugin is enabled
     void OnEnable() {
@@ -24,16 +24,21 @@ public class EnableDLSS : MonoBehaviour {
 	
     // Start is called before the first frame update
     void Start() {
-        if (IsDLSSSupported()) Debug.Log("DLSS is supported.");
-        else Debug.Log("DLSS is not supported.");
+        if (!IsDLSSSupported()) {
+            Debug.Log("DLSS is not supported.");
+            return;
+        }
+        Debug.Log("DLSS is supported.");
+        // Graphics.activeDepthBuffer.GetNativeRenderBufferPtr();
+        var ptr = RenderTexture.active.GetNativeDepthBufferPtr();
+        PrepareDLSS(ptr);
     }
 
     // Update is called once per frame
     void Update() {
-        if (Screen.width != lastWidth || Screen.height != lastHeight) {
-            OnFramebufferResize(Screen.width, Screen.height);
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-        }
+        if (Screen.width == _lastWidth && Screen.height == _lastHeight) return;
+        OnFramebufferResize(Screen.width, Screen.height);
+        _lastWidth = Screen.width;
+        _lastHeight = Screen.height;
     }
 }

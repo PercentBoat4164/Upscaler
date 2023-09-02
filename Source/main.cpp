@@ -91,7 +91,7 @@ NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
   .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
   .Identifier          = Application::ngxIdentifier,
   .ApplicationDataPath = Application::dataPath.c_str(),
-  .FeatureInfo         = &Application::featureCommonInfo,
+  .FeatureInfo         = nullptr,
 };
 }  // namespace Application
 
@@ -103,21 +103,25 @@ VkInstance              vulkanInstance;
 
 namespace Hooks {
 // Loaded before initialization
-PFN_vkGetInstanceProcAddr           vkGetInstanceProcAddr;
-decltype(&vkCreateInstance)         vkCreateInstance;
-decltype(&vkCreateDevice)           vkCreateDevice;
+PFN_vkGetInstanceProcAddr    vkGetInstanceProcAddr;
+PFN_vkCreateInstance         vkCreateInstance;
+PFN_vkCreateDevice           vkCreateDevice;
 // Loaded after initialization
-decltype(&vkCreateCommandPool)      vkCreateCommandPool;
-decltype(&vkAllocateCommandBuffers) vkAllocateCommandBuffers;
-decltype(&vkBeginCommandBuffer)     vkBeginCommandBuffer;
-decltype(&vkEndCommandBuffer)       vkEndCommandBuffer;
-decltype(&vkQueueSubmit)            vkQueueSubmit;
-decltype(&vkQueueWaitIdle)          vkQueueWaitIdle;
-decltype(&vkResetCommandBuffer)     vkResetCommandBuffer;
-decltype(&vkFreeCommandBuffers)     vkFreeCommandBuffers;
-decltype(&vkDestroyCommandPool)     vkDestroyCommandPool;
+PFN_vkCreateImageView        vkCreateImageView;
+PFN_vkCreateCommandPool      vkCreateCommandPool;
+PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
+PFN_vkBeginCommandBuffer     vkBeginCommandBuffer;
+PFN_vkEndCommandBuffer       vkEndCommandBuffer;
+PFN_vkQueueSubmit            vkQueueSubmit;
+PFN_vkQueueWaitIdle          vkQueueWaitIdle;
+PFN_vkResetCommandBuffer     vkResetCommandBuffer;
+PFN_vkFreeCommandBuffers     vkFreeCommandBuffers;
+PFN_vkDestroyCommandPool     vkDestroyCommandPool;
 
-void loadVulkanFunctionHooks(VkInstance instance) {
+void loadVulkanFunctionHooks(VkInstance instance, VkDevice device) {
+    // @todo Get device functions using the device rather than the instance to avoid indirection on every call.
+    vkCreateImageView =
+      reinterpret_cast<PFN_vkCreateImageView>(vkGetInstanceProcAddr(instance, "vkCreateImageView"));
     vkCreateCommandPool =
       reinterpret_cast<PFN_vkCreateCommandPool>(vkGetInstanceProcAddr(instance, "vkCreateCommandPool"));
     vkAllocateCommandBuffers =
@@ -139,12 +143,14 @@ void loadVulkanFunctionHooks(VkInstance instance) {
 }  // namespace Unity
 
 namespace Plugin {
-bool                 DLSSSupported{true};
-NVSDK_NGX_Handle    *DLSS{nullptr};
-NVSDK_NGX_Parameter *parameters{nullptr};
-VkCommandPool        _oneTimeSubmitCommandPool;
-VkCommandBuffer      _oneTimeSubmitCommandBuffer;
-bool                 _oneTimeSubmitRecording{false};
+bool                          DLSSSupported{true};
+NVSDK_NGX_Handle             *DLSS{nullptr};
+NVSDK_NGX_Parameter          *parameters{nullptr};
+NVSDK_NGX_VK_DLSS_Eval_Params evalParameters;
+NVSDK_NGX_Resource_VK         depthBufferResource;
+VkCommandPool                 _oneTimeSubmitCommandPool;
+VkCommandBuffer               _oneTimeSubmitCommandBuffer;
+bool                          _oneTimeSubmitRecording{false};
 
 void prepareForOneTimeSubmits() {
     if (_oneTimeSubmitRecording) return;
@@ -291,8 +297,7 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void
-OnFramebufferResize(unsigned int width, unsigned int height) {
+extern "C" void UNITY_INTERFACE_EXPORT OnFramebufferResize(unsigned int width, unsigned int height) {
     Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string((height)));
 
     // Release any previously existing feature
@@ -324,13 +329,93 @@ OnFramebufferResize(unsigned int width, unsigned int height) {
     Plugin::endOneTimeSubmitRecording();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API bool initializeDLSS() {
+extern "C" void UNITY_INTERFACE_EXPORT PrepareDLSS(VkImage t_depthBuffer) {
+    VkImageView imageView{nullptr};
+
+    VkImageViewCreateInfo createInfo{
+      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext    = nullptr,
+      .flags    = 0,
+      .image    = t_depthBuffer,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format   = VK_FORMAT_D24_UNORM_S8_UINT,
+      .components =
+        {
+                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+                     },
+      .subresourceRange =
+        {
+                     .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+                     .baseMipLevel   = 0,
+                     .levelCount     = 1,
+                     .baseArrayLayer = 0,
+                     .layerCount     = 1,
+                     },
+    };
+
+    VkResult result = Unity::Hooks::vkCreateImageView(
+      Unity::vulkanGraphicsInterface->Instance().device,
+      &createInfo,
+      nullptr,
+      &imageView
+    );
+    if (result == VK_SUCCESS)
+        Logger::log("Created depth resource for DLSS.");
+
+
+    Plugin::depthBufferResource = {
+      .Resource = {
+        .ImageViewInfo = {
+          .ImageView        = imageView,
+          .Image            = t_depthBuffer,
+          .SubresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+          },
+          .Format = VK_FORMAT_D24_UNORM_S8_UINT,
+          .Width  = Plugin::Settings::renderResolution.width,
+          .Height = Plugin::Settings::renderResolution.height,
+        },
+      },
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true,
+    };
+
+    Plugin::evalParameters = {
+      .pInDepth                  = &Plugin::depthBufferResource,
+      .pInMotionVectors          = nullptr,
+      .InJitterOffsetX           = 0.F,
+      .InJitterOffsetY           = 0.F,
+      .InRenderSubrectDimensions = {
+        .Width  = Plugin::Settings::renderResolution.width,
+        .Height = Plugin::Settings::renderResolution.height,
+        },
+    };
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT EvaluateDLSS() {
+    UnityVulkanRecordingState state{};
+    Unity::vulkanGraphicsInterface->EnsureInsideRenderPass;
+    Unity::vulkanGraphicsInterface->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+
+    NVSDK_NGX_Result result =
+      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, Plugin::DLSS, Plugin::parameters, &Plugin::evalParameters);
+    Logger::log("Evaluated DLSS feature", result);
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT initializeDLSS() {
     if (!Plugin::DLSSSupported) return false;
 
     UnityVulkanInstance vulkan = Unity::vulkanGraphicsInterface->Instance();
 
-    Unity::Hooks::loadVulkanFunctionHooks(vulkan.instance);
+    Unity::Hooks::loadVulkanFunctionHooks(vulkan.instance, vulkan.device);
     Plugin::prepareForOneTimeSubmits();
+
+    Application::featureDiscoveryInfo.FeatureInfo = &Application::featureCommonInfo;
 
     // Initialize NGX SDK
     NVSDK_NGX_Result result = NVSDK_NGX_VULKAN_Init(
@@ -455,7 +540,6 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
     std::vector<const char *> enabledExtensions;
     if (NVSDK_NGX_SUCCEED(queryResult)) {
         // Add the extensions that have already been requested to the extensions that need to be added.
-        // @todo Consider doing this entirely on the stack for speed.
         enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + extensionCount);
         for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
             enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
@@ -502,7 +586,6 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
     std::vector<const char *> enabledExtensions;
     if (NVSDK_NGX_SUCCEED(queryResult)) {
         // Add the extensions that have already been requested to the extensions that need to be added.
-        // @todo Consider doing this entirely on the stack for speed.
         enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + extensionCount);
         for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
             enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
@@ -549,8 +632,7 @@ interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * 
     return Hook_vkGetInstanceProcAddr;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API void SetDebugCallback(void (*t_debugFunction)(const char *)
-) {
+extern "C" void UNITY_INTERFACE_EXPORT SetDebugCallback(void (*t_debugFunction)(const char *)) {
     Logger::Info = t_debugFunction;
     Logger::flush();
 }
@@ -570,7 +652,7 @@ extern "C" void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventTyp
     }
 }
 
-extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsDLSSSupported() {
+extern "C" bool UNITY_INTERFACE_EXPORT IsDLSSSupported() {
     return Plugin::DLSSSupported;
 }
 
@@ -597,6 +679,10 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload() {
     Plugin::DLSS = nullptr;
     // Shutdown NGX
     NVSDK_NGX_VULKAN_Shutdown1(nullptr);
+    // Remove vulkan initialization interception
+    Unity::vulkanGraphicsInterface->RemoveInterceptInitialization(interceptInitialization);
+    // Remove the device event callback
+    Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
     // Perform shutdown graphics event
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventShutdown);
 }
