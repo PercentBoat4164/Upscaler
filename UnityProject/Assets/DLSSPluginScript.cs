@@ -32,7 +32,7 @@ public class EnableDLSS : MonoBehaviour
         if (Screen.width == _lastWidth && Screen.height == _lastHeight) return;
         var width = (uint)Screen.width;
         var height = (uint)Screen.height;
-        OnFramebufferResize(LogDebugMessage, width, height);
+        OnFramebufferResize(width, height);
         _lastWidth = Screen.width;
         _lastHeight = Screen.height;
     }
@@ -55,7 +55,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern bool IsDLSSSupported();
 
     [DllImport("DLSSPlugin")]
-    private static extern void OnFramebufferResize(DebugCallback cb, uint width, uint height);
+    private static extern void OnFramebufferResize(uint width, uint height);
 
     [DllImport("DLSSPlugin")]
     public static extern void PrepareDLSS(IntPtr depthBuffer);
