@@ -1,0 +1,6 @@
+# For legal reasons
+nvngx_dlss_sdk
+# IDE project files
+../.idea
+# Project exclude paths
+*-build-*

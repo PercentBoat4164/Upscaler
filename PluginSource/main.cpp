@@ -1,21 +1,20 @@
-#include "Unity/IUnityGraphics.h"
-#include "Unity/IUnityGraphicsVulkan.h"
-#include "Unity/IUnityInterface.h"
+#include "IUnityGraphics.h"
+#include "IUnityGraphicsVulkan.h"
+#include "IUnityInterface.h"
 
 // DLSS requires the vulkan imports from Unity
-#include "DLSS/nvsdk_ngx.h"
-#include "DLSS/nvsdk_ngx_defs.h"
-#include "DLSS/nvsdk_ngx_helpers.h"
-#include "DLSS/nvsdk_ngx_helpers_vk.h"
-#include "DLSS/nvsdk_ngx_params.h"
-#include "DLSS/nvsdk_ngx_vk.h"
+#include "nvsdk_ngx.h"
+#include "nvsdk_ngx_defs.h"
+#include "nvsdk_ngx_helpers.h"
+#include "nvsdk_ngx_helpers_vk.h"
+#include "nvsdk_ngx_params.h"
+#include "nvsdk_ngx_vk.h"
 
 #include <cstring>
 #include <functional>
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <thread>
 
 #ifndef NDEBUG
 // Usage: Insert this where the debugger should connect. Execute. Connect the debugger. Set 'debuggerConnected' to
@@ -91,7 +90,7 @@ NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
   .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
   .Identifier          = Application::ngxIdentifier,
   .ApplicationDataPath = Application::dataPath.c_str(),
-  .FeatureInfo         = nullptr,
+  .FeatureInfo         = &Application::featureCommonInfo,
 };
 }  // namespace Application
 
@@ -232,7 +231,7 @@ namespace Settings {
 struct Resolution {
     unsigned int width;
     unsigned int height;
-} __attribute__((aligned(8)));
+};
 
 Resolution                  renderResolution;
 Resolution                  dynamicMaximumRenderResolution;
@@ -297,39 +296,41 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" void UNITY_INTERFACE_EXPORT OnFramebufferResize(unsigned int width, unsigned int height) {
-    Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string((height)));
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnFramebufferResize(void (*t_debugFunction)(const char *), unsigned int width, unsigned int height) {
+//    unsigned int width = size >> 32U;
+//    unsigned int height = size & 0x00000000FFFFFFFF;
+    Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string(height));
 
-    // Release any previously existing feature
-    if (Plugin::DLSS != nullptr) {
-        NVSDK_NGX_VULKAN_ReleaseFeature(Plugin::DLSS);
-        Plugin::DLSS = nullptr;
-    }
-
-    Plugin::Settings::setPresentResolution({width, height});
-    Plugin::Settings::useOptimalSettings();
-    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams = Plugin::Settings::getDLSSCreateParams();
-
-    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, 1);
-    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, 1);
-    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, 1);
-    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
-    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
-
-    Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
-
-    VkCommandBuffer  commandBuffer = Plugin::beginOneTimeSubmitRecording();
-    NVSDK_NGX_Result result =
-      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
-    Logger::log("Create DLSS feature", result);
-    if (NVSDK_NGX_FAILED(result)) {
-        Plugin::cancelOneTimeSubmitRecording();
-        return;
-    }
-    Plugin::endOneTimeSubmitRecording();
+//    // Release any previously existing feature
+//    if (Plugin::DLSS != nullptr) {
+//        NVSDK_NGX_VULKAN_ReleaseFeature(Plugin::DLSS);
+//        Plugin::DLSS = nullptr;
+//    }
+//
+//    Plugin::Settings::setPresentResolution({width, height});
+//    Plugin::Settings::useOptimalSettings();
+//    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams = Plugin::Settings::getDLSSCreateParams();
+//
+//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, 1);
+//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, 1);
+//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, 1);
+//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
+//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
+//
+//    Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
+//
+//    VkCommandBuffer  commandBuffer = Plugin::beginOneTimeSubmitRecording();
+//    NVSDK_NGX_Result result =
+//      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
+//    Logger::log("Create DLSS feature", result);
+//    if (NVSDK_NGX_FAILED(result)) {
+//        Plugin::cancelOneTimeSubmitRecording();
+//        return;
+//    }
+//    Plugin::endOneTimeSubmitRecording();
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT PrepareDLSS(VkImage t_depthBuffer) {
+extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
     VkImageView imageView{nullptr};
 
     VkImageViewCreateInfo createInfo{
@@ -397,7 +398,7 @@ extern "C" void UNITY_INTERFACE_EXPORT PrepareDLSS(VkImage t_depthBuffer) {
     };
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT EvaluateDLSS() {
+extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
     UnityVulkanRecordingState state{};
     Unity::vulkanGraphicsInterface->EnsureInsideRenderPass;
     Unity::vulkanGraphicsInterface->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
@@ -407,15 +408,13 @@ extern "C" void UNITY_INTERFACE_EXPORT EvaluateDLSS() {
     Logger::log("Evaluated DLSS feature", result);
 }
 
-extern "C" bool UNITY_INTERFACE_EXPORT initializeDLSS() {
+extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
     if (!Plugin::DLSSSupported) return false;
 
     UnityVulkanInstance vulkan = Unity::vulkanGraphicsInterface->Instance();
 
     Unity::Hooks::loadVulkanFunctionHooks(vulkan.instance, vulkan.device);
     Plugin::prepareForOneTimeSubmits();
-
-    Application::featureDiscoveryInfo.FeatureInfo = &Application::featureCommonInfo;
 
     // Initialize NGX SDK
     NVSDK_NGX_Result result = NVSDK_NGX_VULKAN_Init(
@@ -484,8 +483,7 @@ extern "C" bool UNITY_INTERFACE_EXPORT initializeDLSS() {
                << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult
                << ", info: " << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
         Logger::log(stream.str());
-        Logger::log("Setting DLSSSupport and continuing anyway.");
-        DLSSSupported = 1;
+        return false;
     }
     // Is DLSS denied for this application
     result = Plugin::parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported);
@@ -632,12 +630,12 @@ interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * 
     return Hook_vkGetInstanceProcAddr;
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT SetDebugCallback(void (*t_debugFunction)(const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(const char *)) {
     Logger::Info = t_debugFunction;
     Logger::flush();
 }
 
-extern "C" void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
+extern "C" UNITY_INTERFACE_EXPORT void OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize: {
             UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
@@ -652,11 +650,11 @@ extern "C" void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventTyp
     }
 }
 
-extern "C" bool UNITY_INTERFACE_EXPORT IsDLSSSupported() {
+extern "C" UNITY_INTERFACE_EXPORT bool IsDLSSSupported() {
     return Plugin::DLSSSupported;
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
     Unity::interfaces              = t_unityInterfaces;
     // @todo Add a fallback if IUnityGraphicsVulkanV2 is not available.
     Unity::vulkanGraphicsInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
@@ -669,7 +667,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload() {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     // Finish all one time submits
     Plugin::finishOneTimeSubmits();
     // Clean up
