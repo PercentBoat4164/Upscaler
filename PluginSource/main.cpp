@@ -296,38 +296,36 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnFramebufferResize(void (*t_debugFunction)(const char *), unsigned int width, unsigned int height) {
-//    unsigned int width = size >> 32U;
-//    unsigned int height = size & 0x00000000FFFFFFFF;
-    Logger::log("Resizing DLSS targets: " + std::to_string(width) + "x" + std::to_string(height));
+extern "C" UNITY_INTERFACE_EXPORT void __cdecl OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
+    Logger::log("Resizing DLSS targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
 
-//    // Release any previously existing feature
-//    if (Plugin::DLSS != nullptr) {
-//        NVSDK_NGX_VULKAN_ReleaseFeature(Plugin::DLSS);
-//        Plugin::DLSS = nullptr;
-//    }
-//
-//    Plugin::Settings::setPresentResolution({width, height});
-//    Plugin::Settings::useOptimalSettings();
-//    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams = Plugin::Settings::getDLSSCreateParams();
-//
-//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, 1);
-//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, 1);
-//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, 1);
-//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
-//    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
-//
-//    Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
-//
-//    VkCommandBuffer  commandBuffer = Plugin::beginOneTimeSubmitRecording();
-//    NVSDK_NGX_Result result =
-//      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
-//    Logger::log("Create DLSS feature", result);
-//    if (NVSDK_NGX_FAILED(result)) {
-//        Plugin::cancelOneTimeSubmitRecording();
-//        return;
-//    }
-//    Plugin::endOneTimeSubmitRecording();
+    // Release any previously existing feature
+    if (Plugin::DLSS != nullptr) {
+        NVSDK_NGX_VULKAN_ReleaseFeature(Plugin::DLSS);
+        Plugin::DLSS = nullptr;
+    }
+
+    Plugin::Settings::setPresentResolution({t_width, t_height});
+    Plugin::Settings::useOptimalSettings();
+    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams = Plugin::Settings::getDLSSCreateParams();
+
+    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, 1);
+    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, 1);
+    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, 1);
+    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
+    NVSDK_NGX_Parameter_SetUI(Plugin::parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
+
+    Unity::vulkanGraphicsInterface->EnsureOutsideRenderPass();
+
+    VkCommandBuffer  commandBuffer = Plugin::beginOneTimeSubmitRecording();
+    NVSDK_NGX_Result result =
+      NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &Plugin::DLSS, Plugin::parameters, &DLSSCreateParams);
+    Logger::log("Create DLSS feature", result);
+    if (NVSDK_NGX_FAILED(result)) {
+        Plugin::cancelOneTimeSubmitRecording();
+        return;
+    }
+    Plugin::endOneTimeSubmitRecording();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
