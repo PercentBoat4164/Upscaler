@@ -6,6 +6,7 @@
   <component name="CidrRootsConfiguration">
     <excludeRoots>
       <file path="$PROJECT_DIR$/PluginSource/cmake-build-debug-bundled-mingw-gcc-v112" />
+      <file path="$PROJECT_DIR$/UnityProject" />
     </excludeRoots>
   </component>
 </project>

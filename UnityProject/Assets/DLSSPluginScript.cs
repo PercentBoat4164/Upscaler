@@ -41,19 +41,19 @@ public class EnableDLSS : MonoBehaviour
         SetDebugCallback(LogDebugMessage);
     }
 
-    [DllImport("DLSSPlugin")]
+    [DllImport("GfxPluginDLSSPlugin")]
     private static extern void SetDebugCallback(DebugCallback cb);
 
-    [DllImport("DLSSPlugin")]
+    [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool IsDLSSSupported();
 
-    [DllImport("DLSSPlugin")]
+    [DllImport("GfxPluginDLSSPlugin")]
     private static extern void OnFramebufferResize(uint width, uint height);
 
-    [DllImport("DLSSPlugin")]
+    [DllImport("GfxPluginDLSSPlugin")]
     public static extern void PrepareDLSS(IntPtr depthBuffer);
 
-    [DllImport("DLSSPlugin")]
+    [DllImport("GfxPluginDLSSPlugin")]
     public static extern void EvaluateDLSS();
 
     [MonoPInvokeCallback(typeof(DebugCallback))]

@@ -6,262 +6,256 @@
 },
 
 "traceEvents":[
-{ "pid": 15912, "tid": -1, "ph": "M", "name": "process_name", "args": { "name": "BeeDriver" } },
-{ "pid": 15912, "tid": -1, "ph": "M", "name": "process_sort_index", "args": { "sort_index": "-2" } },
-{ "pid": 15912, "tid": 7, "ph": "M", "name": "thread_name", "args": { "name": "Thread Pool Worker" } },
-{ "pid": 15912, "tid": 7, "ts": 1693940698144759, "dur": 691, "ph": "X", "name": "ChromeTraceHeader", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698147847, "dur": 1191, "ph": "X", "name": "Thread Pool Worker", "args": {} },
-{ "pid": 15912, "tid": 1, "ph": "M", "name": "thread_name", "args": { "name": "" } },
-{ "pid": 15912, "tid": 1, "ts": 1693940698095256, "dur": 8180, "ph": "X", "name": "<Add>b__0", "args": {} },
-{ "pid": 15912, "tid": 1, "ts": 1693940698103443, "dur": 15577, "ph": "X", "name": "<Add>b__0", "args": {} },
-{ "pid": 15912, "tid": 1, "ts": 1693940698119034, "dur": 9063, "ph": "X", "name": "WriteJson", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698149049, "dur": 751, "ph": "X", "name": "", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ph": "M", "name": "thread_name", "args": { "name": "ReadEntireBinlogFromIpcAsync" } },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698087813, "dur": 1063, "ph": "X", "name": "WaitForConnectionAsync", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698088878, "dur": 46495, "ph": "X", "name": "UpdateFromStreamAsync", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698089737, "dur": 3514, "ph": "X", "name": "ReadAsync 0", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698093261, "dur": 2325, "ph": "X", "name": "ProcessMessages 20579", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698095594, "dur": 737, "ph": "X", "name": "ReadAsync 20579", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096338, "dur": 382, "ph": "X", "name": "ProcessMessages 13644", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096727, "dur": 48, "ph": "X", "name": "ReadAsync 13644", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096778, "dur": 2, "ph": "X", "name": "ProcessMessages 80", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096783, "dur": 125, "ph": "X", "name": "ReadAsync 80", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096915, "dur": 2, "ph": "X", "name": "ProcessMessages 12", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698096919, "dur": 143, "ph": "X", "name": "ReadAsync 12", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698097066, "dur": 1, "ph": "X", "name": "ProcessMessages 4", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698097110, "dur": 38, "ph": "X", "name": "ReadAsync 4", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698097160, "dur": 6, "ph": "X", "name": "ProcessMessages 48", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698097170, "dur": 34110, "ph": "X", "name": "ReadAsync 48", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698131293, "dur": 4, "ph": "X", "name": "ProcessMessages 12", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698131300, "dur": 28, "ph": "X", "name": "ReadAsync 12", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698131330, "dur": 274, "ph": "X", "name": "ProcessMessages 13", "args": {} },
-{ "pid": 15912, "tid": 12884901888, "ts": 1693940698131610, "dur": 3605, "ph": "X", "name": "ReadAsync 13", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698149807, "dur": 128, "ph": "X", "name": "ReadEntireBinlogFromIpcAsync", "args": {} },
-{ "pid": 15912, "tid": 8589934592, "ph": "M", "name": "thread_name", "args": { "name": "WaitForBuildProgramInputDataBeingWrittenAndSendDagReadyMessageAsync" } },
-{ "pid": 15912, "tid": 8589934592, "ts": 1693940698080263, "dur": 47894, "ph": "X", "name": "await writeBuildProgramInputDataTask", "args": {} },
-{ "pid": 15912, "tid": 8589934592, "ts": 1693940698128161, "dur": 10, "ph": "X", "name": "WritePipe.WaitConnectionAsync", "args": {} },
-{ "pid": 15912, "tid": 8589934592, "ts": 1693940698128172, "dur": 1374, "ph": "X", "name": "WriteDagReadyMessage", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698149942, "dur": 26, "ph": "X", "name": "WaitForBuildProgramInputDataBeingWrittenAndSendDagReadyMessageAsync", "args": {} },
-{ "pid": 15912, "tid": 4294967296, "ph": "M", "name": "thread_name", "args": { "name": "BuildAsync" } },
-{ "pid": 15912, "tid": 4294967296, "ts": 1693940698046022, "dur": 90849, "ph": "X", "name": "RunBackend", "args": {} },
-{ "pid": 15912, "tid": 4294967296, "ts": 1693940698053360, "dur": 19179, "ph": "X", "name": "BackendProgram.Start", "args": {} },
-{ "pid": 15912, "tid": 4294967296, "ts": 1693940698136914, "dur": 3531, "ph": "X", "name": "await WaitForAndApplyScriptUpdaters", "args": {} },
-{ "pid": 15912, "tid": 4294967296, "ts": 1693940698140871, "dur": 157, "ph": "X", "name": "await taskToReadBuildProgramOutput", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698149975, "dur": 324, "ph": "X", "name": "BuildAsync", "args": {} },
+{ "pid": 13687, "tid": -1, "ph": "M", "name": "process_name", "args": { "name": "BeeDriver" } },
+{ "pid": 13687, "tid": -1, "ph": "M", "name": "process_sort_index", "args": { "sort_index": "-2" } },
+{ "pid": 13687, "tid": 7, "ph": "M", "name": "thread_name", "args": { "name": "Thread Pool Worker" } },
+{ "pid": 13687, "tid": 7, "ts": 1693945452213309, "dur": 733, "ph": "X", "name": "ChromeTraceHeader", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452220928, "dur": 1056, "ph": "X", "name": "Thread Pool Worker", "args": {} },
+{ "pid": 13687, "tid": 1, "ph": "M", "name": "thread_name", "args": { "name": "" } },
+{ "pid": 13687, "tid": 1, "ts": 1693945452175003, "dur": 6190, "ph": "X", "name": "<Add>b__0", "args": {} },
+{ "pid": 13687, "tid": 1, "ts": 1693945452181198, "dur": 12441, "ph": "X", "name": "<Add>b__0", "args": {} },
+{ "pid": 13687, "tid": 1, "ts": 1693945452193654, "dur": 8885, "ph": "X", "name": "WriteJson", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452221993, "dur": 337, "ph": "X", "name": "", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ph": "M", "name": "thread_name", "args": { "name": "ReadEntireBinlogFromIpcAsync" } },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452172401, "dur": 6970, "ph": "X", "name": "WaitForConnectionAsync", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452179375, "dur": 26768, "ph": "X", "name": "UpdateFromStreamAsync", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452180144, "dur": 5996, "ph": "X", "name": "ReadAsync 0", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452186151, "dur": 1544, "ph": "X", "name": "ProcessMessages 4384", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187701, "dur": 142, "ph": "X", "name": "ReadAsync 4384", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187847, "dur": 6, "ph": "X", "name": "ProcessMessages 4717", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187855, "dur": 41, "ph": "X", "name": "ReadAsync 4717", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187899, "dur": 2, "ph": "X", "name": "ProcessMessages 803", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187904, "dur": 46, "ph": "X", "name": "ReadAsync 803", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187953, "dur": 2, "ph": "X", "name": "ProcessMessages 1056", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452187957, "dur": 63, "ph": "X", "name": "ReadAsync 1056", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188026, "dur": 3, "ph": "X", "name": "ProcessMessages 1192", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188032, "dur": 80, "ph": "X", "name": "ReadAsync 1192", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188117, "dur": 4, "ph": "X", "name": "ProcessMessages 1840", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188123, "dur": 53, "ph": "X", "name": "ReadAsync 1840", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188181, "dur": 2, "ph": "X", "name": "ProcessMessages 1142", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188185, "dur": 108, "ph": "X", "name": "ReadAsync 1142", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188302, "dur": 6, "ph": "X", "name": "ProcessMessages 2196", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188312, "dur": 114, "ph": "X", "name": "ReadAsync 2196", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188431, "dur": 4, "ph": "X", "name": "ProcessMessages 2094", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188438, "dur": 81, "ph": "X", "name": "ReadAsync 2094", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188522, "dur": 4, "ph": "X", "name": "ProcessMessages 2370", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188530, "dur": 54, "ph": "X", "name": "ReadAsync 2370", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188591, "dur": 3, "ph": "X", "name": "ProcessMessages 1270", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188616, "dur": 79, "ph": "X", "name": "ReadAsync 1270", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188699, "dur": 4, "ph": "X", "name": "ProcessMessages 2214", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188705, "dur": 95, "ph": "X", "name": "ReadAsync 2214", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188805, "dur": 3, "ph": "X", "name": "ProcessMessages 1447", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188810, "dur": 80, "ph": "X", "name": "ReadAsync 1447", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188894, "dur": 4, "ph": "X", "name": "ProcessMessages 2411", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188901, "dur": 78, "ph": "X", "name": "ReadAsync 2411", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188982, "dur": 3, "ph": "X", "name": "ProcessMessages 1100", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452188988, "dur": 45, "ph": "X", "name": "ReadAsync 1100", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189036, "dur": 2, "ph": "X", "name": "ProcessMessages 903", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189043, "dur": 82, "ph": "X", "name": "ReadAsync 903", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189129, "dur": 3, "ph": "X", "name": "ProcessMessages 1524", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189134, "dur": 41, "ph": "X", "name": "ReadAsync 1524", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189177, "dur": 2, "ph": "X", "name": "ProcessMessages 934", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189180, "dur": 42, "ph": "X", "name": "ReadAsync 934", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189225, "dur": 2, "ph": "X", "name": "ProcessMessages 977", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189229, "dur": 61, "ph": "X", "name": "ReadAsync 977", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189296, "dur": 3, "ph": "X", "name": "ProcessMessages 1456", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189305, "dur": 63, "ph": "X", "name": "ReadAsync 1456", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189371, "dur": 5, "ph": "X", "name": "ProcessMessages 1537", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189380, "dur": 113, "ph": "X", "name": "ReadAsync 1537", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189499, "dur": 7, "ph": "X", "name": "ProcessMessages 2293", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189508, "dur": 48, "ph": "X", "name": "ReadAsync 2293", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189561, "dur": 3, "ph": "X", "name": "ProcessMessages 486", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189566, "dur": 206, "ph": "X", "name": "ReadAsync 486", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452189778, "dur": 278, "ph": "X", "name": "ProcessMessages 272", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190063, "dur": 109, "ph": "X", "name": "ReadAsync 272", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190178, "dur": 17, "ph": "X", "name": "ProcessMessages 1536", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190198, "dur": 34, "ph": "X", "name": "ReadAsync 1536", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190236, "dur": 1, "ph": "X", "name": "ProcessMessages 16", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190240, "dur": 34, "ph": "X", "name": "ReadAsync 16", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190278, "dur": 1, "ph": "X", "name": "ProcessMessages 16", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452190281, "dur": 1719, "ph": "X", "name": "ReadAsync 16", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452192006, "dur": 4, "ph": "X", "name": "ProcessMessages 368", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452192013, "dur": 13181, "ph": "X", "name": "ReadAsync 368", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452205201, "dur": 344, "ph": "X", "name": "ProcessMessages 25", "args": {} },
+{ "pid": 13687, "tid": 12884901888, "ts": 1693945452205552, "dur": 544, "ph": "X", "name": "ReadAsync 25", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452222335, "dur": 558, "ph": "X", "name": "ReadEntireBinlogFromIpcAsync", "args": {} },
+{ "pid": 13687, "tid": 8589934592, "ph": "M", "name": "thread_name", "args": { "name": "WaitForBuildProgramInputDataBeingWrittenAndSendDagReadyMessageAsync" } },
+{ "pid": 13687, "tid": 8589934592, "ts": 1693945452169771, "dur": 32859, "ph": "X", "name": "await writeBuildProgramInputDataTask", "args": {} },
+{ "pid": 13687, "tid": 8589934592, "ts": 1693945452202634, "dur": 11, "ph": "X", "name": "WritePipe.WaitConnectionAsync", "args": {} },
+{ "pid": 13687, "tid": 8589934592, "ts": 1693945452202646, "dur": 2245, "ph": "X", "name": "WriteDagReadyMessage", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452222905, "dur": 31, "ph": "X", "name": "WaitForBuildProgramInputDataBeingWrittenAndSendDagReadyMessageAsync", "args": {} },
+{ "pid": 13687, "tid": 4294967296, "ph": "M", "name": "thread_name", "args": { "name": "BuildAsync" } },
+{ "pid": 13687, "tid": 4294967296, "ts": 1693945452091573, "dur": 116263, "ph": "X", "name": "RunBackend", "args": {} },
+{ "pid": 13687, "tid": 4294967296, "ts": 1693945452152276, "dur": 12333, "ph": "X", "name": "BackendProgram.Start", "args": {} },
+{ "pid": 13687, "tid": 4294967296, "ts": 1693945452207895, "dur": 2638, "ph": "X", "name": "await WaitForAndApplyScriptUpdaters", "args": {} },
+{ "pid": 13687, "tid": 4294967296, "ts": 1693945452210632, "dur": 31, "ph": "X", "name": "await taskToReadBuildProgramOutput", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452222940, "dur": 19, "ph": "X", "name": "BuildAsync", "args": {} },
 { "cat":"", "pid":12345, "tid":0, "ts":0, "ph":"M", "name":"process_name", "args": { "name":"bee_backend" } }
-,{ "pid":12345, "tid":0, "ts":1693940698084999, "dur":1483, "ph":"X", "name": "DriverInitData",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698086493, "dur":90, "ph":"X", "name": "RemoveStaleOutputs",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698086619, "dur":351, "ph":"X", "name": "BuildQueueInit",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698088068, "dur":3813, "ph":"X", "name": "EmitFirstTimeEnqueue",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextCoreTextEngineModule.dll_49515BE9C6390CD9.mvfrm" }}
-,{ "pid":12345, "tid":0, "ts":1693940698087003, "dur":5565, "ph":"X", "name": "EnqueueRequestedNodes",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698092570, "dur":38619, "ph":"X", "name": "WaitForBuildFinished", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698131190, "dur":209, "ph":"X", "name": "JoinBuildThread",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698131400, "dur":87, "ph":"X", "name": "ThreadStateDestroy",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698131604, "dur":1393, "ph":"X", "name": "Tundra",  "args": { "detail":"Write AllBuiltNodes" }}
-,{ "pid":12345, "tid":1, "ts":1693940698087186, "dur":5393, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698092592, "dur":359, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.VRModule.dll_8C82A95A2B4EAAEA.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093007, "dur":58, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.VehiclesModule.dll_6F59022BC501ABD5.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093118, "dur":238, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityTestProtocolModule.dll_C1734320D12191F5.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093357, "dur":200, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093565, "dur":66, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ImageConversionModule.dll_C1640D6CF916AC27.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093631, "dur":61, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093698, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.CoreModule.dll_86BA8D921B1D3EDD.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093754, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093813, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AnimationModule.dll_BDD7FAF7ECDB881A.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698093866, "dur":170, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698094047, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.LinuxStandalone.Extensions.dll_4B18E369A7D8D0BE.mvfrm" }}
-,{ "pid":12345, "tid":1, "ts":1693940698094156, "dur":1629, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698095785, "dur":703, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":1, "ts":1693940698096488, "dur":34697, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698087237, "dur":5362, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698092603, "dur":227, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.GraphViewModule.dll_EF527ECF127EB374.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093026, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityWebRequestWWWModule.dll_1413A145B5F8C945.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093081, "dur":70, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093155, "dur":99, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityAnalyticsCommonModule.dll_131083A911A98EFA.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093255, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093316, "dur":65, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.SubstanceModule.dll_4F17FC9187B63D66.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093436, "dur":52, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PhysicsModule.dll_A17FDE8C1F4B06DD.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093489, "dur":86, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093580, "dur":158, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.HotReloadModule.dll_3F20B8FDC80EA39C.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698093738, "dur":265, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698094007, "dur":59, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.SceneViewModule.dll_2E0261D707A18082.mvfrm" }}
-,{ "pid":12345, "tid":2, "ts":1693940698094066, "dur":116, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698094186, "dur":1337, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698095559, "dur":931, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":2, "ts":1693940698096490, "dur":34697, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698087224, "dur":5368, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698092596, "dur":390, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.PresetsUIModule.dll_AAB8B7B114D70B79.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698092987, "dur":60, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093052, "dur":93, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityWebRequestModule.dll_D3031517040B46A6.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093145, "dur":175, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093324, "dur":102, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.StreamingModule.dll_726CE8483C633F58.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093426, "dur":103, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093630, "dur":55, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.GameCenterModule.dll_3D9C5CFAA2A6B975.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093738, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ClusterInputModule.dll_327F794CC76C2E2E.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093847, "dur":128, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UnityConnectModule.dll_B2E3043715E45B68.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698093975, "dur":62, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698094041, "dur":57, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.PropertiesModule.dll_6A292EF1134E0466.mvfrm" }}
-,{ "pid":12345, "tid":3, "ts":1693940698094099, "dur":172, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698094276, "dur":1391, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698095667, "dur":819, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":3, "ts":1693940698096487, "dur":34705, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698087286, "dur":5329, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698092618, "dur":419, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.EditorToolbarModule.dll_25A488238FB0949F.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093037, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093146, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093402, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll_F22EB6641ED7CE78.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093510, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.LocalizationModule.dll_70CC439F5EE82127.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093567, "dur":56, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093628, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.GIModule.dll_D6792DB4C8FC07E0.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093729, "dur":51, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ClusterRendererModule.dll_55720FBC76F1F433.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698093832, "dur":149, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AccessibilityModule.dll_7BE964788F136674.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698094035, "dur":109, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.SceneTemplateModule.dll_4943F8E18E9D3ED7.mvfrm" }}
-,{ "pid":12345, "tid":4, "ts":1693940698094193, "dur":1292, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698095486, "dur":160, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698095647, "dur":837, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698096487, "dur":50, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":4, "ts":1693940698096543, "dur":34672, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698087273, "dur":5334, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698092612, "dur":356, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.GraphToolsFoundationModule.dll_A5C1556BE3329093.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698092969, "dur":58, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093032, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityWebRequestTextureModule.dll_55C4A729FB107F89.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093085, "dur":69, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093159, "dur":179, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UmbraModule.dll_EECA0905659CFDFF.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093394, "dur":51, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ScreenCaptureModule.dll_F5E89B39A2BAF360.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093491, "dur":60, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PerformanceReportingModule.dll_77D1C664F7C0F09C.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093652, "dur":54, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093710, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.CommandStateObserverModule.dll_568548D4254E016A.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093764, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093823, "dur":69, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AndroidJNIModule.dll_134F12DFDC65C884.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698093892, "dur":98, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698094002, "dur":71, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.TerrainModule.dll_C94BA1508FFA6886.mvfrm" }}
-,{ "pid":12345, "tid":5, "ts":1693940698094074, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698094135, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698094197, "dur":1017, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698095215, "dur":799, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698096015, "dur":477, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":5, "ts":1693940698096493, "dur":34710, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698087313, "dur":5311, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698092643, "dur":122, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698092771, "dur":428, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.VirtualTexturingModule.dll_CC7F13AEEC64673B.mvfrm" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093200, "dur":58, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093264, "dur":57, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextRenderingModule.dll_1F280D4459F27355.mvfrm" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093322, "dur":62, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093390, "dur":222, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.SharedInternalsModule.dll_45754C427044A777.mvfrm" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093612, "dur":53, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093669, "dur":227, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.dll_8CE69220C0535428.mvfrm" }}
-,{ "pid":12345, "tid":6, "ts":1693940698093896, "dur":94, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698094204, "dur":1388, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698095592, "dur":894, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698096486, "dur":33392, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":6, "ts":1693940698129880, "dur":1282, "ph":"X", "name": "CheckDagSignatures",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698087348, "dur":5289, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698092641, "dur":377, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.dll_5A424B4861DFC743.mvfrm" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093018, "dur":96, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093125, "dur":112, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.CoreModule.dll_6399BA3F7317D3B2.mvfrm" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093237, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093298, "dur":95, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TerrainPhysicsModule.dll_E4AC5F5F49BFC4B0.mvfrm" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093394, "dur":90, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093489, "dur":226, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.Physics2DModule.dll_0A7DEAE88DD87FAF.mvfrm" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093716, "dur":70, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093840, "dur":62, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093905, "dur":93, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.TextCoreTextEngineModule.dll_CAF1E096B33B4E0E.mvfrm" }}
-,{ "pid":12345, "tid":7, "ts":1693940698093999, "dur":118, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698094174, "dur":1532, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698095706, "dur":783, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":7, "ts":1693940698096490, "dur":34700, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698087383, "dur":5263, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698092651, "dur":65, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698092725, "dur":326, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.WindModule.dll_FD0968BAAC53BD46.mvfrm" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093051, "dur":64, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093120, "dur":83, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityCurlModule.dll_F0F49C295CEF7A07.mvfrm" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093203, "dur":56, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093268, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextCoreTextEngineModule.dll_49515BE9C6390CD9.mvfrm" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093323, "dur":52, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093427, "dur":71, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093501, "dur":51, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ParticleSystemModule.dll_E431B68C307CCA23.mvfrm" }}
-,{ "pid":12345, "tid":8, "ts":1693940698093881, "dur":105, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UIElementsSamplesModule.dll_05B08D2E77263C9F.mvfrm" }}
-,{ "pid":12345, "tid":8, "ts":1693940698094143, "dur":54, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698094201, "dur":1011, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698095212, "dur":940, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698096152, "dur":344, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":8, "ts":1693940698096496, "dur":34688, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698087419, "dur":5234, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698092657, "dur":344, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.DiagnosticsModule.dll_96C3A51AFBC3553D.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093002, "dur":70, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093078, "dur":92, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityWebRequestAudioModule.dll_EFCE1A437E2BBB34.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093269, "dur":70, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093343, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.SpriteShapeModule.dll_7F1D86746CA33E92.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093398, "dur":100, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093527, "dur":82, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.InputModule.dll_DA6B249D4EAE7730.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093709, "dur":63, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093824, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698093884, "dur":115, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UIElementsModule.dll_95062A0C934659AE.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698094043, "dur":75, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.WindowsStandalone.Extensions.dll_2A0887858EF3FB0E.mvfrm" }}
-,{ "pid":12345, "tid":9, "ts":1693940698094119, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698094179, "dur":923, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698095103, "dur":1172, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698096275, "dur":219, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":9, "ts":1693940698096494, "dur":34708, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698087458, "dur":5213, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698092675, "dur":392, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.DeviceSimulatorModule.dll_4FC54D4B0736E6AF.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093068, "dur":79, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093152, "dur":64, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityAnalyticsModule.dll_03D12755DCA41C1F.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093270, "dur":156, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextCoreFontEngineModule.dll_0169257836B553BB.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093427, "dur":75, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093508, "dur":138, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.MarshallingModule.dll_0E24F7AE9B2933DA.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093646, "dur":55, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093706, "dur":61, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ContentLoadModule.dll_FED2B25A8583AE75.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093767, "dur":53, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698093826, "dur":179, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AIModule.dll_3E3CE4A72D4D1FC6.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698094006, "dur":68, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698094079, "dur":65, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.Graphs.dll_D6EAC15793082BE4.mvfrm" }}
-,{ "pid":12345, "tid":10, "ts":1693940698094145, "dur":63, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698094214, "dur":1343, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698095558, "dur":925, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698096486, "dur":51, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":10, "ts":1693940698096540, "dur":34669, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698087485, "dur":5211, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698092700, "dur":396, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.XRModule.dll_BF416C5EB488F848.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093096, "dur":64, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093164, "dur":71, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UIModule.dll_39B082D489942572.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093236, "dur":59, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093301, "dur":50, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TerrainModule.dll_BBC659FAF5094FCB.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093352, "dur":52, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093408, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PropertiesModule.dll_6AD79C3915921DB1.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093462, "dur":93, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093561, "dur":52, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.IMGUIModule.dll_AC54FC539EA7E66D.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093614, "dur":57, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093675, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.DirectorModule.dll_F79608AC4AD7DC3A.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093784, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AudioModule.dll_73F55CECD876528C.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093841, "dur":54, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698093901, "dur":98, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UIBuilderModule.dll_43DB2BEB85372CA8.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698094051, "dur":279, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.NVIDIAModule.dll_162C18E314FEA0E9.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698094386, "dur":133, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor-Combine Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Rider.Editor.dll.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698094520, "dur":67, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698094591, "dur":1794, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"Csc Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Rider.Editor.dll (+2 others)" }}
-,{ "pid":12345, "tid":11, "ts":1693940698096385, "dur":79, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698096529, "dur":60, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor-Combine Library/Bee/artifacts/1900b0aEDbg.dag/Assembly-CSharp.dll.mvfrm" }}
-,{ "pid":12345, "tid":11, "ts":1693940698096622, "dur":463, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"Csc Library/Bee/artifacts/1900b0aEDbg.dag/Assembly-CSharp.dll (+2 others)" }}
-,{ "pid":12345, "tid":11, "ts":1693940698097087, "dur":142, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698097245, "dur":50, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":11, "ts":1693940698097300, "dur":33900, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698087523, "dur":5212, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698092735, "dur":451, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityConnectModule.dll_A0428846106C5C13.mvfrm" }}
-,{ "pid":12345, "tid":12, "ts":1693940698093279, "dur":139, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698093512, "dur":59, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.JSONSerializeModule.dll_DC00EDB48E4EC6FE.mvfrm" }}
-,{ "pid":12345, "tid":12, "ts":1693940698093572, "dur":420, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698093992, "dur":97, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.JSONSerializeModule.dll_DC00EDB48E4EC6FE.mvfrm" }}
-,{ "pid":12345, "tid":12, "ts":1693940698094117, "dur":89, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698094211, "dur":1341, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698095565, "dur":920, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698096485, "dur":762, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698097251, "dur":53, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":12, "ts":1693940698097310, "dur":33884, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
-,{ "pid":12345, "tid":0, "ts":1693940698134317, "dur":851, "ph":"X", "name": "ProfilerWriteOutput" }
-,{ "pid": 15912, "tid": 7, "ts": 1693940698151180, "dur": 2882, "ph": "X", "name": "Wait for external events", "args": {"First to finish": "backend1.traceevents"} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698154359, "dur": 1970, "ph": "X", "name": "backend1.traceevents", "args": {} },
-{ "pid": 15912, "tid": 7, "ts": 1693940698146546, "dur": 11023, "ph": "X", "name": "Write chrome-trace events", "args": {} },
+,{ "pid":12345, "tid":0, "ts":1693945452164183, "dur":281, "ph":"X", "name": "DriverInitData",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":0, "ts":1693945452164521, "dur":412, "ph":"X", "name": "BuildQueueInit",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":0, "ts":1693945452165145, "dur":20343, "ph":"X", "name": "EmitFirstTimeEnqueue",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.TextCoreFontEngineModule.dll_9DA3EE7430055194.mvfrm" }}
+,{ "pid":12345, "tid":0, "ts":1693945452185777, "dur":2113, "ph":"X", "name": "EmitFirstTimeEnqueue",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ClusterInputModule.dll_3E1A1C6C806C1552.mvfrm" }}
+,{ "pid":12345, "tid":0, "ts":1693945452164951, "dur":24629, "ph":"X", "name": "EnqueueRequestedNodes",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":0, "ts":1693945452189586, "dur":15391, "ph":"X", "name": "WaitForBuildFinished", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":0, "ts":1693945452205199, "dur":182, "ph":"X", "name": "Tundra",  "args": { "detail":"Write AllBuiltNodes" }}
+,{ "pid":12345, "tid":1, "ts":1693945452164585, "dur":25008, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":1, "ts":1693945452189596, "dur":234, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ClusterRendererModule.dll_3AA73F92EEEB244F.mvfrm" }}
+,{ "pid":12345, "tid":1, "ts":1693945452189867, "dur":77, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.PresetsUIModule.dll_25041C9D707CC915.mvfrm" }}
+,{ "pid":12345, "tid":1, "ts":1693945452189949, "dur":97, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityTestProtocolModule.dll_AB6B5AF2476A1D91.mvfrm" }}
+,{ "pid":12345, "tid":1, "ts":1693945452190046, "dur":60, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TerrainPhysicsModule.dll_27787CBC85E7B854.mvfrm" }}
+,{ "pid":12345, "tid":1, "ts":1693945452190157, "dur":377, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":1, "ts":1693945452190534, "dur":187, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":1, "ts":1693945452190792, "dur":63, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":1, "ts":1693945452190855, "dur":14160, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":2, "ts":1693945452164614, "dur":24986, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":2, "ts":1693945452189603, "dur":118, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.CommandStateObserverModule.dll_508CC43FBFBD7A8E.mvfrm" }}
+,{ "pid":12345, "tid":2, "ts":1693945452189756, "dur":108, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll_D0BB3738A772C414.mvfrm" }}
+,{ "pid":12345, "tid":2, "ts":1693945452189906, "dur":116, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UnityConnectModule.dll_BE7DA756CEE4428C.mvfrm" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190023, "dur":82, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextRenderingModule.dll_056B27EDE634B7F1.mvfrm" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190150, "dur":78, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Assembly-CSharp.rsp" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190228, "dur":355, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190583, "dur":162, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190784, "dur":57, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":2, "ts":1693945452190845, "dur":14155, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452164646, "dur":24963, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452189611, "dur":90, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ContentLoadModule.dll_4A12F0E711F97791.mvfrm" }}
+,{ "pid":12345, "tid":3, "ts":1693945452189702, "dur":164, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452189892, "dur":54, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.UIElementsSamplesModule.dll_EFA8A4FFED6EC83B.mvfrm" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190013, "dur":65, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextCoreFontEngineModule.dll_1C0369C74303105F.mvfrm" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190141, "dur":74, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Assembly-CSharp.rsp2" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190216, "dur":299, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190521, "dur":205, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190784, "dur":61, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":3, "ts":1693945452190845, "dur":14135, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":4, "ts":1693945452164683, "dur":24932, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":4, "ts":1693945452189617, "dur":61, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.CoreModule.dll_49ACB123C3F69401.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452189690, "dur":53, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.InputLegacyModule.dll_4241B2C4DB688595.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452189753, "dur":85, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PropertiesModule.dll_3554AD7E09AE8855.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452189838, "dur":53, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":4, "ts":1693945452189891, "dur":159, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PropertiesModule.dll_3554AD7E09AE8855.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452190050, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.WindowsStandalone.Extensions.dll_FA4CB4163BB5FC2A.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452190116, "dur":61, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.WindowsStandalone.Extensions.dll_FA4CB4163BB5FC2A.mvfrm" }}
+,{ "pid":12345, "tid":4, "ts":1693945452190178, "dur":493, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":4, "ts":1693945452190671, "dur":83, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":4, "ts":1693945452190850, "dur":14143, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":5, "ts":1693945452164708, "dur":24913, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":5, "ts":1693945452189623, "dur":104, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.CrashReportingModule.dll_D3EB8A9CFE933239.mvfrm" }}
+,{ "pid":12345, "tid":5, "ts":1693945452190006, "dur":68, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.SubstanceModule.dll_C963617DE35BFB02.mvfrm" }}
+,{ "pid":12345, "tid":5, "ts":1693945452190161, "dur":395, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":5, "ts":1693945452190556, "dur":173, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":5, "ts":1693945452190794, "dur":63, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":5, "ts":1693945452190857, "dur":14163, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452164735, "dur":24892, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452189630, "dur":102, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.DSPGraphModule.dll_77A8C6BDD7C42B7F.mvfrm" }}
+,{ "pid":12345, "tid":6, "ts":1693945452189732, "dur":53, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452189788, "dur":165, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.EditorToolbarModule.dll_0BE7A2CD1BF2D93B.mvfrm" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190010, "dur":59, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TerrainModule.dll_23D7DA3C23AD71E7.mvfrm" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190128, "dur":83, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Toolchain.Linux-x86_64.dll.mvfrm.rsp" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190212, "dur":339, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190551, "dur":194, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190783, "dur":77, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":6, "ts":1693945452190861, "dur":14164, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":7, "ts":1693945452164768, "dur":24867, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":7, "ts":1693945452189636, "dur":141, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.DirectorModule.dll_7257655465635A5E.mvfrm" }}
+,{ "pid":12345, "tid":7, "ts":1693945452189786, "dur":120, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.DiagnosticsModule.dll_E203E3A788391E59.mvfrm" }}
+,{ "pid":12345, "tid":7, "ts":1693945452190011, "dur":90, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":7, "ts":1693945452190102, "dur":99, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TLSModule.dll_02FA4D9581E5138D.mvfrm" }}
+,{ "pid":12345, "tid":7, "ts":1693945452190218, "dur":91, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":7, "ts":1693945452190311, "dur":379, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"Csc Library/Bee/artifacts/1900b0aEDbg.dag/Unity.SysrootPackage.Editor.dll (+2 others)" }}
+,{ "pid":12345, "tid":7, "ts":1693945452190911, "dur":14061, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452164799, "dur":24840, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452189641, "dur":77, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.GIModule.dll_1867A9E4A7102084.mvfrm" }}
+,{ "pid":12345, "tid":8, "ts":1693945452189780, "dur":101, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452189963, "dur":106, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UnityWebRequestAudioModule.dll_E9D595AF189B3458.mvfrm" }}
+,{ "pid":12345, "tid":8, "ts":1693945452190154, "dur":455, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452190609, "dur":137, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452190787, "dur":61, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":8, "ts":1693945452190849, "dur":14132, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":9, "ts":1693945452164818, "dur":24826, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":9, "ts":1693945452189702, "dur":62, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.InputModule.dll_5CC9C15322B16DCC.mvfrm" }}
+,{ "pid":12345, "tid":9, "ts":1693945452189781, "dur":98, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.DeviceSimulatorModule.dll_34FA7D217F3016CB.mvfrm" }}
+,{ "pid":12345, "tid":9, "ts":1693945452189915, "dur":145, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.DeviceSimulatorModule.dll_34FA7D217F3016CB.mvfrm" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190061, "dur":58, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.LinuxStandalone.Extensions.dll_3C9AB5E894FB2ADA.mvfrm" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190122, "dur":73, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.LinuxStandalone.Extensions.dll_3C9AB5E894FB2ADA.mvfrm" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190195, "dur":480, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190675, "dur":74, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190793, "dur":62, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":9, "ts":1693945452190856, "dur":14164, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":10, "ts":1693945452164837, "dur":24812, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":10, "ts":1693945452189651, "dur":78, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.GraphToolsFoundationModule.dll_233BDDEEF2775FE2.mvfrm" }}
+,{ "pid":12345, "tid":10, "ts":1693945452189737, "dur":97, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.PhysicsModule.dll_09915ECD4DEF28F9.mvfrm" }}
+,{ "pid":12345, "tid":10, "ts":1693945452189843, "dur":55, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.QuickSearchModule.dll_6D1364B4E1101AB2.mvfrm" }}
+,{ "pid":12345, "tid":10, "ts":1693945452189912, "dur":122, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AccessibilityModule.dll_622C7F221B55AB10.mvfrm" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190034, "dur":58, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UIModule.dll_7B9EFF0467A83E16.mvfrm" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190117, "dur":65, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Rider.Editor.rsp2" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190183, "dur":398, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190582, "dur":160, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190782, "dur":65, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":10, "ts":1693945452190847, "dur":14139, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":11, "ts":1693945452164856, "dur":24801, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":11, "ts":1693945452189712, "dur":161, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ParticleSystemModule.dll_26FDD3E96CA4BDC7.mvfrm" }}
+,{ "pid":12345, "tid":11, "ts":1693945452189975, "dur":51, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.VehiclesModule.dll_EA1A5ED3DF8D29F9.mvfrm" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190026, "dur":63, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TilemapModule.dll_C2D441BD3B6A52F0.mvfrm" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190099, "dur":74, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Sysroot.Linux_x86_64.UnityAdditionalFile.txt" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190174, "dur":505, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190679, "dur":70, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190842, "dur":64, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":11, "ts":1693945452190906, "dur":14120, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":12, "ts":1693945452164869, "dur":24797, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":12, "ts":1693945452189703, "dur":52, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.LocalizationModule.dll_7C66E6BF17E8084B.mvfrm" }}
+,{ "pid":12345, "tid":12, "ts":1693945452189755, "dur":89, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":12, "ts":1693945452189848, "dur":50, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.SceneTemplateModule.dll_2F87138B1ADF8373.mvfrm" }}
+,{ "pid":12345, "tid":12, "ts":1693945452189907, "dur":75, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.SceneTemplateModule.dll_2F87138B1ADF8373.mvfrm" }}
+,{ "pid":12345, "tid":12, "ts":1693945452189994, "dur":59, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.ScreenCaptureModule.dll_DC2BB5E32EFD37FC.mvfrm" }}
+,{ "pid":12345, "tid":12, "ts":1693945452190102, "dur":106, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.SysrootPackage.Editor.rsp2" }}
+,{ "pid":12345, "tid":12, "ts":1693945452190263, "dur":433, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"Csc Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Rider.Editor.dll (+2 others)" }}
+,{ "pid":12345, "tid":12, "ts":1693945452190791, "dur":61, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":12, "ts":1693945452190852, "dur":14146, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452164886, "dur":24785, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452189700, "dur":122, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452189825, "dur":65, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.GraphViewModule.dll_699DE3BB6E247110.mvfrm" }}
+,{ "pid":12345, "tid":13, "ts":1693945452189905, "dur":67, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.AIModule.dll_802B60D70B61386A.mvfrm" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190030, "dur":66, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UIElementsModule.dll_6031A89989A6DD9D.mvfrm" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190119, "dur":70, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Sysroot.Linux_x86_64.dll.mvfrm.rsp" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190189, "dur":290, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190479, "dur":71, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190550, "dur":200, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190791, "dur":61, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":13, "ts":1693945452190852, "dur":14138, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452164903, "dur":24784, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452189737, "dur":98, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452189839, "dur":56, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.PropertiesModule.dll_34A64036076A6F0A.mvfrm" }}
+,{ "pid":12345, "tid":14, "ts":1693945452189900, "dur":67, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.PropertiesModule.dll_34A64036076A6F0A.mvfrm" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190016, "dur":65, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.TextCoreTextEngineModule.dll_63EBA038D286C97D.mvfrm" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190144, "dur":80, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Assembly-CSharp.dll.mvfrm.rsp" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190225, "dur":254, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190517, "dur":196, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190780, "dur":64, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":14, "ts":1693945452190844, "dur":14130, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452164921, "dur":24780, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452189701, "dur":54, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.JSONSerializeModule.dll_C244085E1A910B9A.mvfrm" }}
+,{ "pid":12345, "tid":15, "ts":1693945452189756, "dur":149, "ph":"X", "name": "OutputFilesMissingFor",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452189905, "dur":73, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.JSONSerializeModule.dll_C244085E1A910B9A.mvfrm" }}
+,{ "pid":12345, "tid":15, "ts":1693945452189988, "dur":54, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.VirtualTexturingModule.dll_959EC3D4EF2AF75F.mvfrm" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190043, "dur":55, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.UmbraModule.dll_7128A5BB399FF49B.mvfrm" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190143, "dur":78, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.Rider.Editor.rsp" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190221, "dur":433, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190654, "dur":90, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190789, "dur":60, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":15, "ts":1693945452190849, "dur":14181, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452164939, "dur":24768, "ph":"X", "name": "FirstLock",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452189760, "dur":111, "ph":"X", "name": "CheckInputSignature",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEngine.IMGUIModule.dll_2EB3990972AADD09.mvfrm" }}
+,{ "pid":12345, "tid":16, "ts":1693945452189901, "dur":179, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"MovedFromExtractor Library/Bee/artifacts/mvdfrm/UnityEditor.dll_271450681474E8DF.mvfrm" }}
+,{ "pid":12345, "tid":16, "ts":1693945452190097, "dur":71, "ph":"X", "name": "EmitNodeUpToDate",  "args": { "detail":"WriteText Library/Bee/artifacts/1900b0aEDbg.dag/Unity.SysrootPackage.Editor.rsp" }}
+,{ "pid":12345, "tid":16, "ts":1693945452190168, "dur":409, "ph":"X", "name": "EarlyStatNonGeneratedFile",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452190577, "dur":155, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452190780, "dur":63, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452190843, "dur":13914, "ph":"X", "name": "WaitingForWork", "cname":"thread_state_sleeping",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":16, "ts":1693945452204758, "dur":183, "ph":"X", "name": "CheckDagSignatures",  "args": { "detail":"" }}
+,{ "pid":12345, "tid":0, "ts":1693945452205771, "dur":119, "ph":"X", "name": "ProfilerWriteOutput" }
+,{ "pid": 13687, "tid": 7, "ts": 1693945452223545, "dur": 2352, "ph": "X", "name": "Wait for external events", "args": {"First to finish": "backend1.traceevents"} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452226053, "dur": 1087, "ph": "X", "name": "backend1.traceevents", "args": {} },
+{ "pid": 13687, "tid": 7, "ts": 1693945452219233, "dur": 8808, "ph": "X", "name": "Write chrome-trace events", "args": {} },
 {}
 
 ]

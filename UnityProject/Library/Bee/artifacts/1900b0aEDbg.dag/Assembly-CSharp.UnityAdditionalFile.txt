@@ -1,1 +1,1 @@
-C:\Users\thadd\Documents\Programming\C++\DLSSPlugin\UnityProject
+/home/thaddeus/Documents/Programming/Unity/DLSSPlugin/UnityProject
