@@ -297,7 +297,7 @@ void useOptimalSettings() {
 }  // namespace Settings
 }  // namespace Plugin
 
-extern "C" UNITY_INTERFACE_EXPORT void __cdecl OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
+extern "C" UNITY_INTERFACE_EXPORT void OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
     Logger::log("Resizing DLSS targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
 
     // Release any previously existing feature
