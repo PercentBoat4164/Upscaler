@@ -54,8 +54,9 @@ void log(std::string t_message) {
 }
 
 void log(const std::string &t_actionDescription, NVSDK_NGX_Result t_result) {
-    if (NVSDK_NGX_SUCCEED(t_result)) return log(t_actionDescription + ": Succeeded");
-    log(t_actionDescription + ": Failed | " + to_string(GetNGXResultAsString(t_result)) + ".");
+    if (NVSDK_NGX_SUCCEED(t_result))
+        return log("DLSSPlugin: " + t_actionDescription + ": Succeeded");
+    log("DLSSPlugin: " + t_actionDescription + ": Failed | " + to_string(GetNGXResultAsString(t_result)) + ".");
 }
 
 void log(const char *t_message, NVSDK_NGX_Logging_Level t_loggingLevel, NVSDK_NGX_Feature t_sourceComponent) {
@@ -338,19 +339,17 @@ extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
       .image    = t_depthBuffer,
       .viewType = VK_IMAGE_VIEW_TYPE_2D,
       .format   = VK_FORMAT_D24_UNORM_S8_UINT,
-      .components =
-        {
-                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                     },
-      .subresourceRange =
-        {
-                     .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
-                     .baseMipLevel   = 0,
-                     .levelCount     = 1,
-                     .baseArrayLayer = 0,
-                     .layerCount     = 1,
-                     },
+      .components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+      },
+      .subresourceRange = {
+        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .baseMipLevel   = 0,
+        .levelCount     = 1,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+      },
     };
 
     VkResult result = Unity::Hooks::vkCreateImageView(
@@ -392,7 +391,7 @@ extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
       .InRenderSubrectDimensions = {
         .Width  = Plugin::Settings::renderResolution.width,
         .Height = Plugin::Settings::renderResolution.height,
-        },
+      },
     };
 }
 
@@ -477,7 +476,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
           reinterpret_cast<int *>(&FeatureInitResult)
         );
         std::stringstream stream;
-        stream << "DLSS is not available on this hardware or platform. FeatureInitResult = 0x" << std::setfill('0')
+        stream << "DLSSPlugin: DLSS is not available on this hardware or platform. FeatureInitResult = 0x" << std::setfill('0')
                << std::setw(sizeof(FeatureInitResult) * 2) << std::hex << FeatureInitResult
                << ", info: " << Logger::to_string(GetNGXResultAsString(FeatureInitResult));
         Logger::log(stream.str());
@@ -505,17 +504,20 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
   const VkAllocationCallbacks *pAllocator,
   VkDevice                    *pDevice
 ) {
+// @todo This is commented out because it is not necessary for success and it fails on Windows.
     // Does this physical device support DLSS?
-    NVSDK_NGX_FeatureRequirement featureRequirement;
-    NVSDK_NGX_Result             featureRequirementResult = NVSDK_NGX_VULKAN_GetFeatureRequirements(
-      Unity::vulkanInstance,
-      physicalDevice,
-      &Application::featureDiscoveryInfo,
-      &featureRequirement
-    );
-    Logger::log("Get DLSS feature requirements", featureRequirementResult);
-    if (NVSDK_NGX_FAILED(featureRequirementResult) || featureRequirement.FeatureSupported != NVSDK_NGX_FeatureSupportResult_Supported)
-        Plugin::DLSSSupported = false;
+//#ifdef __linux__
+//    NVSDK_NGX_FeatureRequirement featureRequirement;
+//    NVSDK_NGX_Result             featureRequirementResult = NVSDK_NGX_VULKAN_GetFeatureRequirements(
+//      Unity::vulkanInstance,
+//      physicalDevice,
+//      &Application::featureDiscoveryInfo,
+//      &featureRequirement
+//    );
+//    Logger::log("Get DLSS feature requirements", featureRequirementResult);
+//    if (NVSDK_NGX_FAILED(featureRequirementResult) || featureRequirement.FeatureSupported != NVSDK_NGX_FeatureSupportResult_Supported)
+//        Plugin::DLSSSupported = false;
+//#endif
 
     // Continue either way
     VkDeviceCreateInfo createInfo = *pCreateInfo;
