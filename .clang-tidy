@@ -27,7 +27,7 @@ Checks: '
   altera-kernel-name-restriction,
   altera-single-work-item-barrier,
   altera-struct-pack-align,
-  altera-unroll-loops,
+  -altera-unroll-loops,
   
   android-cloexec-accept,
   android-cloexec-accept4,
