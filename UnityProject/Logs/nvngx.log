@@ -1,152 +1,117 @@
-[setLogFilename:229] Logging to requested file (./Logs/nvngx.log) enabled successfully
-[NGXSafeInitializeLog:141] App logging hooks successfully initialized
-[NGXNVAPITelemetryInit:639] warning: Telemetry not supported on Linux
-[NGXDRSInit:364] Linux: Skipping DRS Init.
-[NVSDK_NGX_VULKAN_Init_Validate:175] called from module libGfxPluginDLSSPlugin.so at Assets/Plugins
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dldenoiser.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dldenoiser.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dldenoiser.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlss.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadLibrary:53] failed to load signed snippet - Unable to find correct signature ELF section
-[NGXLoadAndValidateSnippet:1856] nvLoadSignedLibraryW() failed on snippet '/home/thaddeus/Documents/Programming/Unity/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0.meta' missing or corrupted - last error Invalid argument
-[NGXValidateSnippetMetaData:1753] Validating snippet /home/thaddeus/Documents/Programming/Unity/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXValidateSnippetMetaData:1755] NGX CORE API version : 0x15, Snippet requires at least : 0x0
-[NGXValidateSnippetMetaData:1759] GPU architecture : 0x160, Snippet expects at least : 0x0
-[NGXValidateSnippetMetaData:1774] Driver support flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID), Snippet required flags : 0x0()
-[NGXValidateSnippetMetaData:1802] Driver version : 535.86.5, Snippet expects at least : 0.0
-[NGXValidateSnippetMetaData:1829] Snippet version : 0.0.0, Embedded app Id : 0000000 (241534723)
-[NGXLoadLibrary:79] Loaded library from path (/home/thaddeus/Documents/Programming/Unity/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0)
-[NGXValidateSnippetMetaData:1753] Validating snippet /home/thaddeus/Documents/Programming/Unity/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0
-[NGXValidateSnippetMetaData:1755] NGX CORE API version : 0x15, Snippet requires at least : 0x13
-[NGXValidateSnippetMetaData:1759] GPU architecture : 0x160, Snippet expects at least : 0x160
-[NGXValidateSnippetMetaData:1774] Driver support flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID), Snippet required flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID)
-[NGXValidateSnippetMetaData:1802] Driver version : 535.86.5, Snippet expects at least : 445.0
-[NGXValidateSnippetMetaData:1829] Snippet version : 3.5.0, Embedded app Id : E658703 (0)
-[NGXSecureLoadFeature:672] app 3AC09EF feature dlss snippet: ./Assets/Plugins/libnvidia-ngx-dlss.so version: 3.5.0
-[NGXReadConfigFile:632] Reading configuration file from '(null)'
-[NGXReadConfigFile:638] error: Invalid configuration file '(null)'
-[NGXReadConfigFile:632] Reading configuration file from '/home/thaddeus/.config/nvidia-ngx-conf.json'
-[NGXReadConfigFile:638] error: Invalid configuration file '/home/thaddeus/.config/nvidia-ngx-conf.json'
-[NGXReadConfigFile:632] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXReadConfigFile:638] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXReadJSONConfigFile:748] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXReadConfigFile:632] Reading configuration file from '(null)'
-[NGXReadConfigFile:638] error: Invalid configuration file '(null)'
-[NGXReadConfigFile:632] Reading configuration file from '/home/thaddeus/.config/nvidia-ngx-conf.json'
-[NGXReadConfigFile:638] error: Invalid configuration file '/home/thaddeus/.config/nvidia-ngx-conf.json'
-[NGXReadConfigFile:632] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXReadConfigFile:638] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXReadJSONConfigFile:748] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
-[NGXGetPath:955] warning: Defaulting to '/usr/share/nvidia/ngx' models directory
-[NGXCreateDirectoryRecursively:1318] failed to create directory /usr/share/nvidia/ngx - Permission denied
-[NGXCreateModelsFolder:1348] error: could not create model folder
-[NGXSecureLoadFeature:924] unable to read the deny list. Assuming that the feature is allowed.
-[NGXLoadFeature:997] Setting show info tip callback for dlss
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlinpainting.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlinpainting.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlinpainting.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlisr.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlisr.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlisr.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlslowmo.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlslowmo.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlslowmo.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlvsr.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlvsr.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlvsr.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlcolorize.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlcolorize.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlcolorize.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlstyletransfer.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlstyletransfer.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlstyletransfer.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlvdenoiser.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlvdenoiser.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlvdenoiser.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlisp.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlisp.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlisp.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlresolve.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlresolve.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlresolve.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlssg.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-dlssg.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-dlssg.so doesn't exist in any of the search paths!
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-deepdvc.so' snippet from './Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXLoadFromPath:1986] Loading most recent 'libnvidia-ngx-deepdvc.so' snippet from 'Assets/Plugins'...
-[NGXLoadFromPath:2009]     Found 2 snippets:
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0.meta
-[NGXLoadFromPath:2011]         libnvidia-ngx-dlss.so.3.5.0
-[NGXSecureLoadFeature:595] warning: ModuleName - libnvidia-ngx-deepdvc.so doesn't exist in any of the search paths!
+[2023-09-05 20:51:51] [ngx::util::setLogFilename:203] Logging to requested file (./Logs/nvngx.log) enabled successfully
+[2023-09-05 20:51:51] [NGXSafeInitializeLog:130] App logging hooks successfully initialized
+[2023-09-05 20:51:51] [NGXLoadLibrary:33] Loaded NGXCore from path (vulkan-1.dll)
+[2023-09-05 20:51:51] [NGXCheckHardwareSupportUsingINF:151] Found matching adapter with NVAPI physical GPU handle: 0xa00 and LUID: { 0x0, 0xe633 }
+[2023-09-05 20:51:51] [NGXCheckHardwareSupportUsingINF:172] Checking for key: NVSupportNGX, in the INF for GPU with physical handle: 0xa00 and LUID: { 0x0, 0xe633 }
+[2023-09-05 20:51:51] [NGXNVAPITelemetryInit:689] Failed to initialize telemetry : -2147467259
+[2023-09-05 20:51:51] [NGXIsCDNStaging:347] cdn server mode: production
+[2023-09-05 20:51:51] [NGXGetPath:850] using path for models: C:\ProgramData/NVIDIA/NGX/models/
+[2023-09-05 20:51:51] [NGXGetPath:850] using path for models: C:\ProgramData/NVIDIA/NGX/models/
+[2023-09-05 20:51:51] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:51] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:51] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:51] [NGXCreateModelsFolder:1288] model folder created: C:\ProgramData/NVIDIA/NGX/models/
+[2023-09-05 20:51:51] [NGXLoadConfig:1356] [dlss]
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9FEB50=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_8661E24=2.3.0
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9FF4BC=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9FD524=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DF510=1.3.106
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9CB0B8=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9E26B0=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D48D0=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_E99B5EC=1.2.109
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DFA64=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9FD6C0=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9CF688=2.2.15
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D6F08=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9BF564=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DB4F4=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D2F5C=1.2.109
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D7388=1.0.108
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9F5618=2.1.29
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DAE68=1.2.109
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D8C54=1.2.109
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_3AC09EF=2.4.13
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D3EF0=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9FACDC=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_F7361DC=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9C3560=2.1.19
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9B0430=2.1.28
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_86B0DB4=2.2.10
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_E658703=0.0.0
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_8627C04=2.3.5
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DB490=2.3.4
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_866DA60=2.4.0
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_866DBFC=3.1.13
+[2023-09-05 20:51:51] [NGXLoadConfig:1356] [dlisp]
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9CF688=2.1.15
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_E99B5EC=1.2.102
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_E658703=1.0.101
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D8C54=1.2.106
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9D2F5C=1.2.106
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DF510=1.3.101
+[2023-09-05 20:51:51] [NGXLoadConfig:1362] app_B9DAE68=1.2.106
+[2023-09-05 20:51:51] [NGXDRSInit:333] DRS PROFILE FOUND : ProfileName "Unity 3D", AppName "unity.exe"
+[2023-09-05 20:51:51] [NVSDK_NGX_VULKAN_Init_Validate:169] called from module GfxPluginDLSSPlugin.dll at C:\Users\thadd\Documents\Programming\C++\DLSSPlugin\UnityProject\Assets\Plugins
+[2023-09-05 20:51:51] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:51] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:51] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:51] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dldenoiser.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:51] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:51] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:51] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:51] [NGXLoadAndValidateSnippet:1781] nvLoadSignedLibraryW() failed on snippet './Assets/Plugins/nvngx_dlss.dll' missing or corrupted - last error One or more arguments are not correct.
+
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1678] Validating snippet ./Assets/Plugins/nvngx_dlss.dll
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1680] NGX CORE API version : 0x15, Snippet requires at least : 0x13
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1684] GPU architecture : 0x160, Snippet expects at least : 0x140
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1699] Driver support flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID), Snippet required flags : 0x0()
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1727] Driver version : 516.94, Snippet expects at least : 512.15
+[2023-09-05 20:51:53] [NGXValidateSnippetMetaData:1754] Snippet version : 3.5.0, Embedded app Id : E658703 (0)
+[2023-09-05 20:51:53] [LaunchNGXUpdater:187] starting C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_47917a79b8c7fd22\nvngx_update.exe with command line - C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_47917a79b8c7fd22\nvngx_update.exe -api update -cmsid 231313132 -feature dlss -gpuarch 352
+[2023-09-05 20:51:53] [LaunchNGXUpdater:188] process for NGX Updater created successfully
+[2023-09-05 20:51:53] [LaunchNGXUpdater:187] starting C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_47917a79b8c7fd22\nvngx_update.exe with command line - C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_47917a79b8c7fd22\nvngx_update.exe -api update -cmsid 0 -feature dlss -gpuarch 352
+[2023-09-05 20:51:53] [LaunchNGXUpdater:188] process for NGX Updater created successfully
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:694] warning: skipping downloaded snippet due to lower version 2.4.13 < 3.5.0
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:740] unable to read the deny list. Assuming that the feature is allowed.
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlinpainting.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlisr.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlslowmo.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlvsr.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlcolorize.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlstyletransfer.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlvdenoiser.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlisp.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlresolve.dll doesn't exist in any of the search paths!
+[2023-09-05 20:51:53] [CreateSecurityDescriptor:981] security attributes generated successfully
+[2023-09-05 20:51:53] [CreateFolderWithACEs:1041] using generated security descriptor for creating folder at: C:\ProgramData\NVIDIA\NGX\models
+[2023-09-05 20:51:53] [ModifyExistingFolderDACL:1098] updated access control list for NGX cache (NGX cache should now be usable by all authenticated users)
+[2023-09-05 20:51:53] [NGXSecureLoadFeature:519] warning: ModuleName - nvngx_dlfi.dll doesn't exist in any of the search paths!
