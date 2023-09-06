@@ -1,24 +1,24 @@
-[tid:140007734932672][setLogFilename:253] Logging to requested file (./Logs//nvngx_dlss_3_5_0.log) enabled successfully
-[tid:140007734932672][NGXInitLog:219] App logging hooks successfully initialized
-[tid:140007734932672][NGXInitLog:226] Built with APP_NAME = custom_engine_generic
-[tid:140007734932672][InitCommon:116] m_pDevice: 0x(nil)->0x0x55bfe975ded0
-[tid:140007734932672][NGXLoadLibrary:31] Loaded library from path (libvulkan.so.1)
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkCreateCuModuleNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkCreateCuFunctionNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkDestroyCuModuleNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkDestroyCuFunctionNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkCmdCuLaunchKernelNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkGetImageViewHandleNVX
-[tid:140007734932672][LoadVkEntrypoints:95] Failed to load VK device function: vkGetImageViewAddressNVX
-[tid:140007734932672][InitCubins:62] Setting NGX Generic Cubins for arch fatbin
-[tid:140007734932672][SetGPUArch:421] m_gpuArch = 0x160
-[tid:140007734932672][SetGPUArch:432] m_smArch  = 0x1
-[tid:140007734932672][drsReadKey:104] Warning: drsReadKey() not implemented
-[tid:140007734932672][genericPostInit:140] Fast UAV clear: supported
-[tid:140007734932672][InitCubins:257] Setting DLAA Cubins for arch fatbin
-[tid:140007734932672][InitCubins:257] Setting DLSS Debug Cubins for arch fatbin
-[tid:140007734932672][InitCubins:257] Setting DLTSS Engine Cubins for arch fatbin
-[tid:140007734932672][InitCubins:257] Setting DLTSS NW Cubins for arch fatbin
-[tid:140007734932672][InitCubins:257] Setting DLTSS NW E5M3_SKIP Cubins for arch fatbin
-[tid:140007734932672][CreateKernel:388] Error: vkCreateCuModuleNVX() and/or vkCreateCuFunctionNVX() functions are not available. Request VK_NVX_binary_import extension
-[tid:140007734932672][Shutdown:236] Delayed destroy resource list count 0
+[tid:140339375477952][setLogFilename:253] Logging to requested file (./Logs//nvngx_dlss_3_5_0.log) enabled successfully
+[tid:140339375477952][NGXInitLog:219] App logging hooks successfully initialized
+[tid:140339375477952][NGXInitLog:226] Built with APP_NAME = custom_engine_generic
+[tid:140339375477952][InitCommon:116] m_pDevice: 0x(nil)->0x0x56460e655b80
+[tid:140339375477952][NGXLoadLibrary:31] Loaded library from path (libvulkan.so.1)
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkCreateCuModuleNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkCreateCuFunctionNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkDestroyCuModuleNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkDestroyCuFunctionNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkCmdCuLaunchKernelNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkGetImageViewHandleNVX
+[tid:140339375477952][LoadVkEntrypoints:95] Failed to load VK device function: vkGetImageViewAddressNVX
+[tid:140339375477952][InitCubins:62] Setting NGX Generic Cubins for arch fatbin
+[tid:140339375477952][SetGPUArch:421] m_gpuArch = 0x160
+[tid:140339375477952][SetGPUArch:432] m_smArch  = 0x1
+[tid:140339375477952][drsReadKey:104] Warning: drsReadKey() not implemented
+[tid:140339375477952][genericPostInit:140] Fast UAV clear: supported
+[tid:140339375477952][InitCubins:257] Setting DLAA Cubins for arch fatbin
+[tid:140339375477952][InitCubins:257] Setting DLSS Debug Cubins for arch fatbin
+[tid:140339375477952][InitCubins:257] Setting DLTSS Engine Cubins for arch fatbin
+[tid:140339375477952][InitCubins:257] Setting DLTSS NW Cubins for arch fatbin
+[tid:140339375477952][InitCubins:257] Setting DLTSS NW E5M3_SKIP Cubins for arch fatbin
+[tid:140339375477952][CreateKernel:388] Error: vkCreateCuModuleNVX() and/or vkCreateCuFunctionNVX() functions are not available. Request VK_NVX_binary_import extension
+[tid:140339375477952][Shutdown:236] Delayed destroy resource list count 0

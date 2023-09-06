@@ -566,8 +566,16 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
             enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + requestedExtensionCount);
             for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
                 enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
-            for (auto extension : requestedExtensions)
-                enabledExtensions.push_back((const char *)extension.extensionName);
+            for (auto extension : requestedExtensions) {
+                bool extensionShouldBeAdded{true};
+                for (const auto *enabledExtension : enabledExtensions)
+                    if (strcmp(enabledExtension, (const char *)extension.extensionName) == 0) {
+                        extensionShouldBeAdded = false;
+                        break;
+                    }
+                if (extensionShouldBeAdded)
+                    enabledExtensions.push_back((const char *) extension.extensionName);
+            }
 #ifndef NDEBUG
             for (auto extension : requestedExtensions)
                 message << (const char *)extension.extensionName << " ";
@@ -637,8 +645,16 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
             enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + requestedExtensionCount);
             for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
                 enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
-            for (auto extension : requestedExtensions)
-                enabledExtensions.push_back((const char *)extension.extensionName);
+            for (auto extension : requestedExtensions) {
+                bool extensionShouldBeAdded{true};
+                for (const auto *enabledExtension : enabledExtensions)
+                    if (strcmp(enabledExtension, (const char *)extension.extensionName) == 0) {
+                        extensionShouldBeAdded = false;
+                        break;
+                    }
+                if (extensionShouldBeAdded)
+                    enabledExtensions.push_back((const char *) extension.extensionName);
+            }
 #ifndef NDEBUG
             for (auto extension : requestedExtensions)
                 message << (const char *)extension.extensionName << " ";

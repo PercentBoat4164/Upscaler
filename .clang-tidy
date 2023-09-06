@@ -23,7 +23,7 @@ Checks: '
   abseil-time-subtraction,
   abseil-upgrade-duration-conversions,
   
-  altera-id-dependent-backward-branch,
+  -altera-id-dependent-backward-branch,
   altera-kernel-name-restriction,
   altera-single-work-item-barrier,
   altera-struct-pack-align,
