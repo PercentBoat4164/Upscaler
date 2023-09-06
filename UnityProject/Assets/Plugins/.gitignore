@@ -1,2 +1,2 @@
-libnvidia-ngx-dlss.so.*
+libnvidia-ngx-dlss.so.3.5.0
 nvngx_dlss.dll

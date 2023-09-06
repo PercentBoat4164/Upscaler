@@ -1,1 +1,7 @@
+# IDE project files
+.idea
+# Unity's stuff
 UserSettings
+Library
+Logs
+obj

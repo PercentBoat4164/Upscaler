@@ -4,6 +4,10 @@ project(DLSSPlugin)
 set(CMAKE_CXX_STANDARD 23)
 set(BUILD_SHARED_LIBS ON)
 
+######################
+# Paths and Warnings #
+######################
+
 cmake_path(SET DLSS_DIR "${CMAKE_SOURCE_DIR}/nvngx_dlss_sdk")
 cmake_path(SET PLUGINS_DIR "${CMAKE_SOURCE_DIR}/../UnityProject/Assets/Plugins")
 if(WIN32)
@@ -83,11 +87,4 @@ set_target_properties(ngx PROPERTIES IMPORTED_LOCATION "${DLSS_STATIC_LIB}")
 add_library(GfxPluginDLSSPlugin main.cpp)
 target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES})
 target_link_libraries(GfxPluginDLSSPlugin ngx)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (WIN32)
-        target_compile_options(GfxPluginDLSSPlugin PRIVATE /Zi)
-    elseif (UNIX AND NOT APPLE)
-        target_compile_options(GfxPluginDLSSPlugin PRIVATE -g)
-    endif ()
-endif ()
 add_custom_command(TARGET GfxPluginDLSSPlugin COMMAND ${CMAKE_COMMAND} -E copy ${PLUGIN_FILE} ${DLSS_SHARED_LIB} ${PLUGINS_DIR} COMMENT "Copying shared libraries. Please restart Unity." POST_BUILD)

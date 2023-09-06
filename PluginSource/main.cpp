@@ -414,7 +414,7 @@ extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
 
 extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
     UnityVulkanRecordingState state{};
-    Unity::vulkanGraphicsInterface->EnsureInsideRenderPass;
+    Unity::vulkanGraphicsInterface->EnsureInsideRenderPass();
     Unity::vulkanGraphicsInterface->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
 
     NVSDK_NGX_Result result =
@@ -535,7 +535,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
 
     // Find out which extensions need to be added for DLSS.
     uint32_t               requestedExtensionCount{};
-    std::vector<VkExtensionProperties> requestedExtensions{};
+    std::vector<std::string> requestedExtensions{};
     VkExtensionProperties *extensions{};
     NVSDK_NGX_Result queryResult = NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(
       Unity::vulkanInstance,
@@ -546,13 +546,13 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
     );
     requestedExtensions.reserve(requestedExtensionCount);
     for (uint32_t i{}; i < requestedExtensionCount; ++i)
-        requestedExtensions.emplace_back(extensions[i]);
+        requestedExtensions.emplace_back(extensions[i].extensionName);
 
     // Ensure that each requested extension is supported
     uint32_t extensionsSupported{};
-    for (VkExtensionProperties requestedExtension : requestedExtensions)
+    for (const std::string& requestedExtension : requestedExtensions)
         for (VkExtensionProperties supportedExtension : supportedExtensions)
-            if (strcmp((const char *)requestedExtension.extensionName, (const char *)supportedExtension.extensionName) == 0) {
+            if (requestedExtension == (const char *)supportedExtension.extensionName) {
                 ++extensionsSupported;
                 break;
             }
@@ -566,20 +566,18 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
             enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + requestedExtensionCount);
             for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
                 enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
-            for (auto extension : requestedExtensions) {
+            for (const std::string& extension : requestedExtensions) {
                 bool extensionShouldBeAdded{true};
                 for (const auto *enabledExtension : enabledExtensions)
-                    if (strcmp(enabledExtension, (const char *)extension.extensionName) == 0) {
+                    if (extension == enabledExtension) {
                         extensionShouldBeAdded = false;
                         break;
                     }
-                if (extensionShouldBeAdded)
-                    enabledExtensions.push_back((const char *) extension.extensionName);
+                if (extensionShouldBeAdded) {
+                    enabledExtensions.push_back(extension.c_str());
+                    message << extension << ", ";
+                }
             }
-#ifndef NDEBUG
-            for (auto extension : requestedExtensions)
-                message << (const char *)extension.extensionName << " ";
-#endif
 
             // Modify the createInfo.
             createInfo.enabledExtensionCount   = enabledExtensions.size();
@@ -591,8 +589,13 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
     VkResult result = Unity::Hooks::vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
         Logger::log("DLSS compatible device creation", queryResult);
-        if (NVSDK_NGX_SUCCEED(queryResult))
-            Logger::log("Added " + std::to_string(requestedExtensionCount) + " device requestedExtensions: " + message.str() + ".");
+        if (NVSDK_NGX_SUCCEED(queryResult)) {
+            std::string msg = message.str();
+            if (msg.empty())
+                Logger::log("All requested device extensions were already enabled.");
+            else
+                Logger::log("Added device requestedExtensions: " + msg.substr(0, msg.length() - 2) + ".");
+        }
     }
     return result;
 }
@@ -615,7 +618,7 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
 
     // Find out which extensions need to be added.
     uint32_t                           requestedExtensionCount{};
-    std::vector<VkExtensionProperties> requestedExtensions{};
+    std::vector<std::string> requestedExtensions{};
     VkExtensionProperties *extensions{};
     NVSDK_NGX_Result       queryResult = NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(
       &Application::featureDiscoveryInfo,
@@ -625,40 +628,40 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
 
     requestedExtensions.reserve(requestedExtensionCount);
     for (uint32_t i{}; i < requestedExtensionCount; ++i)
-        requestedExtensions.emplace_back(extensions[i]);
+        requestedExtensions.emplace_back(extensions[i].extensionName);
+
 
     // Ensure that each requested extension is supported
-    uint32_t extensionsSupported{};
-    for (VkExtensionProperties requestedExtension : requestedExtensions)
+    uint32_t supportedRequestedExtensions{};
+    for (const std::string& requestedExtension : requestedExtensions)
         for (VkExtensionProperties supportedExtension : supportedExtensions)
-            if (strcmp((const char *)requestedExtension.extensionName, (const char *)supportedExtension.extensionName) == 0) {
-                ++extensionsSupported;
+            if (requestedExtension == (const char *)supportedExtension.extensionName) {
+                ++supportedRequestedExtensions;
                 break;
             }
 
 
+    // Add the extensions if they are supported and they are not already in the createInfo.
     std::vector<const char *> enabledExtensions;
-    if (extensionsSupported == requestedExtensionCount) {
+    if (supportedRequestedExtensions == requestedExtensionCount) {
         Logger::log("All requested instance extensions are supported");
         if (NVSDK_NGX_SUCCEED(queryResult)) {
             // Add the extensions that have already been requested to the extensions that need to be added.
             enabledExtensions.reserve(pCreateInfo->enabledExtensionCount + requestedExtensionCount);
             for (uint32_t i{0}; i < pCreateInfo->enabledExtensionCount; ++i)
                 enabledExtensions.push_back(createInfo.ppEnabledExtensionNames[i]);
-            for (auto extension : requestedExtensions) {
+            for (const std::string& extension : requestedExtensions) {
                 bool extensionShouldBeAdded{true};
                 for (const auto *enabledExtension : enabledExtensions)
-                    if (strcmp(enabledExtension, (const char *)extension.extensionName) == 0) {
+                    if (enabledExtension == extension) {
                         extensionShouldBeAdded = false;
                         break;
                     }
-                if (extensionShouldBeAdded)
-                    enabledExtensions.push_back((const char *) extension.extensionName);
+                if (extensionShouldBeAdded) {
+                    enabledExtensions.push_back(extension.c_str());
+                    message << extension << ", ";
+                }
             }
-#ifndef NDEBUG
-            for (auto extension : requestedExtensions)
-                message << (const char *)extension.extensionName << " ";
-#endif
 
             // Modify the createInfo.
             createInfo.enabledExtensionCount   = enabledExtensions.size();
@@ -671,8 +674,13 @@ VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
     Unity::vulkanInstance = *pInstance;
     if (result == VK_SUCCESS) {
         Logger::log("DLSS compatible instance creation", queryResult);
-        if (NVSDK_NGX_SUCCEED(queryResult))
-            Logger::log("Added " + std::to_string(requestedExtensionCount) + " instance extensions: " + message.str() + ".");
+        if (NVSDK_NGX_SUCCEED(queryResult)) {
+            std::string msg = message.str();
+            if (msg.empty())
+                Logger::log("All requested instance extensions were already enabled.");
+            else
+                Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
+        }
     }
     return result;
 }
