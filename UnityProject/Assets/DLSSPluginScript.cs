@@ -24,9 +24,6 @@ public class EnableDLSS : MonoBehaviour
         }
 
         Debug.Log("DLSS is supported.");
-        // Graphics.activeDepthBuffer.GetNativeRenderBufferPtr();
-//         var ptr = RenderTexture.active.GetNativeDepthBufferPtr();
-//         PrepareDLSS(ptr);
     }
 
     // Update is called once per frame
