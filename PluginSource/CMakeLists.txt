@@ -84,7 +84,14 @@ set_target_properties(ngx PROPERTIES IMPORTED_LOCATION "${DLSS_STATIC_LIB}")
 # Our plugin #
 ##############
 
-add_library(GfxPluginDLSSPlugin main.cpp)
-target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES})
+add_library(GfxPluginDLSSPlugin main.cpp
+        GraphicsAPI/GraphicsAPI.cpp
+        GraphicsAPI/Vulkan.cpp
+        Logger.cpp
+        Upscaler/Upscaler.cpp
+        Upscaler/DLSS.cpp
+        Plugin.cpp
+)
+target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 target_link_libraries(GfxPluginDLSSPlugin ngx)
 add_custom_command(TARGET GfxPluginDLSSPlugin COMMAND ${CMAKE_COMMAND} -E copy ${PLUGIN_FILE} ${DLSS_SHARED_LIB} ${PLUGINS_DIR} COMMENT "Copying shared libraries. Please restart Unity." POST_BUILD)
