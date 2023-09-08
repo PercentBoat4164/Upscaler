@@ -284,7 +284,7 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
             Logger::log("Successfully created a DLSS compatible Vulkan device.");
             std::string msg = message.str();
             if (msg.empty()) Logger::log("All requested device extensions were already enabled.");
-            else Logger::log("Added device requestedExtensions: " + msg.substr(0, msg.length() - 2) + ".");
+            else Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
         }
         else
             Logger::log("Failed to create a DLSS compatible Vulkan device.");

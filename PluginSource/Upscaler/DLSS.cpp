@@ -78,6 +78,7 @@ void Upscaler::DLSS::initialize() {
       NVSDK_NGX_Version_API
     );
     Logger::log("Initialize NGX SDK", result);
+    staticSetIsSupported(NVSDK_NGX_SUCCEED(result));
 
     // Ensure that the device that Unity selected supports DLSS
     // Set and obtain parameters
