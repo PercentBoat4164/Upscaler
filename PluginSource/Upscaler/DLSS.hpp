@@ -7,11 +7,10 @@
 
 #include <nvsdk_ngx_helpers_vk.h>
 
-namespace Upscaler {
 class DLSS : public Upscaler {
-    static struct Application {
+    struct Application {
     uint64_t                         id{231313132};
-    std::wstring                     dataPath{L"./Logs"};
+    std::wstring                     dataPath{L"./"};
     NVSDK_NGX_Application_Identifier ngxIdentifier {
       .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
       .v              = {
@@ -42,23 +41,28 @@ class DLSS : public Upscaler {
 
     DLSS() = default;
 
-    static bool supported;
-
 public:
     static Upscaler *get();
 
-    static bool        isSupported();
+    bool isSupported() override;
+
+    bool isAvailable() override;
 
     /// Note: Can only set the value from true to false.
     bool setIsSupported(bool isSupported) override;
 
     /// Note: Can only set the value from true to false.
-    static bool staticSetIsSupported(bool isSupported);
+    bool setIsAvailable(bool isAvailable) override;
 
-    static ExtensionGroup getRequiredVulkanInstanceExtensions();
+    ExtensionGroup getRequiredVulkanInstanceExtensions() override;
 
-    static ExtensionGroup getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice);
+    ExtensionGroup getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    static void initialize();
+    void initialize() override;
+
+    void setDepthBuffer(VkImage depthBuffer, VkImageView depthBufferView) override;
+
+    Type getType() override;
+
+    std::string getName() override;
 };
-} // namespace Upscaler

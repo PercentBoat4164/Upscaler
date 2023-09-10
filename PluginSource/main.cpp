@@ -28,8 +28,7 @@
 #    define WAIT_FOR_DEBUGGER               \
         {                                   \
             bool debuggerConnected = false; \
-            while (!debuggerConnected)      \
-                ;                           \
+            while (!debuggerConnected); \
         }
 #else
 #    define WAIT_FOR_DEBUGGER
@@ -40,10 +39,10 @@ IUnityInterfaces *interfaces;
 IUnityGraphics   *graphicsInterface;
 }  // namespace Unity
 
-extern "C" UNITY_INTERFACE_EXPORT void OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
+extern "C" UNITY_INTERFACE_EXPORT uint64_t OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
     Logger::log("Resizing DLSS targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
 
-    if (!Plugin::DLSSSupported) return;
+    if (!Upscaler::get()->isSupported()) return 0;
 
     // Release any previously existing feature
     if (Plugin::DLSS != nullptr) {
@@ -69,74 +68,11 @@ extern "C" UNITY_INTERFACE_EXPORT void OnFramebufferResize(unsigned int t_width,
     Logger::log("Create DLSS feature", result);
     if (NVSDK_NGX_FAILED(result)) {
         Plugin::cancelOneTimeSubmitRecording();
-        return;
+        return 0;
     }
     Plugin::endOneTimeSubmitRecording();
-}
 
-extern "C" UNITY_INTERFACE_EXPORT void PrepareDLSS(VkImage t_depthBuffer) {
-    VkImageView imageView{nullptr};
-
-    // clang-format off
-    VkImageViewCreateInfo createInfo{
-      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-      .pNext    = nullptr,
-      .flags    = 0,
-      .image    = t_depthBuffer,
-      .viewType = VK_IMAGE_VIEW_TYPE_2D,
-      .format   = VK_FORMAT_D24_UNORM_S8_UINT,
-      .components = {
-        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-      },
-      .subresourceRange = {
-        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
-        .baseMipLevel   = 0,
-        .levelCount     = 1,
-        .baseArrayLayer = 0,
-        .layerCount     = 1,
-      },
-    };
-    // clang-format on
-
-    VkResult result = GraphicsAPI::Vulkan::get(GraphicsAPI::Vulkan::getVulkanInterface()->Instance().device)
-                        .vkCreateImageView(&createInfo, nullptr, &imageView);
-    if (result == VK_SUCCESS) Logger::log("Created depth resource for DLSS.");
-
-
-    // clang-format off
-    Plugin::depthBufferResource = {
-      .Resource = {
-        .ImageViewInfo = {
-          .ImageView        = imageView,
-          .Image            = t_depthBuffer,
-          .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
-            .baseMipLevel   = 0,
-            .levelCount     = 1,
-            .baseArrayLayer = 0,
-            .layerCount     = 1,
-          },
-          .Format = VK_FORMAT_D24_UNORM_S8_UINT,
-          .Width  = Plugin::Settings::renderResolution.width,
-          .Height = Plugin::Settings::renderResolution.height,
-        },
-      },
-      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
-      .ReadWrite = true,
-    };
-
-    Plugin::evalParameters = {
-      .pInDepth                  = &Plugin::depthBufferResource,
-      .pInMotionVectors          = nullptr,
-      .InJitterOffsetX           = 0.F,
-      .InJitterOffsetY           = 0.F,
-      .InRenderSubrectDimensions = {
-        .Width  = Plugin::Settings::renderResolution.width,
-        .Height = Plugin::Settings::renderResolution.height,
-      },
-    };
-    // clang-format on
+    return (uint64_t)Plugin::Settings::renderResolution.width << 32U | Plugin::Settings::renderResolution.height;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
@@ -153,8 +89,8 @@ extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
-    Upscaler::DLSS::initialize();
-    return Upscaler::DLSS::staticSetIsSupported(true);
+    Upscaler::get()->initialize();
+    return Upscaler::get()->setIsSupported(true);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(const char *)) {
@@ -166,8 +102,9 @@ extern "C" UNITY_INTERFACE_EXPORT void OnGraphicsDeviceEvent(UnityGfxDeviceEvent
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize: {
             UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
-            if (renderer == kUnityGfxRendererNull) break;
-            if (renderer == kUnityGfxRendererVulkan) Plugin::DLSSSupported = initializeDLSS();
+            if (renderer == kUnityGfxRendererNull) return;  // Run before API selected
+            if (renderer == kUnityGfxRendererVulkan) Upscaler::get()->initialize();
+            else Upscaler::disableAllUpscalers();
             break;
         }
         case kUnityGfxDeviceEventShutdown: {
@@ -178,19 +115,54 @@ extern "C" UNITY_INTERFACE_EXPORT void OnGraphicsDeviceEvent(UnityGfxDeviceEvent
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool IsDLSSSupported() {
-    return Plugin::DLSSSupported;
+    return Upscaler::get<DLSS>()->isSupported();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void setDepthBuffer(VkImage *buffer, VkFormat format) {
+    format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+    VkImageViewCreateInfo createInfo {
+      .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0x0,
+      .image = *buffer,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format = format,
+      .components = {
+         VK_COMPONENT_SWIZZLE_IDENTITY,
+         VK_COMPONENT_SWIZZLE_IDENTITY,
+         VK_COMPONENT_SWIZZLE_IDENTITY,
+         VK_COMPONENT_SWIZZLE_IDENTITY,
+      },
+      .subresourceRange = {
+        .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .baseMipLevel = 0,
+        .levelCount = 1,
+        .baseArrayLayer = 0,
+        .layerCount = 1,
+      },
+    };
+
+    VkImageView view{};
+    VkResult result = GraphicsAPI::Vulkan::get(GraphicsAPI::Vulkan::getVulkanInterface()->Instance().device).vkCreateImageView(&createInfo, nullptr, &view);
+    if (result == VK_SUCCESS)
+        Upscaler::get()->setDepthBuffer(*buffer, view);
+    else
+        Upscaler::get()->setIsAvailable(false);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
+//    WAIT_FOR_DEBUGGER
     Unity::interfaces = t_unityInterfaces;
     if (!GraphicsAPI::Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>())) {
         Logger::log("DLSS Plugin failed to intercept initialization.");
-        Plugin::DLSSSupported = false;
+        Upscaler::disableAllUpscalers();
         return;
     }
     Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
     Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
+    Upscaler::set(Upscaler::DLSS);
+
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {

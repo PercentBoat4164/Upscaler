@@ -2,33 +2,25 @@
 
 #include <iomanip>
 
-Upscaler::DLSS::Application Upscaler::DLSS::applicationInfo{};
-bool Upscaler::DLSS::supported{true};
-
-Upscaler::Upscaler *Upscaler::DLSS::get() {
+Upscaler *DLSS::get() {
     static DLSS *dlss{new DLSS};
     return dlss;
 }
 
-bool Upscaler::DLSS::isSupported() {
+bool DLSS::isSupported() {
     return supported;
 }
 
-bool Upscaler::DLSS::setIsSupported(bool isSupported) {
+bool DLSS::setIsSupported(bool isSupported) {
     supported &= isSupported;
     return supported;
 }
 
-bool Upscaler::DLSS::staticSetIsSupported(bool isSupported) {
-    supported &= isSupported;
-    return supported;
-}
-
-ExtensionGroup Upscaler::DLSS::getRequiredVulkanInstanceExtensions() {
+ExtensionGroup DLSS::getRequiredVulkanInstanceExtensions() {
     uint32_t                            extensionCount{};
     ExtensionGroup extensions{};
     VkExtensionProperties   *extensionProperties{};
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(
       &applicationInfo.featureDiscoveryInfo,
       &extensionCount,
       &extensionProperties
@@ -41,11 +33,11 @@ ExtensionGroup Upscaler::DLSS::getRequiredVulkanInstanceExtensions() {
 }
 
 ExtensionGroup
-Upscaler::DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) {
+DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) {
     uint32_t                 extensionCount{};
     ExtensionGroup extensions{};
     VkExtensionProperties   *extensionProperties{};
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(
       instance,
       physicalDevice,
       &applicationInfo.featureDiscoveryInfo,
@@ -58,8 +50,8 @@ Upscaler::DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysica
     return extensions;
 }
 
-void Upscaler::DLSS::initialize() {
-    if (!Plugin::DLSSSupported) return;
+void DLSS::initialize() {
+    if (!isSupported()) return;
 
     UnityVulkanInstance vulkanInstance = GraphicsAPI::Vulkan::getVulkanInterface()->Instance();
 
@@ -78,13 +70,13 @@ void Upscaler::DLSS::initialize() {
       NVSDK_NGX_Version_API
     );
     Logger::log("Initialize NGX SDK", result);
-    staticSetIsSupported(NVSDK_NGX_SUCCEED(result));
+    setIsSupported(NVSDK_NGX_SUCCEED(result));
 
     // Ensure that the device that Unity selected supports DLSS
     // Set and obtain parameters
     result = NVSDK_NGX_VULKAN_GetCapabilityParameters(&Plugin::parameters);
     Logger::log("Get NGX Vulkan capability parameters", result);
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(result))) return;
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(result))) return;
     // Check for DLSS support
     // Is driver up-to-date
     int              needsUpdatedDriver{};
@@ -103,9 +95,9 @@ void Upscaler::DLSS::initialize() {
       &requiredMinorDriverVersion
     );
     Logger::log("Query DLSS minimum graphics driver minor version", minMinorDriverVersionResult);
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(updateDriverResult) && NVSDK_NGX_SUCCEED(minMajorDriverVersionResult) && NVSDK_NGX_SUCCEED(minMinorDriverVersionResult)))
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(updateDriverResult) && NVSDK_NGX_SUCCEED(minMajorDriverVersionResult) && NVSDK_NGX_SUCCEED(minMinorDriverVersionResult)))
         return;
-    if (!staticSetIsSupported(needsUpdatedDriver == 0)) {
+    if (!setIsSupported(needsUpdatedDriver == 0)) {
         Logger::log(
           "DLSS initialization failed. Minimum driver requirement not met. Update to at least: " +
           std::to_string(requiredMajorDriverVersion) + "." + std::to_string(requiredMinorDriverVersion)
@@ -120,8 +112,8 @@ void Upscaler::DLSS::initialize() {
     int DLSSSupported{};
     result = Plugin::parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported);
     Logger::log("Query DLSS feature availability", result);
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(result))) return;
-    if (!staticSetIsSupported(DLSSSupported != 0)) {
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(result))) return;
+    if (!setIsSupported(DLSSSupported != 0)) {
         NVSDK_NGX_Result FeatureInitResult = NVSDK_NGX_Result_Fail;
         NVSDK_NGX_Parameter_GetI(
           Plugin::parameters,
@@ -138,10 +130,63 @@ void Upscaler::DLSS::initialize() {
     // Is DLSS denied for this application
     result = Plugin::parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported);
     Logger::log("Query DLSS feature initialization", result);
-    if (!staticSetIsSupported(NVSDK_NGX_SUCCEED(result))) return;
+    if (!setIsSupported(NVSDK_NGX_SUCCEED(result))) return;
     // clean up
-    if (!staticSetIsSupported(DLSSSupported != 0)) {
+    if (!setIsSupported(DLSSSupported != 0)) {
         Logger::log("DLSS is denied for this application.");
         return;
     }
+}
+
+void DLSS::setDepthBuffer(VkImage depthBuffer, VkImageView depthBufferView) {
+    // clang-format off
+    Plugin::depthBufferResource = {
+      .Resource = {
+        .ImageViewInfo = {
+          .ImageView        = depthBufferView,
+          .Image            = depthBuffer,
+          .SubresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+          },
+          .Format = VK_FORMAT_D24_UNORM_S8_UINT,
+          .Width  = Plugin::Settings::renderResolution.width,
+          .Height = Plugin::Settings::renderResolution.height,
+        },
+      },
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true,
+    };
+
+    Plugin::evalParameters = {
+      .pInDepth                  = &Plugin::depthBufferResource,
+      .pInMotionVectors          = nullptr,
+      .InJitterOffsetX           = 0.F,
+      .InJitterOffsetY           = 0.F,
+      .InRenderSubrectDimensions = {
+        .Width  = Plugin::Settings::renderResolution.width,
+        .Height = Plugin::Settings::renderResolution.height,
+      },
+    };
+    // clang-format on
+}
+
+bool DLSS::setIsAvailable(bool isAvailable) {
+    available &= isAvailable;
+    return available;
+}
+
+bool DLSS::isAvailable() {
+    return available;
+}
+
+Upscaler::Type DLSS::getType() {
+    return Upscaler::DLSS;
+}
+
+std::string DLSS::getName() {
+    return "NVIDIA DLSS";
 }

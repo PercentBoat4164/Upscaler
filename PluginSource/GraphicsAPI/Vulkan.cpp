@@ -142,21 +142,19 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
     // Find out which extensions are supported
     ExtensionGroup supportedExtensions = getSupportedInstanceExtensions();
 
-    // Find out which extensions need to be added for each upscaler.
-    std::vector<std::pair<Upscaler::Upscaler *, ExtensionGroup>> requestedExtensions{
-      {Upscaler::Upscaler::get<Upscaler::DLSS>(), Upscaler::DLSS::getRequiredVulkanInstanceExtensions()},
-    };
-
     // Vectorize the enabled extensions
     std::vector<const char *> enabledExtensions{};
     enabledExtensions.reserve(pCreateInfo->enabledExtensionCount);
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
 
-    // Mark supported features as such
-    for (std::pair<Upscaler::Upscaler *, ExtensionGroup> &requestedExtensionGroup : requestedExtensions) {
+    // Enable requested extensions in groups
+    ExtensionGroup newExtensions;
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+        // Mark supported features as such
+        ExtensionGroup requestedExtensions = upscaler->getRequiredVulkanInstanceExtensions();
         uint32_t supportedRequestedExtensionCount{};
-        for (const std::string& requestedExtension : requestedExtensionGroup.second) {
+        for (const std::string& requestedExtension : requestedExtensions) {
             for (const std::string& supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
@@ -165,10 +163,8 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
             }
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (requestedExtensionGroup.first->setIsSupported(
-          supportedRequestedExtensionCount == requestedExtensionGroup.second.size()
-        )) {
-            for (const std::string &extension : requestedExtensionGroup.second) {
+        if (upscaler->setIsSupported(supportedRequestedExtensionCount == requestedExtensions.size())) {
+            for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
                     if (extension == enabledExtension) {
@@ -177,7 +173,8 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
                     }
                 }
                 if (enableExtension) {
-                    enabledExtensions.push_back(extension.c_str());
+                    newExtensions.push_back(extension);
+                    enabledExtensions.push_back(newExtensions[newExtensions.size() - 1].c_str());
                     message << extension << ", ";
                 }
             }
@@ -192,15 +189,15 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
     VkResult result = m_vkCreateInstance(&createInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
         instance = *pInstance;
-        if (Upscaler::DLSS::isSupported()) {
-            Logger::log("Successfully created A DLSS compatible Vulkan instance.");
-            std::string msg = message.str();
-            if (msg.empty()) Logger::log("All requested instance extensions were already enabled.");
-            else Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
-        } else
-            Logger::log("Failed to create A DLSS compatible Vulkan instance.");
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+            if (upscaler->isSupported())
+                Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
+            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance.");
+        std::string msg = message.str();
+        if (!msg.empty())
+            Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
     } else
-        Logger::log("Failed to create A DLSS compatible Vulkan instance.");
+        Logger::log("Vulkan instance creation failed...");
     return result;
 }
 
@@ -230,21 +227,19 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
     // Find out which extensions are supported
     ExtensionGroup supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
 
-    // Find out which extensions need to be added for each upscaler.
-    std::vector<std::pair<Upscaler::Upscaler *, ExtensionGroup>> requestedExtensions{
-        {Upscaler::Upscaler::get<Upscaler::DLSS>(), Upscaler::DLSS::getRequiredVulkanDeviceExtensions(instance, physicalDevice)},
-    };
-
     // Vectorize the enabled extensions
     std::vector<const char *> enabledExtensions{};
     enabledExtensions.reserve(pCreateInfo->enabledExtensionCount);
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
 
-    // Mark supported features as such
-    for (std::pair<Upscaler::Upscaler *, ExtensionGroup> &requestedExtensionGroup : requestedExtensions) {
+    // Enable requested extensions in groups
+    ExtensionGroup newExtensions;
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+        // Mark supported features as such
+        ExtensionGroup requestedExtensions = upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice);
         uint32_t supportedRequestedExtensionCount{};
-        for (const std::string& requestedExtension : requestedExtensionGroup.second) {
+        for (const std::string& requestedExtension : requestedExtensions) {
             for (const std::string& supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
@@ -252,11 +247,9 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
                 }
             }
         }
-        // If all extensions that were requested in this extension group are supported, then enable any that are not already enabled.
-        if (requestedExtensionGroup.first->setIsSupported(
-          supportedRequestedExtensionCount == requestedExtensionGroup.second.size()
-        )) {
-            for (const std::string &extension : requestedExtensionGroup.second) {
+        // If all extensions that were requested in this extension group are supported, then enable them.
+        if (upscaler->setIsSupported(supportedRequestedExtensionCount == requestedExtensions.size())) {
+            for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
                     if (extension == enabledExtension) {
@@ -265,7 +258,8 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
                     }
                 }
                 if (enableExtension) {
-                    enabledExtensions.push_back(extension.c_str());
+                    newExtensions.push_back(extension);
+                    enabledExtensions.push_back(newExtensions[newExtensions.size() - 1].c_str());
                     message << extension << ", ";
                 }
             }
@@ -280,16 +274,16 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
         deviceFunctions.insert({*pDevice, DeviceFunctions(*pDevice, m_vkGetDeviceProcAddr)});
-        if (Upscaler::DLSS::isSupported()) {
-            Logger::log("Successfully created a DLSS compatible Vulkan device.");
-            std::string msg = message.str();
-            if (msg.empty()) Logger::log("All requested device extensions were already enabled.");
-            else Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+            if (upscaler->isSupported())
+                Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
+            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan device.");
         }
-        else
-            Logger::log("Failed to create a DLSS compatible Vulkan device.");
+        std::string msg = message.str();
+        if (!msg.empty())
+            Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
     } else
-        Logger::log("Failed to create a DLSS compatible Vulkan device.");
+        Logger::log("Vulkan device creation failed...");
     return result;
 }
 

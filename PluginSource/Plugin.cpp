@@ -3,7 +3,6 @@
 #include "GraphicsAPI/Vulkan.hpp"
 #include "Upscaler/DLSS.hpp"
 
-bool                          Plugin::DLSSSupported{true};
 NVSDK_NGX_Handle             *Plugin::DLSS{nullptr};
 NVSDK_NGX_Parameter          *Plugin::parameters{nullptr};
 NVSDK_NGX_VK_DLSS_Eval_Params Plugin::evalParameters{};

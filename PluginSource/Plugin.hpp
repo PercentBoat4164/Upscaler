@@ -9,11 +9,12 @@
 #include <string>
 #include <vector>
 
+class Upscaler;
+
 using ExtensionGroup = std::vector<std::string>;
 
 class Plugin {
 public:
-    static bool                          DLSSSupported;
     static NVSDK_NGX_Handle             *DLSS;
     static NVSDK_NGX_Parameter          *parameters;
     static NVSDK_NGX_VK_DLSS_Eval_Params evalParameters;
