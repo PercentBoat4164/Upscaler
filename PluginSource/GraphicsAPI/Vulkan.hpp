@@ -120,8 +120,7 @@ private:
         return m_vkGetInstanceProcAddr(t_instance, pName);
     }
 
-    static PFN_vkGetInstanceProcAddr
-    interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
+    static UNITY_INTERFACE_EXPORT PFN_vkGetInstanceProcAddr UNITY_INTERFACE_API interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
         setVkGetInstanceProcAddr(t_getInstanceProcAddr);
         loadEarlyFunctionPointers();
         return Hook_vkGetInstanceProcAddr;

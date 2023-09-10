@@ -73,7 +73,7 @@ void Plugin::endOneTimeSubmitRecording() {
       .pSignalSemaphores    = nullptr,
     };
 
-    device.vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, nullptr);
+    device.vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     device.vkQueueWaitIdle(vulkanInstance.graphicsQueue);
     device.vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
     _oneTimeSubmitRecording = false;
