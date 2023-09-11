@@ -10,11 +10,11 @@ set(BUILD_SHARED_LIBS ON)
 
 cmake_path(SET DLSS_DIR "${CMAKE_SOURCE_DIR}/nvngx_dlss_sdk")
 cmake_path(SET PLUGINS_DIR "${CMAKE_SOURCE_DIR}/../UnityProject/Assets/Plugins")
-if(WIN32)
+if (WIN32)
     cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/GfxPluginDLSSPlugin.dll")
-elseif(UNIX AND NOT APPLE)
+elseif (UNIX AND NOT APPLE)
     cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/libGfxPluginDLSSPlugin.so")
-endif()
+endif ()
 if (WIN32)
     cmake_path(SET GLOBBING_EXPRESSION "C:/Program Files")
 elseif (UNIX AND NOT APPLE)
@@ -90,7 +90,6 @@ add_library(GfxPluginDLSSPlugin main.cpp
         Logger.cpp
         Upscaler/Upscaler.cpp
         Upscaler/DLSS.cpp
-        Plugin.cpp
 )
 target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 target_link_libraries(GfxPluginDLSSPlugin ngx)

@@ -42,7 +42,7 @@ public class EnableDLSS : MonoBehaviour
 
         _renderTarget = new RenderTexture(width, height, 24, DefaultFormat.DepthStencil);
         _renderTarget.Create();
-        setDepthBuffer(_renderTarget.GetNativeDepthBufferPtr(), (uint)_renderTarget.depthStencilFormat);
+        SetDepthBuffer(_renderTarget.GetNativeDepthBufferPtr(), (uint)_renderTarget.depthStencilFormat);
 
         _tempTarget = _camera.targetTexture;
         _camera.targetTexture = _renderTarget;
@@ -62,7 +62,7 @@ public class EnableDLSS : MonoBehaviour
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void setDepthBuffer(IntPtr buffer, uint format);
+    private static extern void SetDepthBuffer(IntPtr buffer, uint format);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern void SetDebugCallback(DebugCallback cb);

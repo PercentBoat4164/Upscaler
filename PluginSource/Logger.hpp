@@ -1,7 +1,10 @@
 #pragma once
 
+// Upscaler
 #include <nvsdk_ngx_defs.h>
 #include <nvsdk_ngx_helpers.h>
+
+// System
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -11,7 +14,7 @@ class Logger {
     static std::vector<std::string> messages;
 
 public:
-    static void setLoggerCallback(void(*t_callback)(const char *));
+    static void setLoggerCallback(void (*t_callback)(const char *));
 
     static std::string to_string(const wchar_t *str);
 

@@ -3,12 +3,19 @@
 #include "Logger.hpp"
 #include "Upscaler/DLSS.hpp"
 
-GraphicsAPI::Vulkan::DeviceFunctions::DeviceFunctions(
-  VkDevice                device,
-  PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr
-) :
-  device(device),
-  // clang-format off
+PFN_vkGetInstanceProcAddr                    Vulkan::m_vkGetInstanceProcAddr{};
+PFN_vkGetDeviceProcAddr                      Vulkan::m_vkGetDeviceProcAddr{};
+PFN_vkCreateInstance                         Vulkan::m_vkCreateInstance{};
+PFN_vkEnumerateInstanceExtensionProperties   Vulkan::m_vkEnumerateInstanceExtensionProperties{};
+PFN_vkCreateDevice                           Vulkan::m_vkCreateDevice{};
+PFN_vkEnumerateDeviceExtensionProperties     Vulkan::m_vkEnumerateDeviceExtensionProperties{};
+VkInstance                                   Vulkan::instance{};
+std::unordered_map<VkDevice, Vulkan::Device> Vulkan::devices{};
+IUnityGraphicsVulkanV2                      *Vulkan::vulkanInterface{};
+
+Vulkan::Device::Device(VkDevice device, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) :
+        device(device),
+        // clang-format off
   m_vkCreateImageView(reinterpret_cast<PFN_vkCreateImageView>(vkGetDeviceProcAddr(device, "vkCreateImageView"))),
   m_vkCreateCommandPool(reinterpret_cast<PFN_vkCreateCommandPool>(vkGetDeviceProcAddr(device, "vkCreateCommandPool"))),
   m_vkAllocateCommandBuffers(reinterpret_cast<PFN_vkAllocateCommandBuffers>(vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"))),
@@ -23,7 +30,7 @@ GraphicsAPI::Vulkan::DeviceFunctions::DeviceFunctions(
 {
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkCreateCommandPool(
+VkResult Vulkan::Device::vkCreateCommandPool(
   const VkCommandPoolCreateInfo *pCreateInfo,
   const VkAllocationCallbacks   *pAllocator,
   VkCommandPool                 *pCommandPool
@@ -31,45 +38,36 @@ VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkCreateCommandPool(
     return m_vkCreateCommandPool(device, pCreateInfo, pAllocator, pCommandPool);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkAllocateCommandBuffers(
+VkResult Vulkan::Device::vkAllocateCommandBuffers(
   const VkCommandBufferAllocateInfo *pAllocateInfo,
   VkCommandBuffer                   *pCommandBuffers
 ) {
     return m_vkAllocateCommandBuffers(device, pAllocateInfo, pCommandBuffers);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkBeginCommandBuffer(
-  VkCommandBuffer           commandBuffer,
-  VkCommandBufferBeginInfo *pBeginInfo
-) {
+VkResult
+Vulkan::Device::vkBeginCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferBeginInfo *pBeginInfo) {
     return m_vkBeginCommandBuffer(commandBuffer, pBeginInfo);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkEndCommandBuffer(VkCommandBuffer commandBuffer) {
+VkResult Vulkan::Device::vkEndCommandBuffer(VkCommandBuffer commandBuffer) {
     return m_vkEndCommandBuffer(commandBuffer);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkQueueSubmit(
-  VkQueue             queue,
-  uint32_t            submitCount,
-  const VkSubmitInfo *pSubmits,
-  VkFence             fence
-) {
+VkResult
+Vulkan::Device::vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits, VkFence fence) {
     return m_vkQueueSubmit(queue, submitCount, pSubmits, fence);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkQueueWaitIdle(VkQueue queue) {
+VkResult Vulkan::Device::vkQueueWaitIdle(VkQueue queue) {
     return m_vkQueueWaitIdle(queue);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkResetCommandBuffer(
-  VkCommandBuffer           commandBuffer,
-  VkCommandBufferResetFlags flags
-) {
+VkResult Vulkan::Device::vkResetCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags) {
     return m_vkResetCommandBuffer(commandBuffer, flags);
 }
 
-void GraphicsAPI::Vulkan::DeviceFunctions::vkFreeCommandBuffers(
+void Vulkan::Device::vkFreeCommandBuffers(
   VkCommandPool    commandPool,
   uint32_t         commandBufferCount,
   VkCommandBuffer *pCommandBuffers
@@ -77,14 +75,11 @@ void GraphicsAPI::Vulkan::DeviceFunctions::vkFreeCommandBuffers(
     return m_vkFreeCommandBuffers(device, commandPool, commandBufferCount, pCommandBuffers);
 }
 
-void GraphicsAPI::Vulkan::DeviceFunctions::vkDestroyCommandPool(
-  VkCommandPool                commandPool,
-  const VkAllocationCallbacks *pAllocator
-) {
+void Vulkan::Device::vkDestroyCommandPool(VkCommandPool commandPool, const VkAllocationCallbacks *pAllocator) {
     return m_vkDestroyCommandPool(device, commandPool, pAllocator);
 }
 
-VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkCreateImageView(
+VkResult Vulkan::Device::vkCreateImageView(
   const VkImageViewCreateInfo *pCreateInfo,
   const VkAllocationCallbacks *pAllocator,
   VkImageView                 *pView
@@ -92,17 +87,79 @@ VkResult GraphicsAPI::Vulkan::DeviceFunctions::vkCreateImageView(
     return m_vkCreateImageView(device, pCreateInfo, pAllocator, pView);
 }
 
-PFN_vkGetInstanceProcAddr                  GraphicsAPI::Vulkan::m_vkGetInstanceProcAddr{};
-PFN_vkGetDeviceProcAddr                    GraphicsAPI::Vulkan::m_vkGetDeviceProcAddr{};
-PFN_vkCreateInstance                       GraphicsAPI::Vulkan::m_vkCreateInstance{};
-PFN_vkEnumerateInstanceExtensionProperties GraphicsAPI::Vulkan::m_vkEnumerateInstanceExtensionProperties{};
-PFN_vkCreateDevice                         GraphicsAPI::Vulkan::m_vkCreateDevice{};
-PFN_vkEnumerateDeviceExtensionProperties   GraphicsAPI::Vulkan::m_vkEnumerateDeviceExtensionProperties{};
-VkInstance                                    GraphicsAPI::Vulkan::instance{};
-std::unordered_map<VkDevice, GraphicsAPI::Vulkan::DeviceFunctions> GraphicsAPI::Vulkan::deviceFunctions{};
-IUnityGraphicsVulkanV2                       *GraphicsAPI::Vulkan::vulkanInterface{};
+void Vulkan::Device::prepareForOneTimeSubmits() {
+    if (_oneTimeSubmitRecording) return;
+    UnityVulkanInstance     vulkanInstance = getVulkanInterface()->Instance();
+    VkCommandPoolCreateInfo createInfo{
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .pNext            = nullptr,
+      .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+      .queueFamilyIndex = vulkanInstance.queueFamilyIndex,
+    };
 
-bool GraphicsAPI::Vulkan::loadEarlyFunctionPointers() {
+    vkCreateCommandPool(&createInfo, nullptr, &_oneTimeSubmitCommandPool);
+
+    VkCommandBufferAllocateInfo allocateInfo{
+      .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      .pNext              = nullptr,
+      .commandPool        = _oneTimeSubmitCommandPool,
+      .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      .commandBufferCount = 0x1,
+    };
+
+    vkAllocateCommandBuffers(&allocateInfo, &_oneTimeSubmitCommandBuffer);
+    _oneTimeSubmitRecording = true;
+}
+
+VkCommandBuffer Vulkan::Device::beginOneTimeSubmitRecording() {
+    VkCommandBufferBeginInfo beginInfo{
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .pNext            = nullptr,
+      .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      .pInheritanceInfo = nullptr,
+    };
+
+    vkBeginCommandBuffer(_oneTimeSubmitCommandBuffer, &beginInfo);
+
+    return _oneTimeSubmitCommandBuffer;
+}
+
+void Vulkan::Device::endOneTimeSubmitRecording() {
+    if (!_oneTimeSubmitRecording) return;
+    UnityVulkanInstance vulkanInstance = getVulkanInterface()->Instance();
+
+    vkEndCommandBuffer(_oneTimeSubmitCommandBuffer);
+
+    VkSubmitInfo submitInfo{
+      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .pNext                = nullptr,
+      .waitSemaphoreCount   = 0x0,
+      .pWaitSemaphores      = nullptr,
+      .pWaitDstStageMask    = nullptr,
+      .commandBufferCount   = 0x1,
+      .pCommandBuffers      = &_oneTimeSubmitCommandBuffer,
+      .signalSemaphoreCount = 0x0,
+      .pSignalSemaphores    = nullptr,
+    };
+
+    vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, nullptr);
+    vkQueueWaitIdle(vulkanInstance.graphicsQueue);
+    vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
+    _oneTimeSubmitRecording = false;
+}
+
+void Vulkan::Device::cancelOneTimeSubmitRecording() {
+    if (!_oneTimeSubmitRecording) return;
+    vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
+    _oneTimeSubmitRecording = false;
+}
+
+void Vulkan::Device::finishOneTimeSubmits() {
+    vkFreeCommandBuffers(_oneTimeSubmitCommandPool, 1, &_oneTimeSubmitCommandBuffer);
+    vkDestroyCommandPool(_oneTimeSubmitCommandPool, nullptr);
+}
+
+bool Vulkan::loadEarlyFunctionPointers() {
     // clang-format off
     m_vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
     m_vkEnumerateInstanceExtensionProperties = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties"));
@@ -110,7 +167,7 @@ bool GraphicsAPI::Vulkan::loadEarlyFunctionPointers() {
     // clang-format on
 }
 
-bool GraphicsAPI::Vulkan::loadLateFunctionPointers() {
+bool Vulkan::loadLateFunctionPointers() {
     // clang-format off
     m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(instance, "vkEnumerateDeviceExtensionProperties"));
     m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, "vkCreateDevice"));
@@ -119,9 +176,9 @@ bool GraphicsAPI::Vulkan::loadLateFunctionPointers() {
     // clang-format on
 }
 
-ExtensionGroup GraphicsAPI::Vulkan::getSupportedInstanceExtensions() {
+std::vector<std::string> Vulkan::getSupportedInstanceExtensions() {
     uint32_t                           extensionCount{};
-    ExtensionGroup                     extensions;
+    std::vector<std::string>           extensions;
     std::vector<VkExtensionProperties> extensionProperties{};
     m_vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     extensionProperties.resize(extensionCount);
@@ -131,7 +188,7 @@ ExtensionGroup GraphicsAPI::Vulkan::getSupportedInstanceExtensions() {
     return extensions;
 }
 
-VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
+VkResult Vulkan::Hook_vkCreateInstance(
   const VkInstanceCreateInfo  *pCreateInfo,
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
@@ -140,7 +197,7 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
     std::stringstream    message;
 
     // Find out which extensions are supported
-    ExtensionGroup supportedExtensions = getSupportedInstanceExtensions();
+    std::vector<std::string> supportedExtensions = getSupportedInstanceExtensions();
 
     // Vectorize the enabled extensions
     std::vector<const char *> enabledExtensions{};
@@ -149,13 +206,13 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
 
     // Enable requested extensions in groups
-    ExtensionGroup newExtensions;
+    std::vector<std::string> newExtensions;
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
         // Mark supported features as such
-        ExtensionGroup requestedExtensions = upscaler->getRequiredVulkanInstanceExtensions();
-        uint32_t supportedRequestedExtensionCount{};
-        for (const std::string& requestedExtension : requestedExtensions) {
-            for (const std::string& supportedExtension : supportedExtensions) {
+        std::vector<std::string> requestedExtensions = upscaler->getRequiredVulkanInstanceExtensions();
+        uint32_t                 supportedRequestedExtensionCount{};
+        for (const std::string &requestedExtension : requestedExtensions) {
+            for (const std::string &supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
                     break;
@@ -163,7 +220,7 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
             }
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setIsSupported(supportedRequestedExtensionCount == requestedExtensions.size())) {
+        if (upscaler->isSupportedAfter(supportedRequestedExtensionCount == requestedExtensions.size())) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -192,18 +249,25 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateInstance(
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
-            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance.");
+            else
+                Logger::log(
+                  "Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan instance."
+                );
         std::string msg = message.str();
-        if (!msg.empty())
-            Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
-    } else
-        Logger::log("Vulkan instance creation failed...");
+        if (!msg.empty()) Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
+    } else {
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+            if (!upscaler->getRequiredVulkanInstanceExtensions().empty()) upscaler->isSupportedAfter(false);
+        result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
+        if (result == VK_SUCCESS) instance = *pInstance;
+        else Logger::log("Failed to createFeature a Vulkan instance!");
+    }
     return result;
 }
 
-ExtensionGroup GraphicsAPI::Vulkan::getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice) {
+std::vector<std::string> Vulkan::getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice) {
     uint32_t                           extensionCount{};
-    ExtensionGroup                     extensions;
+    std::vector<std::string>           extensions;
     std::vector<VkExtensionProperties> extensionProperties{};
     m_vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
     extensionProperties.resize(extensionCount);
@@ -213,7 +277,7 @@ ExtensionGroup GraphicsAPI::Vulkan::getSupportedDeviceExtensions(VkPhysicalDevic
     return extensions;
 }
 
-VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
+VkResult Vulkan::Hook_vkCreateDevice(
   VkPhysicalDevice          physicalDevice,
   const VkDeviceCreateInfo *pCreateInfo,
   VkAllocationCallbacks    *pAllocator,
@@ -225,7 +289,7 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
     std::stringstream  message;
 
     // Find out which extensions are supported
-    ExtensionGroup supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
+    std::vector<std::string> supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
 
     // Vectorize the enabled extensions
     std::vector<const char *> enabledExtensions{};
@@ -234,13 +298,14 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
 
     // Enable requested extensions in groups
-    ExtensionGroup newExtensions;
+    std::vector<std::string> newExtensions;
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
         // Mark supported features as such
-        ExtensionGroup requestedExtensions = upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice);
+        std::vector<std::string> requestedExtensions =
+          upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice);
         uint32_t supportedRequestedExtensionCount{};
-        for (const std::string& requestedExtension : requestedExtensions) {
-            for (const std::string& supportedExtension : supportedExtensions) {
+        for (const std::string &requestedExtension : requestedExtensions) {
+            for (const std::string &supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
                     break;
@@ -248,7 +313,7 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
             }
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setIsSupported(supportedRequestedExtensionCount == requestedExtensions.size())) {
+        if (upscaler->isSupportedAfter(supportedRequestedExtensionCount == requestedExtensions.size())) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -273,43 +338,66 @@ VkResult GraphicsAPI::Vulkan::Hook_vkCreateDevice(
     // Create the Device
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
-        deviceFunctions.insert({*pDevice, DeviceFunctions(*pDevice, m_vkGetDeviceProcAddr)});
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+        devices.insert({*pDevice, Device(*pDevice, m_vkGetDeviceProcAddr)});
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
-            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan device.");
-        }
+            else Logger::log("Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan device.");
         std::string msg = message.str();
-        if (!msg.empty())
-            Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
-    } else
-        Logger::log("Vulkan device creation failed...");
+        if (!msg.empty()) Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
+    } else {
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+            if (!upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice).empty())
+                upscaler->isSupportedAfter(false);
+        result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
+        if (result == VK_SUCCESS) devices.insert({*pDevice, Device(*pDevice, m_vkGetDeviceProcAddr)});
+        else Logger::log("Failed to createFeature a Vulkan instance!");
+    }
     return result;
 }
 
-GraphicsAPI::Vulkan::DeviceFunctions GraphicsAPI::Vulkan::get(VkDevice device) {
-    return deviceFunctions.at(device);
+Vulkan::Device Vulkan::getDevice(VkDevice device) {
+    return devices.at(device);
 }
 
-void GraphicsAPI::Vulkan::setVkGetInstanceProcAddr(PFN_vkGetInstanceProcAddr t_vkGetInstanceProcAddr) {
+void Vulkan::setVkGetInstanceProcAddr(PFN_vkGetInstanceProcAddr t_vkGetInstanceProcAddr) {
     m_vkGetInstanceProcAddr = t_vkGetInstanceProcAddr;
 }
 
-PFN_vkGetInstanceProcAddr GraphicsAPI::Vulkan::getVkGetInstanceProcAddr() {
+PFN_vkGetInstanceProcAddr Vulkan::getVkGetInstanceProcAddr() {
     return m_vkGetInstanceProcAddr;
 }
 
-bool GraphicsAPI::Vulkan::interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface) {
+bool Vulkan::interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface) {
     vulkanInterface = t_vulkanInterface;
     return vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
 }
 
-bool GraphicsAPI::Vulkan::RemoveInterceptInitialization() {
+bool Vulkan::RemoveInterceptInitialization() {
     bool result     = vulkanInterface->RemoveInterceptInitialization(interceptInitialization);
     vulkanInterface = nullptr;
     return result;
 }
 
-IUnityGraphicsVulkanV2 *GraphicsAPI::Vulkan::getVulkanInterface() {
+IUnityGraphicsVulkanV2 *Vulkan::getVulkanInterface() {
     return vulkanInterface;
+}
+
+GraphicsAPI::Type Vulkan::getType() {
+    return GraphicsAPI::VULKAN;
+}
+
+PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char *pName) {
+    if (pName == nullptr) return nullptr;
+    if (strcmp(pName, "vkCreateInstance") == 0)
+        return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateInstance);
+    if (strcmp(pName, "vkCreateDevice") == 0) return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateDevice);
+    return m_vkGetInstanceProcAddr(t_instance, pName);
+}
+
+PFN_vkGetInstanceProcAddr
+Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
+    setVkGetInstanceProcAddr(t_getInstanceProcAddr);
+    loadEarlyFunctionPointers();
+    return Hook_vkGetInstanceProcAddr;
 }

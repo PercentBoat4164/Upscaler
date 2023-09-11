@@ -1,27 +1,29 @@
 #pragma once
 
+// Project
 #include "GraphicsAPI.hpp"
-#include "Plugin.hpp"
 
+// Unity
 #include <IUnityGraphics.h>
 #include <IUnityGraphicsVulkan.h>
 
+// Upscaler
 #include <nvsdk_ngx_defs.h>
 
+// Standard library
 #include <cstring>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
 
-namespace GraphicsAPI {
 class Vulkan : public GraphicsAPI {
 public:
-    Vulkan(const Vulkan &) = delete;
-    Vulkan(Vulkan &&) = default;
-    Vulkan &operator =(const Vulkan &) = delete;
-    Vulkan &operator =(Vulkan &&) = default;
+    Vulkan(const Vulkan &)            = delete;
+    Vulkan(Vulkan &&)                 = default;
+    Vulkan &operator=(const Vulkan &) = delete;
+    Vulkan &operator=(Vulkan &&)      = default;
 
-    struct DeviceFunctions {
+    struct Device {
     private:
         VkDevice device;
 
@@ -36,8 +38,12 @@ public:
         PFN_vkFreeCommandBuffers     m_vkFreeCommandBuffers;
         PFN_vkDestroyCommandPool     m_vkDestroyCommandPool;
 
+        VkCommandPool   _oneTimeSubmitCommandPool{};
+        VkCommandBuffer _oneTimeSubmitCommandBuffer{};
+        bool            _oneTimeSubmitRecording{false};
+
     public:
-        DeviceFunctions(VkDevice device, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr);
+        Device(VkDevice device, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr);
 
         VkResult vkCreateCommandPool(
           const VkCommandPoolCreateInfo *pCreateInfo,
@@ -54,8 +60,7 @@ public:
 
         VkResult vkEndCommandBuffer(VkCommandBuffer commandBuffer);
 
-        VkResult
-        vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits, VkFence fence);
+        VkResult vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits, VkFence fence);
 
         VkResult vkQueueWaitIdle(VkQueue queue);
 
@@ -74,6 +79,16 @@ public:
           const VkAllocationCallbacks *pAllocator,
           VkImageView                 *pView
         );
+
+        void prepareForOneTimeSubmits();
+
+        VkCommandBuffer beginOneTimeSubmitRecording();
+
+        void endOneTimeSubmitRecording();
+
+        void cancelOneTimeSubmitRecording();
+
+        void finishOneTimeSubmits();
     };
 
 private:
@@ -84,15 +99,15 @@ private:
     static PFN_vkCreateDevice                         m_vkCreateDevice;
     static PFN_vkEnumerateDeviceExtensionProperties   m_vkEnumerateDeviceExtensionProperties;
 
-    static VkInstance                                    instance;
-    static std::unordered_map<VkDevice, DeviceFunctions> deviceFunctions;
-    static IUnityGraphicsVulkanV2                       *vulkanInterface;
+    static VkInstance                           instance;
+    static std::unordered_map<VkDevice, Device> devices;
+    static IUnityGraphicsVulkanV2              *vulkanInterface;
 
     static bool loadEarlyFunctionPointers();
 
     static bool loadLateFunctionPointers();
 
-    static ExtensionGroup getSupportedInstanceExtensions();
+    static std::vector<std::string> getSupportedInstanceExtensions();
 
     static VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
       const VkInstanceCreateInfo  *pCreateInfo,
@@ -100,7 +115,7 @@ private:
       VkInstance                  *pInstance
     );
 
-    static ExtensionGroup getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice);
+    static std::vector<std::string> getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice);
 
     static VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
       VkPhysicalDevice          physicalDevice,
@@ -110,25 +125,13 @@ private:
     );
 
     static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
-    Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char *pName) {
-        if (pName == nullptr)
-            return nullptr;
-        if (strcmp(pName, "vkCreateInstance") == 0)
-            return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateInstance);
-        if (strcmp(pName, "vkCreateDevice") == 0)
-            return reinterpret_cast<PFN_vkVoidFunction>(&Hook_vkCreateDevice);
-        return m_vkGetInstanceProcAddr(t_instance, pName);
-    }
+    Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char *pName);
 
     static PFN_vkGetInstanceProcAddr
-    interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
-        setVkGetInstanceProcAddr(t_getInstanceProcAddr);
-        loadEarlyFunctionPointers();
-        return Hook_vkGetInstanceProcAddr;
-    }
+    interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/);
 
 public:
-    static DeviceFunctions get(VkDevice device);
+    static Device getDevice(VkDevice device);
 
     static void setVkGetInstanceProcAddr(PFN_vkGetInstanceProcAddr t_vkGetInstanceProcAddr);
 
@@ -140,6 +143,7 @@ public:
 
     static IUnityGraphicsVulkanV2 *getVulkanInterface();
 
+    Type getType() override;
+
     ~Vulkan() override = default;
 };
-}  // namespace GraphicsAPI
