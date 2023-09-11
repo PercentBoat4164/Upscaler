@@ -127,7 +127,7 @@ private:
     static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
     Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char *pName);
 
-    static PFN_vkGetInstanceProcAddr
+    static UNITY_INTERFACE_EXPORT PFN_vkGetInstanceProcAddr UNITY_INTERFACE_API
     interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/);
 
 public:

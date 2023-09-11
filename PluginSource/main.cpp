@@ -49,7 +49,7 @@ extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(
     Logger::flush();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize: {
             UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
