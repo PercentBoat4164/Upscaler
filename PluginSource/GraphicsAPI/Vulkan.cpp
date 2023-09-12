@@ -3,93 +3,27 @@
 #include "Logger.hpp"
 #include "Upscaler/DLSS.hpp"
 
-PFN_vkGetInstanceProcAddr                    Vulkan::m_vkGetInstanceProcAddr{};
-PFN_vkGetDeviceProcAddr                      Vulkan::m_vkGetDeviceProcAddr{};
-PFN_vkCreateInstance                         Vulkan::m_vkCreateInstance{};
-PFN_vkEnumerateInstanceExtensionProperties   Vulkan::m_vkEnumerateInstanceExtensionProperties{};
-PFN_vkCreateDevice                           Vulkan::m_vkCreateDevice{};
-PFN_vkEnumerateDeviceExtensionProperties     Vulkan::m_vkEnumerateDeviceExtensionProperties{};
-VkInstance                                   Vulkan::instance{};
-std::unordered_map<VkDevice, Vulkan::Device> Vulkan::devices{};
-IUnityGraphicsVulkanV2                      *Vulkan::vulkanInterface{};
+PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
+PFN_vkGetDeviceProcAddr                    Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
+PFN_vkCreateInstance                       Vulkan::m_vkCreateInstance{VK_NULL_HANDLE};
+PFN_vkEnumerateInstanceExtensionProperties Vulkan::m_vkEnumerateInstanceExtensionProperties{VK_NULL_HANDLE};
+PFN_vkCreateDevice                         Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
+PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionProperties{VK_NULL_HANDLE};
 
-Vulkan::Device::Device(VkDevice device, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) :
-        device(device),
-        // clang-format off
-  m_vkCreateImageView(reinterpret_cast<PFN_vkCreateImageView>(vkGetDeviceProcAddr(device, "vkCreateImageView"))),
-  m_vkCreateCommandPool(reinterpret_cast<PFN_vkCreateCommandPool>(vkGetDeviceProcAddr(device, "vkCreateCommandPool"))),
-  m_vkAllocateCommandBuffers(reinterpret_cast<PFN_vkAllocateCommandBuffers>(vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"))),
-  m_vkBeginCommandBuffer(reinterpret_cast<PFN_vkBeginCommandBuffer>(vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"))),
-  m_vkEndCommandBuffer(reinterpret_cast<PFN_vkEndCommandBuffer>(vkGetDeviceProcAddr(device, "vkEndCommandBuffer"))),
-  m_vkQueueSubmit(reinterpret_cast<PFN_vkQueueSubmit>(vkGetDeviceProcAddr(device, "vkQueueSubmit"))),
-  m_vkQueueWaitIdle(reinterpret_cast<PFN_vkQueueWaitIdle>(vkGetDeviceProcAddr(device, "vkQueueWaitIdle"))),
-  m_vkResetCommandBuffer(reinterpret_cast<PFN_vkResetCommandBuffer>(vkGetDeviceProcAddr(device, "vkResetCommandBuffer"))),
-  m_vkFreeCommandBuffers(reinterpret_cast<PFN_vkFreeCommandBuffers>(vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"))),
-  m_vkDestroyCommandPool(reinterpret_cast<PFN_vkDestroyCommandPool>(vkGetDeviceProcAddr(device, "vkDestroyCommandPool")))
-// clang-format on
-{
-}
+PFN_vkCreateImageView        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
+PFN_vkCreateCommandPool      Vulkan::m_vkCreateCommandPool{VK_NULL_HANDLE};
+PFN_vkAllocateCommandBuffers Vulkan::m_vkAllocateCommandBuffers{VK_NULL_HANDLE};
+PFN_vkBeginCommandBuffer     Vulkan::m_vkBeginCommandBuffer{VK_NULL_HANDLE};
+PFN_vkEndCommandBuffer       Vulkan::m_vkEndCommandBuffer{VK_NULL_HANDLE};
+PFN_vkQueueSubmit            Vulkan::m_vkQueueSubmit{VK_NULL_HANDLE};
+PFN_vkQueueWaitIdle          Vulkan::m_vkQueueWaitIdle{VK_NULL_HANDLE};
+PFN_vkResetCommandBuffer     Vulkan::m_vkResetCommandBuffer{VK_NULL_HANDLE};
+PFN_vkFreeCommandBuffers     Vulkan::m_vkFreeCommandBuffers{VK_NULL_HANDLE};
+PFN_vkDestroyCommandPool     Vulkan::m_vkDestroyCommandPool{VK_NULL_HANDLE};
 
-VkResult Vulkan::Device::vkCreateCommandPool(
-  const VkCommandPoolCreateInfo *pCreateInfo,
-  const VkAllocationCallbacks   *pAllocator,
-  VkCommandPool                 *pCommandPool
-) {
-    return m_vkCreateCommandPool(device, pCreateInfo, pAllocator, pCommandPool);
-}
-
-VkResult Vulkan::Device::vkAllocateCommandBuffers(
-  const VkCommandBufferAllocateInfo *pAllocateInfo,
-  VkCommandBuffer                   *pCommandBuffers
-) {
-    return m_vkAllocateCommandBuffers(device, pAllocateInfo, pCommandBuffers);
-}
-
-VkResult
-Vulkan::Device::vkBeginCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferBeginInfo *pBeginInfo) {
-    return m_vkBeginCommandBuffer(commandBuffer, pBeginInfo);
-}
-
-VkResult Vulkan::Device::vkEndCommandBuffer(VkCommandBuffer commandBuffer) {
-    return m_vkEndCommandBuffer(commandBuffer);
-}
-
-VkResult
-Vulkan::Device::vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits, VkFence fence) {
-    return m_vkQueueSubmit(queue, submitCount, pSubmits, fence);
-}
-
-VkResult Vulkan::Device::vkQueueWaitIdle(VkQueue queue) {
-    return m_vkQueueWaitIdle(queue);
-}
-
-VkResult Vulkan::Device::vkResetCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags) {
-    return m_vkResetCommandBuffer(commandBuffer, flags);
-}
-
-void Vulkan::Device::vkFreeCommandBuffers(
-  VkCommandPool    commandPool,
-  uint32_t         commandBufferCount,
-  VkCommandBuffer *pCommandBuffers
-) {
-    return m_vkFreeCommandBuffers(device, commandPool, commandBufferCount, pCommandBuffers);
-}
-
-void Vulkan::Device::vkDestroyCommandPool(VkCommandPool commandPool, const VkAllocationCallbacks *pAllocator) {
-    return m_vkDestroyCommandPool(device, commandPool, pAllocator);
-}
-
-VkResult Vulkan::Device::vkCreateImageView(
-  const VkImageViewCreateInfo *pCreateInfo,
-  const VkAllocationCallbacks *pAllocator,
-  VkImageView                 *pView
-) {
-    return m_vkCreateImageView(device, pCreateInfo, pAllocator, pView);
-}
-
-void Vulkan::Device::prepareForOneTimeSubmits() {
+void Vulkan::prepareForOneTimeSubmits() {
     if (_oneTimeSubmitRecording) return;
-    UnityVulkanInstance     vulkanInstance = getVulkanInterface()->Instance();
+    UnityVulkanInstance     vulkanInstance = getUnityInterface()->Instance();
     VkCommandPoolCreateInfo createInfo{
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .pNext            = nullptr,
@@ -97,7 +31,7 @@ void Vulkan::Device::prepareForOneTimeSubmits() {
       .queueFamilyIndex = vulkanInstance.queueFamilyIndex,
     };
 
-    vkCreateCommandPool(&createInfo, nullptr, &_oneTimeSubmitCommandPool);
+    m_vkCreateCommandPool(device, &createInfo, nullptr, &_oneTimeSubmitCommandPool);
 
     VkCommandBufferAllocateInfo allocateInfo{
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -107,11 +41,11 @@ void Vulkan::Device::prepareForOneTimeSubmits() {
       .commandBufferCount = 0x1,
     };
 
-    vkAllocateCommandBuffers(&allocateInfo, &_oneTimeSubmitCommandBuffer);
+    m_vkAllocateCommandBuffers(device, &allocateInfo, &_oneTimeSubmitCommandBuffer);
     _oneTimeSubmitRecording = true;
 }
 
-VkCommandBuffer Vulkan::Device::beginOneTimeSubmitRecording() {
+VkCommandBuffer Vulkan::beginOneTimeSubmitRecording() {
     VkCommandBufferBeginInfo beginInfo{
       .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .pNext            = nullptr,
@@ -119,16 +53,16 @@ VkCommandBuffer Vulkan::Device::beginOneTimeSubmitRecording() {
       .pInheritanceInfo = nullptr,
     };
 
-    vkBeginCommandBuffer(_oneTimeSubmitCommandBuffer, &beginInfo);
+    m_vkBeginCommandBuffer(_oneTimeSubmitCommandBuffer, &beginInfo);
 
     return _oneTimeSubmitCommandBuffer;
 }
 
-void Vulkan::Device::endOneTimeSubmitRecording() {
+void Vulkan::endOneTimeSubmitRecording() {
     if (!_oneTimeSubmitRecording) return;
-    UnityVulkanInstance vulkanInstance = getVulkanInterface()->Instance();
+    UnityVulkanInstance vulkanInstance = getUnityInterface()->Instance();
 
-    vkEndCommandBuffer(_oneTimeSubmitCommandBuffer);
+    m_vkEndCommandBuffer(_oneTimeSubmitCommandBuffer);
 
     VkSubmitInfo submitInfo{
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -142,37 +76,58 @@ void Vulkan::Device::endOneTimeSubmitRecording() {
       .pSignalSemaphores    = nullptr,
     };
 
-    vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, nullptr);
-    vkQueueWaitIdle(vulkanInstance.graphicsQueue);
-    vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
+    m_vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, nullptr);
+    m_vkQueueWaitIdle(vulkanInstance.graphicsQueue);
+    m_vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
     _oneTimeSubmitRecording = false;
 }
 
-void Vulkan::Device::cancelOneTimeSubmitRecording() {
+void Vulkan::cancelOneTimeSubmitRecording() {
     if (!_oneTimeSubmitRecording) return;
-    vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
+    m_vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
     _oneTimeSubmitRecording = false;
 }
 
-void Vulkan::Device::finishOneTimeSubmits() {
-    vkFreeCommandBuffers(_oneTimeSubmitCommandPool, 1, &_oneTimeSubmitCommandBuffer);
-    vkDestroyCommandPool(_oneTimeSubmitCommandPool, nullptr);
+void Vulkan::finishOneTimeSubmits() {
+    cancelOneTimeSubmitRecording();
+    m_vkFreeCommandBuffers(device, _oneTimeSubmitCommandPool, 1, &_oneTimeSubmitCommandBuffer);
+    m_vkDestroyCommandPool(device, _oneTimeSubmitCommandPool, nullptr);
 }
 
 bool Vulkan::loadEarlyFunctionPointers() {
     // clang-format off
     m_vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
     m_vkEnumerateInstanceExtensionProperties = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties"));
-    return (m_vkCreateInstance != nullptr) && (m_vkEnumerateInstanceExtensionProperties != nullptr);
+    return (m_vkCreateInstance != VK_NULL_HANDLE) && (m_vkEnumerateInstanceExtensionProperties != VK_NULL_HANDLE);
+    // clang-format on
+}
+
+bool Vulkan::loadInstanceFunctionPointers() {
+    // clang-format off
+    m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(instance, "vkEnumerateDeviceExtensionProperties"));
+    m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, "vkCreateDevice"));
+    m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(instance, "vkGetDeviceProcAddr"));
+    return (m_vkEnumerateInstanceExtensionProperties != VK_NULL_HANDLE) && (m_vkCreateDevice != VK_NULL_HANDLE) && (m_vkGetDeviceProcAddr != VK_NULL_HANDLE);
     // clang-format on
 }
 
 bool Vulkan::loadLateFunctionPointers() {
     // clang-format off
-    m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(instance, "vkEnumerateDeviceExtensionProperties"));
-    m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, "vkCreateDevice"));
-    m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(instance, "vkGetDeviceProcAddr"));
-    return (m_vkEnumerateInstanceExtensionProperties != nullptr) && (m_vkCreateDevice != nullptr) && (m_vkGetDeviceProcAddr != nullptr);
+    m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, "vkCreateImageView"));
+    m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(device, "vkCreateCommandPool"));
+    m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"));
+    m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"));
+    m_vkEndCommandBuffer = reinterpret_cast<PFN_vkEndCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkEndCommandBuffer"));
+    m_vkQueueSubmit = reinterpret_cast<PFN_vkQueueSubmit>(m_vkGetDeviceProcAddr(device, "vkQueueSubmit"));
+    m_vkQueueWaitIdle = reinterpret_cast<PFN_vkQueueWaitIdle>(m_vkGetDeviceProcAddr(device, "vkQueueWaitIdle"));
+    m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkResetCommandBuffer"));
+    m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
+    m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
+    return (m_vkCreateImageView != VK_NULL_HANDLE) && (m_vkCreateCommandPool != VK_NULL_HANDLE) &&
+      (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) && (m_vkBeginCommandBuffer != VK_NULL_HANDLE) &&
+      (m_vkEndCommandBuffer != VK_NULL_HANDLE) && (m_vkQueueSubmit != VK_NULL_HANDLE) &&
+      (m_vkQueueWaitIdle != VK_NULL_HANDLE) && (m_vkResetCommandBuffer != VK_NULL_HANDLE) &&
+      (m_vkFreeCommandBuffers != VK_NULL_HANDLE) && (m_vkDestroyCommandPool != VK_NULL_HANDLE);
     // clang-format on
 }
 
@@ -197,7 +152,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     std::stringstream    message;
 
     // Find out which extensions are supported
-    std::vector<std::string> supportedExtensions = getSupportedInstanceExtensions();
+    std::vector<std::string> supportedExtensions = Vulkan::getSupportedInstanceExtensions();
 
     // Vectorize the enabled extensions
     std::vector<const char *> enabledExtensions{};
@@ -245,7 +200,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     // Create the Instance.
     VkResult result = m_vkCreateInstance(&createInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
-        instance = *pInstance;
+        GraphicsAPI::get<Vulkan>()->instance = *pInstance;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
@@ -259,7 +214,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (!upscaler->getRequiredVulkanInstanceExtensions().empty()) upscaler->isSupportedAfter(false);
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
-        if (result == VK_SUCCESS) instance = *pInstance;
+        if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->instance = *pInstance;
         else Logger::log("Failed to createFeature a Vulkan instance!");
     }
     return result;
@@ -283,7 +238,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
   VkAllocationCallbacks    *pAllocator,
   VkDevice                 *pDevice
 ) {
-    loadLateFunctionPointers();
+    GraphicsAPI::get<Vulkan>()->loadInstanceFunctionPointers();
 
     VkDeviceCreateInfo createInfo = *pCreateInfo;
     std::stringstream  message;
@@ -302,7 +257,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
         // Mark supported features as such
         std::vector<std::string> requestedExtensions =
-          upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice);
+          upscaler->getRequiredVulkanDeviceExtensions(GraphicsAPI::get<Vulkan>()->instance, physicalDevice);
         uint32_t supportedRequestedExtensionCount{};
         for (const std::string &requestedExtension : requestedExtensions) {
             for (const std::string &supportedExtension : supportedExtensions) {
@@ -338,7 +293,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     // Create the Device
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
-        devices.insert({*pDevice, Device(*pDevice, m_vkGetDeviceProcAddr)});
+        GraphicsAPI::get<Vulkan>()->device = *pDevice;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
@@ -347,39 +302,32 @@ VkResult Vulkan::Hook_vkCreateDevice(
         if (!msg.empty()) Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
     } else {
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            if (!upscaler->getRequiredVulkanDeviceExtensions(instance, physicalDevice).empty())
+            if (!upscaler->getRequiredVulkanDeviceExtensions(GraphicsAPI::get<Vulkan>()->instance, physicalDevice)
+                   .empty())
                 upscaler->isSupportedAfter(false);
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
-        if (result == VK_SUCCESS) devices.insert({*pDevice, Device(*pDevice, m_vkGetDeviceProcAddr)});
+        if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->device = *pDevice;
         else Logger::log("Failed to createFeature a Vulkan instance!");
     }
+    if (GraphicsAPI::get<Vulkan>()->device != VK_NULL_HANDLE)
+        GraphicsAPI::get<Vulkan>()->loadLateFunctionPointers();
     return result;
-}
-
-Vulkan::Device Vulkan::getDevice(VkDevice device) {
-    return devices.at(device);
-}
-
-void Vulkan::setVkGetInstanceProcAddr(PFN_vkGetInstanceProcAddr t_vkGetInstanceProcAddr) {
-    m_vkGetInstanceProcAddr = t_vkGetInstanceProcAddr;
-}
-
-PFN_vkGetInstanceProcAddr Vulkan::getVkGetInstanceProcAddr() {
-    return m_vkGetInstanceProcAddr;
 }
 
 bool Vulkan::interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface) {
-    vulkanInterface = t_vulkanInterface;
-    return vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
+    GraphicsAPI::get<Vulkan>()->vulkanInterface = t_vulkanInterface;
+    return GraphicsAPI::get<Vulkan>()
+      ->vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
 }
 
 bool Vulkan::RemoveInterceptInitialization() {
-    bool result     = vulkanInterface->RemoveInterceptInitialization(interceptInitialization);
-    vulkanInterface = nullptr;
+    bool result =
+      GraphicsAPI::get<Vulkan>()->vulkanInterface->RemoveInterceptInitialization(interceptInitialization);
+    GraphicsAPI::get<Vulkan>()->vulkanInterface = nullptr;
     return result;
 }
 
-IUnityGraphicsVulkanV2 *Vulkan::getVulkanInterface() {
+IUnityGraphicsVulkanV2 *Vulkan::getUnityInterface() {
     return vulkanInterface;
 }
 
@@ -397,7 +345,202 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 
 PFN_vkGetInstanceProcAddr
 Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
-    setVkGetInstanceProcAddr(t_getInstanceProcAddr);
-    loadEarlyFunctionPointers();
+    m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
+    GraphicsAPI::get<Vulkan>()->loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;
+}
+
+PFN_vkGetInstanceProcAddr Vulkan::getVkGetInstanceProcAddr() {
+    return m_vkGetInstanceProcAddr;
+}
+
+PFN_vkGetDeviceProcAddr Vulkan::getVkGetDeviceProcAddr() {
+    return m_vkGetDeviceProcAddr;
+}
+
+Vulkan *Vulkan::get() {
+    static Vulkan *vulkan{new Vulkan};
+    return vulkan;
+}
+
+VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
+    // clang-format off
+    VkImageViewCreateInfo createInfo{
+      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext    = nullptr,
+      .flags    = 0x0,
+      .image    = depthImage,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format   = format,
+      .components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+      },
+      .subresourceRange = {
+        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .baseMipLevel   = 0,
+        .levelCount     = 1,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+      },
+    };
+    // clang-format on
+
+    VkImageView view{VK_NULL_HANDLE};
+    if (m_vkCreateImageView(device, &createInfo, nullptr, &view) == VK_SUCCESS) return view;
+    return VK_NULL_HANDLE;
+}
+
+VkFormat Vulkan::getFormat(UnityRenderingExtTextureFormat format) {
+    switch (format) {
+        case kUnityRenderingExtFormatNone: return VK_FORMAT_UNDEFINED;
+        case kUnityRenderingExtFormatR8_SRGB: return VK_FORMAT_R8_SRGB;
+        case kUnityRenderingExtFormatR8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
+        case kUnityRenderingExtFormatR8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
+        case kUnityRenderingExtFormatR8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+        case kUnityRenderingExtFormatR8_UNorm: return VK_FORMAT_R8_UNORM;
+        case kUnityRenderingExtFormatR8G8_UNorm: return VK_FORMAT_R8G8_UNORM;
+        case kUnityRenderingExtFormatR8G8B8_UNorm: return VK_FORMAT_R8G8B8_UNORM;
+        case kUnityRenderingExtFormatR8G8B8A8_UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
+        case kUnityRenderingExtFormatR8_SNorm: return VK_FORMAT_R8_SNORM;
+        case kUnityRenderingExtFormatR8G8_SNorm: return VK_FORMAT_R8G8_SNORM;
+        case kUnityRenderingExtFormatR8G8B8_SNorm: return VK_FORMAT_R8G8B8_SNORM;
+        case kUnityRenderingExtFormatR8G8B8A8_SNorm: return VK_FORMAT_R8G8B8A8_SNORM;
+        case kUnityRenderingExtFormatR8_UInt: return VK_FORMAT_R8_UINT;
+        case kUnityRenderingExtFormatR8G8_UInt: return VK_FORMAT_R8G8_UINT;
+        case kUnityRenderingExtFormatR8G8B8_UInt: return VK_FORMAT_R8G8B8_UINT;
+        case kUnityRenderingExtFormatR8G8B8A8_UInt: return VK_FORMAT_R8G8B8A8_UINT;
+        case kUnityRenderingExtFormatR8_SInt: return VK_FORMAT_R8_SINT;
+        case kUnityRenderingExtFormatR8G8_SInt: return VK_FORMAT_R8G8_SINT;
+        case kUnityRenderingExtFormatR8G8B8_SInt: return VK_FORMAT_R8G8B8_SINT;
+        case kUnityRenderingExtFormatR8G8B8A8_SInt: return VK_FORMAT_R8G8B8A8_SINT;
+        case kUnityRenderingExtFormatR16_UNorm: return VK_FORMAT_R16_UNORM;
+        case kUnityRenderingExtFormatR16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
+        case kUnityRenderingExtFormatR16G16B16_UNorm: return VK_FORMAT_R16G16B16_UNORM;
+        case kUnityRenderingExtFormatR16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
+        case kUnityRenderingExtFormatR16_SNorm: return VK_FORMAT_R16_SNORM;
+        case kUnityRenderingExtFormatR16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
+        case kUnityRenderingExtFormatR16G16B16_SNorm: return VK_FORMAT_R16G16B16_SNORM;
+        case kUnityRenderingExtFormatR16G16B16A16_SNorm: return VK_FORMAT_R16G16B16A16_SNORM;
+        case kUnityRenderingExtFormatR16_UInt: return VK_FORMAT_R16_UINT;
+        case kUnityRenderingExtFormatR16G16_UInt: return VK_FORMAT_R16G16_UINT;
+        case kUnityRenderingExtFormatR16G16B16_UInt: return VK_FORMAT_R16G16B16_UINT;
+        case kUnityRenderingExtFormatR16G16B16A16_UInt: return VK_FORMAT_R16G16B16A16_UINT;
+        case kUnityRenderingExtFormatR16_SInt: return VK_FORMAT_R16_SINT;
+        case kUnityRenderingExtFormatR16G16_SInt: return VK_FORMAT_R16G16_SINT;
+        case kUnityRenderingExtFormatR16G16B16_SInt: return VK_FORMAT_R16G16B16_SINT;
+        case kUnityRenderingExtFormatR16G16B16A16_SInt: return VK_FORMAT_R16G16B16A16_SINT;
+        case kUnityRenderingExtFormatR32_UInt: return VK_FORMAT_R32_UINT;
+        case kUnityRenderingExtFormatR32G32_UInt: return VK_FORMAT_R32G32_UINT;
+        case kUnityRenderingExtFormatR32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
+        case kUnityRenderingExtFormatR32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
+        case kUnityRenderingExtFormatR32_SInt: return VK_FORMAT_R32_SINT;
+        case kUnityRenderingExtFormatR32G32_SInt: return VK_FORMAT_R32G32_SINT;
+        case kUnityRenderingExtFormatR32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
+        case kUnityRenderingExtFormatR32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
+        case kUnityRenderingExtFormatR16_SFloat: return VK_FORMAT_R16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16B16_SFloat: return VK_FORMAT_R16G16B16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case kUnityRenderingExtFormatR32_SFloat: return VK_FORMAT_R32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case kUnityRenderingExtFormatL8_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatA8_UNorm: return VK_FORMAT_A8_UNORM_KHR;
+        case kUnityRenderingExtFormatA16_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
+        case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+        case kUnityRenderingExtFormatB8G8R8_UNorm: return VK_FORMAT_B8G8R8_UNORM;
+        case kUnityRenderingExtFormatB8G8R8A8_UNorm: return VK_FORMAT_B8G8R8A8_UNORM;
+        case kUnityRenderingExtFormatB8G8R8_SNorm: return VK_FORMAT_B8G8R8_SNORM;
+        case kUnityRenderingExtFormatB8G8R8A8_SNorm: return VK_FORMAT_B8G8R8A8_SNORM;
+        case kUnityRenderingExtFormatB8G8R8_UInt: return VK_FORMAT_B8G8R8_UINT;
+        case kUnityRenderingExtFormatB8G8R8A8_UInt: return VK_FORMAT_B8G8R8A8_UINT;
+        case kUnityRenderingExtFormatB8G8R8_SInt: return VK_FORMAT_B8G8R8_SINT;
+        case kUnityRenderingExtFormatB8G8R8A8_SInt: return VK_FORMAT_B8G8R8A8_SINT;
+        case kUnityRenderingExtFormatR4G4B4A4_UNormPack16: return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+        case kUnityRenderingExtFormatB4G4R4A4_UNormPack16: return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+        case kUnityRenderingExtFormatR5G6B5_UNormPack16: return VK_FORMAT_R5G6B5_UNORM_PACK16;
+        case kUnityRenderingExtFormatB5G6R5_UNormPack16: return VK_FORMAT_B5G6R5_UNORM_PACK16;
+        case kUnityRenderingExtFormatR5G5B5A1_UNormPack16: return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        case kUnityRenderingExtFormatB5G5R5A1_UNormPack16: return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+        case kUnityRenderingExtFormatA1R5G5B5_UNormPack16: return VK_FORMAT_A1R5G5B5_UNORM_PACK16;
+        case kUnityRenderingExtFormatE5B9G9R9_UFloatPack32: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+        case kUnityRenderingExtFormatB10G11R11_UFloatPack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_UNormPack32: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_UIntPack32: return VK_FORMAT_A2B10G10R10_UINT_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_SIntPack32: return VK_FORMAT_A2B10G10R10_SINT_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_XRSRGBPack32: return VK_FORMAT_UNDEFINED;    // INVALID
+        case kUnityRenderingExtFormatA2R10G10B10_XRUNormPack32: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatR10G10B10_XRSRGBPack32: return VK_FORMAT_UNDEFINED;      // INVALID
+        case kUnityRenderingExtFormatR10G10B10_XRUNormPack32: return VK_FORMAT_UNDEFINED;     // INVALID
+        case kUnityRenderingExtFormatA10R10G10B10_XRSRGBPack32: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatA10R10G10B10_XRUNormPack32: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatA8R8G8B8_SRGB: return VK_FORMAT_UNDEFINED;               // INVALID
+        case kUnityRenderingExtFormatA8R8G8B8_UNorm: return VK_FORMAT_UNDEFINED;              // INVALID
+        case kUnityRenderingExtFormatA32R32G32B32_SFloat: return VK_FORMAT_UNDEFINED;         // INVALID
+        case kUnityRenderingExtFormatD16_UNorm: return VK_FORMAT_D16_UNORM;
+        case kUnityRenderingExtFormatD24_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatD24_UNorm_S8_UInt: return VK_FORMAT_D24_UNORM_S8_UINT;
+        case kUnityRenderingExtFormatD32_SFloat: return VK_FORMAT_D32_SFLOAT;
+        case kUnityRenderingExtFormatD32_SFloat_S8_UInt: return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        case kUnityRenderingExtFormatS8_UInt: return VK_FORMAT_S8_UINT;
+        case kUnityRenderingExtFormatRGBA_DXT1_SRGB: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT1_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT3_SRGB: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT3_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT5_SRGB: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT5_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatR_BC4_UNorm: return VK_FORMAT_BC4_UNORM_BLOCK;
+        case kUnityRenderingExtFormatR_BC4_SNorm: return VK_FORMAT_BC4_SNORM_BLOCK;
+        case kUnityRenderingExtFormatRG_BC5_UNorm: return VK_FORMAT_BC5_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRG_BC5_SNorm: return VK_FORMAT_BC5_SNORM_BLOCK;
+        case kUnityRenderingExtFormatRGB_BC6H_UFloat: return VK_FORMAT_BC6H_UFLOAT_BLOCK;
+        case kUnityRenderingExtFormatRGB_BC6H_SFloat: return VK_FORMAT_BC6H_SFLOAT_BLOCK;
+        case kUnityRenderingExtFormatRGBA_BC7_SRGB: return VK_FORMAT_BC7_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_BC7_UNorm: return VK_FORMAT_BC7_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGB_PVRTC_2Bpp_SRGB: return VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGB_PVRTC_2Bpp_UNorm: return VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGB_PVRTC_4Bpp_SRGB: return VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGB_PVRTC_4Bpp_UNorm: return VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGBA_PVRTC_2Bpp_SRGB: return VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGBA_PVRTC_2Bpp_UNorm: return VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGBA_PVRTC_4Bpp_SRGB: return VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGBA_PVRTC_4Bpp_UNorm: return VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG;
+        case kUnityRenderingExtFormatRGB_ETC_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatRGB_ETC2_SRGB: return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGB_ETC2_UNorm: return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGB_A1_ETC2_SRGB: return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGB_A1_ETC2_UNorm: return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ETC2_SRGB: return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ETC2_UNorm: return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+        case kUnityRenderingExtFormatR_EAC_UNorm: return VK_FORMAT_EAC_R11_UNORM_BLOCK;
+        case kUnityRenderingExtFormatR_EAC_SNorm: return VK_FORMAT_EAC_R11_SNORM_BLOCK;
+        case kUnityRenderingExtFormatRG_EAC_UNorm: return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRG_EAC_SNorm: return VK_FORMAT_EAC_R11G11_SNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC4X4_SRGB: return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC4X4_UNorm: return VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC5X5_SRGB: return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC5X5_UNorm: return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC6X6_SRGB: return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC6X6_UNorm: return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC8X8_SRGB: return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC8X8_UNorm: return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC10X10_SRGB: return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC10X10_UNorm: return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC12X12_SRGB: return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+        case kUnityRenderingExtFormatRGBA_ASTC12X12_UNorm: return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
+        case kUnityRenderingExtFormatYUV2: return VK_FORMAT_UNDEFINED;                   // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC4X4_UFloat: return VK_FORMAT_UNDEFINED;    // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC5X5_UFloat: return VK_FORMAT_UNDEFINED;    // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC6X6_UFloat: return VK_FORMAT_UNDEFINED;    // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC8X8_UFloat: return VK_FORMAT_UNDEFINED;    // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC10X10_UFloat: return VK_FORMAT_UNDEFINED;  // INVALID
+        case kUnityRenderingExtFormatRGBA_ASTC12X12_UFloat: return VK_FORMAT_UNDEFINED;  // INVALID
+        default: return VK_FORMAT_UNDEFINED;
+    }
 }

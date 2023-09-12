@@ -9,12 +9,6 @@ uint64_t Upscaler::Settings::Resolution::asLong() const {
     return (uint64_t) width << 32U | height;
 }
 
-template<typename T>
-    requires std::derived_from<T, Upscaler>
-Upscaler *Upscaler::get() {
-    return T::get();
-}
-
 Upscaler *Upscaler::get(Type upscaler) {
     switch (upscaler) {
         case NONE: return nullptr;
@@ -38,12 +32,6 @@ std::vector<Upscaler *> Upscaler::getSupportedUpscalers() {
     for (Upscaler *upscaler : getAllUpscalers())
         if (upscaler->isSupported()) upscalers.push_back(upscaler);
     return upscalers;
-}
-
-template<typename T>
-    requires std::derived_from<T, Upscaler>
-void Upscaler::set() {
-    upscalerInUse = T::getDevice();
 }
 
 void Upscaler::set(Type upscaler) {

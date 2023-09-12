@@ -5,6 +5,7 @@
 
 // Unity
 #include <IUnityInterface.h>
+#include <IUnityRenderingExtensions.h>
 
 #ifndef NDEBUG
 // Usage: Insert this where the debugger should connect. Execute. Connect the debugger. Set 'debuggerConnected' to
@@ -35,6 +36,10 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t OnFramebufferResize(unsigned int t_wi
     return Upscaler::settings.renderResolution.asLong();
 }
 
+extern "C" UNITY_INTERFACE_EXPORT void InitializePlugin() {
+    GraphicsAPI::get()->prepareForOneTimeSubmits();
+}
+
 extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
     Upscaler::get()->evaluate();
 }
@@ -49,12 +54,13 @@ extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(
     Logger::flush();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType
+) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize: {
             UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
             if (renderer == kUnityGfxRendererNull) return;  // Is being run before an API has been selected
-            if (renderer == kUnityGfxRendererVulkan) Upscaler::setGraphicsAPI(GraphicsAPI::VULKAN);
+            if (renderer == kUnityGfxRendererVulkan) GraphicsAPI::set<Vulkan>();
             else {
                 Upscaler::setGraphicsAPI(GraphicsAPI::NONE);
                 Upscaler::disableAllUpscalers();
@@ -72,35 +78,9 @@ extern "C" UNITY_INTERFACE_EXPORT bool IsDLSSSupported() {
     return Upscaler::get<DLSS>()->isSupported();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void setDepthBuffer(VkImage *buffer, VkFormat format) {
-    format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-    VkImageViewCreateInfo createInfo{
-      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-      .pNext    = nullptr,
-      .flags    = 0x0,
-      .image    = *buffer,
-      .viewType = VK_IMAGE_VIEW_TYPE_2D,
-      .format   = format,
-      .components =
-        {
-                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                     VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                     },
-      .subresourceRange =
-        {
-                     .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
-                     .baseMipLevel   = 0,
-                     .levelCount     = 1,
-                     .baseArrayLayer = 0,
-                     .layerCount     = 1,
-                     },
-    };
-
-    VkImageView view{};
-    VkResult    result = Vulkan::getDevice(Vulkan::getVulkanInterface()->Instance().device)
-                        .vkCreateImageView(&createInfo, nullptr, &view);
-    if (result == VK_SUCCESS) Upscaler::get()->setDepthBuffer(*buffer, view);
-    else Upscaler::get()->isAvailableAfter(false);
+extern "C" UNITY_INTERFACE_EXPORT void
+setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
+    Upscaler::get()->isAvailableAfter(Upscaler::get()->setDepthBuffer(nativeBuffer, unityFormat));
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
@@ -118,7 +98,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     // Finish all one time submits
-    Vulkan::getDevice(Vulkan::getVulkanInterface()->Instance().device).finishOneTimeSubmits();
+    GraphicsAPI::get()->finishOneTimeSubmits();
     // Clean up
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
     // Remove vulkan initialization interception

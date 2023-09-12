@@ -40,14 +40,17 @@ class DLSS : public Upscaler {
         };
     } applicationInfo;
 
-    NVSDK_NGX_Handle             *featureHandle{};
-    NVSDK_NGX_Parameter          *parameters{};
-    NVSDK_NGX_VK_DLSS_Eval_Params evalParameters{};
-    NVSDK_NGX_Resource_VK         depthBufferResource{};
+    NVSDK_NGX_Handle     *featureHandle{};
+    NVSDK_NGX_Parameter  *parameters{};
+    NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
+    static bool (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
+      void *,
+      UnityRenderingExtTextureFormat
+    );
     static bool (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
@@ -57,6 +60,8 @@ class DLSS : public Upscaler {
     bool VulkanGetParameters();
 
     bool VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+
+    bool VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat);
 
     bool VulkanEvaluate();
 
@@ -71,7 +76,7 @@ class DLSS : public Upscaler {
     DLSS() = default;
 
 public:
-    static Upscaler *get();
+    static DLSS *get();
 
     bool isSupported() override;
 
@@ -94,8 +99,6 @@ public:
 
     Settings getOptimalSettings(Settings::Resolution t_presentResolution) override;
 
-    void setDepthBuffer(VkImage depthBuffer, VkImageView depthBufferView) override;
-
     Type getType() override;
 
     std::string getName() override;
@@ -103,6 +106,8 @@ public:
     bool initialize() override;
 
     bool createFeature() override;
+
+    bool setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) override;
 
     bool evaluate() override;
 

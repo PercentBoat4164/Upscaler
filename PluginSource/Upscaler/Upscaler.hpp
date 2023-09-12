@@ -3,11 +3,14 @@
 // Project
 #include "GraphicsAPI/GraphicsAPI.hpp"
 
-/** @todo Remove this after removing all ties to Vulkan from this file. */
+// Graphics API
 #include <vulkan/vulkan.h>
 
 // Upscaler
 #include <nvsdk_ngx_defs.h>
+
+// Unity
+#include <IUnityRenderingExtensions.h>
 
 // System
 #include <cstdint>
@@ -28,7 +31,7 @@ protected:
     bool active{};
 
     template<typename... Args>
-    bool SafeFail(Args...) {
+    constexpr bool safeFail(Args... /* unused */) {
         return false;
     };
 
@@ -96,7 +99,9 @@ public:
 
     template<typename T>
         requires std::derived_from<T, Upscaler>
-    static Upscaler *get();
+    constexpr static T *get() {
+        return T::get();
+    }
 
     static Upscaler *get(Type upscaler);
 
@@ -108,7 +113,9 @@ public:
 
     template<typename T>
         requires std::derived_from<T, Upscaler>
-    static void set();
+    constexpr static void set() {
+        upscalerInUse = T::getDevice();
+    }
 
     static void set(Type upscaler);
 
@@ -128,8 +135,6 @@ public:
 
     virtual Settings getOptimalSettings(Settings::Resolution) = 0;
 
-    virtual void setDepthBuffer(VkImage, VkImageView) = 0;
-
     virtual bool isSupportedAfter(bool) = 0;
 
     virtual void setSupported(bool) = 0;
@@ -145,6 +150,8 @@ public:
     virtual bool initialize() = 0;
 
     virtual bool createFeature() = 0;
+
+    virtual bool setDepthBuffer(void *, UnityRenderingExtTextureFormat) = 0;
 
     virtual bool evaluate() = 0;
 

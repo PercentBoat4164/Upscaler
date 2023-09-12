@@ -1,14 +1,10 @@
 #include "GraphicsAPI.hpp"
 
+#include "Upscaler/Upscaler.hpp"
 #include "Vulkan.hpp"
 
-GraphicsAPI *GraphicsAPI::graphicsAPIInUse{nullptr};
-
-template<typename T>
-    requires std::derived_from<T, GraphicsAPI>
-GraphicsAPI *GraphicsAPI::get() {
-    return T::get();
-}
+GraphicsAPI    *GraphicsAPI::graphicsAPIInUse{nullptr};
+IUnityGraphics *GraphicsAPI::unityGraphics{nullptr};
 
 GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
@@ -20,4 +16,13 @@ GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
 
 GraphicsAPI *GraphicsAPI::get() {
     return graphicsAPIInUse;
+}
+
+void GraphicsAPI::set(GraphicsAPI::Type graphicsAPI) {
+    set(get(graphicsAPI));
+}
+
+void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
+    graphicsAPIInUse = graphicsAPI;
+    Upscaler::setGraphicsAPI(graphicsAPI->getType());
 }

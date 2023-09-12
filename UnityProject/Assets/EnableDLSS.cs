@@ -18,6 +18,9 @@ public class EnableDLSS : MonoBehaviour
     // Start is called before the first frame update
     private void Start()
     {
+        InitializePlugin();
+        initializeDLSS();
+
         if (!IsDLSSSupported())
         {
             Debug.Log("DLSS is not supported.");
@@ -42,7 +45,7 @@ public class EnableDLSS : MonoBehaviour
 
         _renderTarget = new RenderTexture(width, height, 24, DefaultFormat.DepthStencil);
         _renderTarget.Create();
-        SetDepthBuffer(_renderTarget.GetNativeDepthBufferPtr(), (uint)_renderTarget.depthStencilFormat);
+        setDepthBuffer(_renderTarget.GetNativeDepthBufferPtr(), (uint)_renderTarget.depthStencilFormat);
 
         _tempTarget = _camera.targetTexture;
         _camera.targetTexture = _renderTarget;
@@ -62,13 +65,19 @@ public class EnableDLSS : MonoBehaviour
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void SetDepthBuffer(IntPtr buffer, uint format);
+    private static extern void setDepthBuffer(IntPtr buffer, uint format);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern void SetDebugCallback(DebugCallback cb);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool IsDLSSSupported();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern void InitializePlugin();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern bool initializeDLSS();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ulong OnFramebufferResize(uint width, uint height);
