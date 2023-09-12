@@ -37,6 +37,16 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t OnFramebufferResize(unsigned int t_wi
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void InitializePlugin() {
+    UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
+    switch (renderer) {
+        case kUnityGfxRendererVulkan:
+            GraphicsAPI::set<Vulkan>();
+            break;
+        default: GraphicsAPI::set(GraphicsAPI::NONE); break;
+    }
+
+    if (GraphicsAPI::get() == nullptr)
+        return;
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
 
@@ -54,25 +64,23 @@ extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(
     Logger::flush();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType
-) {
-    switch (eventType) {
-        case kUnityGfxDeviceEventInitialize: {
-            UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
-            if (renderer == kUnityGfxRendererNull) return;  // Is being run before an API has been selected
-            if (renderer == kUnityGfxRendererVulkan) GraphicsAPI::set<Vulkan>();
-            else {
-                Upscaler::setGraphicsAPI(GraphicsAPI::NONE);
-                Upscaler::disableAllUpscalers();
-            }
-            break;
-        }
-        case kUnityGfxDeviceEventShutdown: {
-            Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
-        }
-        default: break;
-    }
-}
+//extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType
+//) {
+//    switch (eventType) {
+//        case kUnityGfxDeviceEventInitialize: {
+//            UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
+//            if (renderer == kUnityGfxRendererNull) return;  // Is being run before an API has been selected
+//            else {
+//                Upscaler::disableAllUpscalers();
+//            }
+//            break;
+//        }
+//        case kUnityGfxDeviceEventShutdown: {
+//            Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+//        }
+//        default: break;
+//    }
+//}
 
 extern "C" UNITY_INTERFACE_EXPORT bool IsDLSSSupported() {
     return Upscaler::get<DLSS>()->isSupported();
@@ -84,6 +92,7 @@ setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
+//    WAIT_FOR_DEBUGGER
     Unity::interfaces = t_unityInterfaces;
     if (!Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>())) {
         Logger::log("DLSS Plugin failed to intercept initialization.");
@@ -91,8 +100,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
         return;
     }
     Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
-    Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-    OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
+//    Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
+//    OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
     Upscaler::set(Upscaler::DLSS);
 }
 
@@ -104,7 +113,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     // Remove vulkan initialization interception
     Vulkan::RemoveInterceptInitialization();
     // Remove the device event callback
-    Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+//    Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
     // Perform shutdown graphics event
-    OnGraphicsDeviceEvent(kUnityGfxDeviceEventShutdown);
+//    OnGraphicsDeviceEvent(kUnityGfxDeviceEventShutdown);
 }

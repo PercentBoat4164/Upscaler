@@ -24,5 +24,8 @@ void GraphicsAPI::set(GraphicsAPI::Type graphicsAPI) {
 
 void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
     graphicsAPIInUse = graphicsAPI;
-    Upscaler::setGraphicsAPI(graphicsAPI->getType());
+    if (graphicsAPI == nullptr)
+        Upscaler::setGraphicsAPI(NONE);
+    else
+        Upscaler::setGraphicsAPI(graphicsAPI->getType());
 }

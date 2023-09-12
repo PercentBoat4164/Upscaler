@@ -446,8 +446,8 @@ VkFormat Vulkan::getFormat(UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case kUnityRenderingExtFormatL8_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
-        case kUnityRenderingExtFormatA8_UNorm: return VK_FORMAT_A8_UNORM_KHR;
+        case kUnityRenderingExtFormatL8_UNorm: return VK_FORMAT_UNDEFINED;   // INVALID
+        case kUnityRenderingExtFormatA8_UNorm: return VK_FORMAT_UNDEFINED;   // INVALID
         case kUnityRenderingExtFormatA16_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
         case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;

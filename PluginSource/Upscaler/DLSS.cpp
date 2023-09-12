@@ -22,11 +22,7 @@ bool DLSS::VulkanInitialize() {
       applicationInfo.dataPath.c_str(),
       vulkanInstance.instance,
       vulkanInstance.physicalDevice,
-      vulkanInstance.device,
-      Vulkan::getVkGetInstanceProcAddr(),
-      Vulkan::getVkGetDeviceProcAddr(),
-      &applicationInfo.featureCommonInfo,
-      NVSDK_NGX_Version_API
+      vulkanInstance.device
     );
     return isSupportedAfter(NVSDK_NGX_SUCCEED(result));
 }
@@ -319,6 +315,7 @@ bool DLSS::createFeature() {
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
 
+    (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
 }
 
