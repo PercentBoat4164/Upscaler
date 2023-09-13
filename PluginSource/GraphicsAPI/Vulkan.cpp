@@ -148,6 +148,9 @@ VkResult Vulkan::Hook_vkCreateInstance(
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
 ) {
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+        upscaler->setSupported(true);
+
     VkInstanceCreateInfo createInfo = *pCreateInfo;
     std::stringstream    message;
 

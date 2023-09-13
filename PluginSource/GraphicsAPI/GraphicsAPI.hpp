@@ -9,7 +9,6 @@
 class GraphicsAPI {
 private:
     static GraphicsAPI    *graphicsAPIInUse;
-    static IUnityGraphics *unityGraphics;
 
 public:
     enum Type {

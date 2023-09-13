@@ -224,7 +224,7 @@ std::string DLSS::getName() {
 bool DLSS::initialize() {
     if (!isSupported()) return false;
 
-    // Initialize NGX SDK
+    // Upscaler_Initialize NGX SDK
     (this->*graphicsAPIIndependentInitializeFunctionPointer)();
     (this->*graphicsAPIIndependentGetParametersFunctionPointer)();
     // Check for DLSS support

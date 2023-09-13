@@ -1,5 +1,7 @@
 // Project
+#include "GraphicsAPI/NoGraphicsAPI.hpp"
 #include "GraphicsAPI/Vulkan.hpp"
+#include "Upscaler/NoUpscaler.hpp"
 
 #include <Upscaler/DLSS.hpp>
 
@@ -22,87 +24,66 @@
 #endif
 
 namespace Unity {
-IUnityInterfaces *interfaces;
 IUnityGraphics   *graphicsInterface;
 }  // namespace Unity
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t OnFramebufferResize(unsigned int t_width, unsigned int t_height) {
-    Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
+extern "C" UNITY_INTERFACE_EXPORT void Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
+    Logger::setLoggerCallback(t_debugFunction);
+    Logger::flush();
 
-    if (!Upscaler::get()->isSupported()) return 0;
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height});
-    Upscaler::get()->createFeature();
-
-    return Upscaler::settings.renderResolution.asLong();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void InitializePlugin() {
     UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
     switch (renderer) {
-        case kUnityGfxRendererVulkan:
-            GraphicsAPI::set<Vulkan>();
-            break;
-        default: GraphicsAPI::set(GraphicsAPI::NONE); break;
+        case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
+        default: GraphicsAPI::set<NoGraphicsAPI>(); break;
     }
-
-    if (GraphicsAPI::get() == nullptr)
-        return;
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void EvaluateDLSS() {
-    Upscaler::get()->evaluate();
+extern "C" UNITY_INTERFACE_EXPORT bool Upscaler_Set(Upscaler::Type type) {
+    Upscaler::get()->shutdown();
+    Upscaler::set(type);
+    return Upscaler::get()->initialize();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool initializeDLSS() {
+extern "C" UNITY_INTERFACE_EXPORT bool Upscaler_IsSupported(Upscaler::Type type) {
+    return Upscaler::get(type)->isSupported();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT bool Upscaler_IsCurrentlyAvailable() {
+    return Upscaler::get()->isSupported();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT bool Upscaler_IsAvailable(Upscaler::Type type) {
+    return Upscaler::get(type)->isAvailable();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT bool Upscaler_Initialize() {
     Upscaler::get()->initialize();
     return Upscaler::get()->isSupported();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void SetDebugCallback(void (*t_debugFunction)(const char *)) {
-    Logger::setLoggerCallback(t_debugFunction);
-    Logger::flush();
+extern "C" UNITY_INTERFACE_EXPORT uint64_t Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height) {
+    Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
+
+    if (!Upscaler::get()->isSupported()) return 0;
+    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height});
+
+    return Upscaler::settings.renderResolution.asLong();
 }
 
-//extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType
-//) {
-//    switch (eventType) {
-//        case kUnityGfxDeviceEventInitialize: {
-//            UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
-//            if (renderer == kUnityGfxRendererNull) return;  // Is being run before an API has been selected
-//            else {
-//                Upscaler::disableAllUpscalers();
-//            }
-//            break;
-//        }
-//        case kUnityGfxDeviceEventShutdown: {
-//            Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
-//        }
-//        default: break;
-//    }
-//}
+extern "C" UNITY_INTERFACE_EXPORT bool
+Upscaler_Prepare(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
+    bool available = Upscaler::get()->isAvailableAfter(Upscaler::get()->setDepthBuffer(nativeBuffer, unityFormat));
 
-extern "C" UNITY_INTERFACE_EXPORT bool IsDLSSSupported() {
-    return Upscaler::get<DLSS>()->isSupported();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void
-setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
-    Upscaler::get()->isAvailableAfter(Upscaler::get()->setDepthBuffer(nativeBuffer, unityFormat));
+    Upscaler::get()->createFeature();
+    return available;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
-//    WAIT_FOR_DEBUGGER
-    Unity::interfaces = t_unityInterfaces;
-    if (!Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>())) {
-        Logger::log("DLSS Plugin failed to intercept initialization.");
-        Upscaler::disableAllUpscalers();
-        return;
-    }
+    // Enabled plugin's interception of Vulkan initialization calls.
+    Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>());
+    // Record graphics interface for future use.
     Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
-//    Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-//    OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
-    Upscaler::set(Upscaler::DLSS);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
@@ -112,8 +93,4 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
     // Remove vulkan initialization interception
     Vulkan::RemoveInterceptInitialization();
-    // Remove the device event callback
-//    Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
-    // Perform shutdown graphics event
-//    OnGraphicsDeviceEvent(kUnityGfxDeviceEventShutdown);
 }

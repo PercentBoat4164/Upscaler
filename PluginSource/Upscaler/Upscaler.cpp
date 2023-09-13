@@ -1,8 +1,9 @@
 #include "Upscaler.hpp"
 
 #include "DLSS.hpp"
+#include "NoUpscaler.hpp"
 
-Upscaler          *Upscaler::upscalerInUse{};
+Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
 
 uint64_t Upscaler::Settings::Resolution::asLong() const {
@@ -11,7 +12,7 @@ uint64_t Upscaler::Settings::Resolution::asLong() const {
 
 Upscaler *Upscaler::get(Type upscaler) {
     switch (upscaler) {
-        case NONE: return nullptr;
+        case NONE: return get<NoUpscaler>();
         case DLSS: return get<::DLSS>();
     }
     return nullptr;
@@ -23,6 +24,7 @@ Upscaler *Upscaler::get() {
 
 std::vector<Upscaler *> Upscaler::getAllUpscalers() {
     return {
+      get<::NoUpscaler>(),
       get<::DLSS>(),
     };
 }
@@ -35,11 +37,16 @@ std::vector<Upscaler *> Upscaler::getSupportedUpscalers() {
 }
 
 void Upscaler::set(Type upscaler) {
-    upscalerInUse = get(upscaler);
+    set(get(upscaler));
 }
 
 void Upscaler::set(Upscaler *upscaler) {
+    if (upscaler != nullptr && !upscaler->isSupported())
+        return;
+    if (upscalerInUse != nullptr)
+        upscalerInUse->setAvailable(false);
     upscalerInUse = upscaler;
+    upscalerInUse->setAvailable(true);
 }
 
 void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {

@@ -89,7 +89,9 @@ add_library(GfxPluginDLSSPlugin main.cpp
         GraphicsAPI/Vulkan.cpp
         Logger.cpp
         Upscaler/Upscaler.cpp
+        Upscaler/NoUpscaler.cpp
         Upscaler/DLSS.cpp
+        GraphicsAPI/NoGraphicsAPI.cpp
 )
 target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 target_link_libraries(GfxPluginDLSSPlugin ngx)

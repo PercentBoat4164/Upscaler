@@ -114,7 +114,7 @@ public:
     template<typename T>
         requires std::derived_from<T, Upscaler>
     constexpr static void set() {
-        upscalerInUse = T::getDevice();
+        set(T::get());
     }
 
     static void set(Type upscaler);

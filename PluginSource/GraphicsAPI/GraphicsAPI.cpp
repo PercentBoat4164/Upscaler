@@ -1,15 +1,15 @@
 #include "GraphicsAPI.hpp"
 
+#include "NoGraphicsAPI.hpp"
 #include "Upscaler/Upscaler.hpp"
 #include "Vulkan.hpp"
 
-GraphicsAPI    *GraphicsAPI::graphicsAPIInUse{nullptr};
-IUnityGraphics *GraphicsAPI::unityGraphics{nullptr};
+GraphicsAPI    *GraphicsAPI::graphicsAPIInUse{(GraphicsAPI *)get<NoGraphicsAPI>()};
 
 GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
         case NONE: return nullptr;
-        case VULKAN: return get<::Vulkan>();
+        case VULKAN: return get<Vulkan>();
     }
     return nullptr;
 }
