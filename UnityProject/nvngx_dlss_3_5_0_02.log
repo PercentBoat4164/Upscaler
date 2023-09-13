@@ -1,0 +1,16 @@
+[tid:139889784190208][setLogFilename:308] Warning: Logging to renamed logging file (.///nvngx_dlss_3_5_0_02.log)
+[tid:139889784190208][NGXInitLog:219] App logging hooks successfully initialized
+[tid:139889784190208][NGXInitLog:226] Built with APP_NAME = custom_engine_generic
+[tid:139889784190208][InitCommon:116] m_pDevice: 0x(nil)->0x0x563dfde52c40
+[tid:139889784190208][NGXLoadLibrary:31] Loaded library from path (libvulkan.so.1)
+[tid:139889784190208][InitCubins:62] Setting NGX Generic Cubins for arch fatbin
+[tid:139889784190208][SetGPUArch:421] m_gpuArch = 0x170
+[tid:139889784190208][SetGPUArch:432] m_smArch  = 0x2
+[tid:139889784190208][drsReadKey:104] Warning: drsReadKey() not implemented
+[tid:139889784190208][genericPostInit:140] Fast UAV clear: supported
+[tid:139889784190208][InitCubins:257] Setting DLAA Cubins for arch fatbin
+[tid:139889784190208][InitCubins:257] Setting DLSS Debug Cubins for arch fatbin
+[tid:139889784190208][InitCubins:257] Setting DLTSS Engine Cubins for arch fatbin
+[tid:139889784190208][InitCubins:257] Setting DLTSS NW Cubins for arch fatbin
+[tid:139889784190208][InitCubins:257] Setting DLTSS NW E5M3_SKIP Cubins for arch fatbin
+[tid:139889784190208][Init:193] Device 0xfee2a200

@@ -1,0 +1,157 @@
+[setLogFilename:273] Warning: Logging to renamed logging file (.//nvngx_02.log)
+[NGXSafeInitializeLog:130] App logging hooks successfully initialized
+[NGXNVAPITelemetryInit:609] warning: Telemetry not supported on Linux
+[NGXReadConfigFile:594] Reading configuration file from '(null)'
+[NGXReadConfigFile:600] error: Invalid configuration file '(null)'
+[NGXReadConfigFile:594] Reading configuration file from '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadJSONConfigFile:710] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '(null)'
+[NGXReadConfigFile:600] error: Invalid configuration file '(null)'
+[NGXReadConfigFile:594] Reading configuration file from '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadJSONConfigFile:710] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXDRSInit:347] Linux: Skipping DRS Init.
+[NVSDK_NGX_VULKAN_Init_Validate:171] called from module libGfxPluginDLSSPlugin.so at Assets/Plugins
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dldenoiser.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dldenoiser.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dldenoiser.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlss.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadLibrary:42] failed to load signed snippet - Unable to find correct signature ELF section
+[NGXLoadAndValidateSnippet:1813] nvLoadSignedLibraryW() failed on snippet '/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0.meta' missing or corrupted - last error Invalid argument
+[NGXValidateSnippetMetaData:1710] Validating snippet /home/conifer0us/Illumination/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXValidateSnippetMetaData:1712] NGX CORE API version : 0x15, Snippet requires at least : 0x0
+[NGXValidateSnippetMetaData:1716] GPU architecture : 0x170, Snippet expects at least : 0x0
+[NGXValidateSnippetMetaData:1731] Driver support flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID), Snippet required flags : 0x0()
+[NGXValidateSnippetMetaData:1759] Driver version : 525.125.6, Snippet expects at least : 0.0
+[NGXValidateSnippetMetaData:1786] Snippet version : 0.0.0, Embedded app Id : 0000000 (241534723)
+[NGXLoadLibrary:68] Loaded library from path (/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0)
+[NGXValidateSnippetMetaData:1710] Validating snippet /home/conifer0us/Illumination/DLSSPlugin/UnityProject/Assets/Plugins/libnvidia-ngx-dlss.so.3.5.0
+[NGXValidateSnippetMetaData:1712] NGX CORE API version : 0x15, Snippet requires at least : 0x13
+[NGXValidateSnippetMetaData:1716] GPU architecture : 0x170, Snippet expects at least : 0x160
+[NGXValidateSnippetMetaData:1731] Driver support flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID), Snippet required flags : 0xF(SEAMLESS_OTA|LINUX_EXTENDED_DRIVER_VERSIONS|API_SPECIFIC_POPULATE_PARAMS|REQUIRE_CMSID)
+[NGXValidateSnippetMetaData:1759] Driver version : 525.125.6, Snippet expects at least : 445.0
+[NGXValidateSnippetMetaData:1786] Snippet version : 3.5.0, Embedded app Id : E658703 (0)
+[NGXSecureLoadFeature:632] app 3AC09EF feature dlss snippet: ./Assets/Plugins/libnvidia-ngx-dlss.so version: 3.5.0
+[NGXReadConfigFile:594] Reading configuration file from '(null)'
+[NGXReadConfigFile:600] error: Invalid configuration file '(null)'
+[NGXReadConfigFile:594] Reading configuration file from '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadJSONConfigFile:710] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '(null)'
+[NGXReadConfigFile:600] error: Invalid configuration file '(null)'
+[NGXReadConfigFile:594] Reading configuration file from '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/home/conifer0us/.config/nvidia-ngx-conf.json'
+[NGXReadConfigFile:594] Reading configuration file from '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadConfigFile:600] error: Invalid configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXReadJSONConfigFile:710] warning: Unable to read configuration file '/usr/share/nvidia/nvidia-ngx-conf.json'
+[NGXGetPath:912] warning: Defaulting to '/usr/share/nvidia/ngx' models directory
+[NGXCreateDirectoryRecursively:1275] failed to create directory /usr/share/nvidia/ngx - Permission denied
+[NGXCreateModelsFolder:1305] error: could not create model folder
+[NGXSecureLoadFeature:884] unable to read the deny list. Assuming that the feature is allowed.
+[NGXLoadFeature:957] Setting show info tip callback for dlss
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlinpainting.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlinpainting.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlinpainting.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlisr.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlisr.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlisr.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlslowmo.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlslowmo.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlslowmo.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlvsr.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlvsr.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlvsr.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlcolorize.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlcolorize.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlcolorize.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlstyletransfer.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlstyletransfer.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlstyletransfer.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlvdenoiser.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlvdenoiser.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlvdenoiser.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlisp.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlisp.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlisp.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlresolve.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlresolve.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlresolve.so doesn't exist in any of the search paths!
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlssg.so' snippet from './Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXLoadFromPath:1935] Loading most recent 'libnvidia-ngx-dlssg.so' snippet from 'Assets/Plugins'...
+[NGXLoadFromPath:1958]     Found 2 snippets:
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0.meta
+[NGXLoadFromPath:1960]         libnvidia-ngx-dlss.so.3.5.0
+[NGXSecureLoadFeature:555] warning: ModuleName - libnvidia-ngx-dlssg.so doesn't exist in any of the search paths!
