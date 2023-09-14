@@ -53,12 +53,12 @@ public class EnableDLSS : MonoBehaviour
         //_beforePostProcess.Blit(_colorTarget, (RenderTexture)null);
         // Blit and up size the depth buffer to the camera's combined render target.
         //_beforePostProcess.Blit(_depthTarget, (RenderTexture)null);
-        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
+        //_beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
         
         // _beforeOpaque is added in two places to handle forward and deferred rendering
         //_camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         // _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeHaloAndLensFlares, _beforePostProcess);
+        //_camera.AddCommandBuffer(CameraEvent.BeforeHaloAndLensFlares, _beforePostProcess);
     }
 
     // Start is called before the first frame update
@@ -66,8 +66,6 @@ public class EnableDLSS : MonoBehaviour
     {
         _beforeOpaque = new CommandBuffer();
         _beforePostProcess = new CommandBuffer();
-        Upscaler_InitializePlugin(LogDebugMessage);
-        Upscaler_Set(upscaler);
         if (!Upscaler_Initialize())
         {
             Debug.Log("DLSS is not supported.");
@@ -75,6 +73,9 @@ public class EnableDLSS : MonoBehaviour
         }
 
         Debug.Log("DLSS is supported.");
+        
+        Upscaler_InitializePlugin(LogDebugMessage);
+        Upscaler_Set(upscaler);
         _camera = GetComponent<Camera>();
         _cameraJitter = new CameraJitter();
         _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
@@ -165,8 +166,8 @@ public class EnableDLSS : MonoBehaviour
             var nextJitter = NextJitter();
             cam.ResetProjectionMatrix();
             var tempProj = cam.nonJitteredProjectionMatrix;
-            tempProj.m30 += nextJitter.Item1;
-            tempProj.m31 += nextJitter.Item2;
+            tempProj.m20 += nextJitter.Item1;
+            tempProj.m21 += nextJitter.Item2;
             cam.projectionMatrix = tempProj;
             _lastJitter = nextJitter;
             return nextJitter;
