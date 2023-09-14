@@ -682,8 +682,26 @@
      <Reference Include="mscorlib">
      <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/mscorlib.dll</HintPath>
      </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Editor.dll</HintPath>
+     </Reference>
      <Reference Include="Unity.Toolchain.Linux-x86_64">
      <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Toolchain.Linux-x86_64.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Searcher.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Searcher.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Mathematics.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Mathematics.Editor.dll</HintPath>
      </Reference>
      <Reference Include="Unity.Rider.Editor">
      <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
@@ -691,8 +709,44 @@
      <Reference Include="Unity.Sysroot.Linux_x86_64">
      <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Sysroot.Linux_x86_64.dll</HintPath>
      </Reference>
+     <Reference Include="UnityEngine.UI">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Burst.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Burst.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="PPv2URPConverters">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/PPv2URPConverters.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Burst">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Burst.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEditor.UI">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Shaders">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.ShaderGraph.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.ShaderGraph.Editor.dll</HintPath>
+     </Reference>
      <Reference Include="Unity.SysrootPackage.Editor">
      <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.SysrootPackage.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Mathematics">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Mathematics.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.2D.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.2D.Runtime.dll</HintPath>
      </Reference>
   </ItemGroup>
   <ItemGroup>

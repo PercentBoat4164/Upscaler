@@ -1,16 +1,1177 @@
-[tid:139724468040960][setLogFilename:253] Logging to requested file (.///nvngx_dlss_3_5_0.log) enabled successfully
-[tid:139724468040960][NGXInitLog:219] App logging hooks successfully initialized
-[tid:139724468040960][NGXInitLog:226] Built with APP_NAME = custom_engine_generic
-[tid:139724468040960][InitCommon:116] m_pDevice: 0x(nil)->0x0x55fcad6f7000
-[tid:139724468040960][NGXLoadLibrary:31] Loaded library from path (libvulkan.so.1)
-[tid:139724468040960][InitCubins:62] Setting NGX Generic Cubins for arch fatbin
-[tid:139724468040960][SetGPUArch:421] m_gpuArch = 0x170
-[tid:139724468040960][SetGPUArch:432] m_smArch  = 0x2
-[tid:139724468040960][drsReadKey:104] Warning: drsReadKey() not implemented
-[tid:139724468040960][genericPostInit:140] Fast UAV clear: supported
-[tid:139724468040960][InitCubins:257] Setting DLAA Cubins for arch fatbin
-[tid:139724468040960][InitCubins:257] Setting DLSS Debug Cubins for arch fatbin
-[tid:139724468040960][InitCubins:257] Setting DLTSS Engine Cubins for arch fatbin
-[tid:139724468040960][InitCubins:257] Setting DLTSS NW Cubins for arch fatbin
-[tid:139724468040960][InitCubins:257] Setting DLTSS NW E5M3_SKIP Cubins for arch fatbin
-[tid:139724468040960][Init:193] Device 0xae6ccc30
+[tid:140372602930432][setLogFilename:253] Logging to requested file (.///nvngx_dlss_3_5_0.log) enabled successfully
+[tid:140372602930432][NGXInitLog:219] App logging hooks successfully initialized
+[tid:140372602930432][NGXInitLog:226] Built with APP_NAME = custom_engine_generic
+[tid:140372602930432][InitCommon:116] m_pDevice: 0x(nil)->0x0x5578bdbfae60
+[tid:140372602930432][NGXLoadLibrary:31] Loaded library from path (libvulkan.so.1)
+[tid:140372602930432][InitCubins:62] Setting NGX Generic Cubins for arch fatbin
+[tid:140372602930432][SetGPUArch:421] m_gpuArch = 0x170
+[tid:140372602930432][SetGPUArch:432] m_smArch  = 0x2
+[tid:140372602930432][drsReadKey:104] Warning: drsReadKey() not implemented
+[tid:140372602930432][genericPostInit:140] Fast UAV clear: supported
+[tid:140372602930432][InitCubins:257] Setting DLAA Cubins for arch fatbin
+[tid:140372602930432][InitCubins:257] Setting DLSS Debug Cubins for arch fatbin
+[tid:140372602930432][InitCubins:257] Setting DLTSS Engine Cubins for arch fatbin
+[tid:140372602930432][InitCubins:257] Setting DLTSS NW Cubins for arch fatbin
+[tid:140372602930432][InitCubins:257] Setting DLTSS NW E5M3_SKIP Cubins for arch fatbin
+[tid:140372602930432][Init:193] Device 0xbebd0ad0
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1644] InCreationTimeWidth 498
+[tid:140372602930432][CreateDlssInstance:1645] InCreationTimeHeight 300
+[tid:140372602930432][CreateDlssInstance:1646] InDynamicMaxSetDims.Width 859
+[tid:140372602930432][CreateDlssInstance:1647] InDynamicMaxSetDims.Height 518
+[tid:140372602930432][CreateDlssInstance:1648] InDynamicMinSetDims.Width 430
+[tid:140372602930432][CreateDlssInstance:1649] InDynamicMinSetDims.Height 259
+[tid:140372602930432][CreateDlssInstance:1650] OutWidth 859
+[tid:140372602930432][CreateDlssInstance:1651] OutHeight 518
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (ScratchBuffer), m_allocCount=1, currentSize 9.0 MB, totalSize 9.0 MB
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_0_1_fused_weights_nchw8), m_allocCount=2, currentSize 0.0 MB, totalSize 9.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_0_1_fused_bias), m_allocCount=3, currentSize 0.0 MB, totalSize 9.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_1_1_fused_weights_nchw8), m_allocCount=4, currentSize 0.0 MB, totalSize 9.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_1_1_fused_bias), m_allocCount=5, currentSize 0.0 MB, totalSize 9.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_2_1_fused_weights_nchw8), m_allocCount=6, currentSize 0.1 MB, totalSize 9.2 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_2_1_fused_bias), m_allocCount=7, currentSize 0.0 MB, totalSize 9.2 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_3_1_fused_weights_nchw8), m_allocCount=8, currentSize 0.3 MB, totalSize 9.4 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_3_1_fused_bias), m_allocCount=9, currentSize 0.0 MB, totalSize 9.4 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_4_1_fused_weights_nchw8), m_allocCount=10, currentSize 0.6 MB, totalSize 10.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (enc_4_1_fused_bias), m_allocCount=11, currentSize 0.0 MB, totalSize 10.0 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_4_0_weights_nchw8), m_allocCount=12, currentSize 0.2 MB, totalSize 10.2 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_4_0_bias), m_allocCount=13, currentSize 0.0 MB, totalSize 10.2 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_4_1_weights_nchw8), m_allocCount=14, currentSize 0.2 MB, totalSize 10.5 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_4_1_bias), m_allocCount=15, currentSize 0.0 MB, totalSize 10.5 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_3_0_weights_nchw8), m_allocCount=16, currentSize 0.1 MB, totalSize 10.6 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_3_0_bias), m_allocCount=17, currentSize 0.0 MB, totalSize 10.6 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_3_1_weights_nchw8), m_allocCount=18, currentSize 0.1 MB, totalSize 10.7 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_3_1_bias), m_allocCount=19, currentSize 0.0 MB, totalSize 10.7 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_2_0_weights_nchw8), m_allocCount=20, currentSize 0.0 MB, totalSize 10.7 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_2_0_bias), m_allocCount=21, currentSize 0.0 MB, totalSize 10.7 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_2_1_weights_nhwc), m_allocCount=22, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_2_1_bias), m_allocCount=23, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_1_0_weights_nchw8), m_allocCount=24, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_1_0_bias), m_allocCount=25, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_1_1_weights_nhwc), m_allocCount=26, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_1_1_bias), m_allocCount=27, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_0_0_weights_nchw8), m_allocCount=28, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_0_0_bias), m_allocCount=29, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_0_1_weights_nhwc), m_allocCount=30, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (dec_0_1_bias), m_allocCount=31, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (pdl_0_weights_nchw8), m_allocCount=32, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (pdl_0_bias), m_allocCount=33, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (pdl_1_weights_nhwc), m_allocCount=34, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateBufferResource:554] CUBIN 1D alloc (pdl_1_bias), m_allocCount=35, currentSize 0.0 MB, totalSize 10.8 MB
+[tid:140372602930432][CreateTexture2DResourceShared:686] CUBIN 2D alloc (networkLayersMem), m_allocCount=36, currentSize 4.5 MB, totalSize 15.3 MB
+[tid:140372602930432][CreateTexture2DResourceShared:686] CUBIN 2D alloc (PreviousFrameExposure), m_allocCount=37, currentSize 0.0 MB, totalSize 15.3 MB
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) pdl_0_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) dec_0_1_weights_nhwc -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) dec_0_0_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) dec_3_1_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) enc_2_1_fused_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) enc_1_1_fused_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) enc_0_1_fused_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) dec_0_1_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_3_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_2_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_2_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_3_1_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_0_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_0_0_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_1_1_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19f1b30
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19efaa0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ec360
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19edeb0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea4e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e71a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c653b040
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c2332160
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e38f0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1a7d510
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c6849cf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fc2500
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbd3e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb820
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fbb490
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9940
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb66e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a2c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f64080
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb9bf0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65bd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f65870
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f63c00
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c0f62100
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba2620
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c85172c0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba21d0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c8513c60
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1b9ec40
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1ba06e0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c4b7a3a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c1fb4b90
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e1fd0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19e3c20
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c23325a0
+[tid:140372602930432][PushToDestroy:817] Scheduled to destroy 0x5578c19ea810
+[tid:140372602930432][DLSS_GetOptimalSettings:169] Getting Optimal Settings...
+[tid:140372602930432][DLSS_GetOptimalSettings:173] Input DisplayWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:174] Input DisplayHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:176] Input PerfQualityValue: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:198] Output OptimalWidth: 498
+[tid:140372602930432][DLSS_GetOptimalSettings:199] Output OptimalHeight: 300
+[tid:140372602930432][DLSS_GetOptimalSettings:200] Output DynamicMaxWidth: 859
+[tid:140372602930432][DLSS_GetOptimalSettings:201] Output DynamicMaxHeight: 518
+[tid:140372602930432][DLSS_GetOptimalSettings:202] Output DynamicMinWidth: 430
+[tid:140372602930432][DLSS_GetOptimalSettings:203] Output DynamicMinHeight: 259
+[tid:140372602930432][DLSS_GetOptimalSettings:204] Output DLSSMode: 1
+[tid:140372602930432][DLSS_GetOptimalSettings:205] Output Sharpness: 0.350000
+[tid:140372602930432][operator():2612] Info: (DLAA) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Quality) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Balanced) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Perf) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (Ultra) Using App hint Preset A
+[tid:140372602930432][operator():2612] Info: (UltraQuality) Using App hint Preset F
+[tid:140372602930432][CreateDlssInstance:1652] HDR 0
+[tid:140372602930432][CreateDlssInstance:1653] Motion Vectors LowRes 1
+[tid:140372602930432][CreateDlssInstance:1654] Motion Vectors Jittered 0
+[tid:140372602930432][CreateDlssInstance:1655] Depth Inverted 0
+[tid:140372602930432][CreateDlssInstance:1656] Do Sharpening 0
+[tid:140372602930432][CreateDlssInstance:1657] PerfQualityValue NVSDK_NGX_PerfQuality_Value_Balanced (1)
+[tid:140372602930432][CreateDlssInstance:2818] Dltss training set is : crimson_slug_00148
+[tid:140372602930432][CreateDlssInstance:2819] Dltss Mask Mode is : INPUT_MASK_COLOR_VARIANCE_ONLY
+[tid:140372602930432][NGXSetDltssWeights:182] Weights crimson_slug_00148 2020-08-29 16:11:28 | Training Set crimson_slug_00148 | Blending factor 0.0350 | Variance Mask 10.0000
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c23325a0 size in Bytes (9216) enc_0_1_fused_weights_nchw8 -> enc_0_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea810 size in Bytes (64) enc_0_1_fused_bias -> enc_0_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e1fd0 size in Bytes (4096) enc_1_1_fused_weights_nchw8 -> enc_1_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e3c20 size in Bytes (128) enc_1_1_fused_bias -> enc_1_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a3a0 size in Bytes (147456) enc_2_1_fused_weights_nchw8 -> enc_2_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb4b90 size in Bytes (256) enc_2_1_fused_bias -> enc_2_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1b9ec40 size in Bytes (294912) enc_3_1_fused_weights_nchw8 -> enc_3_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba06e0 size in Bytes (256) enc_3_1_fused_bias -> enc_3_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba21d0 size in Bytes (589824) enc_4_1_fused_weights_nchw8 -> enc_4_1_fused_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c8513c60 size in Bytes (512) enc_4_1_fused_bias -> enc_4_1_fused_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1ba2620 size in Bytes (262144) dec_4_0_weights_nchw8 -> dec_4_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c85172c0 size in Bytes (1024) dec_4_0_bias -> dec_4_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f63c00 size in Bytes (262144) dec_4_1_weights_nchw8 -> dec_4_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f62100 size in Bytes (512) dec_4_1_bias -> dec_4_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65bd0 size in Bytes (131072) dec_3_0_weights_nchw8 -> dec_3_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f65870 size in Bytes (512) dec_3_0_bias -> dec_3_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c0f64080 size in Bytes (65536) dec_3_1_weights_nchw8 -> dec_3_1_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9bf0 size in Bytes (256) dec_3_1_bias -> dec_3_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb66e0 size in Bytes (32768) dec_2_0_weights_nchw8 -> dec_2_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c4b7a2c0 size in Bytes (256) dec_2_0_bias -> dec_2_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb490 size in Bytes (32768) dec_2_1_weights_nhwc -> dec_2_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fb9940 size in Bytes (256) dec_2_1_bias -> dec_2_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbd3e0 size in Bytes (32768) dec_1_0_weights_nchw8 -> dec_1_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fbb820 size in Bytes (256) dec_1_0_bias -> dec_1_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c6849cf0 size in Bytes (16384) dec_1_1_weights_nhwc -> dec_1_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1fc2500 size in Bytes (128) dec_1_1_bias -> dec_1_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e38f0 size in Bytes (8192) dec_0_0_weights_nchw8 -> dec_0_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c1a7d510 size in Bytes (128) dec_0_0_bias -> dec_0_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c653b040 size in Bytes (4096) dec_0_1_weights_nhwc -> dec_0_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c2332160 size in Bytes (64) dec_0_1_bias -> dec_0_1_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ea4e0 size in Bytes (2048) pdl_0_weights_nchw8 -> pdl_0_weights_nchw8
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19e71a0 size in Bytes (64) pdl_0_bias -> pdl_0_bias
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19ec360 size in Bytes (2560) pdl_1_weights_nhwc -> pdl_1_weights_nhwc
+[tid:140372602930432][CreateBufferResource:527] Recycling Buffer Resource 0x5578c19edeb0 size in Bytes (80) pdl_1_bias -> pdl_1_bias
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19efaa0 fmt NGXCubinFormat_RGBA16F size (768,768) networkLayersMem -> networkLayersMem
+[tid:140372602930432][CreateTexture2DResourceShared:653] Recycling Texture2D resource 0x5578c19f1b30 fmt NGXCubinFormat_R16F size (1,1) PreviousFrameExposure -> PreviousFrameExposure
