@@ -190,3 +190,9 @@
 [NGXStoreCallToReleaseFeature:1148] Stored release feature dlss handle 11
 [NVSDK_NGX_CreateFeature_Validate:448] app id is 61606383 
 [NGXStoreCallToCreateFeature:494] stored create feature dlss handle 12
+[NGXStoreCallToReleaseFeature:1148] Stored release feature dlss handle 12
+[NVSDK_NGX_CreateFeature_Validate:448] app id is 61606383 
+[NGXStoreCallToCreateFeature:494] stored create feature dlss handle 13
+[NGXStoreCallToReleaseFeature:1148] Stored release feature dlss handle 13
+[NVSDK_NGX_CreateFeature_Validate:448] app id is 61606383 
+[NGXStoreCallToCreateFeature:494] stored create feature dlss handle 14

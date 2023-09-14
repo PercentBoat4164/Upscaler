@@ -37,27 +37,28 @@ public class EnableDLSS : MonoBehaviour
 
     private void RecordCommandBuffers()
     {
-        _beforeOpaque.name = "Do not render a fullscreen image";
-        _beforeOpaque.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+        //_beforeOpaque.name = "Do not render a fullscreen image";
+        //_beforeOpaque.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
 
-        _beforePostProcess.name = "Evaluate upscaler and switch to external render targets";
+        //_beforePostProcess.name = "Evaluate upscaler and switch to external render targets";
         // Blit the color and depth to their respective targets from the camera's combined render target.
-        _beforePostProcess.Blit(null, _colorTarget);
-        _beforePostProcess.Blit(null, _depthTarget);
+        //_beforePostProcess.Blit(null, _colorTarget);
+        //_beforePostProcess.Blit(null, _depthTarget);
         // // Set the color render target for the upscaler. The depth buffer is already known.
-        _beforePostProcess.SetRenderTarget(_colorTarget);
+        //_beforePostProcess.SetRenderTarget(_colorTarget);
         // // Upscale
-        _beforePostProcess.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
-        _beforePostProcess.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+        //_beforePostProcess.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
+        //_beforePostProcess.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
         // Blit the full size color image to the camera's combined render target.
-        _beforePostProcess.Blit(_colorTarget, (RenderTexture)null);
+        //_beforePostProcess.Blit(_colorTarget, (RenderTexture)null);
         // Blit and up size the depth buffer to the camera's combined render target.
-        _beforePostProcess.Blit(_depthTarget, (RenderTexture)null);
-
+        //_beforePostProcess.Blit(_depthTarget, (RenderTexture)null);
+        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
+        
         // _beforeOpaque is added in two places to handle forward and deferred rendering
-        // _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
+        //_camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         // _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-        // _camera.AddCommandBuffer(CameraEvent.BeforeHaloAndLensFlares, _beforePostProcess);
+        _camera.AddCommandBuffer(CameraEvent.BeforeHaloAndLensFlares, _beforePostProcess);
     }
 
     // Start is called before the first frame update
@@ -76,6 +77,7 @@ public class EnableDLSS : MonoBehaviour
         Debug.Log("DLSS is supported.");
         _camera = GetComponent<Camera>();
         _cameraJitter = new CameraJitter();
+        _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
     }
 
     private void OnPreRender()

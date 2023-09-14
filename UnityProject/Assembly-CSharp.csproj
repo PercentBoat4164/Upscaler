@@ -41,854 +41,716 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-    <Analyzer Include="/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll" />
-    <Analyzer Include="/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll" />
+    <Analyzer Include="/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll" />
+    <Analyzer Include="/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets/EnableDLSS.cs" />
+     <Compile Include="Assets/MoveCube.cs" />
      <Folder Include="Assets" />
      <Folder Include="Library/BuildInstructions" />
-     <None Include="Library/PackageCache/com.unity.modules.subsystems@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.jsonserialize@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.searcher@4.9.2" />
-     <Folder Include="Library/PackageCache/com.unity.sysroot@2.0.7" />
-     <None Include="Library/PackageCache/com.unity.modules.screencapture@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Tests" />
-     <None Include="Library/PackageCache/com.unity.modules.cloth@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.imgui@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.ext.nunit@2.0.3/net40/unity-custom" />
-     <None Include="Library/PackageCache/com.unity.modules.unitywebrequesttexture@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.ai@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.animation@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.sysroot@2.0.7/Tests" />
-     <None Include="Library/PackageCache/com.unity.ugui@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.xr@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.ext.nunit@2.0.3/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/SMAA" />
-     <Folder Include="Library/PackageCache/com.unity.ide.rider@3.0.24/Rider" />
-     <None Include="Library/PackageCache/com.unity.modules.assetbundle@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/BlueNoise64" />
-     <None Include="Library/PackageCache/com.unity.modules.imgui@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.sysroot.linux-x86_64@2.0.6" />
-     <None Include="Library/PackageCache/com.unity.sysroot.linux-x86_64@2.0.6/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.tilemap@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.assetbundle@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests" />
-     <None Include="Library/PackageCache/com.unity.burst@1.8.8/ValidationConfig.json" />
-     <None Include="Library/PackageCache/com.unity.modules.terrainphysics@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.mathematics@1.2.6/package.json" />
-     <None Include="Library/PackageCache/com.unity.sysroot@2.0.7/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.screencapture@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.cloth@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.unitywebrequestassetbundle@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.ext.nunit@2.0.3" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/FilmGrain" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/ValidationConfig.json" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.imageconversion@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.terrainphysics@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.imageconversion@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unitywebrequest@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unitywebrequestassetbundle@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.shadergraph@15.0.6/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.unityanalytics@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.subsystems@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.ide.rider@3.0.24/package.json" />
-     <None Include="Library/PackageCache/com.unity.searcher@4.9.2/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.video@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.shadergraph@15.0.6/ValidationConfig.json" />
-     <Folder Include="Library/PackageCache/com.unity.shadergraph@15.0.6/Tests" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unityanalytics@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.physics@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.vr@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.toolchain.linux-x86_64@2.0.6" />
-     <Folder Include="Library/PackageCache/com.unity.sysroot.linux-x86_64@2.0.6/Tests" />
-     <Folder Include="Library/PackageCache/com.unity.modules.physics2d@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6" />
-     <None Include="Library/PackageCache/com.unity.modules.particlesystem@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.wind@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.toolchain.linux-x86_64@2.0.6/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.shadergraph@15.0.6" />
-     <None Include="Library/PackageCache/com.unity.modules.physics2d@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.vr@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/BlueNoise64/L" />
-     <Folder Include="Library/PackageCache/com.unity.modules.uielements@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unitywebrequestaudio@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.particlesystem@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.wind@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.ugui@1.0.0/Tests" />
-     <None Include="Library/PackageCache/com.unity.modules.umbra@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.tilemap@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.toolchain.linux-x86_64@2.0.6/ValidationConfig.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.ui@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures" />
-     <Folder Include="Library/PackageCache/com.unity.mathematics@1.2.6" />
-     <Folder Include="Library/PackageCache/com.unity.modules.androidjni@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.audio@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.physics@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/2D" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/ValidationExceptions.json" />
-     <Folder Include="Library/PackageCache/com.unity.toolchain.linux-x86_64@2.0.6/Tests" />
-     <None Include="Library/PackageCache/com.unity.modules.vehicles@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.ide.rider@3.0.24" />
-     <None Include="Library/PackageCache/com.unity.modules.unitywebrequestwww@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6" />
-     <None Include="Library/PackageCache/com.unity.modules.unitywebrequestaudio@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.searcher@4.9.2/Tests" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/BlueNoise16" />
-     <Folder Include="Library/PackageCache/com.unity.modules.vehicles@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.xr@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests" />
-     <Folder Include="Library/PackageCache/com.unity.modules.umbra@1.0.0" />
      <Folder Include="Assets/Scenes" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unitywebrequestwww@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.director@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.jsonserialize@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/BlueNoise256" />
-     <Folder Include="Library/PackageCache/com.unity.modules.director@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.audio@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.terrain@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.androidjni@1.0.0/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.video@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.modules.ai@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Textures/BlueNoise16/L" />
-     <None Include="Library/PackageCache/com.unity.mathematics@1.2.6/ValidationExceptions.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.terrain@1.0.0" />
-     <None Include="Library/PackageCache/com.unity.modules.animation@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.burst@1.8.8/Unity.Burst.Unsafe.xml" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/ValidationConfig.json" />
-     <None Include="Library/PackageCache/com.unity.modules.unitywebrequest@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.modules.uielements@1.0.0/package.json" />
-     <None Include="Library/PackageCache/com.unity.burst@1.8.8/package.json" />
-     <Folder Include="Library/PackageCache/com.unity.modules.unitywebrequesttexture@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.ugui@1.0.0" />
-     <Folder Include="Library/PackageCache/com.unity.ext.nunit@2.0.3/net40" />
-     <None Include="Library/PackageCache/com.unity.modules.ui@1.0.0/package.json" />
      <Reference Include="UnityEngine">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AccessibilityModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AccessibilityModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AccessibilityModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AndroidJNIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AndroidJNIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AndroidJNIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AnimationModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AnimationModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AnimationModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AssetBundleModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AssetBundleModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AssetBundleModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.AudioModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AudioModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.AudioModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ClothModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClothModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClothModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ClusterInputModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClusterInputModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClusterInputModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ClusterRendererModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClusterRendererModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ClusterRendererModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CommandStateObserverModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CommandStateObserverModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CommandStateObserverModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ContentLoadModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ContentLoadModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ContentLoadModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CrashReportingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CrashReportingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CrashReportingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.DSPGraphModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.DSPGraphModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.DSPGraphModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.DirectorModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.DirectorModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.DirectorModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.GIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.GameCenterModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GameCenterModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GameCenterModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.GraphToolsFoundationModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GraphToolsFoundationModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GraphToolsFoundationModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.GridModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GridModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.GridModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.HotReloadModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.HotReloadModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.HotReloadModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.IMGUIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.IMGUIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.IMGUIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ImageConversionModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ImageConversionModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ImageConversionModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.InputModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.InputModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.InputModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.InputLegacyModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.InputLegacyModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.InputLegacyModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.JSONSerializeModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.JSONSerializeModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.JSONSerializeModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.LocalizationModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.LocalizationModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.LocalizationModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.MarshallingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.MarshallingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.MarshallingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ParticleSystemModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ParticleSystemModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ParticleSystemModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.PerformanceReportingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PerformanceReportingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PerformanceReportingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.PhysicsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PhysicsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PhysicsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.Physics2DModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.Physics2DModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.Physics2DModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ProfilerModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ProfilerModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ProfilerModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.PropertiesModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PropertiesModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.PropertiesModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.ScreenCaptureModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ScreenCaptureModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.ScreenCaptureModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.SharedInternalsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SharedInternalsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SharedInternalsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.SpriteMaskModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SpriteMaskModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SpriteMaskModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.SpriteShapeModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SpriteShapeModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SpriteShapeModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.StreamingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.StreamingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.StreamingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.SubstanceModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SubstanceModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SubstanceModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.SubsystemsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SubsystemsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.SubsystemsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TLSModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TLSModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TLSModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TerrainModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TerrainModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TerrainModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TerrainPhysicsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TerrainPhysicsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TerrainPhysicsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TextCoreFontEngineModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextCoreFontEngineModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextCoreFontEngineModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TextCoreTextEngineModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextCoreTextEngineModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextCoreTextEngineModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TextRenderingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextRenderingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TextRenderingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.TilemapModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TilemapModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.TilemapModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UIElementsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UIElementsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UIElementsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UmbraModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UmbraModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UmbraModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityAnalyticsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityAnalyticsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityAnalyticsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityAnalyticsCommonModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityAnalyticsCommonModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityAnalyticsCommonModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityConnectModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityConnectModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityConnectModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityCurlModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityCurlModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityCurlModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityTestProtocolModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityTestProtocolModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityTestProtocolModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityWebRequestModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityWebRequestAudioModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityWebRequestTextureModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.UnityWebRequestWWWModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.VFXModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VFXModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VFXModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.VRModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VRModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VRModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.VehiclesModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VehiclesModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VehiclesModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.VideoModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VideoModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VideoModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.VirtualTexturingModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VirtualTexturingModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.VirtualTexturingModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.WindModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.WindModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.WindModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.XRModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.XRModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.XRModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.CoreModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.DeviceSimulatorModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.DeviceSimulatorModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.DeviceSimulatorModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.DiagnosticsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.DiagnosticsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.DiagnosticsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.EditorToolbarModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.EditorToolbarModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.EditorToolbarModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.GraphToolsFoundationModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.GraphToolsFoundationModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.GraphToolsFoundationModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.GraphViewModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.GraphViewModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.GraphViewModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.PresetsUIModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.PresetsUIModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.PresetsUIModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.PropertiesModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.PropertiesModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.PropertiesModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.QuickSearchModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.QuickSearchModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.QuickSearchModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.SceneTemplateModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.SceneTemplateModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.SceneTemplateModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.SceneViewModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.SceneViewModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.SceneViewModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.TerrainModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TerrainModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TerrainModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.TextCoreFontEngineModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TextCoreFontEngineModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TextCoreFontEngineModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.TextCoreTextEngineModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TextCoreTextEngineModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.TextCoreTextEngineModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.UIBuilderModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIBuilderModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIBuilderModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.UIElementsModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIElementsModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIElementsModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.UIElementsSamplesModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIElementsSamplesModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UIElementsSamplesModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor.UnityConnectModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UnityConnectModule.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.UnityConnectModule.dll</HintPath>
      </Reference>
      <Reference Include="nunit.framework">
-     <HintPath>/home/sophia/Documents/Programming/Unity/DLSSPlugin/UnityProject/Library/PackageCache/com.unity.ext.nunit@2.0.3/net40/unity-custom/nunit.framework.dll</HintPath>
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/PackageCache/com.unity.ext.nunit@2.0.3/net40/unity-custom/nunit.framework.dll</HintPath>
      </Reference>
      <Reference Include="netstandard">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/ref/2.1.0/netstandard.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/ref/2.1.0/netstandard.dll</HintPath>
      </Reference>
      <Reference Include="Microsoft.Win32.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/Microsoft.Win32.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/Microsoft.Win32.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.AppContext">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.AppContext.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.AppContext.dll</HintPath>
      </Reference>
      <Reference Include="System.Buffers">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Buffers.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Buffers.dll</HintPath>
      </Reference>
      <Reference Include="System.Collections.Concurrent">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.Concurrent.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.Concurrent.dll</HintPath>
      </Reference>
      <Reference Include="System.Collections.NonGeneric">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.NonGeneric.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.NonGeneric.dll</HintPath>
      </Reference>
      <Reference Include="System.Collections.Specialized">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.Specialized.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.Specialized.dll</HintPath>
      </Reference>
      <Reference Include="System.Collections">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Collections.dll</HintPath>
      </Reference>
      <Reference Include="System.ComponentModel.EventBasedAsync">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.EventBasedAsync.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.EventBasedAsync.dll</HintPath>
      </Reference>
      <Reference Include="System.ComponentModel.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.ComponentModel.TypeConverter">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.TypeConverter.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.TypeConverter.dll</HintPath>
      </Reference>
      <Reference Include="System.ComponentModel">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ComponentModel.dll</HintPath>
      </Reference>
      <Reference Include="System.Console">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Console.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Console.dll</HintPath>
      </Reference>
      <Reference Include="System.Data.Common">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Data.Common.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Data.Common.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.Contracts">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Contracts.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Contracts.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.Debug">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Debug.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Debug.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.FileVersionInfo">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.FileVersionInfo.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.FileVersionInfo.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.Process">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Process.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Process.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.StackTrace">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.StackTrace.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.StackTrace.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.TextWriterTraceListener">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.TextWriterTraceListener.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.TextWriterTraceListener.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.Tools">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Tools.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Tools.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.TraceSource">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.TraceSource.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.TraceSource.dll</HintPath>
      </Reference>
      <Reference Include="System.Diagnostics.Tracing">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Tracing.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Diagnostics.Tracing.dll</HintPath>
      </Reference>
      <Reference Include="System.Drawing.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Drawing.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Drawing.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.Dynamic.Runtime">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Dynamic.Runtime.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Dynamic.Runtime.dll</HintPath>
      </Reference>
      <Reference Include="System.Globalization.Calendars">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.Calendars.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.Calendars.dll</HintPath>
      </Reference>
      <Reference Include="System.Globalization.Extensions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.Extensions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.Extensions.dll</HintPath>
      </Reference>
      <Reference Include="System.Globalization">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Globalization.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.Compression.ZipFile">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Compression.ZipFile.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Compression.ZipFile.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.Compression">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Compression.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Compression.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.FileSystem.DriveInfo">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.DriveInfo.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.DriveInfo.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.FileSystem.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.FileSystem.Watcher">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.Watcher.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.Watcher.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.FileSystem">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.FileSystem.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.IsolatedStorage">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.IsolatedStorage.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.IsolatedStorage.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.MemoryMappedFiles">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.MemoryMappedFiles.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.MemoryMappedFiles.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.Pipes">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Pipes.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.Pipes.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.UnmanagedMemoryStream">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.UnmanagedMemoryStream.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.UnmanagedMemoryStream.dll</HintPath>
      </Reference>
      <Reference Include="System.IO">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.IO.dll</HintPath>
      </Reference>
      <Reference Include="System.Linq.Expressions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Expressions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Expressions.dll</HintPath>
      </Reference>
      <Reference Include="System.Linq.Parallel">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Parallel.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Parallel.dll</HintPath>
      </Reference>
      <Reference Include="System.Linq.Queryable">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Queryable.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.Queryable.dll</HintPath>
      </Reference>
      <Reference Include="System.Linq">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Linq.dll</HintPath>
      </Reference>
      <Reference Include="System.Memory">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Memory.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Memory.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Http">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Http.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Http.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.NameResolution">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.NameResolution.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.NameResolution.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.NetworkInformation">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.NetworkInformation.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.NetworkInformation.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Ping">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Ping.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Ping.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Requests">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Requests.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Requests.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Security">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Security.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Security.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.Sockets">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Sockets.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.Sockets.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.WebHeaderCollection">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebHeaderCollection.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebHeaderCollection.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.WebSockets.Client">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebSockets.Client.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebSockets.Client.dll</HintPath>
      </Reference>
      <Reference Include="System.Net.WebSockets">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebSockets.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Net.WebSockets.dll</HintPath>
      </Reference>
      <Reference Include="System.Numerics.Vectors">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Numerics.Vectors.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Numerics.Vectors.dll</HintPath>
      </Reference>
      <Reference Include="System.ObjectModel">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ObjectModel.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ObjectModel.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.DispatchProxy">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.DispatchProxy.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.DispatchProxy.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.Emit.ILGeneration">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.ILGeneration.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.ILGeneration.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.Emit.Lightweight">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.Lightweight.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.Lightweight.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.Emit">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Emit.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.Extensions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Extensions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Extensions.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.Reflection">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Reflection.dll</HintPath>
      </Reference>
      <Reference Include="System.Resources.Reader">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.Reader.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.Reader.dll</HintPath>
      </Reference>
      <Reference Include="System.Resources.ResourceManager">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.ResourceManager.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.ResourceManager.dll</HintPath>
      </Reference>
      <Reference Include="System.Resources.Writer">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.Writer.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Resources.Writer.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.CompilerServices.VisualC">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.CompilerServices.VisualC.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.CompilerServices.VisualC.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Extensions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Extensions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Extensions.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Handles">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Handles.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Handles.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.InteropServices.RuntimeInformation">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.InteropServices">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.InteropServices.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.InteropServices.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Numerics">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Numerics.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Numerics.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Serialization.Formatters">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Formatters.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Formatters.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Serialization.Json">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Json.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Json.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Serialization.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Serialization.Xml">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Xml.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.Serialization.Xml.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Runtime.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Claims">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Claims.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Claims.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Cryptography.Algorithms">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Algorithms.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Algorithms.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Cryptography.Csp">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Csp.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Csp.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Cryptography.Encoding">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Encoding.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Encoding.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Cryptography.Primitives">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Primitives.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.Primitives.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Cryptography.X509Certificates">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.X509Certificates.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Cryptography.X509Certificates.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.Principal">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Principal.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.Principal.dll</HintPath>
      </Reference>
      <Reference Include="System.Security.SecureString">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.SecureString.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Security.SecureString.dll</HintPath>
      </Reference>
      <Reference Include="System.Text.Encoding.Extensions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.Encoding.Extensions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.Encoding.Extensions.dll</HintPath>
      </Reference>
      <Reference Include="System.Text.Encoding">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.Encoding.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.Encoding.dll</HintPath>
      </Reference>
      <Reference Include="System.Text.RegularExpressions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.RegularExpressions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Text.RegularExpressions.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Overlapped">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Overlapped.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Overlapped.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Tasks.Extensions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.Extensions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.Extensions.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Tasks.Parallel">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.Parallel.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.Parallel.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Tasks">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Tasks.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Thread">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Thread.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Thread.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.ThreadPool">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.ThreadPool.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.ThreadPool.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading.Timer">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Timer.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.Timer.dll</HintPath>
      </Reference>
      <Reference Include="System.Threading">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Threading.dll</HintPath>
      </Reference>
      <Reference Include="System.ValueTuple">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ValueTuple.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.ValueTuple.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.ReaderWriter">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.ReaderWriter.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.ReaderWriter.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.XDocument">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XDocument.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XDocument.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.XPath.XDocument">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XPath.XDocument.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XPath.XDocument.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.XPath">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XPath.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XPath.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.XmlDocument">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlDocument.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlDocument.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.XmlSerializer">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlSerializer.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlSerializer.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.InteropServices.WindowsRuntime">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/Extensions/2.0.0/System.Runtime.InteropServices.WindowsRuntime.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/Extensions/2.0.0/System.Runtime.InteropServices.WindowsRuntime.dll</HintPath>
      </Reference>
      <Reference Include="System.ComponentModel.Composition">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.ComponentModel.Composition.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.ComponentModel.Composition.dll</HintPath>
      </Reference>
      <Reference Include="System.Core">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Core.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Core.dll</HintPath>
      </Reference>
      <Reference Include="System.Data">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Data.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Data.dll</HintPath>
      </Reference>
      <Reference Include="System.Drawing">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Drawing.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Drawing.dll</HintPath>
      </Reference>
      <Reference Include="System.IO.Compression.FileSystem">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.IO.Compression.FileSystem.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.IO.Compression.FileSystem.dll</HintPath>
      </Reference>
      <Reference Include="System.Net">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Net.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Net.dll</HintPath>
      </Reference>
      <Reference Include="System.Numerics">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Numerics.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Numerics.dll</HintPath>
      </Reference>
      <Reference Include="System.Runtime.Serialization">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Runtime.Serialization.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Runtime.Serialization.dll</HintPath>
      </Reference>
      <Reference Include="System.ServiceModel.Web">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.ServiceModel.Web.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.ServiceModel.Web.dll</HintPath>
      </Reference>
      <Reference Include="System.Transactions">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Transactions.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Transactions.dll</HintPath>
      </Reference>
      <Reference Include="System.Web">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Web.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Web.dll</HintPath>
      </Reference>
      <Reference Include="System.Windows">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Windows.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Windows.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.Linq">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.Linq.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.Linq.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml.Serialization">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.Serialization.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.Serialization.dll</HintPath>
      </Reference>
      <Reference Include="System.Xml">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.Xml.dll</HintPath>
      </Reference>
      <Reference Include="System">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.dll</HintPath>
      </Reference>
      <Reference Include="mscorlib">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/mscorlib.dll</HintPath>
+     <HintPath>/home/conifer0us/Unity/Hub/Editor/2023.1.11f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/mscorlib.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Toolchain.Linux-x86_64">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Toolchain.Linux-x86_64.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Searcher.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Searcher.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Mathematics.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Mathematics.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Rider.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Sysroot.Linux_x86_64">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Sysroot.Linux_x86_64.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UI">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Burst.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Burst.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="PPv2URPConverters">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/PPv2URPConverters.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Burst">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Burst.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEditor.UI">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.Shaders">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Core.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.ShaderGraph.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.ShaderGraph.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.SysrootPackage.Editor">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.SysrootPackage.Editor.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.Mathematics">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.Mathematics.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.RenderPipelines.Universal.2D.Runtime">
+     <HintPath>/home/conifer0us/Illumination/DLSSPlugin/UnityProject/Library/ScriptAssemblies/Unity.RenderPipelines.Universal.2D.Runtime.dll</HintPath>
      </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Unity.RenderPipelines.Core.Editor.csproj">
-      <Project>{063d476e-cd17-9a75-4186-43af76af8f54}</Project>
-      <Name>Unity.RenderPipelines.Core.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Universal.Editor.csproj">
-      <Project>{ffe08dfd-a80e-d88d-bc4f-cd42464311f2}</Project>
-      <Name>Unity.RenderPipelines.Universal.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Toolchain.Linux-x86_64.csproj">
-      <Project>{28c74b25-155c-b1a5-f6ca-c0dda6896761}</Project>
-      <Name>Unity.Toolchain.Linux-x86_64</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Universal.Runtime.csproj">
-      <Project>{18ff97b5-3fd1-c4dc-b906-c98fb4ecda92}</Project>
-      <Name>Unity.RenderPipelines.Universal.Runtime</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Core.ShaderLibrary.csproj">
-      <Project>{0085c2c7-7d54-fe95-5aa1-a5f7a70aea0f}</Project>
-      <Name>Unity.RenderPipelines.Core.ShaderLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Searcher.Editor.csproj">
-      <Project>{cc877d69-c965-afb7-5985-1b010c028e10}</Project>
-      <Name>Unity.Searcher.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Rider.Editor.csproj">
-      <Project>{d327f894-c061-bc7c-a190-3e2f80ac6577}</Project>
-      <Name>Unity.Rider.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Mathematics.Editor.csproj">
-      <Project>{d5832307-7120-f54f-e386-b64ac9285258}</Project>
-      <Name>Unity.Mathematics.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Sysroot.Linux_x86_64.csproj">
-      <Project>{60b1020b-69b7-5f61-152c-0410aef0ed49}</Project>
-      <Name>Unity.Sysroot.Linux_x86_64</Name>
-    </ProjectReference>
-    <ProjectReference Include="UnityEngine.UI.csproj">
-      <Project>{406db75e-4363-3498-0f7e-acffc38718cf}</Project>
-      <Name>UnityEngine.UI</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.csproj">
-      <Project>{bdd98947-a409-7a89-09b1-6b4d7856be77}</Project>
-      <Name>Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Burst.Editor.csproj">
-      <Project>{6fda758e-c727-a930-b345-1f0d4a16bbce}</Project>
-      <Name>Unity.Burst.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="PPv2URPConverters.csproj">
-      <Project>{e7ddac86-8c35-e245-f630-373bdd4a28b1}</Project>
-      <Name>PPv2URPConverters</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Burst.csproj">
-      <Project>{3aebf37d-87ac-dda4-95c9-d76cb42b96de}</Project>
-      <Name>Unity.Burst</Name>
-    </ProjectReference>
-    <ProjectReference Include="UnityEditor.UI.csproj">
-      <Project>{192b54eb-1e36-8178-c312-841c00d24d02}</Project>
-      <Name>UnityEditor.UI</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipeline.Universal.ShaderLibrary.csproj">
-      <Project>{e5d0e126-aaef-8e7b-dd00-f850fe098338}</Project>
-      <Name>Unity.RenderPipeline.Universal.ShaderLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Universal.Shaders.csproj">
-      <Project>{5602a31a-adbc-e23a-63f9-f1248d919c57}</Project>
-      <Name>Unity.RenderPipelines.Universal.Shaders</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Core.Runtime.csproj">
-      <Project>{651094fe-8230-cd19-37a4-16d290e365b8}</Project>
-      <Name>Unity.RenderPipelines.Core.Runtime</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.ShaderGraph.Editor.csproj">
-      <Project>{cdbe483a-d1a4-a8eb-199c-599d7900c285}</Project>
-      <Name>Unity.ShaderGraph.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.SysrootPackage.Editor.csproj">
-      <Project>{47d58a10-0109-b59f-ef64-f6ef13ea4e2b}</Project>
-      <Name>Unity.SysrootPackage.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.Mathematics.csproj">
-      <Project>{53c76c75-9975-3776-e65f-c33036b4881f}</Project>
-      <Name>Unity.Mathematics</Name>
-    </ProjectReference>
-    <ProjectReference Include="Unity.RenderPipelines.Universal.2D.Runtime.csproj">
-      <Project>{3a019c02-1d6f-3334-1bb3-fd58bde9a900}</Project>
-      <Name>Unity.RenderPipelines.Universal.2D.Runtime</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
