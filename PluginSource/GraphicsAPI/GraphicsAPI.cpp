@@ -1,6 +1,7 @@
 #include "GraphicsAPI.hpp"
 
 // Project
+#include "DX11.hpp"
 #include "DX12.hpp"
 #include "NoGraphicsAPI.hpp"
 #include "Upscaler/Upscaler.hpp"
@@ -13,6 +14,7 @@ GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
         case NONE: return get<NoGraphicsAPI>();
         case VULKAN: return get<Vulkan>();
         case DX12: return get<::DX12>();
+        case DX11: return get<::DX11>();
     }
     return nullptr;
 }
@@ -38,5 +40,6 @@ std::vector<GraphicsAPI *> GraphicsAPI::getAllGraphicsAPIs() {
       get<NoGraphicsAPI>(),
       get<Vulkan>(),
       get<::DX12>(),
+      get<::DX11>(),
     };
 }

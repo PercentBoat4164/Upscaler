@@ -85,6 +85,7 @@ set_target_properties(ngx PROPERTIES IMPORTED_LOCATION "${DLSS_STATIC_LIB}")
 ##############
 
 add_library(GfxPluginDLSSPlugin main.cpp
+        GraphicsAPI/DX11.cpp
         GraphicsAPI/DX12.cpp
         GraphicsAPI/GraphicsAPI.cpp
         GraphicsAPI/NoGraphicsAPI.cpp

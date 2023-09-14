@@ -45,6 +45,7 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Parameter  *parameters{};
     NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
     ID3D12Resource *dx12DepthBufferResource{};
+    ID3D11Resource *dx11DepthBufferResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
@@ -88,6 +89,22 @@ class DLSS : public Upscaler {
     bool DX12DestroyParameters();
 
     bool DX12Shutdown();
+
+    bool DX11Initialize();
+
+    bool DX11GetParameters();
+
+    bool DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+
+    bool DX11SetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat);
+
+    bool DX11Evaluate();
+
+    bool DX11ReleaseFeature();
+
+    bool DX11DestroyParameters();
+
+    bool DX11Shutdown();
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 

@@ -55,10 +55,8 @@ void DX12::cancelOneTimeSubmitRecording() {
 
 void DX12::finishOneTimeSubmits() {
     cancelOneTimeSubmitRecording();
-    delete _oneTimeSubmitCommandList;
-
-    _oneTimeSubmitCommandAllocator->Reset();
-    delete _oneTimeSubmitCommandAllocator;
+    _oneTimeSubmitCommandAllocator->Release();
+    _oneTimeSubmitCommandAllocator->Release();
 }
 
 DX12 *DX12::get() {

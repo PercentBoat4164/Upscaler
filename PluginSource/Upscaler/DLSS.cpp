@@ -5,6 +5,7 @@
 #include "GraphicsAPI/Vulkan.hpp"
 
 // Unity
+#include "GraphicsAPI/DX11.hpp"
 #include "IUnityGraphicsD3D12.h"
 
 // System
@@ -45,8 +46,12 @@ bool DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     VkCommandBuffer  commandBuffer = GraphicsAPI::get<Vulkan>()->beginOneTimeSubmitRecording();
     NVSDK_NGX_Result result =
       NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams);
-    GraphicsAPI::get<Vulkan>()->endOneTimeSubmitRecording();
-    return NVSDK_NGX_SUCCEED(result);
+    if (NVSDK_NGX_SUCCEED(result)) {
+        GraphicsAPI::get<Vulkan>()->endOneTimeSubmitRecording();
+        return featureHandle != nullptr;
+    }
+    GraphicsAPI::get<Vulkan>()->cancelOneTimeSubmitRecording();
+    return false;
 }
 
 bool DLSS::VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
@@ -88,7 +93,7 @@ bool DLSS::VulkanEvaluate() {
     );
 
     // clang-format off
-    NVSDK_NGX_VK_DLSS_Eval_Params vulkanEvalParameters = {
+    NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParams = {
       .pInDepth                  = &vulkanDepthBufferResource,
       .pInMotionVectors          = nullptr,
       .InJitterOffsetX           = 0.F,
@@ -101,7 +106,7 @@ bool DLSS::VulkanEvaluate() {
     // clang-format on
 
     return NVSDK_NGX_SUCCEED(
-      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters)
+      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &DLSSEvalParams)
     );
 }
 
@@ -149,7 +154,7 @@ bool DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
       NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams);
     if (NVSDK_NGX_SUCCEED(result)) {
         GraphicsAPI::get<DX12>()->endOneTimeSubmitRecording();
-        return true;
+        return featureHandle != nullptr;
     }
     GraphicsAPI::get<DX12>()->cancelOneTimeSubmitRecording();
     return false;
@@ -165,7 +170,7 @@ bool DLSS::DX12Evaluate() {
     GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
 
     // clang-format off
-    NVSDK_NGX_D3D12_DLSS_Eval_Params dx12DLSSEvalParams = {
+    NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParams = {
       .pInDepth                  = dx12DepthBufferResource,
       .pInMotionVectors          = nullptr,
       .InJitterOffsetX           = 0.F,
@@ -178,7 +183,7 @@ bool DLSS::DX12Evaluate() {
     // clang-format on
 
     return NVSDK_NGX_SUCCEED(
-      NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &dx12DLSSEvalParams)
+      NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &DLSSEvalParams)
     );
 }
 
@@ -202,6 +207,84 @@ bool DLSS::DX12Shutdown() {
     DX12DestroyParameters();
     DX12ReleaseFeature();
     return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D12_Shutdown1(nullptr));
+}
+
+bool DLSS::DX11Initialize() {
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D11_Init(
+      applicationInfo.id,
+      applicationInfo.dataPath.c_str(),
+      GraphicsAPI::get<DX11>()->getUnityInterface()->GetDevice()
+    );
+    return isSupportedAfter(NVSDK_NGX_SUCCEED(result));
+}
+
+bool DLSS::DX11GetParameters() {
+    if (parameters != nullptr) return true;
+    return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D11_GetCapabilityParameters(&parameters));
+}
+
+bool DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+    if (featureHandle != nullptr) return true;
+    ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
+    NVSDK_NGX_Result result =
+      NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams);
+    if (NVSDK_NGX_SUCCEED(result)) {
+        GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
+        return featureHandle != nullptr;
+    }
+    GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
+    return false;
+}
+
+bool DLSS::DX11SetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat /* unused */) {
+    dx11DepthBufferResource = reinterpret_cast<ID3D11Resource *>(nativeBuffer);
+    return true;
+}
+
+bool DLSS::DX11Evaluate() {
+    // clang-format off
+    NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams = {
+      .pInDepth                  = dx11DepthBufferResource,
+      .pInMotionVectors          = nullptr,
+      .InJitterOffsetX           = 0.F,
+      .InJitterOffsetY           = 0.F,
+      .InRenderSubrectDimensions = {
+        .Width  = settings.renderResolution.width,
+        .Height = settings.renderResolution.height,
+      },
+    };
+    // clang-format on
+
+    ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
+    NVSDK_NGX_Result result = NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams);
+    if (NVSDK_NGX_SUCCEED(result)) {
+        GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
+        return true;
+    }
+    GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
+    return false;
+}
+
+bool DLSS::DX11ReleaseFeature() {
+    if (featureHandle == nullptr) return true;
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D11_ReleaseFeature(featureHandle);
+    if (NVSDK_NGX_FAILED(result)) return false;
+    featureHandle = nullptr;
+    return true;
+}
+
+bool DLSS::DX11DestroyParameters() {
+    if (parameters == nullptr) return true;
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D11_DestroyParameters(parameters);
+    if (NVSDK_NGX_FAILED(result)) return false;
+    parameters = nullptr;
+    return true;
+}
+
+bool DLSS::DX11Shutdown() {
+    DX11DestroyParameters();
+    DX11ReleaseFeature();
+    return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D11_Shutdown1(nullptr));
 }
 
 void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
@@ -234,6 +317,16 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::DX12Evaluate;
             graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::DX12ReleaseFeature;
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX12Shutdown;
+            break;
+        }
+        case GraphicsAPI::DX11: {
+            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX11Initialize;
+            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX11GetParameters;
+            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::DX11CreateFeature;
+            graphicsAPIIndependentSetDepthBufferFunctionPointer = &DLSS::DX11SetDepthBuffer;
+            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::DX11Evaluate;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::DX11ReleaseFeature;
+            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX11Shutdown;
             break;
         }
     }

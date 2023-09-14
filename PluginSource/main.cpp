@@ -1,5 +1,6 @@
 // Project
 #include "GraphicsAPI/NoGraphicsAPI.hpp"
+#include "GraphicsAPI/DX11.hpp"
 #include "GraphicsAPI/DX12.hpp"
 #include "GraphicsAPI/Vulkan.hpp"
 #include "Upscaler/DLSS.hpp"
@@ -36,6 +37,7 @@ extern "C" UNITY_INTERFACE_EXPORT void Upscaler_InitializePlugin(void (*t_debugF
     switch (renderer) {
         case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
         case kUnityGfxRendererD3D12: GraphicsAPI::set<DX12>(); break;
+        case kUnityGfxRendererD3D11: GraphicsAPI::set<DX11>(); break;
         default: GraphicsAPI::set<NoGraphicsAPI>(); break;
     }
     GraphicsAPI::get()->prepareForOneTimeSubmits();

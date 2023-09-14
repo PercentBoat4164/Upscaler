@@ -16,6 +16,7 @@ public:
         NONE,
         VULKAN,
         DX12,
+        DX11,
     };
 
     GraphicsAPI()                               = default;
