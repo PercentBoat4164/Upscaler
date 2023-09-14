@@ -27,6 +27,25 @@ namespace Unity {
 IUnityGraphics   *graphicsInterface;
 }  // namespace Unity
 
+enum Event {
+    BEFORE_POSTPROCESSING,
+};
+
+void INTERNAL_BeforePostProcessing() {
+    // Evaluate, Evaluate ...
+//    Upscaler::get()->evaluate();
+}
+
+void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
+    switch (event) {
+        case BEFORE_POSTPROCESSING: INTERNAL_BeforePostProcessing(); break;
+    }
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void * UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
+    return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
+}
+
 extern "C" UNITY_INTERFACE_EXPORT void Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
     Logger::setLoggerCallback(t_debugFunction);
     Logger::flush();
