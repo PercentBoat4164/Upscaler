@@ -1,15 +1,14 @@
 #include "DLSS.hpp"
 
-// Project
-#include "GraphicsAPI/DX12.hpp"
-#include "GraphicsAPI/Vulkan.hpp"
+#ifdef ENABLE_DLSS
 
-// Unity
-#include "GraphicsAPI/DX11.hpp"
-#include "IUnityGraphicsD3D12.h"
+// Project
+#    include "GraphicsAPI/DX11.hpp"
+#    include "GraphicsAPI/DX12.hpp"
+#    include "GraphicsAPI/Vulkan.hpp"
 
 // System
-#include <iomanip>
+#    include <iomanip>
 
 bool (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::safeFail};
@@ -21,6 +20,7 @@ bool (DLSS::*DLSS::graphicsAPIIndependentEvaluateFunctionPointer)(){&DLSS::safeF
 bool (DLSS::*DLSS::graphicsAPIIndependentReleaseFeatureFunctionPointer)(){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentShutdownFunctionPointer)(){&DLSS::safeFail};
 
+#    ifdef ENABLE_VULKAN
 bool DLSS::VulkanInitialize() {
     UnityVulkanInstance vulkanInstance = GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance();
 
@@ -131,7 +131,9 @@ bool DLSS::VulkanShutdown() {
     VulkanReleaseFeature();
     return NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_Shutdown1(nullptr));
 }
+#    endif
 
+#    ifdef ENABLE_DX12
 bool DLSS::DX12Initialize() {
     NVSDK_NGX_Result result = NVSDK_NGX_D3D12_Init(
       applicationInfo.id,
@@ -150,7 +152,7 @@ bool DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     if (featureHandle != nullptr) return true;
 
     ID3D12GraphicsCommandList *commandList = GraphicsAPI::get<DX12>()->beginOneTimeSubmitRecording();
-    NVSDK_NGX_Result result =
+    NVSDK_NGX_Result           result =
       NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams);
     if (NVSDK_NGX_SUCCEED(result)) {
         GraphicsAPI::get<DX12>()->endOneTimeSubmitRecording();
@@ -208,7 +210,9 @@ bool DLSS::DX12Shutdown() {
     DX12ReleaseFeature();
     return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D12_Shutdown1(nullptr));
 }
+#    endif
 
+#    ifdef ENABLE_DX11
 bool DLSS::DX11Initialize() {
     NVSDK_NGX_Result result = NVSDK_NGX_D3D11_Init(
       applicationInfo.id,
@@ -226,8 +230,7 @@ bool DLSS::DX11GetParameters() {
 bool DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     if (featureHandle != nullptr) return true;
     ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
-    NVSDK_NGX_Result result =
-      NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams);
+    NVSDK_NGX_Result result = NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams);
     if (NVSDK_NGX_SUCCEED(result)) {
         GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
         return featureHandle != nullptr;
@@ -256,7 +259,7 @@ bool DLSS::DX11Evaluate() {
     // clang-format on
 
     ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
-    NVSDK_NGX_Result result = NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams);
+    NVSDK_NGX_Result     result = NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams);
     if (NVSDK_NGX_SUCCEED(result)) {
         GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
         return true;
@@ -286,6 +289,7 @@ bool DLSS::DX11Shutdown() {
     DX11ReleaseFeature();
     return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D11_Shutdown1(nullptr));
 }
+#    endif
 
 void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
@@ -299,6 +303,7 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::safeFail;
             break;
         }
+#    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
             graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::VulkanInitialize;
             graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::VulkanGetParameters;
@@ -309,6 +314,8 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::VulkanShutdown;
             break;
         }
+#    endif
+#    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
             graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX12Initialize;
             graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX12GetParameters;
@@ -319,6 +326,8 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX12Shutdown;
             break;
         }
+#    endif
+#    ifdef ENABLE_DX11
         case GraphicsAPI::DX11: {
             graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX11Initialize;
             graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX11GetParameters;
@@ -329,6 +338,7 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX11Shutdown;
             break;
         }
+#    endif
     }
 }
 
@@ -550,3 +560,4 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
 bool DLSS::setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
     return (this->*graphicsAPIIndependentSetDepthBufferFunctionPointer)(nativeBuffer, unityFormat);
 }
+#endif

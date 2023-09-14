@@ -5,8 +5,8 @@
 #include "Upscaler.hpp"
 
 // Upscaler
-#include <nvsdk_ngx_helpers_vk.h>
 #include <nvsdk_ngx_helpers.h>
+#include <nvsdk_ngx_helpers_vk.h>
 
 class DLSS : public Upscaler {
     struct Application {
@@ -44,8 +44,8 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Handle     *featureHandle{};
     NVSDK_NGX_Parameter  *parameters{};
     NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
-    ID3D12Resource *dx12DepthBufferResource{};
-    ID3D11Resource *dx11DepthBufferResource{};
+    ID3D12Resource       *dx12DepthBufferResource{};
+    ID3D11Resource       *dx11DepthBufferResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();

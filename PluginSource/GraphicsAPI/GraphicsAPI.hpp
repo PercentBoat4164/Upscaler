@@ -9,7 +9,7 @@
 
 class GraphicsAPI {
 private:
-    static GraphicsAPI    *graphicsAPIInUse;
+    static GraphicsAPI *graphicsAPIInUse;
 
 public:
     enum Type {
@@ -40,6 +40,8 @@ public:
     constexpr static void set() {
         set(T::get());
     }
+
+    static void set(UnityGfxRenderer);
 
     static void set(Type graphicsAPI);
 

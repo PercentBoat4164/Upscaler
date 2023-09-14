@@ -7,7 +7,9 @@
 #include <vulkan/vulkan.h>
 
 // Upscaler
-#include <nvsdk_ngx_defs.h>
+#ifdef ENABLE_DLSS
+#    include <nvsdk_ngx_defs.h>
+#endif
 
 // Unity
 #include <IUnityRenderingExtensions.h>
@@ -77,6 +79,7 @@ public:
             return quality;
         };
 
+#ifdef ENABLE_DLSS
         template<Type T, typename _ = std::enable_if_t<T == Upscaler::DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
@@ -89,6 +92,7 @@ public:
             }
             return NVSDK_NGX_PerfQuality_Value_Balanced;
         };
+#endif
     } settings;
 
     Upscaler()                            = default;

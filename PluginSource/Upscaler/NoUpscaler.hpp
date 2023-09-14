@@ -7,7 +7,7 @@ private:
     NoUpscaler() = default;
 
 public:
-    static NoUpscaler *get();
+    static NoUpscaler       *get();
     Type                     getType() override;
     std::string              getName() override;
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;

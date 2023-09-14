@@ -10,7 +10,7 @@ Upscaler::Type NoUpscaler::getType() {
 }
 
 std::string NoUpscaler::getName() {
-    return " no upscaler ";
+    return "Dummy Upscaler";
 }
 
 std::vector<std::string> NoUpscaler::getRequiredVulkanInstanceExtensions() {

@@ -5,8 +5,8 @@
 
 // Unity
 #include <IUnityGraphics.h>
-#include <IUnityRenderingExtensions.h>
 #include <IUnityGraphicsVulkan.h>
+#include <IUnityRenderingExtensions.h>
 
 // Upscaler
 #include <nvsdk_ngx_defs.h>
@@ -39,9 +39,14 @@ private:
     static PFN_vkResetCommandBuffer     m_vkResetCommandBuffer;
     static PFN_vkFreeCommandBuffers     m_vkFreeCommandBuffers;
     static PFN_vkDestroyCommandPool     m_vkDestroyCommandPool;
+    static PFN_vkCreateFence            m_vkCreateFence;
+    static PFN_vkWaitForFences          m_vkWaitForFences;
+    static PFN_vkResetFences            m_vkResetFences;
+    static PFN_vkDestroyFence           m_vkDestroyFence;
 
     VkCommandPool   _oneTimeSubmitCommandPool{VK_NULL_HANDLE};
     VkCommandBuffer _oneTimeSubmitCommandBuffer{VK_NULL_HANDLE};
+    VkFence         _oneTimeSubmitFence{VK_NULL_HANDLE};
     bool            _oneTimeSubmitRecording{false};
 
     bool loadEarlyFunctionPointers();

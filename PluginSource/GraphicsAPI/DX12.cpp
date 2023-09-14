@@ -30,20 +30,20 @@ ID3D12GraphicsCommandList *DX12::beginOneTimeSubmitRecording() {
     return _oneTimeSubmitCommandList;
 }
 
-void DX12::endOneTimeSubmitRecording(){
+void DX12::endOneTimeSubmitRecording() {
     if (!_oneTimeSubmitRecording) return;
     _oneTimeSubmitCommandList->Close();
-    ID3D12Fence *fence{};
-    device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+    ID3D12Fence *_oneTimeSubmitFence{};
+    device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_oneTimeSubmitFence));
     HANDLE event = CreateEventEx(nullptr, "", 0, EVENT_ALL_ACCESS);
 
     uint64_t value = DX12Interface->ExecuteCommandList(_oneTimeSubmitCommandList, 0, nullptr);
-    DX12Interface->GetCommandQueue()->Signal(fence, value);
-    fence->SetEventOnCompletion(value, event);
+    DX12Interface->GetCommandQueue()->Signal(_oneTimeSubmitFence, value);
+    _oneTimeSubmitFence->SetEventOnCompletion(value, event);
     WaitForSingleObject(event, INFINITE);
 
     CloseHandle(event);
-    fence->Release();
+    _oneTimeSubmitFence->Release();
     _oneTimeSubmitRecording = false;
 }
 

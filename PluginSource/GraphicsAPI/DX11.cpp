@@ -20,7 +20,7 @@ ID3D11DeviceContext *DX11::beginOneTimeSubmitRecording() {
     return _oneTimeSubmitContext;
 }
 
-void DX11::endOneTimeSubmitRecording(){
+void DX11::endOneTimeSubmitRecording() {
     if (!_oneTimeSubmitRecording) return;
     _oneTimeSubmitRecording = false;
 }
