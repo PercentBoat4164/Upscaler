@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets/EnableDLSS.cs" />
+     <Compile Include="Assets/MoveCube.cs" />
      <Reference Include="UnityEngine">
      <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/Variations/mono/Managed/UnityEngine.dll</HintPath>
      </Reference>
@@ -624,13 +625,13 @@
      </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Unity.RenderPipelines.Universal.Runtime.Player.csproj">
-      <Project>{899fc9a0-c80d-c4f9-ce57-b1fcd1550091}</Project>
-      <Name>Unity.RenderPipelines.Universal.Runtime.Player</Name>
-    </ProjectReference>
     <ProjectReference Include="Unity.RenderPipelines.Core.ShaderLibrary.Player.csproj">
       <Project>{70c5440f-0521-16af-42c3-734ebd62a592}</Project>
       <Name>Unity.RenderPipelines.Core.ShaderLibrary.Player</Name>
+    </ProjectReference>
+    <ProjectReference Include="Unity.RenderPipelines.Universal.Runtime.Player.csproj">
+      <Project>{899fc9a0-c80d-c4f9-ce57-b1fcd1550091}</Project>
+      <Name>Unity.RenderPipelines.Universal.Runtime.Player</Name>
     </ProjectReference>
     <ProjectReference Include="UnityEngine.UI.Player.csproj">
       <Project>{2331bdf4-6b3e-7661-8f8f-9ae8b09bec1e}</Project>

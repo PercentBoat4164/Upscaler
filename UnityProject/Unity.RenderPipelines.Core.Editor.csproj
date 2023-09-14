@@ -63,8 +63,8 @@
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/LookDev/DisplayWindow.EnvironmentLibrarySidePanel.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/LookDev/CameraState.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/ShaderGenerator/CSharpToHLSL.cs" />
-     <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Lighting/ProbeVolume/ProbeVolumeUI.Skin.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Lighting/ProbeVolume/ProbeGIBaking.Invalidation.cs" />
+     <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Lighting/ProbeVolume/ProbeVolumeUI.Skin.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Lighting/ProbeVolume/ProbeVolumeEditor.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/LookDev/EnvironmentLibrary.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/ContextualMenuDispatcher.cs" />
@@ -126,8 +126,8 @@
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Camera/CameraUI.Skin.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/CoreEditorStyles.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Volume/VolumeProfileEditor.cs" />
-     <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Material/MaterialHeaderScopeList.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/RenderPipeline/RenderPipelineGlobalSettingsUI.Drawers.cs" />
+     <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Material/MaterialHeaderScopeList.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Volume/VolumeComponentListEditor.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/RenderPipeline/RenderPipelineResourcesEditor.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Editor/Debugging/DebugUIDrawer.Builtins.cs" />

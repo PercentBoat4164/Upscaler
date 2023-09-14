@@ -8,8 +8,12 @@ bool (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::saf
 bool (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params
 ){&DLSS::safeFail};
-bool (DLSS::*DLSS::graphicsAPIIndependentSetDepthBufferFunctionPointer)(void *, UnityRenderingExtTextureFormat){
-  &DLSS::safeFail};
+bool (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+  void *,
+  UnityRenderingExtTextureFormat,
+  void *,
+  UnityRenderingExtTextureFormat
+){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentEvaluateFunctionPointer)(){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentReleaseFeatureFunctionPointer)(){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentShutdownFunctionPointer)(){&DLSS::safeFail};
@@ -43,17 +47,28 @@ bool DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     return NVSDK_NGX_SUCCEED(result);
 }
 
-bool DLSS::VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
-    VkImage     depthBuffer{*reinterpret_cast<VkImage *>(nativeBuffer)};
-    VkImageView depthBufferView{
-      GraphicsAPI::get<Vulkan>()->getDepthImageView(depthBuffer, Vulkan::getFormat(unityFormat))};
+bool DLSS::VulkanSetImageResources(
+  void                          *depthBuffer,
+  UnityRenderingExtTextureFormat unityDepthFormat,
+  void                          *motionVectorBuffer,
+  UnityRenderingExtTextureFormat unityMotionVectorFormat
+) {
+    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanDepthBufferResource.Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanMotionVectorResource.Resource.ImageViewInfo.ImageView);
+    VkImage     depthImage{*reinterpret_cast<VkImage *>(depthBuffer)};
+    VkImage     motionVectorImage{*reinterpret_cast<VkImage *>(motionVectorBuffer)};
+    VkFormat    depthFormat        = Vulkan::getFormat(unityDepthFormat);
+    VkFormat    motionVectorFormat = Vulkan::getFormat(unityMotionVectorFormat);
+    VkImageView depthView{GraphicsAPI::get<Vulkan>()->get2DImageView(depthImage, depthFormat)};
+    VkImageView motionVectorView{
+      GraphicsAPI::get<Vulkan>()->get2DImageView(motionVectorImage, motionVectorFormat)};
 
     // clang-format off
     vulkanDepthBufferResource = {
       .Resource = {
         .ImageViewInfo = {
-          .ImageView        = depthBufferView,
-          .Image            = depthBuffer,
+          .ImageView        = depthView,
+          .Image            = depthImage,
           .SubresourceRange = {
             .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
             .baseMipLevel   = 0,
@@ -61,7 +76,28 @@ bool DLSS::VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureForm
             .baseArrayLayer = 0,
             .layerCount     = 1,
           },
-          .Format = VK_FORMAT_D24_UNORM_S8_UINT,
+          .Format = depthFormat,
+          .Width  = settings.renderResolution.width,
+          .Height = settings.renderResolution.height,
+        },
+      },
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true,
+    };
+
+    vulkanMotionVectorResource = {
+      .Resource = {
+        .ImageViewInfo = {
+          .ImageView        = motionVectorView,
+          .Image            = motionVectorImage,
+          .SubresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+          },
+          .Format = motionVectorFormat,
           .Width  = settings.renderResolution.width,
           .Height = settings.renderResolution.height,
         },
@@ -70,7 +106,7 @@ bool DLSS::VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureForm
       .ReadWrite = true,
     };
     // clang-format on
-    return depthBufferView != VK_NULL_HANDLE;
+    return depthView != VK_NULL_HANDLE && motionVectorView != VK_NULL_HANDLE;
 }
 
 bool DLSS::VulkanEvaluate() {
@@ -84,9 +120,9 @@ bool DLSS::VulkanEvaluate() {
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params vulkanEvalParameters = {
       .pInDepth                  = &vulkanDepthBufferResource,
-      .pInMotionVectors          = nullptr,
-      .InJitterOffsetX           = 0.F,
-      .InJitterOffsetY           = 0.F,
+      .pInMotionVectors          = &vulkanMotionVectorResource,
+      .InJitterOffsetX           = thisFrameJitterValues[0],
+      .InJitterOffsetY           = thisFrameJitterValues[1],
       .InRenderSubrectDimensions = {
         .Width  = settings.renderResolution.width,
         .Height = settings.renderResolution.height,
@@ -124,23 +160,23 @@ bool DLSS::VulkanShutdown() {
 void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
         case GraphicsAPI::NONE: {
-            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::safeFail;
-            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::safeFail;
-            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::safeFail;
-            graphicsAPIIndependentSetDepthBufferFunctionPointer = &DLSS::safeFail;
-            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::safeFail;
-            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::safeFail;
-            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::safeFail;
+            graphicsAPIIndependentInitializeFunctionPointer        = &DLSS::safeFail;
+            graphicsAPIIndependentGetParametersFunctionPointer     = &DLSS::safeFail;
+            graphicsAPIIndependentCreateFeatureFunctionPointer     = &DLSS::safeFail;
+            graphicsAPIIndependentSetImageResourcesFunctionPointer = &DLSS::safeFail;
+            graphicsAPIIndependentEvaluateFunctionPointer          = &DLSS::safeFail;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer    = &DLSS::safeFail;
+            graphicsAPIIndependentShutdownFunctionPointer          = &DLSS::safeFail;
             break;
         }
         case GraphicsAPI::VULKAN: {
-            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::VulkanInitialize;
-            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::VulkanGetParameters;
-            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::VulkanCreateFeature;
-            graphicsAPIIndependentSetDepthBufferFunctionPointer = &DLSS::VulkanSetDepthBuffer;
-            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::VulkanEvaluate;
-            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::VulkanReleaseFeature;
-            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::VulkanShutdown;
+            graphicsAPIIndependentInitializeFunctionPointer        = &DLSS::VulkanInitialize;
+            graphicsAPIIndependentGetParametersFunctionPointer     = &DLSS::VulkanGetParameters;
+            graphicsAPIIndependentCreateFeatureFunctionPointer     = &DLSS::VulkanCreateFeature;
+            graphicsAPIIndependentSetImageResourcesFunctionPointer = &DLSS::VulkanSetImageResources;
+            graphicsAPIIndependentEvaluateFunctionPointer          = &DLSS::VulkanEvaluate;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer    = &DLSS::VulkanReleaseFeature;
+            graphicsAPIIndependentShutdownFunctionPointer          = &DLSS::VulkanShutdown;
             break;
         }
     }
@@ -361,6 +397,11 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
     return optimalSettings;
 }
 
-bool DLSS::setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) {
-    return (this->*graphicsAPIIndependentSetDepthBufferFunctionPointer)(nativeBuffer, unityFormat);
+bool DLSS::setImageResources(
+  void                          *nativeDepthBuffer,
+  UnityRenderingExtTextureFormat unityDepthFormat,
+  void                          *nativeMotionVectors,
+  UnityRenderingExtTextureFormat unityMotionVectorFormat
+) {
+    return (this->*graphicsAPIIndependentSetImageResourcesFunctionPointer)(nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat);
 }

@@ -11,6 +11,7 @@ PFN_vkCreateDevice                         Vulkan::m_vkCreateDevice{VK_NULL_HAND
 PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionProperties{VK_NULL_HANDLE};
 
 PFN_vkCreateImageView        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
+PFN_vkDestroyImageView       Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
 PFN_vkCreateCommandPool      Vulkan::m_vkCreateCommandPool{VK_NULL_HANDLE};
 PFN_vkAllocateCommandBuffers Vulkan::m_vkAllocateCommandBuffers{VK_NULL_HANDLE};
 PFN_vkBeginCommandBuffer     Vulkan::m_vkBeginCommandBuffer{VK_NULL_HANDLE};
@@ -114,6 +115,7 @@ bool Vulkan::loadInstanceFunctionPointers() {
 bool Vulkan::loadLateFunctionPointers() {
     // clang-format off
     m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, "vkCreateImageView"));
+    m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, "vkDestroyImageView"));
     m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(device, "vkCreateCommandPool"));
     m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"));
     m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"));
@@ -123,11 +125,12 @@ bool Vulkan::loadLateFunctionPointers() {
     m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkResetCommandBuffer"));
     m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
     m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
-    return (m_vkCreateImageView != VK_NULL_HANDLE) && (m_vkCreateCommandPool != VK_NULL_HANDLE) &&
-      (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) && (m_vkBeginCommandBuffer != VK_NULL_HANDLE) &&
-      (m_vkEndCommandBuffer != VK_NULL_HANDLE) && (m_vkQueueSubmit != VK_NULL_HANDLE) &&
-      (m_vkQueueWaitIdle != VK_NULL_HANDLE) && (m_vkResetCommandBuffer != VK_NULL_HANDLE) &&
-      (m_vkFreeCommandBuffers != VK_NULL_HANDLE) && (m_vkDestroyCommandPool != VK_NULL_HANDLE);
+    return (m_vkCreateImageView != VK_NULL_HANDLE) && (vkDestroyImageView != VK_NULL_HANDLE) &&
+      (m_vkCreateCommandPool != VK_NULL_HANDLE) && (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) &&
+      (m_vkBeginCommandBuffer != VK_NULL_HANDLE) && (m_vkEndCommandBuffer != VK_NULL_HANDLE) &&
+      (m_vkQueueSubmit != VK_NULL_HANDLE) && (m_vkQueueWaitIdle != VK_NULL_HANDLE) &&
+      (m_vkResetCommandBuffer != VK_NULL_HANDLE) && (m_vkFreeCommandBuffers != VK_NULL_HANDLE) &&
+      (m_vkDestroyCommandPool != VK_NULL_HANDLE);
     // clang-format on
 }
 
@@ -366,7 +369,7 @@ Vulkan *Vulkan::get() {
     return vulkan;
 }
 
-VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
+VkImageView Vulkan::get2DImageView(VkImage depthImage, VkFormat format) {
     // clang-format off
     VkImageViewCreateInfo createInfo{
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -393,6 +396,11 @@ VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
     if (m_vkCreateImageView(device, &createInfo, nullptr, &view) == VK_SUCCESS) return view;
     return VK_NULL_HANDLE;
 }
+
+void Vulkan::destroyImageView(VkImageView viewToDestroy) {
+    m_vkDestroyImageView(device, viewToDestroy, nullptr);
+}
+
 
 VkFormat Vulkan::getFormat(UnityRenderingExtTextureFormat format) {
     switch (format) {

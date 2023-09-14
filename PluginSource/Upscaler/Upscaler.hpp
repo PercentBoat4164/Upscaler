@@ -30,6 +30,8 @@ protected:
     /// such as the rendering resolution being too small or too big for the upscaler to work with.
     bool active{};
 
+    float thisFrameJitterValues[2] = {0.F, 0.F};
+
     template<typename... Args>
     constexpr bool safeFail(Args... /* unused */) {
         return false;
@@ -151,7 +153,14 @@ public:
 
     virtual bool createFeature() = 0;
 
-    virtual bool setDepthBuffer(void *, UnityRenderingExtTextureFormat) = 0;
+    virtual bool setImageResources(
+      void *,
+      UnityRenderingExtTextureFormat,
+      void                          *nativeMotionVectors,
+      UnityRenderingExtTextureFormat unityMotionVectorFormat
+    ) = 0;
+
+    void setJitterInformation(float, float);
 
     virtual bool evaluate() = 0;
 

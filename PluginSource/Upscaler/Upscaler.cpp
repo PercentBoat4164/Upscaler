@@ -41,10 +41,8 @@ void Upscaler::set(Type upscaler) {
 }
 
 void Upscaler::set(Upscaler *upscaler) {
-    if (upscaler != nullptr && !upscaler->isSupported())
-        return;
-    if (upscalerInUse != nullptr)
-        upscalerInUse->setAvailable(false);
+    if (upscaler != nullptr && !upscaler->isSupported()) return;
+    if (upscalerInUse != nullptr) upscalerInUse->setAvailable(false);
     upscalerInUse = upscaler;
     upscalerInUse->setAvailable(true);
 }
@@ -55,4 +53,9 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
 
 void Upscaler::disableAllUpscalers() {
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->isSupportedAfter(false);
+}
+
+void Upscaler::setJitterInformation(float x, float y) {
+    thisFrameJitterValues[0] = x;
+    thisFrameJitterValues[1] = y;
 }

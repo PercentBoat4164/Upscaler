@@ -95,8 +95,8 @@
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/Layout/HorizontalLayoutGroup.cs" />
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/VertexModifiers/Shadow.cs" />
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/MaterialModifiers/IMaterialModifier.cs" />
-     <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/Selectable.cs" />
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/SpriteState.cs" />
+     <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/Selectable.cs" />
      <Compile Include="Library/PackageCache/com.unity.shadergraph@15.0.6/Editor/Generation/Targets/BuiltIn/Editor/ShaderGUI/MaterialAssemblyReference/RawRenderQueue.cs" />
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/Button.cs" />
      <Compile Include="Library/PackageCache/com.unity.ugui@1.0.0/Runtime/UI/Core/MaskableGraphic.cs" />

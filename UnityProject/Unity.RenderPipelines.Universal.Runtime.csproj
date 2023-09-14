@@ -96,9 +96,9 @@
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/ShadowUtils.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Debug/DebugHandler.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Decal/Entities/DecalDrawSystem.cs" />
-     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/CapturePass.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/PostProcessPass.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/FinalBlitPass.cs" />
+     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/CapturePass.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/UniversalAdditionalCameraData.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Decal/DecalProjector.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/ScriptableRenderPass.cs" />
@@ -109,8 +109,8 @@
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/RendererFeatures/DecalRendererFeature.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Overrides/ChromaticAberration.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/RendererFeatures/FullScreenPassRendererFeature.cs" />
-     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Overrides/Tonemapping.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/RenderGraph/RenderGraphGraphicsAutomatedTests.cs" />
+     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Overrides/Tonemapping.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/SpaceFillingCurves.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Memory/BuddyAllocator.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Tiling/TilingJob.cs" />
@@ -125,10 +125,10 @@
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/ColorGradingLutPass.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Passes/DrawScreenSpaceUIPass.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Tiling/TileRangeExpansionJob.cs" />
-     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Data/UniversalRenderPipelineAsset.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/TemporalAA.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/XR/XRPassUniversal.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Overrides/PaniniProjection.cs" />
+     <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Data/UniversalRenderPipelineAsset.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Data/PostProcessData.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/Debug/DebugDisplaySettingsCommon.cs" />
      <Compile Include="Library/PackageCache/com.unity.render-pipelines.universal@15.0.6/Runtime/ShaderData.cs" />
