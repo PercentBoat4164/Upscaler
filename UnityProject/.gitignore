@@ -6,3 +6,4 @@ Library
 Logs
 obj
 Temp
+Assets/Plugins/*.meta
