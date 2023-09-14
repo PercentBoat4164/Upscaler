@@ -16,6 +16,8 @@ private:
     ID3D12CommandAllocator    *_oneTimeSubmitCommandAllocator{nullptr};
     ID3D12GraphicsCommandList *_oneTimeSubmitCommandList{nullptr};
     bool                       _oneTimeSubmitRecording{false};
+    ID3D12Fence               *_oneTimeSubmitFence{};
+    HANDLE                     _oneTimeSubmitEvent;
 
     DX12() = default;
 

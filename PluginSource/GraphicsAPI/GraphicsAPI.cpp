@@ -45,10 +45,10 @@ void GraphicsAPI::set(UnityGfxRenderer renderer) {
         case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
 #endif
 #ifdef ENABLE_DX12
-        case kUnityGfxRendererD3D12: GraphicsAPI::set<DX12>(); break;
+        case kUnityGfxRendererD3D12: GraphicsAPI::set<::DX12>(); break;
 #endif
 #ifdef ENABLE_DX11
-        case kUnityGfxRendererD3D11: GraphicsAPI::set<DX11>(); break;
+        case kUnityGfxRendererD3D11: GraphicsAPI::set<::DX11>(); break;
 #endif
         default: GraphicsAPI::set<NoGraphicsAPI>(); break;
     }
