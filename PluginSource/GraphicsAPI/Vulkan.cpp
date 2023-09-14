@@ -317,8 +317,8 @@ VkResult Vulkan::Hook_vkCreateDevice(
     return result;
 }
 
-bool Vulkan::interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface) {
-    GraphicsAPI::get<Vulkan>()->vulkanInterface = t_vulkanInterface;
+bool Vulkan::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
+    GraphicsAPI::get<Vulkan>()->vulkanInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
     return GraphicsAPI::get<Vulkan>()
       ->vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
 }

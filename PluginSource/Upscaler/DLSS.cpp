@@ -1,7 +1,13 @@
 #include "DLSS.hpp"
 
+// Project
+#include "GraphicsAPI/DX12.hpp"
 #include "GraphicsAPI/Vulkan.hpp"
 
+// Unity
+#include "IUnityGraphicsD3D12.h"
+
+// System
 #include <iomanip>
 
 bool (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
@@ -121,6 +127,83 @@ bool DLSS::VulkanShutdown() {
     return NVSDK_NGX_SUCCEED(NVSDK_NGX_VULKAN_Shutdown1(nullptr));
 }
 
+bool DLSS::DX12Initialize() {
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D12_Init(
+      applicationInfo.id,
+      applicationInfo.dataPath.c_str(),
+      GraphicsAPI::get<DX12>()->getUnityInterface()->GetDevice()
+    );
+    return isSupportedAfter(NVSDK_NGX_SUCCEED(result));
+}
+
+bool DLSS::DX12GetParameters() {
+    if (parameters != nullptr) return true;
+    return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D12_GetCapabilityParameters(&parameters));
+}
+
+bool DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+    if (featureHandle != nullptr) return true;
+
+    ID3D12GraphicsCommandList *commandList = GraphicsAPI::get<DX12>()->beginOneTimeSubmitRecording();
+    NVSDK_NGX_Result result =
+      NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams);
+    if (NVSDK_NGX_SUCCEED(result)) {
+        GraphicsAPI::get<DX12>()->endOneTimeSubmitRecording();
+        return true;
+    }
+    GraphicsAPI::get<DX12>()->cancelOneTimeSubmitRecording();
+    return false;
+}
+
+bool DLSS::DX12SetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat /* unused */) {
+    dx12DepthBufferResource = reinterpret_cast<ID3D12Resource *>(nativeBuffer);
+    return true;
+}
+
+bool DLSS::DX12Evaluate() {
+    UnityGraphicsD3D12RecordingState state{};
+    GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
+
+    // clang-format off
+    NVSDK_NGX_D3D12_DLSS_Eval_Params dx12DLSSEvalParams = {
+      .pInDepth                  = dx12DepthBufferResource,
+      .pInMotionVectors          = nullptr,
+      .InJitterOffsetX           = 0.F,
+      .InJitterOffsetY           = 0.F,
+      .InRenderSubrectDimensions = {
+        .Width  = settings.renderResolution.width,
+        .Height = settings.renderResolution.height,
+      },
+    };
+    // clang-format on
+
+    return NVSDK_NGX_SUCCEED(
+      NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &dx12DLSSEvalParams)
+    );
+}
+
+bool DLSS::DX12ReleaseFeature() {
+    if (featureHandle == nullptr) return true;
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D12_ReleaseFeature(featureHandle);
+    if (NVSDK_NGX_FAILED(result)) return false;
+    featureHandle = nullptr;
+    return true;
+}
+
+bool DLSS::DX12DestroyParameters() {
+    if (parameters == nullptr) return true;
+    NVSDK_NGX_Result result = NVSDK_NGX_D3D12_DestroyParameters(parameters);
+    if (NVSDK_NGX_FAILED(result)) return false;
+    parameters = nullptr;
+    return true;
+}
+
+bool DLSS::DX12Shutdown() {
+    DX12DestroyParameters();
+    DX12ReleaseFeature();
+    return NVSDK_NGX_SUCCEED(NVSDK_NGX_D3D12_Shutdown1(nullptr));
+}
+
 void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
         case GraphicsAPI::NONE: {
@@ -141,6 +224,16 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::VulkanEvaluate;
             graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::VulkanReleaseFeature;
             graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::VulkanShutdown;
+            break;
+        }
+        case GraphicsAPI::DX12: {
+            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX12Initialize;
+            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX12GetParameters;
+            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::DX12CreateFeature;
+            graphicsAPIIndependentSetDepthBufferFunctionPointer = &DLSS::DX12SetDepthBuffer;
+            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::DX12Evaluate;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::DX12ReleaseFeature;
+            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX12Shutdown;
             break;
         }
     }

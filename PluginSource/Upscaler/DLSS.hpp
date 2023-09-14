@@ -6,6 +6,7 @@
 
 // Upscaler
 #include <nvsdk_ngx_helpers_vk.h>
+#include <nvsdk_ngx_helpers.h>
 
 class DLSS : public Upscaler {
     struct Application {
@@ -43,6 +44,7 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Handle     *featureHandle{};
     NVSDK_NGX_Parameter  *parameters{};
     NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
+    ID3D12Resource *dx12DepthBufferResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
@@ -70,6 +72,22 @@ class DLSS : public Upscaler {
     bool VulkanDestroyParameters();
 
     bool VulkanShutdown();
+
+    bool DX12Initialize();
+
+    bool DX12GetParameters();
+
+    bool DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+
+    bool DX12SetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat);
+
+    bool DX12Evaluate();
+
+    bool DX12ReleaseFeature();
+
+    bool DX12DestroyParameters();
+
+    bool DX12Shutdown();
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 

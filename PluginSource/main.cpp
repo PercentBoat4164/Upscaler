@@ -1,11 +1,12 @@
 // Project
 #include "GraphicsAPI/NoGraphicsAPI.hpp"
+#include "GraphicsAPI/DX12.hpp"
 #include "GraphicsAPI/Vulkan.hpp"
+#include "Upscaler/DLSS.hpp"
 #include "Upscaler/NoUpscaler.hpp"
 
-#include <Upscaler/DLSS.hpp>
-
 // Unity
+#include <IUnityGraphicsD3D12.h>
 #include <IUnityInterface.h>
 #include <IUnityRenderingExtensions.h>
 
@@ -34,6 +35,7 @@ extern "C" UNITY_INTERFACE_EXPORT void Upscaler_InitializePlugin(void (*t_debugF
     UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
     switch (renderer) {
         case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
+        case kUnityGfxRendererD3D12: GraphicsAPI::set<DX12>(); break;
         default: GraphicsAPI::set<NoGraphicsAPI>(); break;
     }
     GraphicsAPI::get()->prepareForOneTimeSubmits();
@@ -81,7 +83,8 @@ Upscaler_Prepare(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat)
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
     // Enabled plugin's interception of Vulkan initialization calls.
-    Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>());
+    for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
+        graphicsAPI->useUnityInterfaces(t_unityInterfaces);
     // Record graphics interface for future use.
     Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
 }

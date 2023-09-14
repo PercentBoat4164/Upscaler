@@ -1,0 +1,42 @@
+#pragma once
+
+#include "GraphicsAPI.hpp"
+
+// Graphics API
+#include <d3d12.h>
+#include <d3d12compatibility.h>
+
+// Unity
+#include "IUnityGraphicsD3D12.h"
+
+
+class DX12 : public GraphicsAPI {
+private:
+    ID3D12CommandAllocator *_oneTimeSubmitCommandAllocator{nullptr};
+    ID3D12GraphicsCommandList *_oneTimeSubmitCommandList{nullptr};
+    bool _oneTimeSubmitRecording{false};
+
+    DX12() = default;
+
+    IUnityGraphicsD3D12v7 *DX12Interface;
+    ID3D12Device *device{};
+
+public:
+    DX12(const DX12 &)            = delete;
+    DX12(DX12 &&)                 = default;
+    DX12 &operator=(const DX12 &) = delete;
+    DX12 &operator=(DX12 &&)      = default;
+
+    static DX12 *get();
+
+    Type getType() override;
+    void prepareForOneTimeSubmits() override;   
+    ID3D12GraphicsCommandList *beginOneTimeSubmitRecording();
+    void endOneTimeSubmitRecording();
+    void cancelOneTimeSubmitRecording();
+    void finishOneTimeSubmits() override;
+    bool useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
+    IUnityGraphicsD3D12v7 *getUnityInterface();
+
+    ~DX12() override = default;
+};

@@ -85,13 +85,14 @@ set_target_properties(ngx PROPERTIES IMPORTED_LOCATION "${DLSS_STATIC_LIB}")
 ##############
 
 add_library(GfxPluginDLSSPlugin main.cpp
+        GraphicsAPI/DX12.cpp
         GraphicsAPI/GraphicsAPI.cpp
+        GraphicsAPI/NoGraphicsAPI.cpp
         GraphicsAPI/Vulkan.cpp
         Logger.cpp
-        Upscaler/Upscaler.cpp
-        Upscaler/NoUpscaler.cpp
         Upscaler/DLSS.cpp
-        GraphicsAPI/NoGraphicsAPI.cpp
+        Upscaler/NoUpscaler.cpp
+        Upscaler/Upscaler.cpp
 )
 target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR} ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 target_link_libraries(GfxPluginDLSSPlugin ngx)

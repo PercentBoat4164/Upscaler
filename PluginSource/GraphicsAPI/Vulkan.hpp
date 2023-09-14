@@ -5,6 +5,7 @@
 
 // Unity
 #include <IUnityGraphics.h>
+#include <IUnityRenderingExtensions.h>
 #include <IUnityGraphicsVulkan.h>
 
 // Upscaler
@@ -12,18 +13,10 @@
 
 // Standard library
 #include <cstring>
-#include <IUnityRenderingExtensions.h>
 #include <sstream>
-#include <unordered_map>
 #include <vector>
 
 class Vulkan : public GraphicsAPI {
-public:
-    Vulkan(const Vulkan &)            = delete;
-    Vulkan(Vulkan &&)                 = default;
-    Vulkan &operator=(const Vulkan &) = delete;
-    Vulkan &operator=(Vulkan &&)      = default;
-
 private:
     static PFN_vkGetInstanceProcAddr                  m_vkGetInstanceProcAddr;
     static PFN_vkGetDeviceProcAddr                    m_vkGetDeviceProcAddr;
@@ -83,15 +76,20 @@ private:
     Vulkan() = default;
 
 public:
+    Vulkan(const Vulkan &)            = delete;
+    Vulkan(Vulkan &&)                 = default;
+    Vulkan &operator=(const Vulkan &) = delete;
+    Vulkan &operator=(Vulkan &&)      = default;
+
     static PFN_vkGetInstanceProcAddr getVkGetInstanceProcAddr();
 
     static PFN_vkGetDeviceProcAddr getVkGetDeviceProcAddr();
 
     static Vulkan *get();
 
-    static bool interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface);
-
     static bool RemoveInterceptInitialization();
+
+    bool useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
 
     IUnityGraphicsVulkanV2 *getUnityInterface();
 

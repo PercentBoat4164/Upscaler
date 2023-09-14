@@ -1,15 +1,18 @@
 #include "GraphicsAPI.hpp"
 
+// Project
+#include "DX12.hpp"
 #include "NoGraphicsAPI.hpp"
 #include "Upscaler/Upscaler.hpp"
 #include "Vulkan.hpp"
 
-GraphicsAPI    *GraphicsAPI::graphicsAPIInUse{(GraphicsAPI *)get<NoGraphicsAPI>()};
+GraphicsAPI *GraphicsAPI::graphicsAPIInUse{(GraphicsAPI *)get<NoGraphicsAPI>()};
 
 GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
     switch (graphicsAPI) {
-        case NONE: return nullptr;
+        case NONE: return get<NoGraphicsAPI>();
         case VULKAN: return get<Vulkan>();
+        case DX12: return get<::DX12>();
     }
     return nullptr;
 }
@@ -28,4 +31,12 @@ void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
         Upscaler::setGraphicsAPI(NONE);
     else
         Upscaler::setGraphicsAPI(graphicsAPI->getType());
+}
+
+std::vector<GraphicsAPI *> GraphicsAPI::getAllGraphicsAPIs() {
+    return {
+      get<NoGraphicsAPI>(),
+      get<Vulkan>(),
+      get<::DX12>(),
+    };
 }
