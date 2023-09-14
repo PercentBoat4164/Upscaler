@@ -12,7 +12,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{c7d694e9-381c-49cb-9d6c-ff9c5b8db14b}</ProjectGuid>
+    <ProjectGuid>{c6d09311-2750-58c6-4bf4-9618d39f24bb}</ProjectGuid>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -41,20 +41,20 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime/Shared" />
-     <None Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime/Unity.Burst.Tests.asmdef" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime/Unity.Burst.Tests" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime/Shared/Helpers" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime/UnityBenchShared" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/Runtime" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime/Shared" />
+     <None Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime/Unity.Burst.Tests.asmdef" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime/Unity.Burst.Tests" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime/Shared/Helpers" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime/UnityBenchShared" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/Runtime" />
      <Reference Include="UnityEngine">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
      </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

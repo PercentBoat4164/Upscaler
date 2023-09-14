@@ -12,7 +12,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{1bcae33f-2727-27cd-38ae-9c12019d52db}</ProjectGuid>
+    <ProjectGuid>{31126b4a-4e1a-6fd4-ff79-87b54d49cb74}</ProjectGuid>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -55,13 +55,13 @@
      <Folder Include="Library/PackageCache/com.unity.ugui@1.0.0/Tests/Editor/Dropdown" />
      <Folder Include="Library/PackageCache/com.unity.ugui@1.0.0/Tests/Editor/Text" />
      <Reference Include="UnityEngine">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
      </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -46,8 +46,8 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor/NiceIO.cs" />
-     <Compile Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor/AssemblyInfo.cs" />
      <Compile Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor/Unity.SysrootPackage.cs" />
+     <Compile Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor/AssemblyInfo.cs" />
      <None Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor/Unity.SysrootPackage.Editor.asmdef" />
      <Folder Include="Library/PackageCache/com.unity.sysroot@2.0.7/Editor" />
      <Reference Include="UnityEngine">
@@ -704,6 +704,16 @@
      <Reference Include="netstandard">
      <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/UnityReferenceAssemblies/unity-4.8-api/Facades/netstandard.dll</HintPath>
      </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="UnityEditor.UI.csproj">
+      <Project>{192b54eb-1e36-8178-c312-841c00d24d02}</Project>
+      <Name>UnityEditor.UI</Name>
+    </ProjectReference>
+    <ProjectReference Include="UnityEngine.UI.csproj">
+      <Project>{406db75e-4363-3498-0f7e-acffc38718cf}</Project>
+      <Name>UnityEngine.UI</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

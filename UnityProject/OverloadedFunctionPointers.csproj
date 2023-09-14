@@ -12,7 +12,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{8ad7e472-0ff8-c132-8ebe-3206b7fe5beb}</ProjectGuid>
+    <ProjectGuid>{4261b26c-f406-8088-d19a-ababd179f368}</ProjectGuid>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -41,16 +41,16 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <None Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/OverloadedFunctionPointers/OverloadedFunctionPointers.asmdef" />
-     <Folder Include="Library/PackageCache/com.unity.burst@1.8.7/Tests/OverloadedFunctionPointers" />
+     <None Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/OverloadedFunctionPointers/OverloadedFunctionPointers.asmdef" />
+     <Folder Include="Library/PackageCache/com.unity.burst@1.8.8/Tests/OverloadedFunctionPointers" />
      <Reference Include="UnityEngine">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
      </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

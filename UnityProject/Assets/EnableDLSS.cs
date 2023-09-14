@@ -28,7 +28,7 @@ public class EnableDLSS : MonoBehaviour
 
         Debug.Log("DLSS is supported.");
         _camera = GetComponent<Camera>();
-        _cameraJitter = new CameraJitter(_camera, 1);
+        _cameraJitter = new CameraJitter();
     }
     
     private void OnPreRender()
@@ -49,13 +49,11 @@ public class EnableDLSS : MonoBehaviour
             _renderTarget = new RenderTexture(width, height, 24, DefaultFormat.DepthStencil);
             _renderTarget.Create();
             setDepthBuffer(_renderTarget.GetNativeDepthBufferPtr(), (uint)_renderTarget.depthStencilFormat);
-            
-            _cameraJitter.Reset((int) _lastWidth / width);
         }
 
         var jitter = new Tuple<float, float>(0, 0);
         if (Input.GetKey("j"))
-            jitter = _cameraJitter.JitterCamera();
+            jitter = _cameraJitter.JitterCamera(_camera, (int) _lastWidth / _renderTarget.width);
         
         //_tempTarget = _camera.targetTexture;
         //_camera.targetTexture = _renderTarget;
@@ -107,33 +105,23 @@ public class EnableDLSS : MonoBehaviour
         private int _prevScaleFactor;
         private List<Tuple<float, float>> _jitterSamples;
         private Tuple<float, float> _lastJitter;
-        private Camera _cam;
-        
-        public CameraJitter(Camera cam, int scaleFactorDLSS)
-        {
-            _cam = cam;
-            _lastJitter = new Tuple<float, float>(0, 0);
-            Reset(scaleFactorDLSS);
-        }
 
-        public void Reset(int newScaleFactorDLSS)
+        public Tuple<float, float> JitterCamera(Camera cam, int newScaleFactor)
         {
-            if (newScaleFactorDLSS == _prevScaleFactor)
-                return;
-            _prevScaleFactor = newScaleFactorDLSS;
-            var numSamples = SamplesPerPixel * newScaleFactorDLSS * newScaleFactorDLSS;
-            _haltonBase2 = GenerateHaltonValues(2, numSamples);
-            _haltonBase3 = GenerateHaltonValues(3, numSamples);
-        }
+            if (newScaleFactor != _prevScaleFactor)
+            {
+                _prevScaleFactor = newScaleFactor;
+                var numSamples = SamplesPerPixel * _prevScaleFactor * _prevScaleFactor;
+                _haltonBase2 = GenerateHaltonValues(2, numSamples);
+                _haltonBase3 = GenerateHaltonValues(3, numSamples);
+            }
 
-        public Tuple<float, float> JitterCamera()
-        {
             var nextJitter = NextJitter();
-            _cam.ResetProjectionMatrix();
-            var tempProj = _cam.nonJitteredProjectionMatrix;
+            cam.ResetProjectionMatrix();
+            var tempProj = cam.nonJitteredProjectionMatrix;
             tempProj.m30 += nextJitter.Item1;
             tempProj.m31 += nextJitter.Item2;
-            _cam.projectionMatrix = tempProj;
+            cam.projectionMatrix = tempProj;
             _lastJitter = nextJitter;
             return nextJitter;
         }

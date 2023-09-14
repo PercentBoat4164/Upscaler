@@ -12,7 +12,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{743f493c-c042-b420-8d13-9e6e494aec9d}</ProjectGuid>
+    <ProjectGuid>{e3429c2b-bf30-2f03-a70a-b2ad1229a635}</ProjectGuid>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -41,16 +41,19 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Folder Include="Library/PackageCache/com.unity.render-pipelines.core@14.0.8/Tests/Runtime" />
-     <None Include="Library/PackageCache/com.unity.render-pipelines.core@14.0.8/Tests/Runtime/Unity.RenderPipelines.Core.Runtime.Tests.asmdef" />
+     <Folder Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests/Runtime" />
+     <None Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests/Runtime/Threading/FunctionTestsGroup.compute" />
+     <None Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests/Runtime/Threading/FunctionTestsWave.compute" />
+     <Folder Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests/Runtime/Threading" />
+     <None Include="Library/PackageCache/com.unity.render-pipelines.core@15.0.6/Tests/Runtime/Unity.RenderPipelines.Core.Runtime.Tests.asmdef" />
      <Reference Include="UnityEngine">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>
      <Reference Include="UnityEngine.CoreModule">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath>
      </Reference>
      <Reference Include="UnityEditor">
-     <HintPath>/home/sophia/Unity/Hub/Editor/2022.3.7f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
+     <HintPath>/home/sophia/Unity/Hub/Editor/2023.1.11f1/Editor/Data/Managed/UnityEngine/UnityEditor.dll</HintPath>
      </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
