@@ -27,14 +27,14 @@ public:
           UnityRenderingExtTextureFormat unityDepthFormat,
           void                          *nativeMotionVectors,
           UnityRenderingExtTextureFormat unityMotionVectorFormat,
-          void *nativeInColor,
+          void                          *nativeInColor,
           UnityRenderingExtTextureFormat unityInColorFormat,
-          void *nativeOutColor,
+          void                          *nativeOutColor,
           UnityRenderingExtTextureFormat unityOutColorFormat
         ) override;
-    bool     evaluate() override;
-    bool     releaseFeature() override;
-    bool     shutdown() override;
+    bool evaluate() override;
+    bool releaseFeature() override;
+    bool shutdown() override;
 
 protected:
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;

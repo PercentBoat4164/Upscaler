@@ -51,9 +51,9 @@ class DLSS : public Upscaler {
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
     static bool (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
-      void                          *,
+      void *,
       UnityRenderingExtTextureFormat,
-      void                          *,
+      void *,
       UnityRenderingExtTextureFormat,
       void *,
       UnityRenderingExtTextureFormat,
@@ -75,11 +75,11 @@ class DLSS : public Upscaler {
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
       UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void *nativeInColor,
+      void                          *nativeInColor,
       UnityRenderingExtTextureFormat unityInColorFormat,
-      void *nativeOutColor,
+      void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
-      );
+    );
 
     bool VulkanEvaluate();
 
@@ -130,9 +130,9 @@ public:
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
       UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void *nativeInColor,
+      void                          *nativeInColor,
       UnityRenderingExtTextureFormat unityInColorFormat,
-      void *nativeOutColor,
+      void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
 

@@ -61,9 +61,9 @@ bool NoUpscaler::setImageResources(
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
   UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void *nativeInColor,
+  void                          *nativeInColor,
   UnityRenderingExtTextureFormat unityInColorFormat,
-  void *nativeOutColor,
+  void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
     return false;

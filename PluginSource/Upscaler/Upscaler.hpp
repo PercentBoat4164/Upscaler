@@ -62,7 +62,7 @@ public:
             uint64_t asLong() const;
         };
 
-        Quality    quality;
+        Quality    quality{QUALITY};
         Resolution renderResolution{};
         Resolution dynamicMaximumRenderResolution{};
         Resolution dynamicMinimumRenderResolution{};
@@ -158,9 +158,9 @@ public:
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
       UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void *nativeInColor,
+      void                          *nativeInColor,
       UnityRenderingExtTextureFormat unityInColorFormat,
-      void *nativeOutColor,
+      void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) = 0;
 
