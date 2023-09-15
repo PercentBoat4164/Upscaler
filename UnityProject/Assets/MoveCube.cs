@@ -19,19 +19,19 @@ public class MoveCube : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // if (_targetRotation == transform.eulerAngles)
-        // {
-        //     _targetRotation = new Vector3(Random.value, Random.value, Random.value) * 360;
-        //     _rotationInc = (_targetRotation - transform.eulerAngles) / 2;
-        // }
-        //
-        // if (_targetPosition == transform.position)
-        // {
-        //     _targetPosition = new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * 10;
-        //     _positionInc = (_targetPosition - transform.position) / 2;
-        // }
-        //
-        // transform.position += _positionInc;
-        // transform.eulerAngles += _rotationInc;
+        if (_targetRotation == transform.eulerAngles)
+        {
+            _targetRotation = new Vector3(Random.value, Random.value, Random.value) * 360;
+            _rotationInc = (_targetRotation - transform.eulerAngles) / 2;
+        }
+
+        if (_targetPosition == transform.position)
+        {
+            _targetPosition = new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * 10;
+            _positionInc = (_targetPosition - transform.position) / 2;
+        }
+
+        transform.position += _positionInc;
+        transform.eulerAngles += _rotationInc;
     }
 }

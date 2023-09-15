@@ -38,37 +38,46 @@ public class EnableDLSS : MonoBehaviour
 
     private void RecordCommandBuffers()
     {
+        var scale = new Vector2((float)_presentWidth / _renderWidth, (float)_presentHeight / _renderHeight);
+        var inverseScale = new Vector2((float)_renderWidth / _presentWidth, (float)_renderHeight / _presentHeight);
+        var offset = new Vector2(0, 0);
+        var renderResolution = new Vector2(_renderWidth, _renderHeight);
+        var presentResolution = new Vector2(_presentWidth, _presentHeight);
+
+        _camera = GetComponent<Camera>();
+
+        if (_beforeOpaque != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _beforePostProcess);
+        }
+
+        _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+
+        _beforeOpaque = new CommandBuffer();
+        _beforePostProcess = new CommandBuffer();
+
         _beforeOpaque.name = "Set Render Resolution";
-        _beforeOpaque.SetViewport(new Rect(0, 0, _presentHeight, _renderHeight));
+        _beforeOpaque.SetViewport(new Rect(0, 0, _renderWidth, _renderHeight));
 
         _beforePostProcess.name = "Upscale";
-        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
-        _beforePostProcess.Blit(BuiltinRenderTextureType.Depth, _depthTarget);
-        // Set the color render target for the upscaler. The depth buffer is already known.
-        // _beforePostProcess.SetRenderTarget(_colorTarget);
-        // Upscale
-        _beforePostProcess.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
+        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget, inverseScale, offset);
+        _beforePostProcess.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
         _beforePostProcess.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
-        // Blit the full size color image to the camera's combined render target.
-        // _beforePostProcess.Blit(_colorTarget, (RenderTexture)null);
-        // Blit and up size the depth buffer to the camera's combined render target.
-        //_beforePostProcess.Blit(_depthTarget, (RenderTexture)null);
-        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
-        
+        _beforePostProcess.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
+        _beforePostProcess.Blit(_motionVectorTarget, BuiltinRenderTextureType.MotionVectors);
+        _beforePostProcess.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
+
         // _beforeOpaque is added in two places to handle forward and deferred rendering
-        // _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
+        _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-        // _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _beforePostProcess);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _beforePostProcess);
     }
 
     // Start is called before the first frame update
     private void Start()
     {
-        _camera = GetComponent<Camera>();
-        _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
-        _beforeOpaque = new CommandBuffer();
-        _beforePostProcess = new CommandBuffer();
-        RecordCommandBuffers();
         Upscaler_InitializePlugin(LogDebugMessage);
         Upscaler_Set(upscaler);
         if (!Upscaler_Initialize())
@@ -104,6 +113,7 @@ public class EnableDLSS : MonoBehaviour
             _depthTarget.Create();
             Upscaler_Prepare(_depthTarget.GetNativeDepthBufferPtr(), _depthTarget.depthStencilFormat,
                 _motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
+            RecordCommandBuffers();
         }
 
         var jitter = new Tuple<float, float>(0, 0);
