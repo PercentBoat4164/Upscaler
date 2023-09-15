@@ -25,13 +25,12 @@ public class EnableDLSS : MonoBehaviour
     private uint _presentWidth;
     private uint _renderWidth;
     private uint _renderHeight;
-
     private RenderTexture _motionVectorTarget;
     private RenderTexture _inColorTarget;
     private RenderTexture _outColorTarget;
     private RenderTexture _depthTarget;
     private Camera _camera;
-    private CameraJitter _cameraJitter;
+    private HaltonJitterer _haltonJitterer;
     private CommandBuffer _beforeOpaque;
     private CommandBuffer _preUpscale;
     private CommandBuffer _upscale;
@@ -82,12 +81,13 @@ public class EnableDLSS : MonoBehaviour
         _postUpscale.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
 
         // _beforeOpaque is added in two places to handle forward and deferred rendering
+        /*
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
-
+        */
     }
 
     // Start is called before the first frame update
@@ -102,7 +102,8 @@ public class EnableDLSS : MonoBehaviour
         }
 
         Debug.Log("DLSS is supported.");
-        _cameraJitter = new CameraJitter();
+        GetComponent<Camera>().allowMSAA = false; 
+        _haltonJitterer = new HaltonJitterer();
     }
 
     private void OnPreRender()
@@ -138,7 +139,7 @@ public class EnableDLSS : MonoBehaviour
 
         var jitter = new Tuple<float, float>(0, 0);
         if (Input.GetKey("j"))
-            jitter = _cameraJitter.JitterCamera(_camera, (int)(_presentWidth / _renderWidth));
+            jitter = _haltonJitterer.JitterCamera(_camera, (int)(_presentWidth / _renderWidth), _renderWidth, _renderHeight);
         Upscaler_SetJitterInformation(jitter.Item1, jitter.Item2);
     }
 
@@ -182,7 +183,7 @@ public class EnableDLSS : MonoBehaviour
         Debug.Log(Marshal.PtrToStringAnsi(message));
     }
 
-    private class CameraJitter
+    private class HaltonJitterer
     {
         private const int SamplesPerPixel = 8;
         private float[] _haltonBase2;
@@ -190,26 +191,26 @@ public class EnableDLSS : MonoBehaviour
         private int _cyclePosition;
         private int _prevScaleFactor;
         private List<Tuple<float, float>> _jitterSamples;
-        private Tuple<float, float> _lastJitter;
-
-        public Tuple<float, float> JitterCamera(Camera cam, int newScaleFactor)
+        private Tuple<float, float> _lastJitter = new(0,0);
+        
+        public Tuple<float, float> JitterCamera(Camera cam, int scaleFactor, uint renderWidth, uint renderHeight)
         {
-            if (newScaleFactor != _prevScaleFactor)
+            if (scaleFactor != _prevScaleFactor)
             {
-                _prevScaleFactor = newScaleFactor;
+                _prevScaleFactor = scaleFactor;
                 var numSamples = SamplesPerPixel * _prevScaleFactor * _prevScaleFactor;
                 _haltonBase2 = GenerateHaltonValues(2, numSamples);
                 _haltonBase3 = GenerateHaltonValues(3, numSamples);
             }
 
-            var nextJitter = NextJitter();
+            var camJitter = NextJitter();
             cam.ResetProjectionMatrix();
-            var tempProj = cam.nonJitteredProjectionMatrix;
-            tempProj.m20 += nextJitter.Item1;
-            tempProj.m21 += nextJitter.Item2;
+            var tempProj = cam.projectionMatrix;
+            tempProj.m03 += (camJitter.Item1 - _lastJitter.Item1) / renderWidth;
+            tempProj.m13 += (camJitter.Item2 - _lastJitter.Item2) / renderHeight;
             cam.projectionMatrix = tempProj;
-            _lastJitter = nextJitter;
-            return nextJitter;
+            _lastJitter = camJitter;
+            return camJitter;
         }
 
         private Tuple<float, float> NextJitter()
