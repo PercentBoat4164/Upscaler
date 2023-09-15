@@ -38,6 +38,18 @@ public class EnableDLSS : MonoBehaviour
 
     public Type upscaler = Type.DLSS;
 
+    // USER NEEDS TO BE ABLE TO:
+    // Set the upscaler
+    // Set the performance / quality mode
+    // Set the render resolution
+    // Set the output resolution
+    // Set the 'reset history buffer' bit for this frame
+    // Set sharpness values (Should be 0 because DLSS sharpness is deprecated)
+    // Set HDR values (Exposure / auto exposure)*
+    // Validate settings
+    // Detect if and why upscaling has failed or is unavailable
+    // * = for later
+
     private void SetUpCommandBuffers()
     {
         var scale = new Vector2((float)_presentWidth / _renderWidth, (float)_presentHeight / _renderHeight);
