@@ -44,11 +44,17 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Parameter  *parameters{};
     NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
     NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
+    NVSDK_NGX_Resource_VK vulkanInColorResource{};
+    NVSDK_NGX_Resource_VK vulkanOutColorResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
     static bool (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+      void                          *,
+      UnityRenderingExtTextureFormat,
+      void                          *,
+      UnityRenderingExtTextureFormat,
       void *,
       UnityRenderingExtTextureFormat,
       void *,
@@ -64,7 +70,16 @@ class DLSS : public Upscaler {
 
     bool VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
-    bool VulkanSetImageResources(void *, UnityRenderingExtTextureFormat, void *, UnityRenderingExtTextureFormat);
+    bool VulkanSetImageResources(
+      void                          *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat unityDepthFormat,
+      void                          *nativeMotionVectors,
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
+      );
 
     bool VulkanEvaluate();
 
@@ -114,7 +129,11 @@ public:
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
 
     bool evaluate() override;

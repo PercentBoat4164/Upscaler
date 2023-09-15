@@ -27,12 +27,15 @@ public class EnableDLSS : MonoBehaviour
     private uint _renderHeight;
 
     private RenderTexture _motionVectorTarget;
-    private RenderTexture _colorTarget;
+    private RenderTexture _inColorTarget;
+    private RenderTexture _outColorTarget;
     private RenderTexture _depthTarget;
     private Camera _camera;
     private CameraJitter _cameraJitter;
     private CommandBuffer _beforeOpaque;
-    private CommandBuffer _beforePostProcess;
+    private CommandBuffer _preUpscale;
+    private CommandBuffer _upscale;
+    private CommandBuffer _postUpscale;
 
     public Type upscaler = Type.DLSS;
 
@@ -50,29 +53,41 @@ public class EnableDLSS : MonoBehaviour
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _beforePostProcess);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
         }
 
         _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
         _beforeOpaque = new CommandBuffer();
-        _beforePostProcess = new CommandBuffer();
+        _preUpscale = new CommandBuffer();
+        _upscale = new CommandBuffer();
+        _postUpscale = new CommandBuffer();
 
         _beforeOpaque.name = "Set Render Resolution";
         _beforeOpaque.SetViewport(new Rect(0, 0, _renderWidth, _renderHeight));
 
-        _beforePostProcess.name = "Upscale";
-        _beforePostProcess.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget, inverseScale, offset);
-        _beforePostProcess.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
-        _beforePostProcess.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
-        _beforePostProcess.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
-        _beforePostProcess.Blit(_motionVectorTarget, BuiltinRenderTextureType.MotionVectors);
-        _beforePostProcess.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
+        _preUpscale.name = "Copy To Upscaler";
+        _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
+        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget, inverseScale, offset);
+        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
+        _preUpscale.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+
+        _upscale.name = "Upscale";
+        _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
+
+        _postUpscale.name = "Copy From Upscaler";
+        _postUpscale.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
+        _postUpscale.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
 
         // _beforeOpaque is added in two places to handle forward and deferred rendering
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _beforePostProcess);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
+
     }
 
     // Start is called before the first frame update
@@ -105,14 +120,19 @@ public class EnableDLSS : MonoBehaviour
             _renderWidth = (uint)(size >> 32);
             _renderHeight = (uint)(size & 0xFFFFFFFF);
 
-            _colorTarget = new RenderTexture(new RenderTextureDescriptor((int)_renderWidth, (int)_renderHeight));
-            _colorTarget.Create();
-            _motionVectorTarget = new RenderTexture(new RenderTextureDescriptor((int)_renderWidth, (int)_renderHeight));
+            _inColorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
+            _inColorTarget.Create();
+            _outColorTarget = new RenderTexture((int)_presentWidth, (int)_presentHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
+            _outColorTarget.Create();
+            _motionVectorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
-            _depthTarget = new RenderTexture(new RenderTextureDescriptor((int)_renderWidth, (int)_renderHeight));
+            _depthTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, DefaultFormat.DepthStencil);
             _depthTarget.Create();
             Upscaler_Prepare(_depthTarget.GetNativeDepthBufferPtr(), _depthTarget.depthStencilFormat,
-                _motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
+                _motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat,
+                _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
+                _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
+            );
             RecordCommandBuffers();
         }
 
@@ -144,7 +164,11 @@ public class EnableDLSS : MonoBehaviour
     private static extern ulong Upscaler_ResizeTargets(uint width, uint height);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_Prepare(IntPtr depthBuffer, GraphicsFormat depthFormat, IntPtr motionVectors, GraphicsFormat motionVectorFormat);
+    private static extern bool Upscaler_Prepare(
+        IntPtr depthBuffer, GraphicsFormat depthFormat,
+        IntPtr motionVectors, GraphicsFormat motionVectorFormat,
+        IntPtr inColor, GraphicsFormat inColorFormat,
+        IntPtr outColor, GraphicsFormat outColorFormat);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_SetJitterInformation(float x, float y);

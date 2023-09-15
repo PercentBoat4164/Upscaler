@@ -23,10 +23,14 @@ public:
     bool     initialize() override;
     bool     createFeature() override;
     bool     setImageResources(
-          void                          *pVoid,
-          UnityRenderingExtTextureFormat format,
+          void                          *nativeDepthBuffer,
+          UnityRenderingExtTextureFormat unityDepthFormat,
           void                          *nativeMotionVectors,
-          UnityRenderingExtTextureFormat unityMotionVectorFormat
+          UnityRenderingExtTextureFormat unityMotionVectorFormat,
+          void *nativeInColor,
+          UnityRenderingExtTextureFormat unityInColorFormat,
+          void *nativeOutColor,
+          UnityRenderingExtTextureFormat unityOutColorFormat
         ) override;
     bool     evaluate() override;
     bool     releaseFeature() override;

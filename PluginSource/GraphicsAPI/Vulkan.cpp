@@ -125,7 +125,7 @@ bool Vulkan::loadLateFunctionPointers() {
     m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkResetCommandBuffer"));
     m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
     m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
-    return (m_vkCreateImageView != VK_NULL_HANDLE) && (vkDestroyImageView != VK_NULL_HANDLE) &&
+    return (m_vkCreateImageView != VK_NULL_HANDLE) && (m_vkDestroyImageView != VK_NULL_HANDLE) &&
       (m_vkCreateCommandPool != VK_NULL_HANDLE) && (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) &&
       (m_vkBeginCommandBuffer != VK_NULL_HANDLE) && (m_vkEndCommandBuffer != VK_NULL_HANDLE) &&
       (m_vkQueueSubmit != VK_NULL_HANDLE) && (m_vkQueueWaitIdle != VK_NULL_HANDLE) &&
@@ -369,13 +369,13 @@ Vulkan *Vulkan::get() {
     return vulkan;
 }
 
-VkImageView Vulkan::get2DImageView(VkImage depthImage, VkFormat format) {
+VkImageView Vulkan::get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
     // clang-format off
     VkImageViewCreateInfo createInfo{
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
       .flags    = 0x0,
-      .image    = depthImage,
+      .image    = image,
       .viewType = VK_IMAGE_VIEW_TYPE_2D,
       .format   = format,
       .components = {
@@ -383,7 +383,7 @@ VkImageView Vulkan::get2DImageView(VkImage depthImage, VkFormat format) {
         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
       },
       .subresourceRange = {
-        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .aspectMask     = flags,
         .baseMipLevel   = 0,
         .levelCount     = 1,
         .baseArrayLayer = 0,
@@ -393,8 +393,8 @@ VkImageView Vulkan::get2DImageView(VkImage depthImage, VkFormat format) {
     // clang-format on
 
     VkImageView view{VK_NULL_HANDLE};
-    if (m_vkCreateImageView(device, &createInfo, nullptr, &view) == VK_SUCCESS) return view;
-    return VK_NULL_HANDLE;
+    m_vkCreateImageView(device, &createInfo, nullptr, &view);
+    return view;
 }
 
 void Vulkan::destroyImageView(VkImageView viewToDestroy) {

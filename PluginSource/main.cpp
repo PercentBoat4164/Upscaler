@@ -90,10 +90,19 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_ResizeTa
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API
-Upscaler_Prepare(void *nativeDepthBuffer, UnityRenderingExtTextureFormat unityDepthFormat, void *nativeMotionVectors, UnityRenderingExtTextureFormat unityMotionVectorFormat) {
+Upscaler_Prepare(
+  void                          *nativeDepthBuffer,
+  UnityRenderingExtTextureFormat unityDepthFormat,
+  void                          *nativeMotionVectors,
+  UnityRenderingExtTextureFormat unityMotionVectorFormat,
+  void *nativeInColor,
+  UnityRenderingExtTextureFormat unityInColorFormat,
+  void *nativeOutColor,
+  UnityRenderingExtTextureFormat unityOutColorFormat
+) {
     bool available = Upscaler::get()->isAvailableAfter(
       Upscaler::get()->setImageResources(
-        nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat
+        nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat, nativeInColor, unityInColorFormat, nativeOutColor, unityOutColorFormat
       )
     );
 

@@ -9,6 +9,10 @@ bool (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::
 bool (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params
 ){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+  void                          *,
+  UnityRenderingExtTextureFormat,
+  void                          *,
+  UnityRenderingExtTextureFormat,
   void *,
   UnityRenderingExtTextureFormat,
   void *,
@@ -48,27 +52,41 @@ bool DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
 }
 
 bool DLSS::VulkanSetImageResources(
-  void                          *depthBuffer,
+  void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
-  void                          *motionVectorBuffer,
-  UnityRenderingExtTextureFormat unityMotionVectorFormat
+  void                          *nativeMotionVectors,
+  UnityRenderingExtTextureFormat unityMotionVectorFormat,
+  void *nativeInColor,
+  UnityRenderingExtTextureFormat unityInColorFormat,
+  void *nativeOutColor,
+  UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanDepthBufferResource.Resource.ImageViewInfo.ImageView);
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanMotionVectorResource.Resource.ImageViewInfo.ImageView);
-    VkImage     depthImage{*reinterpret_cast<VkImage *>(depthBuffer)};
-    VkImage     motionVectorImage{*reinterpret_cast<VkImage *>(motionVectorBuffer)};
+    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanInColorResource.Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanOutColorResource.Resource.ImageViewInfo.ImageView);
+
+    VkImage     depthBuffer{*reinterpret_cast<VkImage *>(nativeDepthBuffer)};
+    VkImage     motionVectors{*reinterpret_cast<VkImage *>(nativeMotionVectors)};
+    VkImage     inColor{*reinterpret_cast<VkImage *>(nativeInColor)};
+    VkImage     outColor{*reinterpret_cast<VkImage *>(nativeOutColor)};
+
     VkFormat    depthFormat        = Vulkan::getFormat(unityDepthFormat);
     VkFormat    motionVectorFormat = Vulkan::getFormat(unityMotionVectorFormat);
-    VkImageView depthView{GraphicsAPI::get<Vulkan>()->get2DImageView(depthImage, depthFormat)};
-    VkImageView motionVectorView{
-      GraphicsAPI::get<Vulkan>()->get2DImageView(motionVectorImage, motionVectorFormat)};
+    VkFormat    inColorFormat = Vulkan::getFormat(unityInColorFormat);
+    VkFormat    outColorFormat = Vulkan::getFormat(unityOutColorFormat);
+
+    VkImageView depthView{GraphicsAPI::get<Vulkan>()->get2DImageView(depthBuffer, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT)};
+    VkImageView motionVectorView{GraphicsAPI::get<Vulkan>()->get2DImageView(motionVectors, motionVectorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
+    VkImageView inColorView{GraphicsAPI::get<Vulkan>()->get2DImageView(inColor, inColorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
+    VkImageView outColorView{GraphicsAPI::get<Vulkan>()->get2DImageView(outColor, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
 
     // clang-format off
     vulkanDepthBufferResource = {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = depthView,
-          .Image            = depthImage,
+          .Image            = depthBuffer,
           .SubresourceRange = {
             .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
             .baseMipLevel   = 0,
@@ -89,9 +107,9 @@ bool DLSS::VulkanSetImageResources(
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = motionVectorView,
-          .Image            = motionVectorImage,
+          .Image            = motionVectors,
           .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
@@ -100,6 +118,48 @@ bool DLSS::VulkanSetImageResources(
           .Format = motionVectorFormat,
           .Width  = settings.renderResolution.width,
           .Height = settings.renderResolution.height,
+        },
+      },
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true,
+    };
+
+    vulkanInColorResource = {
+      .Resource = {
+        .ImageViewInfo = {
+          .ImageView        = inColorView,
+          .Image            = inColor,
+          .SubresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+          },
+          .Format = inColorFormat,
+          .Width  = settings.renderResolution.width,
+          .Height = settings.renderResolution.height,
+        },
+      },
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true,
+    };
+
+    vulkanOutColorResource = {
+      .Resource = {
+        .ImageViewInfo = {
+          .ImageView        = outColorView,
+          .Image            = outColor,
+          .SubresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+          },
+          .Format = outColorFormat,
+          .Width  = settings.presentResolution.width,
+          .Height = settings.presentResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -119,6 +179,11 @@ bool DLSS::VulkanEvaluate() {
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params vulkanEvalParameters = {
+      .Feature = {
+        .pInColor = &vulkanInColorResource,
+        .pInOutput = &vulkanOutColorResource,
+        .InSharpness = settings.sharpness,
+      },
       .pInDepth                  = &vulkanDepthBufferResource,
       .pInMotionVectors          = &vulkanMotionVectorResource,
       .InJitterOffsetX           = thisFrameJitterValues[0],
@@ -127,12 +192,14 @@ bool DLSS::VulkanEvaluate() {
         .Width  = settings.renderResolution.width,
         .Height = settings.renderResolution.height,
       },
+      .InMVScaleX=1.F,
+      .InMVScaleY=1.F,
     };
     // clang-format on
 
-    return NVSDK_NGX_SUCCEED(
-      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters)
-    );
+    NVSDK_NGX_Result result = NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters);
+
+    return NVSDK_NGX_SUCCEED(result);
 }
 
 bool DLSS::VulkanReleaseFeature() {
@@ -345,11 +412,11 @@ bool DLSS::createFeature() {
       .InEnableOutputSubrects = false,
     };
 
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, 1);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, 1);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, 1);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, 1);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, 1);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
@@ -401,7 +468,11 @@ bool DLSS::setImageResources(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
-  UnityRenderingExtTextureFormat unityMotionVectorFormat
+  UnityRenderingExtTextureFormat unityMotionVectorFormat,
+  void *nativeInColor,
+  UnityRenderingExtTextureFormat unityInColorFormat,
+  void *nativeOutColor,
+  UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    return (this->*graphicsAPIIndependentSetImageResourcesFunctionPointer)(nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat);
+    return (this->*graphicsAPIIndependentSetImageResourcesFunctionPointer)(nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat, nativeInColor, unityInColorFormat, nativeOutColor, unityOutColorFormat);
 }

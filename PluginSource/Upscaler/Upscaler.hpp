@@ -68,8 +68,8 @@ public:
         Resolution dynamicMinimumRenderResolution{};
         Resolution presentResolution{};
         float      sharpness{};
-        bool       lowResolutionMotionVectors{};
-        bool       jitteredMotionVectors{};
+        bool       lowResolutionMotionVectors{true};
+        bool       jitteredMotionVectors{true};
         bool       HDR{};
         bool       invertedDepth{};
         bool       autoExposure{};
@@ -154,10 +154,14 @@ public:
     virtual bool createFeature() = 0;
 
     virtual bool setImageResources(
-      void *,
-      UnityRenderingExtTextureFormat,
+      void                          *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
     ) = 0;
 
     void setJitterInformation(float, float);
