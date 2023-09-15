@@ -137,9 +137,7 @@ public class EnableDLSS : MonoBehaviour
             RecordCommandBuffers();
         }
 
-        var jitter = new Tuple<float, float>(0, 0);
-        if (Input.GetKey("j"))
-            jitter = _haltonJitterer.JitterCamera(_camera, (int)(_presentWidth / _renderWidth), _renderWidth, _renderHeight);
+        var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_presentWidth / _renderWidth), _renderWidth, _renderHeight);
         Upscaler_SetJitterInformation(jitter.Item1, jitter.Item2);
     }
 
