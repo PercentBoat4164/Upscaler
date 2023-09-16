@@ -151,8 +151,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
 ) {
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-        upscaler->setSupported(true);
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->setSupported(true);
 
     VkInstanceCreateInfo createInfo = *pCreateInfo;
     std::stringstream    message;
@@ -212,7 +211,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
             else
                 Logger::log(
-                  "Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan instance."
+                  "Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance."
                 );
         std::string msg = message.str();
         if (!msg.empty()) Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
@@ -221,7 +220,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
             if (!upscaler->getRequiredVulkanInstanceExtensions().empty()) upscaler->isSupportedAfter(false);
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->instance = *pInstance;
-        else Logger::log("Failed to createFeature a Vulkan instance!");
+        else Logger::log("Failed to create a Vulkan instance!");
     }
     return result;
 }
@@ -303,7 +302,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
-            else Logger::log("Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan device.");
+            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan device.");
         std::string msg = message.str();
         if (!msg.empty()) Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
     } else {
@@ -313,7 +312,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 upscaler->isSupportedAfter(false);
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->device = *pDevice;
-        else Logger::log("Failed to createFeature a Vulkan instance!");
+        else Logger::log("Failed to create a Vulkan instance!");
     }
     if (GraphicsAPI::get<Vulkan>()->device != VK_NULL_HANDLE)
         GraphicsAPI::get<Vulkan>()->loadLateFunctionPointers();
@@ -400,7 +399,6 @@ VkImageView Vulkan::get2DImageView(VkImage image, VkFormat format, VkImageAspect
 void Vulkan::destroyImageView(VkImageView viewToDestroy) {
     m_vkDestroyImageView(device, viewToDestroy, nullptr);
 }
-
 
 VkFormat Vulkan::getFormat(UnityRenderingExtTextureFormat format) {
     switch (format) {

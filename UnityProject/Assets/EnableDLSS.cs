@@ -149,10 +149,10 @@ public class EnableDLSS : MonoBehaviour
             _motionVectorTarget.Create();
             _depthTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, DefaultFormat.DepthStencil);
             _depthTarget.Create();
-            Upscaler_Prepare(_depthTarget.GetNativeDepthBufferPtr(), _depthTarget.depthStencilFormat,
-                _motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat,
-                _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
-                _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
+            Upscaler_Prepare(_depthTarget.depthBuffer.GetNativeRenderBufferPtr(), _depthTarget.depthStencilFormat,
+                _motionVectorTarget.colorBuffer.GetNativeRenderBufferPtr(), _motionVectorTarget.graphicsFormat,
+                _inColorTarget.colorBuffer.GetNativeRenderBufferPtr(), _inColorTarget.graphicsFormat,
+                _outColorTarget.colorBuffer.GetNativeRenderBufferPtr(), _outColorTarget.graphicsFormat
             );
             SetUpCommandBuffers();
         }

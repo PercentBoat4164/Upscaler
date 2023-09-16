@@ -9,9 +9,9 @@ bool (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::
 bool (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params
 ){&DLSS::safeFail};
 bool (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunctionPointer)(
-  void                          *,
+  void *,
   UnityRenderingExtTextureFormat,
-  void                          *,
+  void *,
   UnityRenderingExtTextureFormat,
   void *,
   UnityRenderingExtTextureFormat,
@@ -56,47 +56,83 @@ bool DLSS::VulkanSetImageResources(
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
   UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void *nativeInColor,
+  void                          *nativeInColor,
   UnityRenderingExtTextureFormat unityInColorFormat,
-  void *nativeOutColor,
+  void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
+    UnityVulkanImage unityDepthBuffer{};
+    UnityVulkanImage unityMotionVectors{};
+    UnityVulkanImage unityInColor{};
+    UnityVulkanImage unityOutColor{};
+
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->AccessRenderBufferTexture(
+      reinterpret_cast<UnityRenderBuffer>(nativeDepthBuffer),
+      UnityVulkanWholeImage,
+      VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+      kUnityVulkanResourceAccess_PipelineBarrier,
+      &unityDepthBuffer
+    );
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->AccessRenderBufferTexture(
+      reinterpret_cast<UnityRenderBuffer>(nativeMotionVectors),
+      UnityVulkanWholeImage,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+      kUnityVulkanResourceAccess_PipelineBarrier,
+      &unityMotionVectors
+    );
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->AccessRenderBufferTexture(
+      reinterpret_cast<UnityRenderBuffer>(nativeInColor),
+      UnityVulkanWholeImage,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+      kUnityVulkanResourceAccess_PipelineBarrier,
+      &unityInColor
+    );
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->AccessRenderBufferTexture(
+      reinterpret_cast<UnityRenderBuffer>(nativeOutColor),
+      UnityVulkanWholeImage,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+      kUnityVulkanResourceAccess_PipelineBarrier,
+      &unityOutColor
+    );
+
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanDepthBufferResource.Resource.ImageViewInfo.ImageView);
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanMotionVectorResource.Resource.ImageViewInfo.ImageView);
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanInColorResource.Resource.ImageViewInfo.ImageView);
     GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanOutColorResource.Resource.ImageViewInfo.ImageView);
 
-    VkImage     depthBuffer{*reinterpret_cast<VkImage *>(nativeDepthBuffer)};
-    VkImage     motionVectors{*reinterpret_cast<VkImage *>(nativeMotionVectors)};
-    VkImage     inColor{*reinterpret_cast<VkImage *>(nativeInColor)};
-    VkImage     outColor{*reinterpret_cast<VkImage *>(nativeOutColor)};
-
-    VkFormat    depthFormat        = Vulkan::getFormat(unityDepthFormat);
-    VkFormat    motionVectorFormat = Vulkan::getFormat(unityMotionVectorFormat);
-    VkFormat    inColorFormat = Vulkan::getFormat(unityInColorFormat);
-    VkFormat    outColorFormat = Vulkan::getFormat(unityOutColorFormat);
-
-    VkImageView depthView{GraphicsAPI::get<Vulkan>()->get2DImageView(depthBuffer, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT)};
-    VkImageView motionVectorView{GraphicsAPI::get<Vulkan>()->get2DImageView(motionVectors, motionVectorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
-    VkImageView inColorView{GraphicsAPI::get<Vulkan>()->get2DImageView(inColor, inColorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
-    VkImageView outColorView{GraphicsAPI::get<Vulkan>()->get2DImageView(outColor, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT)};
+    VkImageView depthView =
+      GraphicsAPI::get<Vulkan>()->get2DImageView(unityDepthBuffer.image, unityDepthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
+    VkImageView motionVectorView =
+      GraphicsAPI::get<Vulkan>()->get2DImageView(unityMotionVectors.image, unityMotionVectors.format, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkImageView inColorView =
+      GraphicsAPI::get<Vulkan>()->get2DImageView(unityInColor.image, unityInColor.format, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkImageView outColorView =
+      GraphicsAPI::get<Vulkan>()->get2DImageView(unityOutColor.image, unityOutColor.format, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // clang-format off
     vulkanDepthBufferResource = {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = depthView,
-          .Image            = depthBuffer,
+          .Image            = unityDepthBuffer.image,
           .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .aspectMask     = unityDepthBuffer.aspect,
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
             .layerCount     = 1,
           },
-          .Format = depthFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Format = unityDepthBuffer.format,
+          .Width  = unityDepthBuffer.extent.width,
+          .Height = unityDepthBuffer.extent.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -107,17 +143,17 @@ bool DLSS::VulkanSetImageResources(
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = motionVectorView,
-          .Image            = motionVectors,
+          .Image            = unityMotionVectors.image,
           .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask     = unityMotionVectors.aspect,
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
             .layerCount     = 1,
           },
-          .Format = motionVectorFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Format = unityMotionVectors.format,
+          .Width  = unityMotionVectors.extent.width,
+          .Height = unityMotionVectors.extent.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -128,17 +164,17 @@ bool DLSS::VulkanSetImageResources(
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = inColorView,
-          .Image            = inColor,
+          .Image            = unityInColor.image,
           .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask     = unityInColor.aspect,
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
             .layerCount     = 1,
           },
-          .Format = inColorFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Format = unityInColor.format,
+          .Width  = unityInColor.extent.width,
+          .Height = unityInColor.extent.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -149,24 +185,24 @@ bool DLSS::VulkanSetImageResources(
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = outColorView,
-          .Image            = outColor,
+          .Image            = unityOutColor.image,
           .SubresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask     = unityOutColor.aspect,
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
             .layerCount     = 1,
           },
-          .Format = outColorFormat,
-          .Width  = settings.presentResolution.width,
-          .Height = settings.presentResolution.height,
+          .Format = unityOutColor.format,
+          .Width  = unityOutColor.extent.width,
+          .Height = unityOutColor.extent.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
       .ReadWrite = true,
     };
     // clang-format on
-    return depthView != VK_NULL_HANDLE && motionVectorView != VK_NULL_HANDLE;
+    return depthView != VK_NULL_HANDLE && motionVectorView != VK_NULL_HANDLE && inColorView != VK_NULL_HANDLE && outColorView != VK_NULL_HANDLE;
 }
 
 bool DLSS::VulkanEvaluate() {
@@ -197,7 +233,10 @@ bool DLSS::VulkanEvaluate() {
     };
     // clang-format on
 
-    NVSDK_NGX_Result result = NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters);
+    NVSDK_NGX_Result result =
+      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters);
+
+    Logger::log("Evaluation", result);
 
     return NVSDK_NGX_SUCCEED(result);
 }
@@ -393,14 +432,13 @@ bool DLSS::initialize() {
 
 bool DLSS::createFeature() {
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{
-      .Feature =
-        {
-                  .InWidth            = settings.renderResolution.width,
-                  .InHeight           = settings.renderResolution.height,
-                  .InTargetWidth      = settings.presentResolution.width,
-                  .InTargetHeight     = settings.presentResolution.height,
-                  .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
-                  },
+      .Feature = {
+        .InWidth            = settings.renderResolution.width,
+        .InHeight           = settings.renderResolution.height,
+        .InTargetWidth      = settings.presentResolution.width,
+        .InTargetHeight     = settings.presentResolution.height,
+        .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
+      },
       .InFeatureCreateFlags = static_cast<int>(
         (settings.lowResolutionMotionVectors ? NVSDK_NGX_DLSS_Feature_Flags_MVLowRes : 0U) |
         (settings.jitteredMotionVectors ? NVSDK_NGX_DLSS_Feature_Flags_MVJittered : 0U) |
@@ -411,12 +449,6 @@ bool DLSS::createFeature() {
       ),
       .InEnableOutputSubrects = false,
     };
-
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
-    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
@@ -441,11 +473,12 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
 
     Settings optimalSettings = settings;
 
+    NVSDK_NGX_PerfQuality_Value DLSSQuality = optimalSettings.getQuality<Upscaler::DLSS>();
     NVSDK_NGX_Result result = NGX_DLSS_GET_OPTIMAL_SETTINGS(
       parameters,
       optimalSettings.presentResolution.width,
       optimalSettings.presentResolution.height,
-      optimalSettings.getQuality<Upscaler::DLSS>(),
+      DLSSQuality,
       &optimalSettings.renderResolution.width,
       &optimalSettings.renderResolution.height,
       &optimalSettings.dynamicMaximumRenderResolution.width,
@@ -469,10 +502,19 @@ bool DLSS::setImageResources(
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
   UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void *nativeInColor,
+  void                          *nativeInColor,
   UnityRenderingExtTextureFormat unityInColorFormat,
-  void *nativeOutColor,
+  void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    return (this->*graphicsAPIIndependentSetImageResourcesFunctionPointer)(nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat, nativeInColor, unityInColorFormat, nativeOutColor, unityOutColorFormat);
+    return (this->*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+      nativeDepthBuffer,
+      unityDepthFormat,
+      nativeMotionVectors,
+      unityMotionVectorFormat,
+      nativeInColor,
+      unityInColorFormat,
+      nativeOutColor,
+      unityOutColorFormat
+    );
 }
