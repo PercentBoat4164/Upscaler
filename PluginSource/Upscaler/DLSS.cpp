@@ -236,8 +236,6 @@ bool DLSS::VulkanEvaluate() {
     NVSDK_NGX_Result result =
       NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &vulkanEvalParameters);
 
-    Logger::log("Evaluation", result);
-
     return NVSDK_NGX_SUCCEED(result);
 }
 

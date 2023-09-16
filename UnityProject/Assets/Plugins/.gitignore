@@ -1,2 +1,5 @@
-libnvidia-ngx-dlss.so.3.5.0
-nvngx_dlss.dll
+# Upscaler shared libraries
+*ngx[-_]dlss*
+
+# Plugin shared libraries
+*GfxPluginDLSSPlugin*
