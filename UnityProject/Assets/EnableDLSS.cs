@@ -38,7 +38,19 @@ public class EnableDLSS : MonoBehaviour
 
     public Type upscaler = Type.DLSS;
 
-    private void RecordCommandBuffers()
+    // USER NEEDS TO BE ABLE TO:
+    // Set the upscaler
+    // Set the performance / quality mode
+    // Set the render resolution
+    // Set the output resolution
+    // Set the 'reset history buffer' bit for this frame
+    // Set sharpness values (Should be 0 because DLSS sharpness is deprecated)
+    // Set HDR values (Exposure / auto exposure)*
+    // Validate settings
+    // Detect if and why upscaling has failed or is unavailable
+    // * = for later
+
+    private void SetUpCommandBuffers()
     {
         var scale = new Vector2((float)_presentWidth / _renderWidth, (float)_presentHeight / _renderHeight);
         var inverseScale = new Vector2((float)_renderWidth / _presentWidth, (float)_renderHeight / _presentHeight);
@@ -46,14 +58,11 @@ public class EnableDLSS : MonoBehaviour
         var renderResolution = new Vector2(_renderWidth, _renderHeight);
         var presentResolution = new Vector2(_presentWidth, _presentHeight);
 
-        _camera = GetComponent<Camera>();
-
         if (_beforeOpaque != null)
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
         }
 
@@ -61,7 +70,6 @@ public class EnableDLSS : MonoBehaviour
 
         _beforeOpaque = new CommandBuffer();
         _preUpscale = new CommandBuffer();
-        _upscale = new CommandBuffer();
         _postUpscale = new CommandBuffer();
 
         _beforeOpaque.name = "Set Render Resolution";
@@ -73,26 +81,35 @@ public class EnableDLSS : MonoBehaviour
         _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
         _preUpscale.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
 
-        _upscale.name = "Upscale";
-        _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
-
         _postUpscale.name = "Copy From Upscaler";
         _postUpscale.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
         _postUpscale.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
 
         // _beforeOpaque is added in two places to handle forward and deferred rendering
-        /*
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
-        */
+    }
+
+    private void RecordCommandBuffers()
+    {
+        if (_upscale != null)
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+
+        _upscale = new CommandBuffer();
+
+        _upscale.name = "Upscale";
+        _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
+
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
     }
 
     // Start is called before the first frame update
     private void Start()
     {
+        _camera = GetComponent<Camera>();
+
         Upscaler_InitializePlugin(LogDebugMessage);
         Upscaler_Set(upscaler);
         if (!Upscaler_Initialize())
@@ -102,13 +119,12 @@ public class EnableDLSS : MonoBehaviour
         }
 
         Debug.Log("DLSS is supported.");
-        GetComponent<Camera>().allowMSAA = false; 
         _haltonJitterer = new HaltonJitterer();
     }
 
     private void OnPreRender()
     {
-        if (!Upscaler_IsCurrentlyAvailable())
+        if (!Upscaler_IsSupported(Type.DLSS))
             return;
 
         if (Screen.width != _presentWidth || Screen.height != _presentHeight)
@@ -123,7 +139,11 @@ public class EnableDLSS : MonoBehaviour
 
             _inColorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
             _inColorTarget.Create();
-            _outColorTarget = new RenderTexture((int)_presentWidth, (int)_presentHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
+            _outColorTarget =
+                new RenderTexture((int)_presentWidth, (int)_presentHeight, 0, GraphicsFormat.R8G8B8A8_UNorm)
+                {
+                    enableRandomWrite = true
+                };
             _outColorTarget.Create();
             _motionVectorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
@@ -134,8 +154,10 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
                 _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
             );
-            RecordCommandBuffers();
+            SetUpCommandBuffers();
         }
+
+        RecordCommandBuffers();
 
         var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_presentWidth / _renderWidth), _renderWidth, _renderHeight);
         Upscaler_SetJitterInformation(jitter.Item1, jitter.Item2);
@@ -190,7 +212,7 @@ public class EnableDLSS : MonoBehaviour
         private int _prevScaleFactor;
         private List<Tuple<float, float>> _jitterSamples;
         private Tuple<float, float> _lastJitter = new(0,0);
-        
+
         public Tuple<float, float> JitterCamera(Camera cam, int scaleFactor, uint renderWidth, uint renderHeight)
         {
             if (scaleFactor != _prevScaleFactor)

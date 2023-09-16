@@ -6,13 +6,13 @@
 // Unity
 #include <IUnityGraphics.h>
 #include <IUnityGraphicsVulkan.h>
+#include <IUnityRenderingExtensions.h>
 
 // Upscaler
 #include <nvsdk_ngx_defs.h>
 
 // Standard library
 #include <cstring>
-#include <IUnityRenderingExtensions.h>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
