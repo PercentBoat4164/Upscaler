@@ -5,6 +5,7 @@
 #include "Upscaler.hpp"
 
 // Upscaler
+#include <nvsdk_ngx_helpers.h>
 #include <nvsdk_ngx_helpers_vk.h>
 
 class DLSS : public Upscaler {
@@ -46,6 +47,15 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
     NVSDK_NGX_Resource_VK vulkanInColorResource{};
     NVSDK_NGX_Resource_VK vulkanOutColorResource{};
+    ID3D12Resource       *dx12DepthBufferResource{};
+    ID3D12Resource       *dx12MotionVectorResource{};
+    ID3D12Resource       *dx12InColorResource{};
+    ID3D12Resource       *dx12OutColorResource{};
+    ID3D11Resource       *dx11DepthBufferResource{};
+    ID3D11Resource       *dx11MotionVectorResource{};
+    ID3D11Resource       *dx11InColorResource{};
+    ID3D11Resource       *dx11OutColorResource{};
+
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
@@ -88,6 +98,56 @@ class DLSS : public Upscaler {
     bool VulkanDestroyParameters();
 
     bool VulkanShutdown();
+
+    bool DX12Initialize();
+
+    bool DX12GetParameters();
+
+    bool DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+
+    bool DX12SetDepthBuffer(
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat
+    );
+
+    bool DX12Evaluate();
+
+    bool DX12ReleaseFeature();
+
+    bool DX12DestroyParameters();
+
+    bool DX12Shutdown();
+
+    bool DX11Initialize();
+
+    bool DX11GetParameters();
+
+    bool DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+
+    bool DX11SetDepthBuffer(
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat,
+      void                          *,
+        UnityRenderingExtTextureFormat
+    );
+
+    bool DX11Evaluate();
+
+    bool DX11ReleaseFeature();
+
+    bool DX11DestroyParameters();
+
+    bool DX11Shutdown();
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 

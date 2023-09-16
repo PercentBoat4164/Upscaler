@@ -13,9 +13,11 @@ uint64_t Upscaler::Settings::Resolution::asLong() const {
 Upscaler *Upscaler::get(Type upscaler) {
     switch (upscaler) {
         case NONE: return get<NoUpscaler>();
+#ifdef ENABLE_DLSS
         case DLSS: return get<::DLSS>();
+#endif
     }
-    return nullptr;
+    return get<NoUpscaler>();
 }
 
 Upscaler *Upscaler::get() {
@@ -25,7 +27,9 @@ Upscaler *Upscaler::get() {
 std::vector<Upscaler *> Upscaler::getAllUpscalers() {
     return {
       get<::NoUpscaler>(),
+#ifdef ENABLE_DLSS
       get<::DLSS>(),
+#endif
     };
 }
 

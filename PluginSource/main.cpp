@@ -1,9 +1,20 @@
 // Project
 #include "GraphicsAPI/NoGraphicsAPI.hpp"
-#include "GraphicsAPI/Vulkan.hpp"
+#include "Logger.hpp"
 #include "Upscaler/NoUpscaler.hpp"
 
-#include <Upscaler/DLSS.hpp>
+#ifdef ENABLE_VULKAN
+#    include "GraphicsAPI/Vulkan.hpp"
+#endif
+#ifdef ENABLE_DX12
+#    include "GraphicsAPI/DX12.hpp"
+#endif
+#ifdef ENABLE_DX11
+#    include "GraphicsAPI/DX11.hpp"
+#endif
+#ifdef ENABLE_DLSS
+#    include "Upscaler/DLSS.hpp"
+#endif
 
 // Unity
 #include <IUnityInterface.h>
@@ -24,7 +35,7 @@
 #endif
 
 namespace Unity {
-IUnityGraphics   *graphicsInterface;
+IUnityGraphics *graphicsInterface;
 }  // namespace Unity
 
 enum Event {
@@ -49,11 +60,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePl
     Logger::setLoggerCallback(t_debugFunction);
     Logger::flush();
 
-    UnityGfxRenderer renderer = Unity::graphicsInterface->GetRenderer();
-    switch (renderer) {
-        case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
-        default: GraphicsAPI::set<NoGraphicsAPI>(); break;
-    }
+    GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
 
@@ -116,7 +123,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInf
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
     // Enabled plugin's interception of Vulkan initialization calls.
-    Vulkan::interceptInitialization(t_unityInterfaces->Get<IUnityGraphicsVulkanV2>());
+    for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
+        graphicsAPI->useUnityInterfaces(t_unityInterfaces);
     // Record graphics interface for future use.
     Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
 }

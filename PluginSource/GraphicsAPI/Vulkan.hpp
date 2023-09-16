@@ -14,16 +14,9 @@
 // Standard library
 #include <cstring>
 #include <sstream>
-#include <unordered_map>
 #include <vector>
 
 class Vulkan : public GraphicsAPI {
-public:
-    Vulkan(const Vulkan &)            = delete;
-    Vulkan(Vulkan &&)                 = default;
-    Vulkan &operator=(const Vulkan &) = delete;
-    Vulkan &operator=(Vulkan &&)      = default;
-
 private:
     static PFN_vkGetInstanceProcAddr                  m_vkGetInstanceProcAddr;
     static PFN_vkGetDeviceProcAddr                    m_vkGetDeviceProcAddr;
@@ -47,9 +40,14 @@ private:
     static PFN_vkResetCommandBuffer     m_vkResetCommandBuffer;
     static PFN_vkFreeCommandBuffers     m_vkFreeCommandBuffers;
     static PFN_vkDestroyCommandPool     m_vkDestroyCommandPool;
+    static PFN_vkCreateFence            m_vkCreateFence;
+    static PFN_vkWaitForFences          m_vkWaitForFences;
+    static PFN_vkResetFences            m_vkResetFences;
+    static PFN_vkDestroyFence           m_vkDestroyFence;
 
     VkCommandPool   _oneTimeSubmitCommandPool{VK_NULL_HANDLE};
     VkCommandBuffer _oneTimeSubmitCommandBuffer{VK_NULL_HANDLE};
+    VkFence         _oneTimeSubmitFence{VK_NULL_HANDLE};
     bool            _oneTimeSubmitRecording{false};
 
     bool loadEarlyFunctionPointers();
@@ -84,15 +82,20 @@ private:
     Vulkan() = default;
 
 public:
+    Vulkan(const Vulkan &)            = delete;
+    Vulkan(Vulkan &&)                 = default;
+    Vulkan &operator=(const Vulkan &) = delete;
+    Vulkan &operator=(Vulkan &&)      = default;
+
     static PFN_vkGetInstanceProcAddr getVkGetInstanceProcAddr();
 
     static PFN_vkGetDeviceProcAddr getVkGetDeviceProcAddr();
 
     static Vulkan *get();
 
-    static bool interceptInitialization(IUnityGraphicsVulkanV2 *t_vulkanInterface);
-
     static bool RemoveInterceptInitialization();
+
+    bool useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
 
     IUnityGraphicsVulkanV2 *getUnityInterface();
 

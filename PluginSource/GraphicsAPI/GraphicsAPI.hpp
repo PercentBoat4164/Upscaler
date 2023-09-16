@@ -5,6 +5,7 @@
 
 // System
 #include <concepts>
+#include <vector>
 
 class GraphicsAPI {
 private:
@@ -14,6 +15,8 @@ public:
     enum Type {
         NONE,
         VULKAN,
+        DX12,
+        DX11,
     };
 
     GraphicsAPI()                               = default;
@@ -24,7 +27,7 @@ public:
 
     template<typename T>
         requires std::derived_from<T, GraphicsAPI>
-    constexpr static T *get() {
+    static T *get() {
         return T::get();
     }
 
@@ -38,6 +41,8 @@ public:
         set(T::get());
     }
 
+    static void set(UnityGfxRenderer);
+
     static void set(Type graphicsAPI);
 
     static void set(GraphicsAPI *graphicsAPI);
@@ -48,5 +53,9 @@ public:
 
     virtual void finishOneTimeSubmits() = 0;
 
+    virtual bool useUnityInterfaces(IUnityInterfaces *) = 0;
+
     virtual ~GraphicsAPI() = default;
+
+    static std::vector<GraphicsAPI *> getAllGraphicsAPIs();
 };

@@ -62,6 +62,8 @@ public class EnableDLSS : MonoBehaviour
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
         }
 
         _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
