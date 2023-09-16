@@ -62,8 +62,6 @@ public class EnableDLSS : MonoBehaviour
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
         }
 
         _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
@@ -88,21 +86,25 @@ public class EnableDLSS : MonoBehaviour
         // _beforeOpaque is added in two places to handle forward and deferred rendering
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
     }
 
     private void RecordCommandBuffers()
     {
         if (_upscale != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
+        }
 
         _upscale = new CommandBuffer();
 
         _upscale.name = "Upscale";
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
 
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
     }
 
     // Start is called before the first frame update
@@ -147,12 +149,15 @@ public class EnableDLSS : MonoBehaviour
             _outColorTarget.Create();
             _motionVectorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
-            _depthTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, DefaultFormat.DepthStencil);
+            _depthTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, DefaultFormat.DepthStencil)
+            {
+                filterMode = FilterMode.Point
+            };
             _depthTarget.Create();
-            Upscaler_Prepare(_depthTarget.depthBuffer.GetNativeRenderBufferPtr(), _depthTarget.depthStencilFormat,
-                _motionVectorTarget.colorBuffer.GetNativeRenderBufferPtr(), _motionVectorTarget.graphicsFormat,
-                _inColorTarget.colorBuffer.GetNativeRenderBufferPtr(), _inColorTarget.graphicsFormat,
-                _outColorTarget.colorBuffer.GetNativeRenderBufferPtr(), _outColorTarget.graphicsFormat
+            Upscaler_Prepare(_depthTarget.GetNativeDepthBufferPtr(), _depthTarget.depthStencilFormat,
+                _motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat,
+                _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
+                _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
             );
             SetUpCommandBuffers();
         }
