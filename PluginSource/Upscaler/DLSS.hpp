@@ -43,11 +43,20 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Handle     *featureHandle{};
     NVSDK_NGX_Parameter  *parameters{};
     NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
+    NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
+    NVSDK_NGX_Resource_VK vulkanInColorResource{};
+    NVSDK_NGX_Resource_VK vulkanOutColorResource{};
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
-    static bool (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
+    static bool (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
       void *,
       UnityRenderingExtTextureFormat
     );
@@ -61,7 +70,16 @@ class DLSS : public Upscaler {
 
     bool VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
-    bool VulkanSetDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat);
+    bool VulkanSetImageResources(
+      void                          *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat unityDepthFormat,
+      void                          *nativeMotionVectors,
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void                          *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void                          *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
+    );
 
     bool VulkanEvaluate();
 
@@ -107,7 +125,16 @@ public:
 
     bool createFeature() override;
 
-    bool setDepthBuffer(void *nativeBuffer, UnityRenderingExtTextureFormat unityFormat) override;
+    bool setImageResources(
+      void                          *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat unityDepthFormat,
+      void                          *nativeMotionVectors,
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void                          *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void                          *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
+    ) override;
 
     bool evaluate() override;
 

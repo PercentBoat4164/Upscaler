@@ -8,7 +8,7 @@ private:
 
 public:
     static NoGraphicsAPI *get();
-    Type getType() override;
-    void prepareForOneTimeSubmits() override;
-    void finishOneTimeSubmits() override;
+    Type                  getType() override;
+    void                  prepareForOneTimeSubmits() override;
+    void                  finishOneTimeSubmits() override;
 };

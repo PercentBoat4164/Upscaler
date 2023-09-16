@@ -8,7 +8,7 @@
 
 class GraphicsAPI {
 private:
-    static GraphicsAPI    *graphicsAPIInUse;
+    static GraphicsAPI *graphicsAPIInUse;
 
 public:
     enum Type {

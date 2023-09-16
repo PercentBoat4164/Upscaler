@@ -7,7 +7,7 @@ private:
     NoUpscaler() = default;
 
 public:
-    static NoUpscaler *get();
+    static NoUpscaler       *get();
     Type                     getType() override;
     std::string              getName() override;
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
@@ -22,10 +22,19 @@ public:
     bool     isAvailable() override;
     bool     initialize() override;
     bool     createFeature() override;
-    bool     setDepthBuffer(void *pVoid, UnityRenderingExtTextureFormat format) override;
-    bool     evaluate() override;
-    bool     releaseFeature() override;
-    bool     shutdown() override;
+    bool     setImageResources(
+          void                          *nativeDepthBuffer,
+          UnityRenderingExtTextureFormat unityDepthFormat,
+          void                          *nativeMotionVectors,
+          UnityRenderingExtTextureFormat unityMotionVectorFormat,
+          void                          *nativeInColor,
+          UnityRenderingExtTextureFormat unityInColorFormat,
+          void                          *nativeOutColor,
+          UnityRenderingExtTextureFormat unityOutColorFormat
+        ) override;
+    bool evaluate() override;
+    bool releaseFeature() override;
+    bool shutdown() override;
 
 protected:
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;

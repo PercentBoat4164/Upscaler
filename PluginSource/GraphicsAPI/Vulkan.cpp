@@ -11,6 +11,7 @@ PFN_vkCreateDevice                         Vulkan::m_vkCreateDevice{VK_NULL_HAND
 PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionProperties{VK_NULL_HANDLE};
 
 PFN_vkCreateImageView        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
+PFN_vkDestroyImageView       Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
 PFN_vkCreateCommandPool      Vulkan::m_vkCreateCommandPool{VK_NULL_HANDLE};
 PFN_vkAllocateCommandBuffers Vulkan::m_vkAllocateCommandBuffers{VK_NULL_HANDLE};
 PFN_vkBeginCommandBuffer     Vulkan::m_vkBeginCommandBuffer{VK_NULL_HANDLE};
@@ -114,6 +115,7 @@ bool Vulkan::loadInstanceFunctionPointers() {
 bool Vulkan::loadLateFunctionPointers() {
     // clang-format off
     m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, "vkCreateImageView"));
+    m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, "vkDestroyImageView"));
     m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(device, "vkCreateCommandPool"));
     m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"));
     m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"));
@@ -123,11 +125,12 @@ bool Vulkan::loadLateFunctionPointers() {
     m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkResetCommandBuffer"));
     m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
     m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
-    return (m_vkCreateImageView != VK_NULL_HANDLE) && (m_vkCreateCommandPool != VK_NULL_HANDLE) &&
-      (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) && (m_vkBeginCommandBuffer != VK_NULL_HANDLE) &&
-      (m_vkEndCommandBuffer != VK_NULL_HANDLE) && (m_vkQueueSubmit != VK_NULL_HANDLE) &&
-      (m_vkQueueWaitIdle != VK_NULL_HANDLE) && (m_vkResetCommandBuffer != VK_NULL_HANDLE) &&
-      (m_vkFreeCommandBuffers != VK_NULL_HANDLE) && (m_vkDestroyCommandPool != VK_NULL_HANDLE);
+    return (m_vkCreateImageView != VK_NULL_HANDLE) && (m_vkDestroyImageView != VK_NULL_HANDLE) &&
+      (m_vkCreateCommandPool != VK_NULL_HANDLE) && (m_vkAllocateCommandBuffers != VK_NULL_HANDLE) &&
+      (m_vkBeginCommandBuffer != VK_NULL_HANDLE) && (m_vkEndCommandBuffer != VK_NULL_HANDLE) &&
+      (m_vkQueueSubmit != VK_NULL_HANDLE) && (m_vkQueueWaitIdle != VK_NULL_HANDLE) &&
+      (m_vkResetCommandBuffer != VK_NULL_HANDLE) && (m_vkFreeCommandBuffers != VK_NULL_HANDLE) &&
+      (m_vkDestroyCommandPool != VK_NULL_HANDLE);
     // clang-format on
 }
 
@@ -148,8 +151,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
 ) {
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-        upscaler->setSupported(true);
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->setSupported(true);
 
     VkInstanceCreateInfo createInfo = *pCreateInfo;
     std::stringstream    message;
@@ -209,7 +211,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
             else
                 Logger::log(
-                  "Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan instance."
+                  "Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance."
                 );
         std::string msg = message.str();
         if (!msg.empty()) Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
@@ -218,7 +220,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
             if (!upscaler->getRequiredVulkanInstanceExtensions().empty()) upscaler->isSupportedAfter(false);
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->instance = *pInstance;
-        else Logger::log("Failed to createFeature a Vulkan instance!");
+        else Logger::log("Failed to create a Vulkan instance!");
     }
     return result;
 }
@@ -300,7 +302,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
-            else Logger::log("Failed to createFeature a(n) " + upscaler->getName() + " compatible Vulkan device.");
+            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan device.");
         std::string msg = message.str();
         if (!msg.empty()) Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
     } else {
@@ -310,7 +312,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 upscaler->isSupportedAfter(false);
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->device = *pDevice;
-        else Logger::log("Failed to createFeature a Vulkan instance!");
+        else Logger::log("Failed to create a Vulkan instance!");
     }
     if (GraphicsAPI::get<Vulkan>()->device != VK_NULL_HANDLE)
         GraphicsAPI::get<Vulkan>()->loadLateFunctionPointers();
@@ -366,13 +368,13 @@ Vulkan *Vulkan::get() {
     return vulkan;
 }
 
-VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
+VkImageView Vulkan::get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
     // clang-format off
     VkImageViewCreateInfo createInfo{
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
       .flags    = 0x0,
-      .image    = depthImage,
+      .image    = image,
       .viewType = VK_IMAGE_VIEW_TYPE_2D,
       .format   = format,
       .components = {
@@ -380,7 +382,7 @@ VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
       },
       .subresourceRange = {
-        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .aspectMask     = flags,
         .baseMipLevel   = 0,
         .levelCount     = 1,
         .baseArrayLayer = 0,
@@ -390,8 +392,12 @@ VkImageView Vulkan::getDepthImageView(VkImage depthImage, VkFormat format) {
     // clang-format on
 
     VkImageView view{VK_NULL_HANDLE};
-    if (m_vkCreateImageView(device, &createInfo, nullptr, &view) == VK_SUCCESS) return view;
-    return VK_NULL_HANDLE;
+    m_vkCreateImageView(device, &createInfo, nullptr, &view);
+    return view;
+}
+
+void Vulkan::destroyImageView(VkImageView viewToDestroy) {
+    m_vkDestroyImageView(device, viewToDestroy, nullptr);
 }
 
 VkFormat Vulkan::getFormat(UnityRenderingExtTextureFormat format) {

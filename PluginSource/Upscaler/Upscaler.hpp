@@ -30,6 +30,8 @@ protected:
     /// such as the rendering resolution being too small or too big for the upscaler to work with.
     bool active{};
 
+    float thisFrameJitterValues[2] = {0.F, 0.F};
+
     template<typename... Args>
     constexpr bool safeFail(Args... /* unused */) {
         return false;
@@ -60,14 +62,14 @@ public:
             uint64_t asLong() const;
         };
 
-        Quality    quality;
+        Quality    quality{QUALITY};
         Resolution renderResolution{};
         Resolution dynamicMaximumRenderResolution{};
         Resolution dynamicMinimumRenderResolution{};
         Resolution presentResolution{};
         float      sharpness{};
-        bool       lowResolutionMotionVectors{};
-        bool       jitteredMotionVectors{};
+        bool       lowResolutionMotionVectors{true};
+        bool       jitteredMotionVectors{true};
         bool       HDR{};
         bool       invertedDepth{};
         bool       autoExposure{};
@@ -151,7 +153,18 @@ public:
 
     virtual bool createFeature() = 0;
 
-    virtual bool setDepthBuffer(void *, UnityRenderingExtTextureFormat) = 0;
+    virtual bool setImageResources(
+      void                          *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat unityDepthFormat,
+      void                          *nativeMotionVectors,
+      UnityRenderingExtTextureFormat unityMotionVectorFormat,
+      void                          *nativeInColor,
+      UnityRenderingExtTextureFormat unityInColorFormat,
+      void                          *nativeOutColor,
+      UnityRenderingExtTextureFormat unityOutColorFormat
+    ) = 0;
+
+    void setJitterInformation(float, float);
 
     virtual bool evaluate() = 0;
 

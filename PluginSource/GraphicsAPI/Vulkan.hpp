@@ -6,13 +6,13 @@
 // Unity
 #include <IUnityGraphics.h>
 #include <IUnityGraphicsVulkan.h>
+#include <IUnityRenderingExtensions.h>
 
 // Upscaler
 #include <nvsdk_ngx_defs.h>
 
 // Standard library
 #include <cstring>
-#include <IUnityRenderingExtensions.h>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
@@ -37,6 +37,7 @@ private:
     VkDevice                device;
 
     static PFN_vkCreateImageView        m_vkCreateImageView;
+    static PFN_vkDestroyImageView       m_vkDestroyImageView;
     static PFN_vkCreateCommandPool      m_vkCreateCommandPool;
     static PFN_vkAllocateCommandBuffers m_vkAllocateCommandBuffers;
     static PFN_vkBeginCommandBuffer     m_vkBeginCommandBuffer;
@@ -107,9 +108,10 @@ public:
 
     static VkFormat getFormat(UnityRenderingExtTextureFormat format);
 
-    VkImageView getDepthImageView(VkImage depthImage, VkFormat format);
+    VkImageView get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
 
     Type getType() override;
 
     ~Vulkan() override = default;
+    void destroyImageView(VkImageView pT);
 };

@@ -56,7 +56,16 @@ bool NoUpscaler::createFeature() {
     return false;
 }
 
-bool NoUpscaler::setDepthBuffer(void *pVoid, UnityRenderingExtTextureFormat format) {
+bool NoUpscaler::setImageResources(
+  void                          *nativeDepthBuffer,
+  UnityRenderingExtTextureFormat unityDepthFormat,
+  void                          *nativeMotionVectors,
+  UnityRenderingExtTextureFormat unityMotionVectorFormat,
+  void                          *nativeInColor,
+  UnityRenderingExtTextureFormat unityInColorFormat,
+  void                          *nativeOutColor,
+  UnityRenderingExtTextureFormat unityOutColorFormat
+) {
     return false;
 }
 
