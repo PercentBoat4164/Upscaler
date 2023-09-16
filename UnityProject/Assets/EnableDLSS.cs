@@ -224,10 +224,11 @@ public class EnableDLSS : MonoBehaviour
             }
 
             var camJitter = NextJitter();
+            camJitter = new Tuple<float, float>(camJitter.Item1 / renderWidth, camJitter.Item2 /renderHeight);
             cam.ResetProjectionMatrix();
             var tempProj = cam.projectionMatrix;
-            tempProj.m03 += (camJitter.Item1 - _lastJitter.Item1) / renderWidth;
-            tempProj.m13 += (camJitter.Item2 - _lastJitter.Item2) / renderHeight;
+            tempProj.m03 += camJitter.Item1 - _lastJitter.Item1;
+            tempProj.m13 += camJitter.Item2 - _lastJitter.Item2;
             cam.projectionMatrix = tempProj;
             _lastJitter = camJitter;
             return camJitter;
