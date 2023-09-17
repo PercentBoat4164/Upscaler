@@ -77,7 +77,7 @@ public class EnableDLSS : MonoBehaviour
 
         _preUpscale.name = "Copy To Upscaler";
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
-        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget, inverseScale, offset);
+        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
         _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
         _preUpscale.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
 
