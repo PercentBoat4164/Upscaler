@@ -135,7 +135,13 @@ public class EnableDLSS : MonoBehaviour
         {
             _presentWidth = (uint)Screen.width;
             _presentHeight = (uint)Screen.height;
-            var size = Upscaler_ResizeTargets(_presentWidth, _presentHeight);
+
+            var isHDRRenderActive = RenderSettings.ambientMode == UnityEngine.Rendering.AmbientMode.Skybox &&
+                                    RenderSettings.skybox != null &&
+                                    RenderSettings.skybox.HasProperty("_Exposure");
+            Debug.Log(isHDRRenderActive);
+
+            var size = Upscaler_ResizeTargets(_presentWidth, _presentHeight, isHDRRenderActive);
             if (size == 0)
                 return;
             _renderWidth = (uint)(size >> 32);
@@ -189,7 +195,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern bool Upscaler_Initialize();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_ResizeTargets(uint width, uint height);
+    private static extern ulong Upscaler_ResizeTargets(uint width, uint height, bool HDR);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Prepare(

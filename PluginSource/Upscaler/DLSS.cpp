@@ -666,12 +666,13 @@ bool DLSS::shutdown() {
     return (this->*graphicsAPIIndependentShutdownFunctionPointer)();
 }
 
-Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_presentResolution) {
+Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_presentResolution, bool t_HDR) {
     settings.presentResolution = t_presentResolution;
 
     if (parameters == nullptr) return settings;
 
     Settings optimalSettings = settings;
+    optimalSettings.HDR = t_HDR;
 
     NVSDK_NGX_PerfQuality_Value DLSSQuality = optimalSettings.getQuality<Upscaler::DLSS>();
     NVSDK_NGX_Result result = NGX_DLSS_GET_OPTIMAL_SETTINGS(

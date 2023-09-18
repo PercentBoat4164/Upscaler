@@ -13,7 +13,7 @@ public:
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
     std::vector<std::string>
              getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice device) override;
-    Settings getOptimalSettings(Settings::Resolution resolution) override;
+    Settings getOptimalSettings(Settings::Resolution resolution, bool) override;
     bool     isSupportedAfter(bool b) override;
     void     setSupported(bool b) override;
     bool     isAvailableAfter(bool b) override;

@@ -11,7 +11,7 @@ public class MoveCube : MonoBehaviour
     private Transform _transform;
     
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         _transform = transform;
         _targetRotation = _transform.eulerAngles;
@@ -19,7 +19,7 @@ public class MoveCube : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (!Input.GetKey("m"))
             return;
