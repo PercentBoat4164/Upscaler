@@ -93,7 +93,7 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_ResizeTa
     if (!Upscaler::get()->isSupported()) return 0;
     Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height});
 
-    return Upscaler::settings.renderResolution.asLong();
+    return Upscaler::settings.inputResolution.asLong();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API
@@ -118,7 +118,8 @@ Upscaler_Prepare(
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
-    Upscaler::get()->setJitterInformation(x, y);
+    Upscaler::settings.jitter[0] = x;
+    Upscaler::settings.jitter[1] = y;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {

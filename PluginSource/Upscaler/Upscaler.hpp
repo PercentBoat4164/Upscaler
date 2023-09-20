@@ -21,7 +21,10 @@
 
 class Upscaler {
 private:
-    static Upscaler *upscalerInUse;
+    static Upscaler         *upscalerInUse;
+    constexpr static uint8_t ERROR_TYPE_OFFSET = 30;
+    constexpr static uint8_t ERROR_CODE_OFFSET = 16;
+    constexpr static uint8_t ERROR_RECOVERABLE = 1;
 
 protected:
     /// This hardware supports, and Unity was successfully initialized with this upscaler.
@@ -32,8 +35,6 @@ protected:
     /// such as the rendering resolution being too small or too big for the upscaler to work with.
     bool active{};
 
-    float thisFrameJitterValues[2] = {0.F, 0.F};
-
     template<typename... Args>
     constexpr bool safeFail(Args... /* unused */) {
         return false;
@@ -42,6 +43,28 @@ protected:
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
 
 public:
+    // [31-30] = Error type
+    // [29-16] = Error code
+    // [15-1] = RESERVED
+    // [0] = Recoverable
+    enum ErrorReason {
+        HARDWARE_ISSUE                                   = 1U << ERROR_TYPE_OFFSET,
+        HARDWARE_ISSUE_DEVICE_EXTENSIONS_NOT_SUPPORTED   = HARDWARE_ISSUE | 1U << ERROR_CODE_OFFSET,
+        HARDWARE_ISSUE_DEVICE_NOT_SUPPORTED              = HARDWARE_ISSUE | 2U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE                                   = 2U << ERROR_TYPE_OFFSET,
+        SOFTWARE_ISSUE_INSTANCE_EXTENSIONS_NOT_SUPPORTED = SOFTWARE_ISSUE | 1U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE_DEVICE_DRIVERS_OUT_OF_DATE        = SOFTWARE_ISSUE | 2U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE_OPERATING_SYSTEM_NOT_SUPPORTED    = SOFTWARE_ISSUE | 3U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE_INVALID_WRITE_PERMISSIONS         = SOFTWARE_ISSUE | 4U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE_FEATURE_DENIED                    = SOFTWARE_ISSUE | 5U << ERROR_CODE_OFFSET,
+        SOFTWARE_ISSUE_OUT_OF_GPU_MEMORY                 = SOFTWARE_ISSUE | 6U << ERROR_CODE_OFFSET,
+        SETTINGS_ISSUE                                   = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
+        SETTINGS_ISSUE_INPUT_RESOLUTION_TOO_SMALL       = SETTINGS_ISSUE | 1U << ERROR_CODE_OFFSET,
+        SETTINGS_ISSUE_INPUT_RESOLUTION_TOO_BIG         = SETTINGS_ISSUE | 2U << ERROR_CODE_OFFSET,
+        SETTINGS_ISSUE_UPSCALER_NOT_AVAILABLE            = SETTINGS_ISSUE | 3U << ERROR_CODE_OFFSET,
+        SETTINGS_ISSUE_QUALITY_MODE_NOT_AVAILABLE        = SETTINGS_ISSUE | 4U << ERROR_CODE_OFFSET,
+    };
+
     enum Type {
         NONE,
         DLSS,
@@ -65,15 +88,13 @@ public:
         };
 
         Quality    quality{QUALITY};
-        Resolution renderResolution{};
-        Resolution dynamicMaximumRenderResolution{};
-        Resolution dynamicMinimumRenderResolution{};
-        Resolution presentResolution{};
+        Resolution inputResolution{};
+        Resolution dynamicMaximumInputResolution{};
+        Resolution dynamicMinimumInputResolution{};
+        Resolution outputResolution{};
+        float      jitter[2] = {0.F, 0.F};
         float      sharpness{};
-        bool       lowResolutionMotionVectors{true};
-        bool       jitteredMotionVectors{true};
         bool       HDR{};
-        bool       invertedDepth{};
         bool       autoExposure{};
 
         template<Type T, typename _ = std::enable_if_t<T == Upscaler::NONE>>
@@ -167,8 +188,6 @@ public:
       void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) = 0;
-
-    void setJitterInformation(float, float);
 
     virtual bool evaluate() = 0;
 

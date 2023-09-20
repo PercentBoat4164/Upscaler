@@ -21,10 +21,10 @@ public class EnableDLSS : MonoBehaviour
 
     private delegate void DebugCallback(IntPtr message);
 
-    private uint _presentHeight;
-    private uint _presentWidth;
-    private uint _renderWidth;
-    private uint _renderHeight;
+    private uint _outputHeight;
+    private uint _outputWidth;
+    private uint _inputWidth;
+    private uint _inputHeight;
     private RenderTexture _motionVectorTarget;
     private RenderTexture _inColorTarget;
     private RenderTexture _outColorTarget;
@@ -52,11 +52,11 @@ public class EnableDLSS : MonoBehaviour
 
     private void SetUpCommandBuffers()
     {
-        var scale = new Vector2((float)_presentWidth / _renderWidth, (float)_presentHeight / _renderHeight);
-        var inverseScale = new Vector2((float)_renderWidth / _presentWidth, (float)_renderHeight / _presentHeight);
+        var scale = new Vector2((float)_outputWidth / _inputWidth, (float)_outputHeight / _inputHeight);
+        var inverseScale = new Vector2((float)_inputWidth / _outputWidth, (float)_inputHeight / _outputHeight);
         var offset = new Vector2(0, 0);
-        var renderResolution = new Vector2(_renderWidth, _renderHeight);
-        var presentResolution = new Vector2(_presentWidth, _presentHeight);
+        var inputResolution = new Vector2(_inputWidth, _inputHeight);
+        var outputResolution = new Vector2(_outputWidth, _outputHeight);
 
         if (_beforeOpaque != null)
         {
@@ -73,13 +73,13 @@ public class EnableDLSS : MonoBehaviour
         _postUpscale = new CommandBuffer();
 
         _beforeOpaque.name = "Set Render Resolution";
-        _beforeOpaque.SetViewport(new Rect(0, 0, _renderWidth, _renderHeight));
+        _beforeOpaque.SetViewport(new Rect(0, 0, _inputWidth, _inputHeight));
 
         _preUpscale.name = "Copy To Upscaler";
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
         _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
         _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);  // Does not work. Fix me.
-        _preUpscale.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+        _preUpscale.SetViewport(new Rect(0, 0, _outputWidth, _outputHeight));
 
         _postUpscale.name = "Copy From Upscaler";
         _postUpscale.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
@@ -131,15 +131,15 @@ public class EnableDLSS : MonoBehaviour
         if (!Upscaler_IsSupported(Type.DLSS))
             return;
 
-        if (Screen.width != _presentWidth || Screen.height != _presentHeight)
+        if (Screen.width != _outputWidth || Screen.height != _outputHeight)
         {
-            _presentWidth = (uint)Screen.width;
-            _presentHeight = (uint)Screen.height;
-            var size = Upscaler_ResizeTargets(_presentWidth, _presentHeight);
+            _outputWidth = (uint)Screen.width;
+            _outputHeight = (uint)Screen.height;
+            var size = Upscaler_ResizeTargets(_outputWidth, _outputHeight);
             if (size == 0)
                 return;
-            _renderWidth = (uint)(size >> 32);
-            _renderHeight = (uint)(size & 0xFFFFFFFF);
+            _inputWidth = (uint)(size >> 32);
+            _inputHeight = (uint)(size & 0xFFFFFFFF);
 
             if (_inColorTarget != null)
             {
@@ -149,17 +149,17 @@ public class EnableDLSS : MonoBehaviour
                 _depthTarget.Release();
             }
 
-            _inColorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
+            _inColorTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
             _inColorTarget.Create();
             _outColorTarget =
-                new RenderTexture((int)_presentWidth, (int)_presentHeight, 0, GraphicsFormat.R8G8B8A8_UNorm)
+                new RenderTexture((int)_outputWidth, (int)_outputHeight, 0, GraphicsFormat.R8G8B8A8_UNorm)
                 {
                     enableRandomWrite = true
                 };
             _outColorTarget.Create();
-            _motionVectorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R32G32_SFloat);
+            _motionVectorTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
-            _depthTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, DefaultFormat.DepthStencil)
+            _depthTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, DefaultFormat.DepthStencil)
             {
                 filterMode = FilterMode.Point
             };
@@ -174,7 +174,7 @@ public class EnableDLSS : MonoBehaviour
 
         RecordCommandBuffers();
 
-        var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_presentWidth / _renderWidth), _renderWidth, _renderHeight);
+        var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_outputWidth / _inputWidth), _inputWidth, _inputHeight);
         Upscaler_SetJitterInformation(jitter.Item1, jitter.Item2);
     }
 
@@ -228,7 +228,7 @@ public class EnableDLSS : MonoBehaviour
         private List<Tuple<float, float>> _jitterSamples;
         private Tuple<float, float> _lastJitter = new(0,0);
 
-        public Tuple<float, float> JitterCamera(Camera cam, int scaleFactor, uint renderWidth, uint renderHeight)
+        public Tuple<float, float> JitterCamera(Camera cam, int scaleFactor, uint inputWidth, uint inputHeight)
         {
             if (scaleFactor != _prevScaleFactor)
             {
@@ -239,7 +239,7 @@ public class EnableDLSS : MonoBehaviour
             }
 
             var camJitter = NextJitter();
-            camJitter = new Tuple<float, float>(camJitter.Item1 / renderWidth, camJitter.Item2 /renderHeight);
+            camJitter = new Tuple<float, float>(camJitter.Item1 / inputWidth, camJitter.Item2 / inputHeight);
             cam.ResetProjectionMatrix();
             var tempProj = cam.projectionMatrix;
             tempProj.m03 += camJitter.Item1 - _lastJitter.Item1;

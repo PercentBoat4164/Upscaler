@@ -119,8 +119,8 @@ bool DLSS::VulkanSetImageResources(
             .layerCount     = 1,
           },
           .Format = depthFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Width  = settings.inputResolution.width,
+          .Height = settings.inputResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -140,8 +140,8 @@ bool DLSS::VulkanSetImageResources(
             .layerCount     = 1,
           },
           .Format = motionVectorFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Width  = settings.inputResolution.width,
+          .Height = settings.inputResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -161,8 +161,8 @@ bool DLSS::VulkanSetImageResources(
             .layerCount     = 1,
           },
           .Format = inColorFormat,
-          .Width  = settings.renderResolution.width,
-          .Height = settings.renderResolution.height,
+          .Width  = settings.inputResolution.width,
+          .Height = settings.inputResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -182,8 +182,8 @@ bool DLSS::VulkanSetImageResources(
             .layerCount     = 1,
           },
           .Format = outColorFormat,
-          .Width  = settings.presentResolution.width,
-          .Height = settings.presentResolution.height,
+          .Width  = settings.outputResolution.width,
+          .Height = settings.outputResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -210,14 +210,14 @@ bool DLSS::VulkanEvaluate() {
       },
       .pInDepth                  = depth.vulkan,
       .pInMotionVectors          = motion.vulkan,
-      .InJitterOffsetX           = thisFrameJitterValues[0],
-      .InJitterOffsetY           = thisFrameJitterValues[1],
+      .InJitterOffsetX           = settings.jitter[0],
+      .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderResolution.width,
-        .Height = settings.renderResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
-      .InMVScaleX = (float)settings.renderResolution.width,
-      .InMVScaleY = (float)settings.renderResolution.height,
+      .InMVScaleX = (float)settings.inputResolution.width,
+      .InMVScaleY = (float)settings.inputResolution.height,
     };
     // clang-format on
 
@@ -309,14 +309,14 @@ bool DLSS::DX12Evaluate() {
       },
       .pInDepth                  = depth.dx12,
       .pInMotionVectors          = motion.dx12,
-      .InJitterOffsetX           = thisFrameJitterValues[0],
-      .InJitterOffsetY           = thisFrameJitterValues[1],
+      .InJitterOffsetX           = settings.jitter[0],
+      .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderResolution.width,
-        .Height = settings.renderResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
-      .InMVScaleX = (float)settings.renderResolution.width,
-      .InMVScaleY = (float)settings.renderResolution.height,
+      .InMVScaleX = (float)settings.inputResolution.width,
+      .InMVScaleY = (float)settings.inputResolution.height,
     };
     // clang-format on
 
@@ -402,14 +402,14 @@ bool DLSS::DX11Evaluate() {
       },
       .pInDepth                  = depth.dx11,
       .pInMotionVectors          = motion.dx11,
-      .InJitterOffsetX           = thisFrameJitterValues[0],
-      .InJitterOffsetY           = thisFrameJitterValues[1],
+      .InJitterOffsetX           = settings.jitter[0],
+      .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderResolution.width,
-        .Height = settings.renderResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
-      .InMVScaleX = (float)settings.renderResolution.width,
-      .InMVScaleY = (float)settings.renderResolution.height,
+      .InMVScaleX = (float)settings.inputResolution.width,
+      .InMVScaleY = (float)settings.inputResolution.height,
     };
     // clang-format on
 
@@ -652,18 +652,16 @@ bool DLSS::initialize() {
 bool DLSS::createFeature() {
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{
       .Feature = {
-        .InWidth            = settings.renderResolution.width,
-        .InHeight           = settings.renderResolution.height,
-        .InTargetWidth      = settings.presentResolution.width,
-        .InTargetHeight     = settings.presentResolution.height,
+        .InWidth            = settings.inputResolution.width,
+        .InHeight           = settings.inputResolution.height,
+        .InTargetWidth      = settings.outputResolution.width,
+        .InTargetHeight     = settings.outputResolution.height,
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
       .InFeatureCreateFlags = static_cast<int>(
-        (settings.lowResolutionMotionVectors ? NVSDK_NGX_DLSS_Feature_Flags_MVLowRes : 0U) |
-        (settings.jitteredMotionVectors ? NVSDK_NGX_DLSS_Feature_Flags_MVJittered : 0U) |
-        (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
-        (settings.invertedDepth ? NVSDK_NGX_DLSS_Feature_Flags_DepthInverted : 0U) |
+        NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_MVJittered |
         (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
+        (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)
       ),
       .InEnableOutputSubrects = false,
@@ -686,7 +684,7 @@ bool DLSS::shutdown() {
 }
 
 Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_presentResolution) {
-    settings.presentResolution = t_presentResolution;
+    settings.outputResolution = t_presentResolution;
 
     if (parameters == nullptr) return settings;
 
@@ -695,21 +693,21 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
     NVSDK_NGX_PerfQuality_Value DLSSQuality = optimalSettings.getQuality<Upscaler::DLSS>();
     NVSDK_NGX_Result result = NGX_DLSS_GET_OPTIMAL_SETTINGS(
       parameters,
-      optimalSettings.presentResolution.width,
-      optimalSettings.presentResolution.height,
+      optimalSettings.outputResolution.width,
+      optimalSettings.outputResolution.height,
       DLSSQuality,
-      &optimalSettings.renderResolution.width,
-      &optimalSettings.renderResolution.height,
-      &optimalSettings.dynamicMaximumRenderResolution.width,
-      &optimalSettings.dynamicMaximumRenderResolution.height,
-      &optimalSettings.dynamicMinimumRenderResolution.width,
-      &optimalSettings.dynamicMinimumRenderResolution.height,
+      &optimalSettings.inputResolution.width,
+      &optimalSettings.inputResolution.height,
+      &optimalSettings.dynamicMaximumInputResolution.width,
+      &optimalSettings.dynamicMaximumInputResolution.height,
+      &optimalSettings.dynamicMinimumInputResolution.width,
+      &optimalSettings.dynamicMinimumInputResolution.height,
       &optimalSettings.sharpness
     );
     if (!isAvailableAfter(NVSDK_NGX_SUCCEED(result))) {
-        optimalSettings.renderResolution               = optimalSettings.presentResolution;
-        optimalSettings.dynamicMaximumRenderResolution = optimalSettings.presentResolution;
-        optimalSettings.dynamicMinimumRenderResolution = optimalSettings.presentResolution;
+        optimalSettings.inputResolution                = optimalSettings.outputResolution;
+        optimalSettings.dynamicMaximumInputResolution  = optimalSettings.outputResolution;
+        optimalSettings.dynamicMinimumInputResolution  = optimalSettings.outputResolution;
         optimalSettings.sharpness                      = 0.F;
     }
 
