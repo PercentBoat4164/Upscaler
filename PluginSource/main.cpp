@@ -52,11 +52,12 @@ void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
     }
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void * UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
+extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
     return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
+Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
     Logger::setLoggerCallback(t_debugFunction);
     Logger::flush();
 
@@ -70,55 +71,61 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Set(Upscaler
     return Upscaler::get()->initialize();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsSupported(Upscaler::Type type) {
-    return Upscaler::get(type)->isSupported();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetError(Upscaler::Type type) {
+    return Upscaler::get(type)->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsCurrentlyAvailable() {
-    return Upscaler::get()->isSupported();
+extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
+    return Upscaler::get(type)->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsAvailable(Upscaler::Type type) {
-    return Upscaler::get(type)->isAvailable();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetCurrentError() {
+    return Upscaler::get()->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Initialize() {
+extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
+    return Upscaler::get()->getErrorMessage().c_str();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_Initialize() {
     Upscaler::get()->initialize();
-    return Upscaler::get()->isSupported();
+    return Upscaler::get()->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height) {
-    Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
-
-    if (!Upscaler::get()->isSupported()) return 0;
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height});
-
-    return Upscaler::settings.renderResolution.asLong();
+extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
+Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height, bool t_HDR) {
+    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_HDR);
+    return Upscaler::settings.inputResolution.asLong();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API
-Upscaler_Prepare(
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
   UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void *nativeInColor,
+  void                          *nativeInColor,
   UnityRenderingExtTextureFormat unityInColorFormat,
-  void *nativeOutColor,
+  void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    bool available = Upscaler::get()->isAvailableAfter(
-      Upscaler::get()->setImageResources(
-        nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat, nativeInColor, unityInColorFormat, nativeOutColor, unityOutColorFormat
-      )
-    );
+    bool available = Upscaler::get()->setErrorIf(Upscaler::get()->setImageResources(
+      nativeDepthBuffer,
+      unityDepthFormat,
+      nativeMotionVectors,
+      unityMotionVectorFormat,
+      nativeInColor,
+      unityInColorFormat,
+      nativeOutColor,
+      unityOutColorFormat
+    ), Upscaler::SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR);
 
     Upscaler::get()->createFeature();
     return available;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
-    Upscaler::get()->setJitterInformation(x, y);
+    Upscaler::settings.jitter[0] = x;
+    Upscaler::settings.jitter[1] = y;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {

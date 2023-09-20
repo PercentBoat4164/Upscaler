@@ -170,10 +170,9 @@ VkResult Vulkan::Hook_vkCreateInstance(
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
 ) {
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->setSupported(true);
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->resetError();
 
     VkInstanceCreateInfo createInfo = *pCreateInfo;
-    std::stringstream    message;
 
     // Find out which extensions are supported
     std::vector<std::string> supportedExtensions = Vulkan::getSupportedInstanceExtensions();
@@ -186,20 +185,27 @@ VkResult Vulkan::Hook_vkCreateInstance(
 
     // Enable requested extensions in groups
     std::vector<std::string> newExtensions;
+    std::vector<std::string> unsupportedExtensions;
+    size_t i{};
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+        unsupportedExtensions.push_back("");
         // Mark supported features as such
         std::vector<std::string> requestedExtensions = upscaler->getRequiredVulkanInstanceExtensions();
         uint32_t                 supportedRequestedExtensionCount{};
         for (const std::string &requestedExtension : requestedExtensions) {
+            uint32_t currentSupportedRequestedExtensionCount{supportedRequestedExtensionCount};
             for (const std::string &supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
                     break;
                 }
             }
+            // Add any unsupported extensions to the unsupported extension string for this upscaler.
+            if (currentSupportedRequestedExtensionCount == supportedRequestedExtensionCount)
+                unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->isSupportedAfter(supportedRequestedExtensionCount == requestedExtensions.size())) {
+        if (upscaler->setErrorIf(supportedRequestedExtensionCount == requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED)) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -211,10 +217,10 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 if (enableExtension) {
                     newExtensions.push_back(extension);
                     enabledExtensions.push_back(newExtensions[newExtensions.size() - 1].c_str());
-                    message << extension << ", ";
                 }
             }
         }
+        ++i;
     }
 
     // Modify the createInfo.
@@ -225,21 +231,15 @@ VkResult Vulkan::Hook_vkCreateInstance(
     VkResult result = m_vkCreateInstance(&createInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->instance = *pInstance;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            if (upscaler->isSupported())
-                Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
-            else
-                Logger::log(
-                  "Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance."
-                );
-        std::string msg = message.str();
-        if (!msg.empty()) Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
+        i = 0;
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+            if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED)
+                upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
+            ++i;
+        }
     } else {
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            if (!upscaler->getRequiredVulkanInstanceExtensions().empty()) upscaler->isSupportedAfter(false);
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->instance = *pInstance;
-        else Logger::log("Failed to create a Vulkan instance!");
     }
     return result;
 }
@@ -278,21 +278,28 @@ VkResult Vulkan::Hook_vkCreateDevice(
 
     // Enable requested extensions in groups
     std::vector<std::string> newExtensions;
+    std::vector<std::string> unsupportedExtensions;
+    size_t i{};
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+        unsupportedExtensions.push_back("");
         // Mark supported features as such
         std::vector<std::string> requestedExtensions =
           upscaler->getRequiredVulkanDeviceExtensions(GraphicsAPI::get<Vulkan>()->instance, physicalDevice);
         uint32_t supportedRequestedExtensionCount{};
         for (const std::string &requestedExtension : requestedExtensions) {
+            uint32_t currentSupportedRequestedExtensionCount{supportedRequestedExtensionCount};
             for (const std::string &supportedExtension : supportedExtensions) {
                 if (requestedExtension == supportedExtension) {
                     ++supportedRequestedExtensionCount;
                     break;
                 }
             }
+            // Add any unsupported extensions to the unsupported extension string for this upscaler.
+            if (currentSupportedRequestedExtensionCount == supportedRequestedExtensionCount)
+                unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->isSupportedAfter(supportedRequestedExtensionCount == requestedExtensions.size())) {
+        if (upscaler->setErrorIf(supportedRequestedExtensionCount == requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE)) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -304,10 +311,10 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 if (enableExtension) {
                     newExtensions.push_back(extension);
                     enabledExtensions.push_back(newExtensions[newExtensions.size() - 1].c_str());
-                    message << extension << ", ";
                 }
             }
         }
+        ++i;
     }
 
     // Modify the createInfo.
@@ -318,20 +325,15 @@ VkResult Vulkan::Hook_vkCreateDevice(
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->device = *pDevice;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            if (upscaler->isSupported())
-                Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan device.");
-            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan device.");
-        std::string msg = message.str();
-        if (!msg.empty()) Logger::log("Added device extensions: " + msg.substr(0, msg.length() - 2) + ".");
+        i = 0;
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+            if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE)
+                upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
+            ++i;
+        }
     } else {
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            if (!upscaler->getRequiredVulkanDeviceExtensions(GraphicsAPI::get<Vulkan>()->instance, physicalDevice)
-                   .empty())
-                upscaler->isSupportedAfter(false);
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->device = *pDevice;
-        else Logger::log("Failed to create a Vulkan instance!");
     }
     if (GraphicsAPI::get<Vulkan>()->device != VK_NULL_HANDLE)
         GraphicsAPI::get<Vulkan>()->loadLateFunctionPointers();

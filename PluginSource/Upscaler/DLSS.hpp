@@ -41,21 +41,32 @@ class DLSS : public Upscaler {
         };
     } applicationInfo;
 
-    NVSDK_NGX_Handle     *featureHandle{};
-    NVSDK_NGX_Parameter  *parameters{};
-    NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
-    NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
-    NVSDK_NGX_Resource_VK vulkanInColorResource{};
-    NVSDK_NGX_Resource_VK vulkanOutColorResource{};
-    ID3D12Resource       *dx12DepthBufferResource{};
-    ID3D12Resource       *dx12MotionVectorResource{};
-    ID3D12Resource       *dx12InColorResource{};
-    ID3D12Resource       *dx12OutColorResource{};
-    ID3D11Resource       *dx11DepthBufferResource{};
-    ID3D11Resource       *dx11MotionVectorResource{};
-    ID3D11Resource       *dx11InColorResource{};
-    ID3D11Resource       *dx11OutColorResource{};
+    NVSDK_NGX_Handle    *featureHandle{};
+    NVSDK_NGX_Parameter *parameters{};
 
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } depth;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } motion;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } inColor;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } outColor;
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
@@ -99,6 +110,7 @@ class DLSS : public Upscaler {
 
     bool VulkanShutdown();
 
+#ifdef ENABLE_DX12
     bool DX12Initialize();
 
     bool DX12GetParameters();
@@ -106,14 +118,14 @@ class DLSS : public Upscaler {
     bool DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
     bool DX12SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat
     );
 
     bool DX12Evaluate();
@@ -123,7 +135,9 @@ class DLSS : public Upscaler {
     bool DX12DestroyParameters();
 
     bool DX12Shutdown();
+#endif
 
+#ifdef ENABLE_DX11
     bool DX11Initialize();
 
     bool DX11GetParameters();
@@ -131,14 +145,14 @@ class DLSS : public Upscaler {
     bool DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
     bool DX11SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat
     );
 
     bool DX11Evaluate();
@@ -148,34 +162,24 @@ class DLSS : public Upscaler {
     bool DX11DestroyParameters();
 
     bool DX11Shutdown();
+#endif
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 
     DLSS() = default;
 
+    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to clear the current error.
+    bool setError(NVSDK_NGX_Result);
+
 public:
     static DLSS *get();
-
-    bool isSupported() override;
-
-    bool isAvailable() override;
-
-    /// Note: Can only set the value from true to false.
-    bool isSupportedAfter(bool isSupported) override;
-
-    void setSupported(bool isSupported) override;
-
-    /// Note: Can only set the value from true to false.
-    bool isAvailableAfter(bool isAvailable) override;
-
-    void setAvailable(bool isAvailable) override;
 
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
 
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    Settings getOptimalSettings(Settings::Resolution t_presentResolution) override;
+    Settings getOptimalSettings(Settings::Resolution, bool) override;
 
     Type getType() override;
 
