@@ -121,7 +121,7 @@ public class BackendDLSS : MonoBehaviour
 
     private void OnPreRender()
     {
-        if (!Upscaler_IsSupported(Type.DLSS))
+        if (Upscaler_GetError(Type.DLSS))
             return;
 
         if (Screen.width != _outputWidth || Screen.height != _outputHeight)
@@ -170,13 +170,16 @@ public class BackendDLSS : MonoBehaviour
     private static extern bool Upscaler_Set(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern bool Upscaler_IsSupported(Type type);
+    protected static extern bool Upscaler_GetError(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_IsCurrentlyAvailable();
+    protected static extern IntPtr Upscaler_GetErrorMessage(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_IsAvailable(Type type);
+    private static extern bool Upscaler_GetCurrentError();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern IntPtr Upscaler_GetCurrentErrorMessage();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Initialize();
