@@ -78,7 +78,7 @@ public class EnableDLSS : MonoBehaviour
         _preUpscale.name = "Copy To Upscaler";
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
         _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
-        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
+        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);  // Does not work. Fix me.
         _preUpscale.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
 
         _postUpscale.name = "Copy From Upscaler";
@@ -126,7 +126,7 @@ public class EnableDLSS : MonoBehaviour
         _haltonJitterer = new HaltonJitterer();
     }
 
-    private void OnPreRender()
+    private void OnPreCull()
     {
         if (!Upscaler_IsSupported(Type.DLSS))
             return;
@@ -140,6 +140,14 @@ public class EnableDLSS : MonoBehaviour
                 return;
             _renderWidth = (uint)(size >> 32);
             _renderHeight = (uint)(size & 0xFFFFFFFF);
+
+            if (_inColorTarget != null)
+            {
+                _inColorTarget.Release();
+                _outColorTarget.Release();
+                _motionVectorTarget.Release();
+                _depthTarget.Release();
+            }
 
             _inColorTarget = new RenderTexture((int)_renderWidth, (int)_renderHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
             _inColorTarget.Create();
