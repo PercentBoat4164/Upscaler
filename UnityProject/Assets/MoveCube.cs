@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class MoveCube : MonoBehaviour
@@ -9,6 +8,7 @@ public class MoveCube : MonoBehaviour
     private Vector3 _rotationInc;
     private Vector3 _positionInc;
     private Transform _transform;
+    private double _x;
     
     // Start is called before the first frame update
     void Start()
@@ -21,21 +21,12 @@ public class MoveCube : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!Input.GetKey("m"))
-            return;
-        if (_targetRotation == transform.eulerAngles)
-        {
-            _targetRotation = new Vector3(Random.value, Random.value, Random.value) * 360;
-            _rotationInc = (_targetRotation - transform.eulerAngles) / 20;
-        }
+        _transform.position = MoveCircular(Time.deltaTime);
+    }
 
-        if (_targetPosition == transform.position)
-        {
-            _targetPosition = new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * 10;
-            _positionInc = (_targetPosition - transform.position) / 20;
-        }
-
-        _transform.position += _positionInc;
-        _transform.eulerAngles += _rotationInc;
+    Vector3 MoveCircular(double timing)
+    {
+        _x += timing * 3;
+        return new Vector3((float)Math.Sin(_x), (float)Math.Cos(_x), 0);
     }
 }
