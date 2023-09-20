@@ -22,11 +22,11 @@ public class EnableDLSS : BackendDLSS
     // the history buffer should be reset so that artifacts from the previous screen are not left behind
     public void ResetHistoryBuffer()
     {
-        
+
     }
-    
+
     public bool DeviceSupportsUpscalingMode(Type upscalingMode)
     {
-        return Upscaler_IsSupported(upscalingMode);
+        return Upscaler_GetError(upscalingMode);
     }
 }
