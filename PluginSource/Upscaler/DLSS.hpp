@@ -41,29 +41,32 @@ class DLSS : public Upscaler {
         };
     } applicationInfo;
 
-    NVSDK_NGX_Handle     *featureHandle{};
-    NVSDK_NGX_Parameter  *parameters{};
-    union {
-        NVSDK_NGX_Resource_VK *vulkan;
-        ID3D12Resource       *dx12;
-        ID3D11Resource       *dx11;
-    } depth;
-    union {
-        NVSDK_NGX_Resource_VK *vulkan;
-        ID3D12Resource       *dx12;
-        ID3D11Resource       *dx11;
-    } motion;
-    union {
-        NVSDK_NGX_Resource_VK *vulkan;
-        ID3D12Resource       *dx12;
-        ID3D11Resource       *dx11;
-    } inColor;
-    union {
-        NVSDK_NGX_Resource_VK *vulkan;
-        ID3D12Resource       *dx12;
-        ID3D11Resource       *dx11;
-    } outColor;
+    NVSDK_NGX_Handle    *featureHandle{};
+    NVSDK_NGX_Parameter *parameters{};
 
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } depth;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } motion;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } inColor;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } outColor;
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
@@ -115,14 +118,14 @@ class DLSS : public Upscaler {
     bool DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
     bool DX12SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat
     );
 
     bool DX12Evaluate();
@@ -142,14 +145,14 @@ class DLSS : public Upscaler {
     bool DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
 
     bool DX11SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat,
+      void *,
+      UnityRenderingExtTextureFormat
     );
 
     bool DX11Evaluate();

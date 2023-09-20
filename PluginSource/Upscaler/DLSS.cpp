@@ -77,15 +77,15 @@ bool DLSS::VulkanSetImageResources(
     GraphicsAPI::get<Vulkan>()->destroyImageView(inColor.vulkan->Resource.ImageViewInfo.ImageView);
     GraphicsAPI::get<Vulkan>()->destroyImageView(outColor.vulkan->Resource.ImageViewInfo.ImageView);
 
-    VkImage depthBuffer = *reinterpret_cast<VkImage *>(nativeDepthBuffer);
+    VkImage depthBuffer   = *reinterpret_cast<VkImage *>(nativeDepthBuffer);
     VkImage motionVectors = *reinterpret_cast<VkImage *>(nativeMotionVectors);
     VkImage inColorImage  = *reinterpret_cast<VkImage *>(nativeInColor);
     VkImage outColorImage = *reinterpret_cast<VkImage *>(nativeOutColor);
 
-    VkFormat depthFormat = Vulkan::getFormat(unityDepthFormat);
+    VkFormat depthFormat        = Vulkan::getFormat(unityDepthFormat);
     VkFormat motionVectorFormat = Vulkan::getFormat(unityMotionVectorFormat);
-    VkFormat inColorFormat = Vulkan::getFormat(unityInColorFormat);
-    VkFormat outColorFormat = Vulkan::getFormat(unityOutColorFormat);
+    VkFormat inColorFormat      = Vulkan::getFormat(unityInColorFormat);
+    VkFormat outColorFormat     = Vulkan::getFormat(unityOutColorFormat);
 
     VkImageView depthView =
       GraphicsAPI::get<Vulkan>()->get2DImageView(depthBuffer, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -96,14 +96,10 @@ bool DLSS::VulkanSetImageResources(
     VkImageView outColorView =
       GraphicsAPI::get<Vulkan>()->get2DImageView(outColorImage, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    if (depth.vulkan != nullptr)
-        std::free(depth.vulkan);
-    if (motion.vulkan != nullptr)
-        std::free(motion.vulkan);
-    if (inColor.vulkan != nullptr)
-        std::free(inColor.vulkan);
-    if (outColor.vulkan != nullptr)
-        std::free(outColor.vulkan);
+    if (depth.vulkan != nullptr) std::free(depth.vulkan);
+    if (motion.vulkan != nullptr) std::free(motion.vulkan);
+    if (inColor.vulkan != nullptr) std::free(inColor.vulkan);
+    if (outColor.vulkan != nullptr) std::free(outColor.vulkan);
 
     // clang-format off
     depth.vulkan = new NVSDK_NGX_Resource_VK {
@@ -190,7 +186,8 @@ bool DLSS::VulkanSetImageResources(
       .ReadWrite = true,
     };
     // clang-format on
-    return depthView != VK_NULL_HANDLE && motionVectorView != VK_NULL_HANDLE && inColorView != VK_NULL_HANDLE && outColorView != VK_NULL_HANDLE;
+    return depthView != VK_NULL_HANDLE && motionVectorView != VK_NULL_HANDLE && inColorView != VK_NULL_HANDLE &&
+      outColorView != VK_NULL_HANDLE;
 }
 
 bool DLSS::VulkanEvaluate() {
@@ -280,18 +277,18 @@ bool DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
 }
 
 bool DLSS::DX12SetDepthBuffer(
-  void                          *nativeDepthBuffer,
+  void *nativeDepthBuffer,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeMotionVectors,
+  void *nativeMotionVectors,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeInColor,
+  void *nativeInColor,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeOutColor,
+  void *nativeOutColor,
   UnityRenderingExtTextureFormat /* unused */
 ) {
-    depth.dx12 = reinterpret_cast<ID3D12Resource *>(nativeDepthBuffer);
-    motion.dx12 = reinterpret_cast<ID3D12Resource *>(nativeMotionVectors);
-    inColor.dx12 = reinterpret_cast<ID3D12Resource *>(nativeInColor);
+    depth.dx12    = reinterpret_cast<ID3D12Resource *>(nativeDepthBuffer);
+    motion.dx12   = reinterpret_cast<ID3D12Resource *>(nativeMotionVectors);
+    inColor.dx12  = reinterpret_cast<ID3D12Resource *>(nativeInColor);
     outColor.dx12 = reinterpret_cast<ID3D12Resource *>(nativeOutColor);
     return true;
 }
@@ -376,18 +373,18 @@ bool DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
 }
 
 bool DLSS::DX11SetDepthBuffer(
-  void                          *nativeDepthBuffer,
+  void *nativeDepthBuffer,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeMotionVectors,
+  void *nativeMotionVectors,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeInColor,
+  void *nativeInColor,
   UnityRenderingExtTextureFormat /* unused */,
-  void                          *nativeOutColor,
+  void *nativeOutColor,
   UnityRenderingExtTextureFormat /* unused */
-  ) {
-    depth.dx11 = reinterpret_cast<ID3D11Resource *>(nativeDepthBuffer);
-    motion.dx11 = reinterpret_cast<ID3D11Resource *>(nativeMotionVectors);
-    inColor.dx11 = reinterpret_cast<ID3D11Resource *>(nativeInColor);
+) {
+    depth.dx11    = reinterpret_cast<ID3D11Resource *>(nativeDepthBuffer);
+    motion.dx11   = reinterpret_cast<ID3D11Resource *>(nativeMotionVectors);
+    inColor.dx11  = reinterpret_cast<ID3D11Resource *>(nativeInColor);
     outColor.dx11 = reinterpret_cast<ID3D11Resource *>(nativeOutColor);
     return true;
 }
@@ -472,25 +469,25 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
 #    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX12Initialize;
-            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX12GetParameters;
-            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::DX12CreateFeature;
+            graphicsAPIIndependentInitializeFunctionPointer        = &DLSS::DX12Initialize;
+            graphicsAPIIndependentGetParametersFunctionPointer     = &DLSS::DX12GetParameters;
+            graphicsAPIIndependentCreateFeatureFunctionPointer     = &DLSS::DX12CreateFeature;
             graphicsAPIIndependentSetImageResourcesFunctionPointer = &DLSS::DX12SetDepthBuffer;
-            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::DX12Evaluate;
-            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::DX12ReleaseFeature;
-            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX12Shutdown;
+            graphicsAPIIndependentEvaluateFunctionPointer          = &DLSS::DX12Evaluate;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer    = &DLSS::DX12ReleaseFeature;
+            graphicsAPIIndependentShutdownFunctionPointer          = &DLSS::DX12Shutdown;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX11
         case GraphicsAPI::DX11: {
-            graphicsAPIIndependentInitializeFunctionPointer     = &DLSS::DX11Initialize;
-            graphicsAPIIndependentGetParametersFunctionPointer  = &DLSS::DX11GetParameters;
-            graphicsAPIIndependentCreateFeatureFunctionPointer  = &DLSS::DX11CreateFeature;
+            graphicsAPIIndependentInitializeFunctionPointer        = &DLSS::DX11Initialize;
+            graphicsAPIIndependentGetParametersFunctionPointer     = &DLSS::DX11GetParameters;
+            graphicsAPIIndependentCreateFeatureFunctionPointer     = &DLSS::DX11CreateFeature;
             graphicsAPIIndependentSetImageResourcesFunctionPointer = &DLSS::DX11SetDepthBuffer;
-            graphicsAPIIndependentEvaluateFunctionPointer       = &DLSS::DX11Evaluate;
-            graphicsAPIIndependentReleaseFeatureFunctionPointer = &DLSS::DX11ReleaseFeature;
-            graphicsAPIIndependentShutdownFunctionPointer       = &DLSS::DX11Shutdown;
+            graphicsAPIIndependentEvaluateFunctionPointer          = &DLSS::DX11Evaluate;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer    = &DLSS::DX11ReleaseFeature;
+            graphicsAPIIndependentShutdownFunctionPointer          = &DLSS::DX11Shutdown;
             break;
         }
 #    endif
@@ -651,13 +648,14 @@ bool DLSS::initialize() {
 
 bool DLSS::createFeature() {
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{
-      .Feature = {
-        .InWidth            = settings.inputResolution.width,
-        .InHeight           = settings.inputResolution.height,
-        .InTargetWidth      = settings.outputResolution.width,
-        .InTargetHeight     = settings.outputResolution.height,
-        .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
-      },
+      .Feature =
+        {
+                  .InWidth            = settings.inputResolution.width,
+                  .InHeight           = settings.inputResolution.height,
+                  .InTargetWidth      = settings.outputResolution.width,
+                  .InTargetHeight     = settings.outputResolution.height,
+                  .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
+                  },
       .InFeatureCreateFlags = static_cast<int>(
         NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_MVJittered |
         (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
@@ -691,7 +689,7 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
     Settings optimalSettings = settings;
 
     NVSDK_NGX_PerfQuality_Value DLSSQuality = optimalSettings.getQuality<Upscaler::DLSS>();
-    NVSDK_NGX_Result result = NGX_DLSS_GET_OPTIMAL_SETTINGS(
+    NVSDK_NGX_Result            result      = NGX_DLSS_GET_OPTIMAL_SETTINGS(
       parameters,
       optimalSettings.outputResolution.width,
       optimalSettings.outputResolution.height,
@@ -705,10 +703,10 @@ Upscaler::Settings DLSS::getOptimalSettings(Upscaler::Settings::Resolution t_pre
       &optimalSettings.sharpness
     );
     if (!isAvailableAfter(NVSDK_NGX_SUCCEED(result))) {
-        optimalSettings.inputResolution                = optimalSettings.outputResolution;
-        optimalSettings.dynamicMaximumInputResolution  = optimalSettings.outputResolution;
-        optimalSettings.dynamicMinimumInputResolution  = optimalSettings.outputResolution;
-        optimalSettings.sharpness                      = 0.F;
+        optimalSettings.inputResolution               = optimalSettings.outputResolution;
+        optimalSettings.dynamicMaximumInputResolution = optimalSettings.outputResolution;
+        optimalSettings.dynamicMinimumInputResolution = optimalSettings.outputResolution;
+        optimalSettings.sharpness                     = 0.F;
     }
 
     return optimalSettings;

@@ -52,11 +52,12 @@ void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
     }
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void * UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
+extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
     return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
+Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
     Logger::setLoggerCallback(t_debugFunction);
     Logger::flush();
 
@@ -87,7 +88,8 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Initialize()
     return Upscaler::get()->isSupported();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height) {
+extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
+Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height) {
     Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
 
     if (!Upscaler::get()->isSupported()) return 0;
@@ -96,22 +98,26 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_ResizeTa
     return Upscaler::settings.inputResolution.asLong();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API
-Upscaler_Prepare(
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
   UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void *nativeInColor,
+  void                          *nativeInColor,
   UnityRenderingExtTextureFormat unityInColorFormat,
-  void *nativeOutColor,
+  void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    bool available = Upscaler::get()->isAvailableAfter(
-      Upscaler::get()->setImageResources(
-        nativeDepthBuffer, unityDepthFormat, nativeMotionVectors, unityMotionVectorFormat, nativeInColor, unityInColorFormat, nativeOutColor, unityOutColorFormat
-      )
-    );
+    bool available = Upscaler::get()->isAvailableAfter(Upscaler::get()->setImageResources(
+      nativeDepthBuffer,
+      unityDepthFormat,
+      nativeMotionVectors,
+      unityMotionVectorFormat,
+      nativeInColor,
+      unityInColorFormat,
+      nativeOutColor,
+      unityOutColorFormat
+    ));
 
     Upscaler::get()->createFeature();
     return available;

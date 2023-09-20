@@ -228,10 +228,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             if (upscaler->isSupported())
                 Logger::log("Successfully created a(n) " + upscaler->getName() + " compatible Vulkan instance.");
-            else
-                Logger::log(
-                  "Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance."
-                );
+            else Logger::log("Failed to create a(n) " + upscaler->getName() + " compatible Vulkan instance.");
         std::string msg = message.str();
         if (!msg.empty()) Logger::log("Added instance extensions: " + msg.substr(msg.length() - 2) + ".");
     } else {
