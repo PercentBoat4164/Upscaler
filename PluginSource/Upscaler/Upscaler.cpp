@@ -45,8 +45,8 @@ void Upscaler::set(Type upscaler) {
 }
 
 void Upscaler::set(Upscaler *upscaler) {
-    if (upscaler != nullptr && !upscaler->isSupported()) return;
-    if (upscalerInUse != nullptr) upscalerInUse->setAvailable(false);
+    if (!upscaler->isSupported()) return;
+    upscalerInUse->setAvailable(false);
     upscalerInUse = upscaler;
     upscalerInUse->setAvailable(true);
 }
