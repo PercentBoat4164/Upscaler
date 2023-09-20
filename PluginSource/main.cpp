@@ -89,11 +89,11 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Initialize()
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
-Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height) {
+Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height, bool t_HDR) {
     Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
 
     if (!Upscaler::get()->isSupported()) return 0;
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height});
+    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_HDR);
 
     return Upscaler::settings.inputResolution.asLong();
 }

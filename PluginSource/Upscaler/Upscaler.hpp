@@ -160,7 +160,7 @@ public:
 
     virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
 
-    virtual Settings getOptimalSettings(Settings::Resolution) = 0;
+    virtual Settings getOptimalSettings(Settings::Resolution, bool) = 0;
 
     virtual bool isSupportedAfter(bool) = 0;
 

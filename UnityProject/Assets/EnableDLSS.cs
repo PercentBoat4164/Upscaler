@@ -135,7 +135,7 @@ public class EnableDLSS : MonoBehaviour
         {
             _outputWidth = (uint)Screen.width;
             _outputHeight = (uint)Screen.height;
-            var size = Upscaler_ResizeTargets(_outputWidth, _outputHeight);
+            var size = Upscaler_ResizeTargets(_outputWidth, _outputHeight, _camera.allowHDR);
             if (size == 0)
                 return;
             _inputWidth = (uint)(size >> 32);
@@ -197,7 +197,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern bool Upscaler_Initialize();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_ResizeTargets(uint width, uint height);
+    private static extern ulong Upscaler_ResizeTargets(uint width, uint height, bool HDR);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Prepare(

@@ -190,7 +190,7 @@ public:
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    Settings getOptimalSettings(Settings::Resolution t_presentResolution) override;
+    Settings getOptimalSettings(Settings::Resolution, bool) override;
 
     Type getType() override;
 
