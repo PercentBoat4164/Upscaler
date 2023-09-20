@@ -52,6 +52,16 @@ public class EnableDLSS : MonoBehaviour
 
     private void SetUpCommandBuffers()
     {
+        var ortho = Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1);
+        // var view = Matrix4x4.identity;
+        var quad = new Mesh();
+        quad.SetVertices(new Vector3[]
+        {
+            new(-1, -1, 0),
+            new(1, -1, 0),
+            new(-1, 1, 0),
+            new(1, 1, 0)
+        });
         var scale = new Vector2((float)_outputWidth / _inputWidth, (float)_outputHeight / _inputHeight);
         var inverseScale = new Vector2((float)_inputWidth / _outputWidth, (float)_inputHeight / _outputHeight);
         var offset = new Vector2(0, 0);
@@ -78,7 +88,8 @@ public class EnableDLSS : MonoBehaviour
         _preUpscale.name = "Copy To Upscaler";
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
         _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
-        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);  // Does not work. Fix me.
+
+        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
         _preUpscale.SetViewport(new Rect(0, 0, _outputWidth, _outputHeight));
 
         _postUpscale.name = "Copy From Upscaler";

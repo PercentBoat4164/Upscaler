@@ -72,10 +72,22 @@ bool DLSS::VulkanSetImageResources(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    GraphicsAPI::get<Vulkan>()->destroyImageView(depth.vulkan->Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(motion.vulkan->Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(inColor.vulkan->Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(outColor.vulkan->Resource.ImageViewInfo.ImageView);
+    if (depth.vulkan != nullptr) {
+        GraphicsAPI::get<Vulkan>()->destroyImageView(depth.vulkan->Resource.ImageViewInfo.ImageView);
+        std::free(depth.vulkan);
+    }
+    if (motion.vulkan != nullptr) {
+        GraphicsAPI::get<Vulkan>()->destroyImageView(motion.vulkan->Resource.ImageViewInfo.ImageView);
+        std::free(motion.vulkan);
+    }
+    if (inColor.vulkan != nullptr) {
+        GraphicsAPI::get<Vulkan>()->destroyImageView(inColor.vulkan->Resource.ImageViewInfo.ImageView);
+        std::free(inColor.vulkan);
+    }
+    if (outColor.vulkan != nullptr) {
+        GraphicsAPI::get<Vulkan>()->destroyImageView(outColor.vulkan->Resource.ImageViewInfo.ImageView);
+        std::free(outColor.vulkan);
+    }
 
     VkImage depthBuffer   = *reinterpret_cast<VkImage *>(nativeDepthBuffer);
     VkImage motionVectors = *reinterpret_cast<VkImage *>(nativeMotionVectors);
@@ -95,11 +107,6 @@ bool DLSS::VulkanSetImageResources(
       GraphicsAPI::get<Vulkan>()->get2DImageView(inColorImage, inColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     VkImageView outColorView =
       GraphicsAPI::get<Vulkan>()->get2DImageView(outColorImage, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    if (depth.vulkan != nullptr) std::free(depth.vulkan);
-    if (motion.vulkan != nullptr) std::free(motion.vulkan);
-    if (inColor.vulkan != nullptr) std::free(inColor.vulkan);
-    if (outColor.vulkan != nullptr) std::free(outColor.vulkan);
 
     // clang-format off
     depth.vulkan = new NVSDK_NGX_Resource_VK {

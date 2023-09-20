@@ -23,7 +23,7 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDev
 }
 
 Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution resolution, bool t_HDR) {
-    settings.renderResolution = resolution;
+    settings.inputResolution = resolution;
     settings.HDR = t_HDR;
     return settings;
 }
