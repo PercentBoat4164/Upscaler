@@ -72,15 +72,15 @@ bool DLSS::VulkanSetImageResources(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanDepthBufferResource.Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanMotionVectorResource.Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanInColorResource.Resource.ImageViewInfo.ImageView);
-    GraphicsAPI::get<Vulkan>()->destroyImageView(vulkanOutColorResource.Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(depth.vulkan->Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(motion.vulkan->Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(inColor.vulkan->Resource.ImageViewInfo.ImageView);
+    GraphicsAPI::get<Vulkan>()->destroyImageView(outColor.vulkan->Resource.ImageViewInfo.ImageView);
 
     VkImage depthBuffer = *reinterpret_cast<VkImage *>(nativeDepthBuffer);
     VkImage motionVectors = *reinterpret_cast<VkImage *>(nativeMotionVectors);
-    VkImage inColor = *reinterpret_cast<VkImage *>(nativeInColor);
-    VkImage outColor = *reinterpret_cast<VkImage *>(nativeOutColor);
+    VkImage inColorImage  = *reinterpret_cast<VkImage *>(nativeInColor);
+    VkImage outColorImage = *reinterpret_cast<VkImage *>(nativeOutColor);
 
     VkFormat depthFormat = Vulkan::getFormat(unityDepthFormat);
     VkFormat motionVectorFormat = Vulkan::getFormat(unityMotionVectorFormat);
@@ -92,12 +92,21 @@ bool DLSS::VulkanSetImageResources(
     VkImageView motionVectorView =
       GraphicsAPI::get<Vulkan>()->get2DImageView(motionVectors, motionVectorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     VkImageView inColorView =
-      GraphicsAPI::get<Vulkan>()->get2DImageView(inColor, inColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+      GraphicsAPI::get<Vulkan>()->get2DImageView(inColorImage, inColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     VkImageView outColorView =
-      GraphicsAPI::get<Vulkan>()->get2DImageView(outColor, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+      GraphicsAPI::get<Vulkan>()->get2DImageView(outColorImage, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    if (depth.vulkan != nullptr)
+        std::free(depth.vulkan);
+    if (motion.vulkan != nullptr)
+        std::free(motion.vulkan);
+    if (inColor.vulkan != nullptr)
+        std::free(inColor.vulkan);
+    if (outColor.vulkan != nullptr)
+        std::free(outColor.vulkan);
 
     // clang-format off
-    vulkanDepthBufferResource = {
+    depth.vulkan = new NVSDK_NGX_Resource_VK {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = depthView,
@@ -118,7 +127,7 @@ bool DLSS::VulkanSetImageResources(
       .ReadWrite = true,
     };
 
-    vulkanMotionVectorResource = {
+    motion.vulkan = new NVSDK_NGX_Resource_VK {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = motionVectorView,
@@ -139,11 +148,11 @@ bool DLSS::VulkanSetImageResources(
       .ReadWrite = true,
     };
 
-    vulkanInColorResource = {
+    inColor.vulkan = new NVSDK_NGX_Resource_VK {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = inColorView,
-          .Image            = inColor,
+          .Image            = inColorImage,
           .SubresourceRange = {
             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel   = 0,
@@ -160,11 +169,11 @@ bool DLSS::VulkanSetImageResources(
       .ReadWrite = true,
     };
 
-    vulkanOutColorResource = {
+    outColor.vulkan = new NVSDK_NGX_Resource_VK {
       .Resource = {
         .ImageViewInfo = {
           .ImageView        = outColorView,
-          .Image            = outColor,
+          .Image            = outColorImage,
           .SubresourceRange = {
             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel   = 0,
@@ -195,12 +204,12 @@ bool DLSS::VulkanEvaluate() {
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters = {
       .Feature = {
-        .pInColor = &vulkanInColorResource,
-        .pInOutput = &vulkanOutColorResource,
+        .pInColor = inColor.vulkan,
+        .pInOutput = outColor.vulkan,
         .InSharpness = settings.sharpness,
       },
-      .pInDepth                  = &vulkanDepthBufferResource,
-      .pInMotionVectors          = &vulkanMotionVectorResource,
+      .pInDepth                  = depth.vulkan,
+      .pInMotionVectors          = motion.vulkan,
       .InJitterOffsetX           = thisFrameJitterValues[0],
       .InJitterOffsetY           = thisFrameJitterValues[1],
       .InRenderSubrectDimensions = {
@@ -280,10 +289,10 @@ bool DLSS::DX12SetDepthBuffer(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat /* unused */
 ) {
-    dx12DepthBufferResource = reinterpret_cast<ID3D12Resource *>(nativeDepthBuffer);
-    dx12MotionVectorResource = reinterpret_cast<ID3D12Resource *>(nativeMotionVectors);
-    dx12InColorResource = reinterpret_cast<ID3D12Resource *>(nativeInColor);
-    dx12OutColorResource = reinterpret_cast<ID3D12Resource *>(nativeOutColor);
+    depth.dx12 = reinterpret_cast<ID3D12Resource *>(nativeDepthBuffer);
+    motion.dx12 = reinterpret_cast<ID3D12Resource *>(nativeMotionVectors);
+    inColor.dx12 = reinterpret_cast<ID3D12Resource *>(nativeInColor);
+    outColor.dx12 = reinterpret_cast<ID3D12Resource *>(nativeOutColor);
     return true;
 }
 
@@ -294,12 +303,12 @@ bool DLSS::DX12Evaluate() {
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters = {
       .Feature = {
-        .pInColor = dx12InColorResource,
-        .pInOutput = dx12OutColorResource,
+        .pInColor = inColor.dx12,
+        .pInOutput = outColor.dx12,
         .InSharpness = settings.sharpness,
       },
-      .pInDepth                  = dx12DepthBufferResource,
-      .pInMotionVectors          = dx12MotionVectorResource,
+      .pInDepth                  = depth.dx12,
+      .pInMotionVectors          = motion.dx12,
       .InJitterOffsetX           = thisFrameJitterValues[0],
       .InJitterOffsetY           = thisFrameJitterValues[1],
       .InRenderSubrectDimensions = {
@@ -376,10 +385,10 @@ bool DLSS::DX11SetDepthBuffer(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat /* unused */
   ) {
-    dx11DepthBufferResource = reinterpret_cast<ID3D11Resource *>(nativeDepthBuffer);
-    dx11MotionVectorResource = reinterpret_cast<ID3D11Resource *>(nativeMotionVectors);
-    dx11InColorResource = reinterpret_cast<ID3D11Resource *>(nativeInColor);
-    dx11OutColorResource = reinterpret_cast<ID3D11Resource *>(nativeOutColor);
+    depth.dx11 = reinterpret_cast<ID3D11Resource *>(nativeDepthBuffer);
+    motion.dx11 = reinterpret_cast<ID3D11Resource *>(nativeMotionVectors);
+    inColor.dx11 = reinterpret_cast<ID3D11Resource *>(nativeInColor);
+    outColor.dx11 = reinterpret_cast<ID3D11Resource *>(nativeOutColor);
     return true;
 }
 
@@ -387,12 +396,12 @@ bool DLSS::DX11Evaluate() {
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams = {
       .Feature = {
-        .pInColor = dx11InColorResource,
-        .pInOutput = dx11OutColorResource,
+        .pInColor = inColor.dx11,
+        .pInOutput = outColor.dx11,
         .InSharpness = settings.sharpness,
       },
-      .pInDepth                  = dx11DepthBufferResource,
-      .pInMotionVectors          = dx11MotionVectorResource,
+      .pInDepth                  = depth.dx11,
+      .pInMotionVectors          = motion.dx11,
       .InJitterOffsetX           = thisFrameJitterValues[0],
       .InJitterOffsetY           = thisFrameJitterValues[1],
       .InRenderSubrectDimensions = {
@@ -485,6 +494,16 @@ void DLSS::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
             break;
         }
 #    endif
+        default: {
+            graphicsAPIIndependentInitializeFunctionPointer        = &DLSS::safeFail;
+            graphicsAPIIndependentGetParametersFunctionPointer     = &DLSS::safeFail;
+            graphicsAPIIndependentCreateFeatureFunctionPointer     = &DLSS::safeFail;
+            graphicsAPIIndependentSetImageResourcesFunctionPointer = &DLSS::safeFail;
+            graphicsAPIIndependentEvaluateFunctionPointer          = &DLSS::safeFail;
+            graphicsAPIIndependentReleaseFeatureFunctionPointer    = &DLSS::safeFail;
+            graphicsAPIIndependentShutdownFunctionPointer          = &DLSS::safeFail;
+            break;
+        }
     }
 }
 

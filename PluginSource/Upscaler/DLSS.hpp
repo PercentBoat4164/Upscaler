@@ -43,18 +43,26 @@ class DLSS : public Upscaler {
 
     NVSDK_NGX_Handle     *featureHandle{};
     NVSDK_NGX_Parameter  *parameters{};
-    NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
-    NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
-    NVSDK_NGX_Resource_VK vulkanInColorResource{};
-    NVSDK_NGX_Resource_VK vulkanOutColorResource{};
-    ID3D12Resource       *dx12DepthBufferResource{};
-    ID3D12Resource       *dx12MotionVectorResource{};
-    ID3D12Resource       *dx12InColorResource{};
-    ID3D12Resource       *dx12OutColorResource{};
-    ID3D11Resource       *dx11DepthBufferResource{};
-    ID3D11Resource       *dx11MotionVectorResource{};
-    ID3D11Resource       *dx11InColorResource{};
-    ID3D11Resource       *dx11OutColorResource{};
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource       *dx12;
+        ID3D11Resource       *dx11;
+    } depth;
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource       *dx12;
+        ID3D11Resource       *dx11;
+    } motion;
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource       *dx12;
+        ID3D11Resource       *dx11;
+    } inColor;
+    union {
+        NVSDK_NGX_Resource_VK *vulkan;
+        ID3D12Resource       *dx12;
+        ID3D11Resource       *dx11;
+    } outColor;
 
 
     static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
@@ -99,6 +107,7 @@ class DLSS : public Upscaler {
 
     bool VulkanShutdown();
 
+#ifdef ENABLE_DX12
     bool DX12Initialize();
 
     bool DX12GetParameters();
@@ -123,7 +132,9 @@ class DLSS : public Upscaler {
     bool DX12DestroyParameters();
 
     bool DX12Shutdown();
+#endif
 
+#ifdef ENABLE_DX11
     bool DX11Initialize();
 
     bool DX11GetParameters();
@@ -148,6 +159,7 @@ class DLSS : public Upscaler {
     bool DX11DestroyParameters();
 
     bool DX11Shutdown();
+#endif
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 
