@@ -5,6 +5,7 @@ using AOT;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public class EnableDLSS : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class EnableDLSS : MonoBehaviour
         BEFORE_POSTPROCESSING,
     }
 
+
     private delegate void DebugCallback(IntPtr message);
 
     private uint _presentHeight;
@@ -31,6 +33,7 @@ public class EnableDLSS : MonoBehaviour
     private RenderTexture _depthTarget;
     private Camera _camera;
     private HaltonJitterer _haltonJitterer;
+    private DLSSRendererFeature _dlssRendererFeature;
     private CommandBuffer _beforeOpaque;
     private CommandBuffer _preUpscale;
     private CommandBuffer _upscale;
@@ -38,6 +41,113 @@ public class EnableDLSS : MonoBehaviour
 
     public Type upscaler = Type.DLSS;
 
+     public class DLSSRendererFeature : ScriptableRendererFeature
+     {
+         private Camera _camera;
+         private RenderTexture _inColorTarget;
+         private RenderTexture _depthTarget;
+         private RenderTexture _motionVectorTarget;
+         private RenderTexture _outColorTarget;
+         private uint _presentWidth;
+         private uint _presentHeight;
+         private uint _renderWidth;
+         private uint _renderHeight;
+
+         public DLSSRendererFeature(Camera camera,
+             RenderTexture inColorTarget,
+             RenderTexture depthTarget,
+             RenderTexture motionVectorTarget,
+             RenderTexture outColorTarget,
+             uint presentWidth,
+             uint presentHeight,
+             uint renderWidth,
+             uint renderHeight)
+         {
+             _inColorTarget = inColorTarget;
+             _depthTarget = depthTarget;
+             _motionVectorTarget = motionVectorTarget;
+             _outColorTarget = outColorTarget;
+             _presentWidth = presentWidth;
+             _presentHeight = presentHeight;
+             _renderWidth = renderWidth;
+             _renderHeight = renderHeight;
+         }
+
+        private class BeforeOpaque : ScriptableRenderPass
+        {
+            private uint _renderWidth;
+            private uint _renderHeight;
+            public BeforeOpaque(uint renderWidth, uint renderHeight)
+            {
+                _renderWidth = renderWidth;
+                _renderHeight = renderHeight;
+                CommandBuffer cmd = CommandBufferPool.Get(name: "Set Render Resolution");
+                cmd.SetViewport(new Rect(0, 0, _renderWidth, _renderHeight));
+            }
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {}
+        }
+        private class PreUpscale : ScriptableRenderPass
+        {
+            private RenderTexture _inColorTarget;
+            private uint _presentWidth;
+            private uint _presentHeight;
+            private uint _renderWidth;
+            private uint _renderHeight;
+            private RenderTexture _depthTarget;
+            private RenderTexture _motionVectorTarget;
+
+            public PreUpscale(uint presentWidth, uint presentHeight, uint renderWidth, uint renderHeight, RenderTexture inColorTarget)
+            {
+                _renderWidth = renderWidth;
+                _renderHeight = renderHeight;
+                _presentWidth = presentWidth;
+                _presentHeight = presentHeight;
+                _inColorTarget = inColorTarget;
+                var inverseScale = new Vector2((float)_renderWidth / _presentWidth, (float)_renderHeight / _presentHeight);
+                var offset = new Vector2(0, 0);
+                CommandBuffer cmd = CommandBufferPool.Get(name: "Copy to Upscaler");
+                cmd.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+                cmd.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
+                cmd.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
+                cmd.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
+                cmd.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
+            }
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {}
+        }
+        private class PostUpscale : ScriptableRenderPass
+        {
+            private RenderTexture _outColorTarget;
+            private RenderTexture _depthTarget;
+            public PostUpscale(RenderTexture outColorTarget, RenderTexture depthTarget)
+            {
+                _outColorTarget = outColorTarget;
+                _depthTarget = depthTarget;
+                CommandBuffer cmd = CommandBufferPool.Get(name: "Copy From Upscaler");
+                cmd.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
+                cmd.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
+            }
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {}
+        }
+        private BeforeOpaque _beforeOpaque;
+        private PreUpscale _preUpscale;
+        private PostUpscale _postUpscale;
+
+        public override void Create()
+        {
+            _beforeOpaque = new BeforeOpaque(_renderWidth, _renderHeight);
+            _preUpscale = new PreUpscale(_presentWidth, _presentHeight, _renderWidth, _renderHeight, _inColorTarget);
+            _postUpscale = new PostUpscale(_outColorTarget, _depthTarget);
+
+        }
+
+        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+        {
+
+        }
+    }
     // USER NEEDS TO BE ABLE TO:
     // Set the upscaler
     // Set the performance / quality mode
@@ -135,13 +245,7 @@ public class EnableDLSS : MonoBehaviour
         {
             _presentWidth = (uint)Screen.width;
             _presentHeight = (uint)Screen.height;
-
-            var isHDRRenderActive = RenderSettings.ambientMode == UnityEngine.Rendering.AmbientMode.Skybox &&
-                                    RenderSettings.skybox != null &&
-                                    RenderSettings.skybox.HasProperty("_Exposure");
-            Debug.Log(isHDRRenderActive);
-
-            var size = Upscaler_ResizeTargets(_presentWidth, _presentHeight, isHDRRenderActive);
+            var size = Upscaler_ResizeTargets(_presentWidth, _presentHeight);
             if (size == 0)
                 return;
             _renderWidth = (uint)(size >> 32);
@@ -167,7 +271,7 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
                 _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
             );
-            SetUpCommandBuffers();
+            _dlssRendererFeature = ScriptableObject.CreateInstance<DLSSRendererFeature>();
         }
 
         RecordCommandBuffers();
@@ -195,7 +299,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern bool Upscaler_Initialize();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_ResizeTargets(uint width, uint height, bool HDR);
+    private static extern ulong Upscaler_ResizeTargets(uint width, uint height);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Prepare(
