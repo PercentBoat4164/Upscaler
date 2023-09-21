@@ -53,7 +53,7 @@ public class EnableDLSS : MonoBehaviour
     private void SetUpCommandBuffers()
     {
         var ortho = Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1);
-        // var view = Matrix4x4.identity;
+        var view = Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0));
         var quad = new Mesh();
         quad.SetVertices(new Vector3[]
         {
@@ -62,6 +62,8 @@ public class EnableDLSS : MonoBehaviour
             new(-1, 1, 0),
             new(1, 1, 0)
         });
+        quad.SetIndices(new[]{0, 1, 2, 3, 2, 1}, MeshTopology.Triangles, 0);
+        var mat = new Material(Resources.Load<Shader>("Upscaler/DepthBlitShader"));
         var scale = new Vector2((float)_outputWidth / _inputWidth, (float)_outputHeight / _inputHeight);
         var inverseScale = new Vector2((float)_inputWidth / _outputWidth, (float)_inputHeight / _outputHeight);
         var offset = new Vector2(0, 0);
@@ -86,9 +88,13 @@ public class EnableDLSS : MonoBehaviour
         _beforeOpaque.SetViewport(new Rect(0, 0, _inputWidth, _inputHeight));
 
         _preUpscale.name = "Copy To Upscaler";
+
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
         _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
-
+        // Custom depth blit
+        _preUpscale.SetProjectionMatrix(ortho);
+        _preUpscale.SetViewMatrix(view);
+        // _preUpscale.DrawMesh(quad, Matrix4x4.identity, mat);
         _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
         _preUpscale.SetViewport(new Rect(0, 0, _outputWidth, _outputHeight));
 

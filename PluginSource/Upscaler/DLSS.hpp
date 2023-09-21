@@ -45,25 +45,25 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Parameter *parameters{};
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } depth;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } motion;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } inColor;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } outColor;
