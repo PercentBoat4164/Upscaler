@@ -222,7 +222,7 @@ public class EnableDLSS : MonoBehaviour
         RecordCommandBuffers();
 
         var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_outputWidth / _inputWidth), _inputWidth, _inputHeight);
-        Upscaler_SetJitterInformation(jitter.Item1, jitter.Item2);
+        Upscaler_SetJitterInformation(jitter.x, jitter.y);
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
@@ -272,10 +272,10 @@ public class EnableDLSS : MonoBehaviour
         private float[] _haltonBase3;
         private int _cyclePosition;
         private int _prevScaleFactor;
-        private List<Tuple<float, float>> _jitterSamples;
-        private Tuple<float, float> _lastJitter = new(0,0);
+        private List<Vector2> _jitterSamples;
+        private Vector2 _lastJitter = new(0,0);
 
-        public Tuple<float, float> JitterCamera(Camera cam, int scaleFactor, uint inputWidth, uint inputHeight)
+        public Vector2 JitterCamera(Camera cam, int scaleFactor, uint inputWidth, uint inputHeight)
         {
             if (scaleFactor != _prevScaleFactor)
             {
@@ -285,24 +285,24 @@ public class EnableDLSS : MonoBehaviour
                 _haltonBase3 = GenerateHaltonValues(3, numSamples);
             }
 
-            var camJitter = NextJitter();
-            camJitter = new Tuple<float, float>(camJitter.Item1 / inputWidth, camJitter.Item2 / inputHeight);
+            var camJitter = NextJitter() / new Vector2(inputWidth, inputHeight);
+            camJitter *= 10;
             cam.ResetProjectionMatrix();
             var tempProj = cam.projectionMatrix;
-            tempProj.m03 += camJitter.Item1 - _lastJitter.Item1;
-            tempProj.m13 += camJitter.Item2 - _lastJitter.Item2;
+            tempProj.m03 += camJitter.x - _lastJitter.x;
+            tempProj.m13 += camJitter.y - _lastJitter.y;
             cam.projectionMatrix = tempProj;
             _lastJitter = camJitter;
             return camJitter;
         }
 
-        private Tuple<float, float> NextJitter()
+        private Vector2 NextJitter()
         {
             if (_cyclePosition >= _haltonBase2.Length)
             {
                 _cyclePosition = 0;
             }
-            var jitter = new Tuple<float, float>(
+            var jitter = new Vector2(
                 _haltonBase2[_cyclePosition] - 0.5f,
                 _haltonBase3[_cyclePosition] - 0.5f);
             _cyclePosition++;
