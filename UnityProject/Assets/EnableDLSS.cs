@@ -116,6 +116,7 @@ public class EnableDLSS : MonoBehaviour
 
         _preUpscale.name = "Copy To Upscaler";
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
+        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget, inverseScale, offset);
         // Custom depth blit
         _preUpscale.SetProjectionMatrix(ortho);
         _preUpscale.SetViewMatrix(view);
@@ -124,7 +125,6 @@ public class EnableDLSS : MonoBehaviour
         _preUpscale.DrawMesh(quad, Matrix4x4.identity, blitCopyTo);
         // Set viewport to output size
         _preUpscale.SetViewport(new Rect(0, 0, _outputWidth, _outputHeight));
-        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
 
         _upscale.name = "Upscale";
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
@@ -207,7 +207,7 @@ public class EnableDLSS : MonoBehaviour
                 };
             _outColorTarget.Create();
             _motionVectorTarget =
-                new RenderTexture((int)_outputWidth, (int)_outputHeight, 0, GraphicsFormat.R32G32_SFloat);
+                new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
             _depthTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, DefaultFormat.DepthStencil)
             {
@@ -276,7 +276,6 @@ public class EnableDLSS : MonoBehaviour
         private int _cyclePosition;
         private int _prevScaleFactor;
         private List<Vector2> _jitterSamples;
-        private Vector2 _lastJitter = new(0,0);
 
         public Vector2 JitterCamera(Camera cam, int scaleFactor, uint inputWidth, uint inputHeight)
         {
@@ -288,14 +287,13 @@ public class EnableDLSS : MonoBehaviour
                 _haltonBase3 = GenerateHaltonValues(3, numSamples);
             }
 
-            var camJitter = NextJitter() / new Vector2(inputWidth, inputHeight);
-            camJitter *= 10;
+            var camJitter = NextJitter();
+            var sCamJitter = camJitter / new Vector2(inputWidth, inputHeight) * 2;
             cam.ResetProjectionMatrix();
             var tempProj = cam.projectionMatrix;
-            tempProj.m03 += camJitter.x - _lastJitter.x;
-            tempProj.m13 += camJitter.y - _lastJitter.y;
+            tempProj.m02 += sCamJitter.x;
+            tempProj.m12 += sCamJitter.y;
             cam.projectionMatrix = tempProj;
-            _lastJitter = camJitter;
             return camJitter;
         }
 
