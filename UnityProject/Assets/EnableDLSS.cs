@@ -179,6 +179,8 @@ public class EnableDLSS : MonoBehaviour
         if (!Upscaler_IsSupported(Type.DLSS))
             return;
 
+        var historyShouldReset = false;
+
         if (Screen.width != _outputWidth || Screen.height != _outputHeight)
         {
             _outputWidth = (uint)Screen.width;
@@ -217,12 +219,13 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
                 _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
             );
+            historyShouldReset = true;
         }
 
         RecordCommandBuffers();
 
         var jitter = _haltonJitterer.JitterCamera(_camera, (int)(_outputWidth / _inputWidth), _inputWidth, _inputHeight);
-        Upscaler_SetJitterInformation(jitter.x, jitter.y);
+        Upscaler_SetJitterInformation(jitter.x, jitter.y, historyShouldReset);
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
@@ -254,7 +257,7 @@ public class EnableDLSS : MonoBehaviour
         IntPtr outColor, GraphicsFormat outColorFormat);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_SetJitterInformation(float x, float y);
+    private static extern bool Upscaler_SetJitterInformation(float x, float y, bool resetHistory);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern IntPtr Upscaler_GetRenderingEventCallback();
@@ -298,14 +301,11 @@ public class EnableDLSS : MonoBehaviour
 
         private Vector2 NextJitter()
         {
-            if (_cyclePosition >= _haltonBase2.Length)
-            {
-                _cyclePosition = 0;
-            }
+            _cyclePosition %= _haltonBase2.Length;
             var jitter = new Vector2(
                 _haltonBase2[_cyclePosition] - 0.5f,
                 _haltonBase3[_cyclePosition] - 0.5f);
-            _cyclePosition++;
+            ++_cyclePosition;
             return jitter;
         }
 
@@ -314,7 +314,7 @@ public class EnableDLSS : MonoBehaviour
             var n = 0;
             var d = 1;
 
-            float[] haltonSeq = new float[seqLength];
+            var haltonSeq = new float[seqLength];
 
             for (var index = 0; index < seqLength; index++)
             {

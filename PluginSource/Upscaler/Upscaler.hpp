@@ -96,6 +96,7 @@ public:
         float      sharpness{};
         bool       HDR{};
         bool       autoExposure{};
+        bool       resetHistory{};
 
         template<Type T, typename _ = std::enable_if_t<T == Upscaler::NONE>>
         Quality getQuality() {

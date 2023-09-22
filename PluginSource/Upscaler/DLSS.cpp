@@ -75,18 +75,22 @@ bool DLSS::VulkanSetImageResources(
     if (depth.vulkan != nullptr) {
         GraphicsAPI::get<Vulkan>()->destroyImageView(depth.vulkan->Resource.ImageViewInfo.ImageView);
         std::free(depth.vulkan);
+        depth.vulkan = nullptr;
     }
     if (motion.vulkan != nullptr) {
         GraphicsAPI::get<Vulkan>()->destroyImageView(motion.vulkan->Resource.ImageViewInfo.ImageView);
         std::free(motion.vulkan);
+        motion.vulkan = nullptr;
     }
     if (inColor.vulkan != nullptr) {
         GraphicsAPI::get<Vulkan>()->destroyImageView(inColor.vulkan->Resource.ImageViewInfo.ImageView);
         std::free(inColor.vulkan);
+        inColor.vulkan = nullptr;
     }
     if (outColor.vulkan != nullptr) {
         GraphicsAPI::get<Vulkan>()->destroyImageView(outColor.vulkan->Resource.ImageViewInfo.ImageView);
         std::free(outColor.vulkan);
+        outColor.vulkan = nullptr;
     }
 
     VkImage depthBuffer   = *reinterpret_cast<VkImage *>(nativeDepthBuffer);
@@ -217,18 +221,17 @@ bool DLSS::VulkanEvaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.inputResolution.width,
-        .Height = settings.inputResolution.height,
+          .Width  = settings.inputResolution.width,
+          .Height = settings.inputResolution.height,
       },
+      .InReset    = (int)settings.resetHistory,
       .InMVScaleX = (float)settings.inputResolution.width,
       .InMVScaleY = (float)settings.inputResolution.height,
     };
     // clang-format on
 
-    NVSDK_NGX_Result result =
-      NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &DLSSEvalParameters);
-
-    return NVSDK_NGX_SUCCEED(result);
+    settings.resetHistory = false;
+    return NVSDK_NGX_SUCCEED(NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &DLSSEvalParameters));
 }
 
 bool DLSS::VulkanReleaseFeature() {
