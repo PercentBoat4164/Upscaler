@@ -50,7 +50,7 @@ public class EnableDLSS : MonoBehaviour
     // Detect if and why upscaling has failed or is unavailable
     // * = for later
 
-    private void SetUpCommandBuffers()
+    private void RecordCommandBuffers()
     {
         var ortho = Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1);
         var view = Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0));
@@ -62,8 +62,19 @@ public class EnableDLSS : MonoBehaviour
             new(-1, 1, 0),
             new(1, 1, 0)
         });
-        quad.SetIndices(new[]{0, 1, 2, 3, 2, 1}, MeshTopology.Triangles, 0);
-        var mat = new Material(Resources.Load<Shader>("Upscaler/DepthBlitShader"));
+        quad.SetUVs(0, new Vector2[]
+        {
+            new(0, 0),
+            new(1, 0),
+            new(0, 1),
+            new(1, 1)
+        });
+        quad.SetIndices(new[]{2, 1, 0, 1, 2, 3}, MeshTopology.Triangles, 0);
+        var shader = Shader.Find("Upscaler/BlitCopyTo");
+        var blitCopyTo = new Material(Shader.Find("Upscaler/BlitCopyTo"));
+        var blitCopyFrom = new Material(Shader.Find("Upscaler/BlitCopyFrom"));
+        var scaleFactorID = Shader.PropertyToID("_ScaleFactor");
+        var depthSourceID = Shader.PropertyToID("_Depth");
         var scale = new Vector2((float)_outputWidth / _inputWidth, (float)_outputHeight / _inputHeight);
         var inverseScale = new Vector2((float)_inputWidth / _outputWidth, (float)_inputHeight / _outputHeight);
         var offset = new Vector2(0, 0);
@@ -73,54 +84,73 @@ public class EnableDLSS : MonoBehaviour
         if (_beforeOpaque != null)
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _beforeOpaque);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
+            _beforeOpaque.Release();
         }
 
-        _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+        if (_preUpscale != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
+            _preUpscale.Release();
+        }
+
+        if (_upscale != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+            _upscale.Release();
+        }
+
+        if (_postUpscale != null) {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
+            _postUpscale.Release();
+        }
 
         _beforeOpaque = new CommandBuffer();
         _preUpscale = new CommandBuffer();
+        _upscale = new CommandBuffer();
         _postUpscale = new CommandBuffer();
 
         _beforeOpaque.name = "Set Render Resolution";
         _beforeOpaque.SetViewport(new Rect(0, 0, _inputWidth, _inputHeight));
 
         _preUpscale.name = "Copy To Upscaler";
-
         _preUpscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
-        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
         // Custom depth blit
         _preUpscale.SetProjectionMatrix(ortho);
         _preUpscale.SetViewMatrix(view);
-        // _preUpscale.DrawMesh(quad, Matrix4x4.identity, mat);
-        _preUpscale.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
+        _preUpscale.SetRenderTarget(_depthTarget);
+        blitCopyTo.SetVector(scaleFactorID, inverseScale);
+        _preUpscale.DrawMesh(quad, Matrix4x4.identity, blitCopyTo);
+        // Set viewport to output size
         _preUpscale.SetViewport(new Rect(0, 0, _outputWidth, _outputHeight));
-
-        _postUpscale.name = "Copy From Upscaler";
-        _postUpscale.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
-        _postUpscale.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
-
-        // _beforeOpaque is added in two places to handle forward and deferred rendering
-        _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-    }
-
-    private void RecordCommandBuffers()
-    {
-        if (_upscale != null)
-        {
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
-        }
-
-        _upscale = new CommandBuffer();
+        _preUpscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
 
         _upscale.name = "Upscale";
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.BEFORE_POSTPROCESSING);
 
+        _postUpscale.name = "Copy From Upscaler";
+        _postUpscale.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
+        _postUpscale.SetRenderTarget(BuiltinRenderTextureType.Depth);
+        _postUpscale.ClearRenderTarget(true, true, Color.black);
+        // Custom depth blit
+        _postUpscale.SetProjectionMatrix(ortho);
+        _postUpscale.SetViewMatrix(view);
+        _postUpscale.SetRenderTarget(BuiltinRenderTextureType.Depth);
+        blitCopyFrom.SetVector(scaleFactorID, Vector4.one);
+        blitCopyFrom.SetTexture(depthSourceID, _depthTarget);
+        _postUpscale.DrawMesh(quad, Matrix4x4.identity, blitCopyFrom);
+        // Clear used render targets.
+        _postUpscale.SetRenderTarget(_depthTarget);
+        _postUpscale.ClearRenderTarget(true, true, Color.black);
+        _postUpscale.SetRenderTarget(_motionVectorTarget);
+        _postUpscale.ClearRenderTarget(true, true, Color.black);
+        // _postUpscale.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
+
+        // _beforeOpaque is added in two places to handle forward and deferred rendering
+        _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
+        _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _beforeOpaque);
+        _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _preUpscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _postUpscale);
@@ -130,6 +160,7 @@ public class EnableDLSS : MonoBehaviour
     private void Start()
     {
         _camera = GetComponent<Camera>();
+        _camera.depthTextureMode = DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
         Upscaler_InitializePlugin(LogDebugMessage);
         Upscaler_Set(upscaler);
@@ -169,12 +200,12 @@ public class EnableDLSS : MonoBehaviour
             _inColorTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, GraphicsFormat.R8G8B8A8_UNorm);
             _inColorTarget.Create();
             _outColorTarget =
-                new RenderTexture((int)_outputWidth, (int)_outputHeight, 0, GraphicsFormat.R8G8B8A8_UNorm)
-                {
-                    enableRandomWrite = true
+                new RenderTexture((int)_outputWidth, (int)_outputHeight, 0, GraphicsFormat.R8G8B8A8_UNorm) {
+                    enableRandomWrite = true,
                 };
             _outColorTarget.Create();
-            _motionVectorTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, GraphicsFormat.R32G32_SFloat);
+            _motionVectorTarget =
+                new RenderTexture((int)_outputWidth, (int)_outputHeight, 0, GraphicsFormat.R32G32_SFloat);
             _motionVectorTarget.Create();
             _depthTarget = new RenderTexture((int)_inputWidth, (int)_inputHeight, 0, DefaultFormat.DepthStencil)
             {
@@ -186,7 +217,6 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat,
                 _outColorTarget.GetNativeTexturePtr(), _outColorTarget.graphicsFormat
             );
-            SetUpCommandBuffers();
         }
 
         RecordCommandBuffers();

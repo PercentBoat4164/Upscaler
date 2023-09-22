@@ -664,7 +664,7 @@ bool DLSS::createFeature() {
                   .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
                   },
       .InFeatureCreateFlags = static_cast<int>(
-        NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_MVJittered |
+        NVSDK_NGX_DLSS_Feature_Flags_MVJittered |
         (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
         (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)
