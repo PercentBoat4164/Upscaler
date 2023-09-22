@@ -3,30 +3,26 @@ using UnityEngine;
 
 public class MoveCube : MonoBehaviour
 {
-    private Vector3 _targetRotation;
-    private Vector3 _targetPosition;
     private Vector3 _rotationInc;
     private Vector3 _positionInc;
-    private Transform _transform;
+    private bool _shouldMove;
     private double _x;
-    
-    // Start is called before the first frame update
+
     private void Start()
     {
-        _transform = transform;
-        _targetRotation = _transform.eulerAngles;
-        _targetPosition = _transform.position;
+        transform.position = MoveCircular(0, 0);
     }
 
     // Update is called once per frame
     private void Update()
     {
-        _transform.position = MoveCircular(Time.deltaTime);
+        _shouldMove ^= Input.GetKeyDown("m");
+        transform.position = MoveCircular(Time.deltaTime, 3);
     }
 
-    Vector3 MoveCircular(double timing)
+    Vector3 MoveCircular(double timing, float scale)
     {
-        _x += timing * 3;
+        if (_shouldMove) _x += timing * scale;
         return new Vector3((float)Math.Sin(_x), (float)Math.Cos(_x), 0);
     }
 }
