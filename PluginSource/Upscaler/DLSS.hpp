@@ -45,25 +45,25 @@ class DLSS : public Upscaler {
     NVSDK_NGX_Parameter *parameters{};
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } depth;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } motion;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } inColor;
 
     union {
-        NVSDK_NGX_Resource_VK *vulkan;
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
         ID3D12Resource        *dx12;
         ID3D11Resource        *dx11;
     } outColor;
@@ -168,11 +168,22 @@ class DLSS : public Upscaler {
 
     DLSS() = default;
 
-    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to clear the current error.
-    bool setError(NVSDK_NGX_Result);
-
 public:
     static DLSS *get();
+
+    bool isSupported() override;
+
+    bool isAvailable() override;
+
+    /// Note: Can only set the value from true to false.
+    bool isSupportedAfter(bool isSupported) override;
+
+    void setSupported(bool isSupported) override;
+
+    /// Note: Can only set the value from true to false.
+    bool isAvailableAfter(bool isAvailable) override;
+
+    void setAvailable(bool isAvailable) override;
 
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
 

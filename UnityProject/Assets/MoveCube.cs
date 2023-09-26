@@ -1,43 +1,28 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class MoveCube : MonoBehaviour
 {
-    private Vector3 _targetRotation;
-    private Vector3 _targetPosition;
     private Vector3 _rotationInc;
     private Vector3 _positionInc;
-    private Transform _transform;
-    
-    // Start is called before the first frame update
-    void Start()
+    private bool _shouldMove;
+    private double _x;
+
+    private void Start()
     {
-        _transform = transform;
-        _targetRotation = _transform.eulerAngles;
-        _targetPosition = _transform.position;
+        transform.position = MoveCircular(0, 0);
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if (!Input.GetKey("m"))
-            return;
-        if (_targetRotation == transform.eulerAngles)
-        {
-            _targetRotation = new Vector3(Random.value, Random.value, Random.value) * 360;
-            _rotationInc = (_targetRotation - transform.eulerAngles) / 20;
-        }
+        _shouldMove ^= Input.GetKeyDown("m");
+        transform.position = MoveCircular(Time.deltaTime, 3);
+    }
 
-        if (_targetPosition == transform.position)
-        {
-            _targetPosition = new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * 10;
-            _positionInc = (_targetPosition - transform.position) / 20;
-        }
-
-        _transform.position += _positionInc;
-        _transform.eulerAngles += _rotationInc;
+    Vector3 MoveCircular(double timing, float scale)
+    {
+        if (_shouldMove) _x += timing * scale;
+        return new Vector3((float)Math.Sin(_x), (float)Math.Cos(_x), 0);
     }
 }

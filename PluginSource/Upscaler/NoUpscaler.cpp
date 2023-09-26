@@ -22,8 +22,32 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDev
     return {};
 }
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution /* unused */, bool /* unused */) {
+Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution resolution, bool t_HDR) {
+    settings.inputResolution = resolution;
+    settings.HDR = t_HDR;
     return settings;
+}
+
+bool NoUpscaler::isSupportedAfter(bool b) {
+    return true;
+}
+
+void NoUpscaler::setSupported(bool b) {
+}
+
+bool NoUpscaler::isAvailableAfter(bool b) {
+    return true;
+}
+
+void NoUpscaler::setAvailable(bool b) {
+}
+
+bool NoUpscaler::isSupported() {
+    return true;
+}
+
+bool NoUpscaler::isAvailable() {
+    return true;
 }
 
 bool NoUpscaler::initialize() {

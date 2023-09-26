@@ -1,7 +1,5 @@
 #include "Upscaler.hpp"
 
-#include <utility>
-
 #include "DLSS.hpp"
 #include "NoUpscaler.hpp"
 
@@ -35,10 +33,10 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
     };
 }
 
-std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
+std::vector<Upscaler *> Upscaler::getSupportedUpscalers() {
     std::vector<Upscaler *> upscalers;
     for (Upscaler *upscaler : getAllUpscalers())
-        if (upscaler->getError() == NO_ERROR) upscalers.push_back(upscaler);
+        if (upscaler->isSupported()) upscalers.push_back(upscaler);
     return upscalers;
 }
 
@@ -47,41 +45,16 @@ void Upscaler::set(Type upscaler) {
 }
 
 void Upscaler::set(Upscaler *upscaler) {
+    if (!upscaler->isSupported()) return;
+    upscalerInUse->setAvailable(false);
     upscalerInUse = upscaler;
+    upscalerInUse->setAvailable(true);
 }
 
 void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-Upscaler::ErrorReason Upscaler::getError() {
-    return error;
-}
-
-bool Upscaler::setError(Upscaler::ErrorReason t_error) {
-    if (error == NO_ERROR)
-        error = t_error;
-    return error != NO_ERROR;
-}
-
-bool Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::ErrorReason t_error) {
-    if (error == NO_ERROR && t_shouldApplyError)
-        error = t_error;
-    return error != NO_ERROR;
-}
-
-bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U)
-        error = NO_ERROR;
-    return error == NO_ERROR;
-}
-
-bool Upscaler::setErrorMessage(std::string msg) {
-    if (!detailedErrorMessage.empty()) return false;
-    detailedErrorMessage = std::move(msg);
-    return true;
-}
-
-std::string &Upscaler::getErrorMessage() {
-    return detailedErrorMessage;
+void Upscaler::disableAllUpscalers() {
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->isSupportedAfter(false);
 }
