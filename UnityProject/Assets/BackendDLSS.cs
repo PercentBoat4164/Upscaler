@@ -7,12 +7,7 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 public class BackendDLSS : MonoBehaviour
-{
-    public enum ErrorReason
-    {
-        DEVICE_NOT_SUPPORTED
-    }
-    
+{ 
     public enum Type
     {
         NONE,
@@ -24,7 +19,7 @@ public class BackendDLSS : MonoBehaviour
         BEFORE_POSTPROCESSING,
     }
     
-    protected Type Upscaler = Type.DLSS; 
+    protected Type ActiveUpscaler = Type.DLSS; 
     
     private delegate void DebugCallback(IntPtr message);
 
@@ -108,7 +103,7 @@ public class BackendDLSS : MonoBehaviour
         _camera = GetComponent<Camera>();
 
         Upscaler_InitializePlugin(LogDebugMessage);
-        Upscaler_Set(Upscaler);
+        Upscaler_Set(ActiveUpscaler);
         if (!Upscaler_Initialize())
         {
             Debug.Log("DLSS is not supported.");
@@ -119,7 +114,7 @@ public class BackendDLSS : MonoBehaviour
         _haltonJitterer = new HaltonJitterer();
     }
 
-    private void OnPreRender()
+    protected void OnPreRender()
     {
         if (Upscaler_GetError(Type.DLSS))
             return;
@@ -204,21 +199,6 @@ public class BackendDLSS : MonoBehaviour
     private static void LogDebugMessage(IntPtr message)
     {
         Debug.Log(Marshal.PtrToStringAnsi(message));
-    }
-
-    protected class UpscalerException : Exception
-    {
-        private readonly ErrorReason _reason;
-
-        public UpscalerException(ErrorReason reason)
-        {
-            _reason = reason; 
-        }
-
-        public override string ToString()
-        {
-            return base.ToString() + "Upscaling failed. Reason: " + _reason.ToString();
-        }
     }
     
     private class HaltonJitterer
