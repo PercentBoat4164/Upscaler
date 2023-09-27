@@ -39,16 +39,16 @@ IUnityGraphics *graphicsInterface;
 }  // namespace Unity
 
 enum Event {
-    BEFORE_POSTPROCESSING,
+    UPSCALE,
 };
 
-void INTERNAL_BeforePostProcessing() {
+void INTERNAL_Upscale() {
     Upscaler::get()->evaluate();
 }
 
-void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
+void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event, void *data=nullptr) {
     switch (event) {
-        case BEFORE_POSTPROCESSING: INTERNAL_BeforePostProcessing(); break;
+        case UPSCALE: INTERNAL_Upscale(); break;
     }
 }
 

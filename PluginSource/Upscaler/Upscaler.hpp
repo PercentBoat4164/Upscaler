@@ -72,12 +72,14 @@ public:
 
     static struct Settings {
         enum Quality {
-            AUTO,
+            AUTO,  // Chooses a performance quality mode based on output resolution
             ULTRA_QUALITY,
             QUALITY,
             BALANCED,
             PERFORMANCE,
             ULTRA_PERFORMANCE,
+            DYNAMIC_AUTO,  // Enables dynamic resolution and automatically handles changing scale factors
+            DYNAMIC_MANUAL,  // Enables dynamic resolution and lets the user handle changing scale factors
         };
 
         struct Resolution {
@@ -87,7 +89,7 @@ public:
             uint64_t asLong() const;
         };
 
-        Quality    quality{QUALITY};
+        Quality    quality{AUTO};
         Resolution inputResolution{};
         Resolution dynamicMaximumInputResolution{};
         Resolution dynamicMinimumInputResolution{};
@@ -107,12 +109,19 @@ public:
         template<Type T, typename _ = std::enable_if_t<T == Upscaler::DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
-                case AUTO: return NVSDK_NGX_PerfQuality_Value_Balanced;
-                case ULTRA_QUALITY: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
+                case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
+                    uint64_t pixelCount{(uint64_t)inputResolution.width * inputResolution.height};
+                    if (pixelCount <= (uint64_t)2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= (uint64_t)3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                }
+                case ULTRA_QUALITY:  // Ultra Quality is not available for DLSS. Defaults to Quality.
                 case QUALITY: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case BALANCED: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                 case ULTRA_PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                case DYNAMIC_AUTO:
+                case DYNAMIC_MANUAL: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
             }
             return NVSDK_NGX_PerfQuality_Value_Balanced;
         };
