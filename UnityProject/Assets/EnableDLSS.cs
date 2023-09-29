@@ -37,19 +37,32 @@ public class EnableDLSS : MonoBehaviour
 
     // Dynamic Resolution state
     private bool UseDynamicResolution => quality == Quality.DynamicAuto | quality == Quality.DynamicManual;
+    private bool _lastUseDynamicResolution;
+    private float _scaleWidth;
+    private float ScaleWidth
+    {
+        set => _scaleWidth = Math.Max(.5f, Math.Min(1f, value));
+        get => _scaleWidth;
+    }
+    private float _scaleHeight;
+    private float ScaleHeight
+    {
+        set => _scaleHeight = Math.Max(.5f, Math.Min(1f, value));
+        get => _scaleHeight;
+    }
     private uint CameraWidth => (uint)_camera.pixelWidth;
     private uint CameraHeight => (uint)_camera.pixelHeight;
     private Vector2 CameraResolution => new (CameraWidth, CameraHeight);
     private uint UpscalingWidth => _outputTarget != null ? (uint)_outputTarget.width : CameraWidth;
     private uint UpscalingHeight => _outputTarget != null ? (uint)_outputTarget.height : CameraHeight;
     private Vector2 UpscalingResolution => new (UpscalingWidth, UpscalingHeight);
+    private Vector2 _lastUpscalingResolution;
     private uint _optimalRenderingWidth;
     private uint _optimalRenderingHeight;
-    private uint RenderingWidth => (uint)(UseDynamicResolution ? _camera.pixelWidth * ScalableBufferManager.widthScaleFactor : _optimalRenderingWidth);
-    private uint RenderingHeight => (uint)(UseDynamicResolution ? _camera.pixelHeight * ScalableBufferManager.heightScaleFactor : _optimalRenderingHeight);
+    private uint RenderingWidth => (uint)(UseDynamicResolution ? UpscalingWidth * ScalableBufferManager.widthScaleFactor : _optimalRenderingWidth);
+    private uint RenderingHeight => (uint)(UseDynamicResolution ? UpscalingHeight * ScalableBufferManager.heightScaleFactor : _optimalRenderingHeight);
     private Vector2 RenderingResolution => new(RenderingWidth, RenderingHeight);
-    private float ScalingFactor => (float)UpscalingWidth / RenderingWidth;
-    private Vector2 _lastUpscaledResolution;
+    private float UpscalingFactor => (float)UpscalingWidth / RenderingWidth;
     private Vector2 _lastRenderingResolution;
 
     // HDR state
@@ -62,14 +75,14 @@ public class EnableDLSS : MonoBehaviour
     private RenderTexture _motionVectorTarget;
 
     // CommandBuffers
-    private CommandBuffer _beforeOpaque;
+    private CommandBuffer _setRenderingResolution;
     private CommandBuffer _preUpscale;
     private CommandBuffer _upscale;
     private CommandBuffer _postUpscale;
 
     // Jitter
     private const uint SamplesPerPixel = 8;
-    private uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * ScalingFactor * ScalingFactor);
+    private uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * UpscalingFactor * UpscalingFactor);
     private Vector2[] _jitterSequence;
     private uint _sequencePosition;
 
@@ -81,7 +94,7 @@ public class EnableDLSS : MonoBehaviour
     {
         var ndcJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = ndcJitter / new Vector2(RenderingWidth, RenderingHeight) * 2;
+        var clipJitter = ndcJitter / new Vector2(RenderingWidth, RenderingHeight);
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
@@ -125,7 +138,7 @@ public class EnableDLSS : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitDepth(CommandBuffer cb, bool to, RenderTexture tex, Vector2? scale=null)
+    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale=null)
     {
         var quad = new Mesh();
         quad.SetVertices(new Vector3[]
@@ -143,12 +156,12 @@ public class EnableDLSS : MonoBehaviour
             new(1, 1)
         });
         quad.SetIndices(new[]{2, 1, 0, 1, 2, 3}, MeshTopology.Triangles, 0);
-        var material = new Material(Shader.Find(to ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
+        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(to ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
         material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
-        if (!to)
+        if (!toTex)
             material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
         cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
@@ -158,70 +171,53 @@ public class EnableDLSS : MonoBehaviour
         var scale = UpscalingResolution / RenderingResolution;
         var inverseScale = RenderingResolution / UpscalingResolution;
         var offset = new Vector2(0, 0);
+        var motionScale = UseDynamicResolution ? RenderingResolution : UpscalingResolution;
 
-        if (_beforeOpaque != null)
-        {
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _beforeOpaque);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-            _beforeOpaque.Release();
-        }
-        if (_upscale != null)
-        {
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
-            _upscale.Release();
-        }
+        _setRenderingResolution.Clear();
+        _upscale.Clear();
 
-        _upscale = new CommandBuffer();
-        _beforeOpaque = new CommandBuffer();
+        if (!UseDynamicResolution)
+            _setRenderingResolution.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
 
-        _beforeOpaque.name = "Set Render Resolution";
-        _beforeOpaque.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
-
-        _upscale.name = "Upscale";
-        _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
-        _upscale.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
+        _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)motionScale.x, (int)motionScale.y, _motionVectorTarget, 0, 0, 0, 0);
         _upscale.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)RenderingWidth, (int)RenderingHeight, _inColorTarget, 0, 0, 0, 0);
-        // _upscale.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
         BlitDepth(_upscale, true, _inColorTarget, inverseScale);
-        _upscale.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
-        _upscale.ClearRenderTarget(true, false, Color.black);
+        _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
+        _upscale.SetRenderTarget(_inColorTarget);
+        _upscale.ClearRenderTarget(true, false, Color.black);
         BlitDepth(_upscale, false, _inColorTarget);
         _upscale.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
-        // _upscale.Blit(_outputTarget, BuiltinRenderTextureType.CameraTarget);
-
-        // _beforeOpaque is added in multiple places to handle forward and deferred rendering
-        _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _beforeOpaque);
-        _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _beforeOpaque);
-
-        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
     }
 
     private bool ManageTargets()
     {
         var dHDR = _lastHDRActive != HDRActive;
-        var dUpscaledResolution = _lastUpscaledResolution != UpscalingResolution;
+        var dUpscalingResolution = _lastUpscalingResolution != UpscalingResolution;
         var dRenderingResolution = _lastRenderingResolution != RenderingResolution;
+        var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
         var colorFormat = SystemInfo.GetGraphicsFormat(HDRActive ? DefaultFormat.HDR : DefaultFormat.LDR);
         var depthFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
         const GraphicsFormat motionFormat = GraphicsFormat.R16G16_SFloat;
 
-        if (dUpscaledResolution && !UseDynamicResolution)
+        if (dUpscalingResolution)
         {
-            var size = Upscaler_ResizeTargets(UpscalingWidth, UpscalingHeight, HDRActive);
-            if (size == 0)
+            Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, HDRActive);
+            var size = Upscaler_GetRecommendedInputResolution();
+            Debug.Log("New output size: " + UpscalingWidth + "x" + UpscalingHeight);
+            if (size == 0 && !UseDynamicResolution)
                 return true;
             _optimalRenderingWidth = (uint)(size >> 32);
             _optimalRenderingHeight = (uint)(size & 0xFFFFFFFF);
         }
 
-        if (dUpscaledResolution | dRenderingResolution)
+        Upscaler_SetCurrentInputResolution(RenderingWidth, RenderingHeight);
+
+        if (dUpscalingResolution | dRenderingResolution | _jitterSequence == null)
             GenerateJitterSequences();
 
-        if (_outputTarget == null | dHDR | dUpscaledResolution)
+        if (_outputTarget == null | dHDR | dUpscalingResolution)
         {
             if (_outputTarget != null && _outputTarget.IsCreated())
                 _outputTarget.Release();
@@ -240,31 +236,37 @@ public class EnableDLSS : MonoBehaviour
             }
         }
 
-        if (_inColorTarget == null | dHDR | dRenderingResolution)
+        // _inColorTarget is the only image affected by Dynamic Resolution. Note that when Dynamic Resolution is enabled
+        // the image must be created with enough memory for the Dynamic Resolution Scale to be 1.0. In other words
+        // create the image at the resolution of the output target.
+        if (_inColorTarget == null | dHDR | dDynamicResolution | UseDynamicResolution ? dUpscalingResolution : dRenderingResolution)
         {
             if (_inColorTarget != null && _inColorTarget.IsCreated())
                 _inColorTarget.Release();
+            var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
             _inColorTarget =
-                new RenderTexture((int)RenderingWidth, (int)RenderingHeight, colorFormat, depthFormat)
+                new RenderTexture((int)scale.x, (int)scale.y, colorFormat, depthFormat)
                 {
-                    filterMode = FilterMode.Point
+                    filterMode = FilterMode.Point,
+                    useDynamicScale = UseDynamicResolution
                 };
             _inColorTarget.Create();
         }
 
-        if (_motionVectorTarget == null | dRenderingResolution)
+        if (_motionVectorTarget == null | dUpscalingResolution)
         {
             if (_motionVectorTarget != null && _motionVectorTarget.IsCreated())
                 _motionVectorTarget.Release();
-            _motionVectorTarget = new RenderTexture((int)RenderingWidth, (int)RenderingHeight, 0, motionFormat);
+            _motionVectorTarget = new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, motionFormat);
             _motionVectorTarget.Create();
         }
 
-        _lastRenderingResolution = RenderingResolution;
-        _lastUpscaledResolution = UpscalingResolution;
         _lastHDRActive = HDRActive;
+        _lastUpscalingResolution = UpscalingResolution;
+        _lastRenderingResolution = RenderingResolution;
+        _lastUseDynamicResolution = UseDynamicResolution;
 
-        if (!dHDR && !dUpscaledResolution && !dRenderingResolution)
+        if (!dHDR && !dUpscalingResolution && !dRenderingResolution)
             return false;
 
         Upscaler_Prepare(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat,
@@ -275,15 +277,28 @@ public class EnableDLSS : MonoBehaviour
         return true;
     }
 
-    private void Start()
+    private void OnEnable()
     {
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
-        GenerateJitterSequences();
-
         Upscaler_InitializePlugin(LogDebugMessage);
+
+        _setRenderingResolution = new CommandBuffer();
+        _setRenderingResolution.name = "Set Render Resolution";
+        _upscale = new CommandBuffer();
+        _upscale.name = "Upscale";
+
+
+        _camera.AddCommandBuffer( CameraEvent.BeforeGBuffer, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+    }
+
+    private void Start()
+    {
         Upscaler_Set(upscaler);
-        if (!Upscaler_Initialize())
+        if (Upscaler_Initialize())
         {
             Debug.Log("DLSS is not supported.");
             return;
@@ -292,16 +307,59 @@ public class EnableDLSS : MonoBehaviour
         Debug.Log("DLSS is supported.");
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            ScaleWidth += .1f;
+            ScaleHeight += .1f;
+            Debug.Log(ScaleWidth);
+        }
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            ScaleWidth -= .1f;
+            ScaleHeight -= .1f;
+            Debug.Log(ScaleWidth);
+        }
+    }
+
     private void OnPreCull()
     {
-        if (!Upscaler_IsSupported(upscaler) || upscaler == Type.None)
+        if (Upscaler_GetError(upscaler) != 0 || upscaler == Type.None)
             return;
+
+        if (UseDynamicResolution)
+            ScalableBufferManager.ResizeBuffers(ScaleWidth, ScaleHeight);
 
         var historyShouldReset = ManageTargets();
         RecordCommandBuffers();
 
         var jitter = JitterCamera();
         Upscaler_SetJitterInformation(jitter.x, jitter.y, historyShouldReset);
+    }
+
+    private void OnPostRender()
+    {
+        if (!UseDynamicResolution) return;
+        ScalableBufferManager.ResizeBuffers(1, 1);
+        Graphics.CopyTexture(_outputTarget, null);
+    }
+
+    private void OnDisable()
+    {
+        if (_setRenderingResolution != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
+            _setRenderingResolution.Release();
+        }
+        if (_upscale != null)
+        {
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+            _upscale.Release();
+        }
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
@@ -311,19 +369,28 @@ public class EnableDLSS : MonoBehaviour
     private static extern bool Upscaler_Set(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_IsSupported(Type type);
+    protected static extern int Upscaler_GetError(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_IsCurrentlyAvailable();
+    protected static extern IntPtr Upscaler_GetErrorMessage(Type type);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_IsAvailable(Type type);
+    private static extern int Upscaler_GetCurrentError();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern IntPtr Upscaler_GetCurrentErrorMessage();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Initialize();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_ResizeTargets(uint width, uint height, bool HDR);
+    private static extern void Upscaler_SetFramebufferSettings(uint width, uint height, bool hdr);
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ulong Upscaler_GetRecommendedInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern int Upscaler_SetCurrentInputResolution(uint width, uint height);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Prepare(
