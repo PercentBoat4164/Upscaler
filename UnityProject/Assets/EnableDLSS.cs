@@ -286,8 +286,8 @@ public class EnableDLSS : MonoBehaviour
         _upscale = new CommandBuffer();
         _upscale.name = "Upscale";
 
-
         _camera.AddCommandBuffer( CameraEvent.BeforeGBuffer, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
@@ -351,6 +351,7 @@ public class EnableDLSS : MonoBehaviour
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
+            _camera.RemoveCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
             _setRenderingResolution.Release();
         }
         if (_upscale != null)
