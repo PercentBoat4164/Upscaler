@@ -1,6 +1,5 @@
 #include "Vulkan.hpp"
 
-#include "Logger.hpp"
 #include "Upscaler/DLSS.hpp"
 
 PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};

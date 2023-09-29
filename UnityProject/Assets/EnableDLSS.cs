@@ -30,22 +30,20 @@ public class EnableDLSS : MonoBehaviour
         Upscale,
     }
 
-    private delegate void DebugCallback(IntPtr message);
-    
     // Camera
     private Camera _camera;
 
     // Dynamic Resolution state
     private bool UseDynamicResolution => quality == Quality.DynamicAuto | quality == Quality.DynamicManual;
     private bool _lastUseDynamicResolution;
-    private float _scaleWidth;
-    private float ScaleWidth
+    private static float _scaleWidth;
+    private static float ScaleWidth
     {
         set => _scaleWidth = Math.Max(.5f, Math.Min(1f, value));
         get => _scaleWidth;
     }
-    private float _scaleHeight;
-    private float ScaleHeight
+    private static float _scaleHeight;
+    private static float ScaleHeight
     {
         set => _scaleHeight = Math.Max(.5f, Math.Min(1f, value));
         get => _scaleHeight;
@@ -281,7 +279,7 @@ public class EnableDLSS : MonoBehaviour
     {
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
-        Upscaler_InitializePlugin(LogDebugMessage);
+        Upscaler_InitializePlugin();
 
         _setRenderingResolution = new CommandBuffer();
         _setRenderingResolution.name = "Set Render Resolution";
@@ -341,9 +339,9 @@ public class EnableDLSS : MonoBehaviour
 
     private void OnPostRender()
     {
-        if (!UseDynamicResolution) return;
+        if (!UseDynamicResolution || (ScaleWidth >= 1 && ScaleHeight >= 1) || _camera.targetTexture == null) return;
         ScalableBufferManager.ResizeBuffers(1, 1);
-        Graphics.CopyTexture(_outputTarget, null);
+        Graphics.CopyTexture(_outputTarget, _camera.targetTexture);
     }
 
     private void OnDisable()
@@ -363,7 +361,7 @@ public class EnableDLSS : MonoBehaviour
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_InitializePlugin(DebugCallback cb);
+    private static extern void Upscaler_InitializePlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern bool Upscaler_Set(Type type);
@@ -404,10 +402,4 @@ public class EnableDLSS : MonoBehaviour
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern IntPtr Upscaler_GetRenderingEventCallback();
-
-    [MonoPInvokeCallback(typeof(DebugCallback))]
-    private static void LogDebugMessage(IntPtr message)
-    {
-        Debug.Log(Marshal.PtrToStringAnsi(message));
-    }
 }

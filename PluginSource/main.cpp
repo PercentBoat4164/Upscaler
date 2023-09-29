@@ -1,6 +1,5 @@
 // Project
 #include "GraphicsAPI/NoGraphicsAPI.hpp"
-#include "Logger.hpp"
 #include "Upscaler/NoUpscaler.hpp"
 
 #ifdef ENABLE_VULKAN
@@ -20,19 +19,7 @@
 #include <IUnityInterface.h>
 #include <IUnityRenderingExtensions.h>
 
-#ifndef NDEBUG
-// Usage: Insert this where the debugger should connect. Execute. Connect the debugger. Set 'debuggerConnected' to
-// true. Step.
-// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals.
-#    define WAIT_FOR_DEBUGGER               \
-        {                                   \
-            bool debuggerConnected = false; \
-            while (!debuggerConnected)      \
-                ;                           \
-        }
-#else
-#    define WAIT_FOR_DEBUGGER
-#endif
+// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals on Linux.
 
 namespace Unity {
 IUnityGraphics *graphicsInterface;
@@ -46,7 +33,7 @@ void INTERNAL_Upscale() {
     Upscaler::get()->evaluate();
 }
 
-void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event, void *data=nullptr) {
+void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
     switch (event) {
         case UPSCALE: INTERNAL_Upscale(); break;
     }
@@ -57,10 +44,7 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
-    Logger::setLoggerCallback(t_debugFunction);
-    Logger::flush();
-
+Upscaler_InitializePlugin() {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
@@ -116,7 +100,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    bool available = Upscaler::get()->setErrorIf(Upscaler::get()->setImageResources(
+    bool available = Upscaler::get()->setImageResources(
       nativeDepthBuffer,
       unityDepthFormat,
       nativeMotionVectors,
@@ -125,7 +109,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
       unityInColorFormat,
       nativeOutColor,
       unityOutColorFormat
-    ), Upscaler::SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR) == Upscaler::ERROR_NONE;
+    ) == Upscaler::ERROR_NONE;
 
     Upscaler::get()->createFeature();
     return available;

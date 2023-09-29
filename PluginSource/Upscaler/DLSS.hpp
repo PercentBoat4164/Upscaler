@@ -1,7 +1,6 @@
 #pragma once
 
 // Project
-#include "Logger.hpp"
 #include "Upscaler.hpp"
 
 // Upscaler
@@ -12,25 +11,24 @@ class DLSS : public Upscaler {
     struct Application {
         uint64_t                         id{231313132};
         std::wstring                     dataPath{L"./"};
-        NVSDK_NGX_Application_Identifier ngxIdentifier{
+        // clang-format off
+        NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
-                             .ApplicationId = id,
-                             }
+            .ApplicationId = id,
+          }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
-          .PathListInfo =
-            {
-                           .Path   = new const wchar_t *{L"./Assets/Plugins"},
-                           .Length = 1,
-                           },
+          .PathListInfo ={
+            .Path   = new const wchar_t *{L"./Assets/Plugins"},
+            .Length = 1,
+            },
           .InternalData = nullptr,
           .LoggingInfo  = {
-                           .LoggingCallback          = Logger::log,
-                           //        .LoggingCallback = nullptr,
-             .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
-                           .DisableOtherLoggingSinks = false,
-                           }
+            .LoggingCallback = nullptr,
+            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+            .DisableOtherLoggingSinks = false,
+          }
         };
         NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
           .SDKVersion          = NVSDK_NGX_Version_API,
@@ -39,6 +37,7 @@ class DLSS : public Upscaler {
           .ApplicationDataPath = dataPath.c_str(),
           .FeatureInfo         = &featureCommonInfo,
         };
+        // clang-format on
     } applicationInfo;
 
     NVSDK_NGX_Handle    *featureHandle{};
