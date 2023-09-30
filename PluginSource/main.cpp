@@ -1,6 +1,5 @@
 // Project
 #include "GraphicsAPI/NoGraphicsAPI.hpp"
-#include "Logger.hpp"
 #include "Upscaler/NoUpscaler.hpp"
 
 #ifdef ENABLE_VULKAN
@@ -20,35 +19,23 @@
 #include <IUnityInterface.h>
 #include <IUnityRenderingExtensions.h>
 
-#ifndef NDEBUG
-// Usage: Insert this where the debugger should connect. Execute. Connect the debugger. Set 'debuggerConnected' to
-// true. Step.
-// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals.
-#    define WAIT_FOR_DEBUGGER               \
-        {                                   \
-            bool debuggerConnected = false; \
-            while (!debuggerConnected)      \
-                ;                           \
-        }
-#else
-#    define WAIT_FOR_DEBUGGER
-#endif
+// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals on Linux.
 
 namespace Unity {
 IUnityGraphics *graphicsInterface;
 }  // namespace Unity
 
 enum Event {
-    BEFORE_POSTPROCESSING,
+    UPSCALE,
 };
 
-void INTERNAL_BeforePostProcessing() {
+void INTERNAL_Upscale() {
     Upscaler::get()->evaluate();
 }
 
 void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
     switch (event) {
-        case BEFORE_POSTPROCESSING: INTERNAL_BeforePostProcessing(); break;
+        case UPSCALE: INTERNAL_Upscale(); break;
     }
 }
 
@@ -57,10 +44,7 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
-    Logger::setLoggerCallback(t_debugFunction);
-    Logger::flush();
-
+Upscaler_InitializePlugin() {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
@@ -68,34 +52,42 @@ Upscaler_InitializePlugin(void (*t_debugFunction)(const char *)) {
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Set(Upscaler::Type type) {
     Upscaler::get()->shutdown();
     Upscaler::set(type);
-    return Upscaler::get()->initialize();
+    return Upscaler::get()->initialize() == Upscaler::ERROR_NONE;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsSupported(Upscaler::Type type) {
-    return Upscaler::get(type)->isSupported();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetError(Upscaler::Type type) {
+    return Upscaler::get(type)->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsCurrentlyAvailable() {
-    return Upscaler::get()->isSupported();
+extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
+    return Upscaler::get(type)->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsAvailable(Upscaler::Type type) {
-    return Upscaler::get(type)->isAvailable();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetCurrentError() {
+    return Upscaler::get()->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Initialize() {
+extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
+    return Upscaler::get()->getErrorMessage().c_str();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_Initialize() {
     Upscaler::get()->initialize();
-    return Upscaler::get()->isSupported();
+    return Upscaler::get()->getError();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(unsigned int t_width, unsigned int t_height, bool t_HDR) {
+    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_HDR);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
-Upscaler_ResizeTargets(unsigned int t_width, unsigned int t_height, bool t_HDR) {
-    Logger::log("Resizing up-scaling targets: " + std::to_string(t_width) + "x" + std::to_string(t_height));
+Upscaler_GetRecommendedInputResolution() {
+    return Upscaler::settings.recommendedInputResolution.asLong();
+}
 
-    if (!Upscaler::get()->isSupported()) return 0;
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_HDR);
-
-    return Upscaler::settings.inputResolution.asLong();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
+    Upscaler::settings.currentInputResolution = {t_width, t_height};
+    return Upscaler::ERROR_NONE;  /*@todo Make this detect bad resolutions and throw an error. */
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
@@ -108,7 +100,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    bool available = Upscaler::get()->isAvailableAfter(Upscaler::get()->setImageResources(
+    bool available = Upscaler::get()->setImageResources(
       nativeDepthBuffer,
       unityDepthFormat,
       nativeMotionVectors,
@@ -117,7 +109,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
       unityInColorFormat,
       nativeOutColor,
       unityOutColorFormat
-    ));
+    ) == Upscaler::ERROR_NONE;
 
     Upscaler::get()->createFeature();
     return available;

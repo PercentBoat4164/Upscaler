@@ -2,6 +2,7 @@
 
 NoUpscaler *NoUpscaler::get() {
     NoUpscaler *noUpscaler{new NoUpscaler};
+    noUpscaler->setError(ERROR_DUMMY_UPSCALER);
     return noUpscaler;
 }
 
@@ -22,43 +23,19 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDev
     return {};
 }
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution resolution, bool t_HDR) {
-    settings.inputResolution = resolution;
-    settings.HDR = t_HDR;
+Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution /* unused */, bool /* unused */) {
     return settings;
 }
 
-bool NoUpscaler::isSupportedAfter(bool b) {
-    return true;
+Upscaler::ErrorReason NoUpscaler::initialize() {
+    return ERROR_DUMMY_UPSCALER;
 }
 
-void NoUpscaler::setSupported(bool b) {
+Upscaler::ErrorReason NoUpscaler::createFeature() {
+    return ERROR_DUMMY_UPSCALER;
 }
 
-bool NoUpscaler::isAvailableAfter(bool b) {
-    return true;
-}
-
-void NoUpscaler::setAvailable(bool b) {
-}
-
-bool NoUpscaler::isSupported() {
-    return true;
-}
-
-bool NoUpscaler::isAvailable() {
-    return true;
-}
-
-bool NoUpscaler::initialize() {
-    return false;
-}
-
-bool NoUpscaler::createFeature() {
-    return false;
-}
-
-bool NoUpscaler::setImageResources(
+Upscaler::ErrorReason NoUpscaler::setImageResources(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
@@ -68,19 +45,19 @@ bool NoUpscaler::setImageResources(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    return false;
+    return ERROR_DUMMY_UPSCALER;
 }
 
-bool NoUpscaler::evaluate() {
-    return false;
+Upscaler::ErrorReason NoUpscaler::evaluate() {
+    return ERROR_DUMMY_UPSCALER;
 }
 
-bool NoUpscaler::releaseFeature() {
-    return false;
+Upscaler::ErrorReason NoUpscaler::releaseFeature() {
+    return ERROR_DUMMY_UPSCALER;
 }
 
-bool NoUpscaler::shutdown() {
-    return false;
+Upscaler::ErrorReason NoUpscaler::shutdown() {
+    return ERROR_DUMMY_UPSCALER;
 }
 
 void NoUpscaler::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
