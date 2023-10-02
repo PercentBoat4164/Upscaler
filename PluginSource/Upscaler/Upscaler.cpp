@@ -83,3 +83,12 @@ bool Upscaler::setErrorMessage(std::string msg) {
 std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
 }
+
+Upscaler::ErrorReason Upscaler::shutdown() {
+    if (error != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && error != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
+        error                = ERROR_NONE;
+        detailedErrorMessage = "";
+    }
+    initialized = false;
+    return ERROR_NONE;
+}

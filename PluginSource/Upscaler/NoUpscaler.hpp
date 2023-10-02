@@ -13,7 +13,7 @@ public:
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
     std::vector<std::string>
              getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice device) override;
-    Settings getOptimalSettings(Settings::Resolution /*unused*/, bool /*unused*/) override;
+    Settings getOptimalSettings(Settings::Resolution /* unused */, Settings::Quality /* unused */, bool /* unused */) override;
     ErrorReason     initialize() override;
     ErrorReason     createFeature() override;
     ErrorReason     setImageResources(

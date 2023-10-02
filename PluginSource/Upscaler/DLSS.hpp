@@ -87,6 +87,7 @@ class DLSS : public Upscaler {
     Upscaler::ErrorReason VulkanInitialize();
     Upscaler::ErrorReason VulkanGetParameters();
     Upscaler::ErrorReason VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    void        VulkanDestroyImageViews();
     Upscaler::ErrorReason VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
@@ -156,7 +157,7 @@ public:
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    Settings getOptimalSettings(Settings::Resolution /*unused*/, bool /*unused*/) override;
+    Settings getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
 
     Type getType() override;
 

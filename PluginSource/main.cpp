@@ -71,13 +71,8 @@ extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetC
     return Upscaler::get()->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_Initialize() {
-    Upscaler::get()->initialize();
-    return Upscaler::get()->getError();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(unsigned int t_width, unsigned int t_height, bool t_HDR) {
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_HDR);
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(unsigned int t_width, unsigned int t_height, Upscaler::Settings::Quality t_quality, bool t_HDR) {
+    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
@@ -88,6 +83,15 @@ Upscaler_GetRecommendedInputResolution() {
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
     Upscaler::settings.currentInputResolution = {t_width, t_height};
     return Upscaler::ERROR_NONE;  /*@todo Make this detect bad resolutions and throw an error. */
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
+    Upscaler::settings.jitter[0] = x;
+    Upscaler::settings.jitter[1] = y;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory() {
+    Upscaler::settings.resetHistory = true;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
@@ -111,14 +115,19 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
       unityOutColorFormat
     ) == Upscaler::ERROR_NONE;
 
-    Upscaler::get()->createFeature();
+    available &= Upscaler::get()->createFeature() == Upscaler::ERROR_NONE;
     return available;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y, bool resetHistory) {
-    Upscaler::settings.jitter[0] = x;
-    Upscaler::settings.jitter[1] = y;
-    Upscaler::settings.resetHistory = resetHistory;
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
+    Upscaler::get()->shutdown();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
+    // Finish all one time submits
+    GraphicsAPI::get()->finishOneTimeSubmits();
+    // Clean up
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
@@ -130,10 +139,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
-    // Finish all one time submits
-    GraphicsAPI::get()->finishOneTimeSubmits();
-    // Clean up
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
+    Upscaler_ShutdownPlugin();
     // Remove vulkan initialization interception
     Vulkan::RemoveInterceptInitialization();
 }

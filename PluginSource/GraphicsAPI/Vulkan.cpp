@@ -369,7 +369,7 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 }
 
 PFN_vkGetInstanceProcAddr
-Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
+Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /* unused */) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
     GraphicsAPI::get<Vulkan>()->loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;
