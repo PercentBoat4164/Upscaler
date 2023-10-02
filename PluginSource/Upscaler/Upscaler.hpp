@@ -64,6 +64,7 @@ public:
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
         UNKNOWN_ERROR = 0xFFFFFFFE,
     };
+
     // clang-format on
 
 protected:
@@ -77,9 +78,9 @@ protected:
     bool initialized{false};
 
 private:
-    static Upscaler         *upscalerInUse;
-    ErrorReason error{ERROR_NONE};
-    std::string detailedErrorMessage{};
+    static Upscaler *upscalerInUse;
+    ErrorReason      error{ERROR_NONE};
+    std::string      detailedErrorMessage{};
 
 public:
     enum Type {
@@ -95,7 +96,7 @@ public:
             BALANCED,
             PERFORMANCE,
             ULTRA_PERFORMANCE,
-            DYNAMIC_AUTO,  // Enables dynamic resolution and automatically handles changing scale factors
+            DYNAMIC_AUTO,    // Enables dynamic resolution and automatically handles changing scale factors
             DYNAMIC_MANUAL,  // Enables dynamic resolution and lets the user handle changing scale factors
         };
 
@@ -128,9 +129,10 @@ public:
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
                 case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
-                    uint64_t pixelCount{(uint64_t) recommendedInputResolution.width * recommendedInputResolution.height};
-                    if (pixelCount <= (uint64_t)2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= (uint64_t)3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    uint64_t pixelCount{
+                      (uint64_t) recommendedInputResolution.width * recommendedInputResolution.height};
+                    if (pixelCount <= (uint64_t) 2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= (uint64_t) 3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
                 case ULTRA_QUALITY:  // Ultra Quality is not available for DLSS. Defaults to Quality.
@@ -181,13 +183,16 @@ public:
     /// Returns the current error.
     ErrorReason getError();
 
-    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error. Returns the current error.
+    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
+    /// Returns the current error.
     ErrorReason setError(ErrorReason);
 
-    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError to clear the current error. Returns the current error
+    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
+    /// to clear the current error. Returns the current error
     ErrorReason setErrorIf(bool, ErrorReason);
 
-    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the error has been cleared.
+    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
+    /// error has been cleared.
     bool resetError();
 
     bool setErrorMessage(std::string);

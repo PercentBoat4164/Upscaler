@@ -23,7 +23,11 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDev
     return {};
 }
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution /* unused */, Settings::Quality /* unused */, bool /* unused */) {
+Upscaler::Settings NoUpscaler::getOptimalSettings(
+  Upscaler::Settings::Resolution /* unused */,
+  Settings::Quality /* unused */,
+  bool /* unused */
+) {
     return settings;
 }
 

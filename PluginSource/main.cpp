@@ -43,8 +43,7 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
     return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_InitializePlugin() {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePlugin() {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
@@ -55,11 +54,12 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Set(Upscaler
     return Upscaler::get()->initialize() == Upscaler::ERROR_NONE;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetError(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetError(Upscaler::Type type
+) {
     return Upscaler::get(type)->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
     return Upscaler::get(type)->getErrorMessage().c_str();
 }
 
@@ -67,22 +67,27 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upsc
     return Upscaler::get()->getError();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char * UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
+extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
     return Upscaler::get()->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(unsigned int t_width, unsigned int t_height, Upscaler::Settings::Quality t_quality, bool t_HDR) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
+  unsigned int                t_width,
+  unsigned int                t_height,
+  Upscaler::Settings::Quality t_quality,
+  bool                        t_HDR
+) {
     Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API
-Upscaler_GetRecommendedInputResolution() {
+extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
     return Upscaler::settings.recommendedInputResolution.asLong();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API
+                                  Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
     Upscaler::settings.currentInputResolution = {t_width, t_height};
-    return Upscaler::ERROR_NONE;  /*@todo Make this detect bad resolutions and throw an error. */
+    return Upscaler::ERROR_NONE; /*@todo Make this detect bad resolutions and throw an error. */
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
@@ -105,15 +110,15 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
     bool available = Upscaler::get()->setImageResources(
-      nativeDepthBuffer,
-      unityDepthFormat,
-      nativeMotionVectors,
-      unityMotionVectorFormat,
-      nativeInColor,
-      unityInColorFormat,
-      nativeOutColor,
-      unityOutColorFormat
-    ) == Upscaler::ERROR_NONE;
+                       nativeDepthBuffer,
+                       unityDepthFormat,
+                       nativeMotionVectors,
+                       unityMotionVectorFormat,
+                       nativeInColor,
+                       unityInColorFormat,
+                       nativeOutColor,
+                       unityOutColorFormat
+                     ) == Upscaler::ERROR_NONE;
 
     available &= Upscaler::get()->createFeature() == Upscaler::ERROR_NONE;
     return available;

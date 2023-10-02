@@ -9,41 +9,48 @@ public class EnableDLSS : MonoBehaviour
     private const byte ErrorTypeOffset = 29;
     private const byte ErrorCodeOffset = 16;
     private const byte ErrorRecoverable = 1;
-    
-    public enum ErrorReason : uint {
+
+    public enum ErrorReason : uint
+    {
         ErrorNone = 0U,
         ErrorDummyUpscaler = 2U,
-        HardwareError                                            = 1U << ErrorTypeOffset,
-        HardwareErrorDeviceExtensionsNotSupported            = HardwareError | 1U << ErrorCodeOffset,
-        HardwareErrorDeviceNotSupported                       = HardwareError | 2U << ErrorCodeOffset,
-        SoftwareError                                            = 2U << ErrorTypeOffset,
-        SoftwareErrorInstanceExtensionsNotSupported          = SoftwareError | 1U << ErrorCodeOffset,
-        SoftwareErrorDeviceDriversOutOfDate                 = SoftwareError | 2U << ErrorCodeOffset,
-        SoftwareErrorOperatingSystemNotSupported             = SoftwareError | 3U << ErrorCodeOffset,
-        SoftwareErrorInvalidWritePermissions                  = SoftwareError | 4U << ErrorCodeOffset,  // Should be marked as recoverable?
-        SoftwareErrorFeatureDenied                             = SoftwareError | 5U << ErrorCodeOffset,
-        SoftwareErrorOutOfGPUMemory                          = SoftwareError | 6U << ErrorCodeOffset | ErrorRecoverable,
+        HardwareError = 1U << ErrorTypeOffset,
+        HardwareErrorDeviceExtensionsNotSupported = HardwareError | (1U << ErrorCodeOffset),
+        HardwareErrorDeviceNotSupported = HardwareError | (2U << ErrorCodeOffset),
+        SoftwareError = 2U << ErrorTypeOffset,
+        SoftwareErrorInstanceExtensionsNotSupported = SoftwareError | (1U << ErrorCodeOffset),
+        SoftwareErrorDeviceDriversOutOfDate = SoftwareError | (2U << ErrorCodeOffset),
+        SoftwareErrorOperatingSystemNotSupported = SoftwareError | (3U << ErrorCodeOffset),
+
+        SoftwareErrorInvalidWritePermissions =
+            SoftwareError | (4U << ErrorCodeOffset), // Should be marked as recoverable?
+        SoftwareErrorFeatureDenied = SoftwareError | (5U << ErrorCodeOffset),
+        SoftwareErrorOutOfGPUMemory = SoftwareError | (6U << ErrorCodeOffset) | ErrorRecoverable,
+
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-        SoftwareErrorCriticalInternalError                    = SoftwareError | 7U << ErrorCodeOffset,
+        SoftwareErrorCriticalInternalError = SoftwareError | (7U << ErrorCodeOffset),
+
         /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
-        SoftwareErrorCriticalInternalWarning                  = SoftwareError | 8U << ErrorCodeOffset,
+        SoftwareErrorCriticalInternalWarning = SoftwareError | (8U << ErrorCodeOffset),
+
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-        SoftwareErrorRecoverableInternalWarning               = SoftwareError | 9U << ErrorCodeOffset | ErrorRecoverable,
-        SettingsError                                            = 3U << ErrorTypeOffset | ErrorRecoverable,
-        SettingsErrorInputResolutionTooSmall                 = SettingsError | 1U << ErrorCodeOffset,
-        SettingsErrorInputResolutionTooBig                   = SettingsError | 2U << ErrorCodeOffset,
-        SettingsErrorUpscalerNotAvailable                     = SettingsError | 3U << ErrorCodeOffset,
-        SettingsErrorQualityModeNotAvailable                 = SettingsError | 4U << ErrorCodeOffset,
+        SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
+        SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
+        SettingsErrorInputResolutionTooSmall = SettingsError | (1U << ErrorCodeOffset),
+        SettingsErrorInputResolutionTooBig = SettingsError | (2U << ErrorCodeOffset),
+        SettingsErrorUpscalerNotAvailable = SettingsError | (3U << ErrorCodeOffset),
+        SettingsErrorQualityModeNotAvailable = SettingsError | (4U << ErrorCodeOffset),
+
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
-        GenericError                                             = 4U << ErrorTypeOffset,
-        GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError | 1U << ErrorCodeOffset,
-        UnknownError = 0xFFFFFFFE,
+        GenericError = 4U << ErrorTypeOffset,
+        GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError | (1U << ErrorCodeOffset),
+        UnknownError = 0xFFFFFFFE
     };
 
     public enum Upscaler
     {
         None,
-        DLSS,
+        DLSS
     }
 
     public enum Quality
@@ -55,40 +62,55 @@ public class EnableDLSS : MonoBehaviour
         Performance,
         UltraPerformance,
         DynamicAuto,
-        DynamicManual,
+        DynamicManual
     }
 
     private enum Event
     {
-        Upscale,
+        Upscale
     }
 
     // Camera
     private Camera _camera;
 
     // Dynamic Resolution state
-    private bool UseDynamicResolution => quality == Quality.DynamicAuto | quality == Quality.DynamicManual;
+    private bool UseDynamicResolution => (quality == Quality.DynamicAuto) | (quality == Quality.DynamicManual);
     private bool _lastUseDynamicResolution;
     private static float _upscalingFactorWidth = .9f;
+
     private static float UpscalingFactorWidth
     {
         set => _upscalingFactorWidth = Math.Max(.5f, Math.Min(1f, value));
         get => _upscalingFactorWidth;
     }
+
     private static float _upscalingFactorHeight = .9f;
+
     private static float UpscalingFactorHeight
     {
         set => _upscalingFactorHeight = Math.Max(.5f, Math.Min(1f, value));
         get => _upscalingFactorHeight;
     }
-    private uint UpscalingWidth => (uint)(_camera.targetTexture != null ? _camera.targetTexture.width : _camera.pixelWidth);
-    private uint UpscalingHeight => (uint)(_camera.targetTexture != null ? _camera.targetTexture.height : _camera.pixelHeight);
-    private Vector2 UpscalingResolution => new (UpscalingWidth, UpscalingHeight);
+
+    private uint UpscalingWidth =>
+        (uint)(_camera.targetTexture != null ? _camera.targetTexture.width : _camera.pixelWidth);
+
+    private uint UpscalingHeight =>
+        (uint)(_camera.targetTexture != null ? _camera.targetTexture.height : _camera.pixelHeight);
+
+    private Vector2 UpscalingResolution => new(UpscalingWidth, UpscalingHeight);
     private Vector2 _lastUpscalingResolution;
     private uint _optimalRenderingWidth;
     private uint _optimalRenderingHeight;
-    private uint RenderingWidth => (uint)(UseDynamicResolution ? UpscalingWidth * ScalableBufferManager.widthScaleFactor : _optimalRenderingWidth);
-    private uint RenderingHeight => (uint)(UseDynamicResolution ? UpscalingHeight * ScalableBufferManager.heightScaleFactor : _optimalRenderingHeight);
+
+    private uint RenderingWidth => (uint)(UseDynamicResolution
+        ? UpscalingWidth * ScalableBufferManager.widthScaleFactor
+        : _optimalRenderingWidth);
+
+    private uint RenderingHeight => (uint)(UseDynamicResolution
+        ? UpscalingHeight * ScalableBufferManager.heightScaleFactor
+        : _optimalRenderingHeight);
+
     private Vector2 RenderingResolution => new(RenderingWidth, RenderingHeight);
     private Vector2 UpscalingFactor => UpscalingResolution / RenderingResolution;
     private Vector2 _lastRenderingResolution;
@@ -139,7 +161,7 @@ public class EnableDLSS : MonoBehaviour
         _jitterSequence = new Vector2[SequenceLength];
         for (var i = 0; i < 2; i++)
         {
-            var seqBase = i + 2;  // Bases 2 and 3 for x and y
+            var seqBase = i + 2; // Bases 2 and 3 for x and y
             var n = 0;
             var d = 1;
 
@@ -154,10 +176,7 @@ public class EnableDLSS : MonoBehaviour
                 else
                 {
                     var y = d / seqBase;
-                    while (x <= y)
-                    {
-                        y /= seqBase;
-                    }
+                    while (x <= y) y /= seqBase;
 
                     n = (seqBase + 1) * y - x;
                 }
@@ -169,7 +188,7 @@ public class EnableDLSS : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale=null)
+    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
     {
         var quad = new Mesh();
         quad.SetVertices(new Vector3[]
@@ -186,7 +205,7 @@ public class EnableDLSS : MonoBehaviour
             new(0, 1),
             new(1, 1)
         });
-        quad.SetIndices(new[]{2, 1, 0, 1, 2, 3}, MeshTopology.Triangles, 0);
+        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
         var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
@@ -235,12 +254,14 @@ public class EnableDLSS : MonoBehaviour
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
         if (upscaler != Upscaler.None)
-            _camera.allowDynamicResolution = false;  /*@todo Throw some error if Dynamic Resolution is checked in Unity while some upscaler is active.*/
-        else if (quality == Quality.DynamicAuto | quality == Quality.DynamicManual)
+            _camera.allowDynamicResolution =
+                false; /*@todo Throw some error if Dynamic Resolution is checked in Unity while some upscaler is active.*/
+        else if ((quality == Quality.DynamicAuto) | (quality == Quality.DynamicManual))
             _camera.allowDynamicResolution = true;
 
         // Resize the buffers.
-        if ((quality == Quality.DynamicAuto) | _camera.allowDynamicResolution)  /*@todo Enable automatic scaling based on GPU frame times if quality == AutoDynamic.*/
+        if ((quality == Quality.DynamicAuto) |
+            _camera.allowDynamicResolution) /*@todo Enable automatic scaling based on GPU frame times if quality == AutoDynamic.*/
             ScalableBufferManager.ResizeBuffers(UpscalingFactorWidth, UpscalingFactorHeight);
 
         // Initialize any new upscaler
@@ -265,7 +286,7 @@ public class EnableDLSS : MonoBehaviour
 
         Upscaler_SetCurrentInputResolution(RenderingWidth, RenderingHeight);
 
-        if (dUpscalingResolution | dRenderingResolution | _jitterSequence == null)
+        if (dUpscalingResolution | dRenderingResolution | (_jitterSequence == null))
             GenerateJitterSequences();
 
         if (dHDR | dUpscalingResolution | dUpscaler)
@@ -292,11 +313,13 @@ public class EnableDLSS : MonoBehaviour
                     Debug.Log(
                         "Set the enableRandomWrite property to `true` before calling `Create` on the RenderTexture used as the `targetTexture` when using an upscaler.");
                 }
+
                 imagesChanged = true;
             }
         }
 
-        if (dHDR | dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) | dUpscaler)
+        if (dHDR | dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) |
+            dUpscaler)
         {
             if (_inColorTarget != null && _inColorTarget.IsCreated())
             {
@@ -310,7 +333,7 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget =
                     new RenderTexture((int)scale.x, (int)scale.y, colorFormat, depthFormat)
                     {
-                        filterMode = FilterMode.Point,
+                        filterMode = FilterMode.Point
                     };
                 _inColorTarget.Create();
                 imagesChanged = true;
@@ -340,7 +363,7 @@ public class EnableDLSS : MonoBehaviour
         _lastUpscaler = upscaler;
         _lastQuality = quality;
 
-        if (!imagesChanged | _outputTarget == null | _inColorTarget == null | _motionVectorTarget == null)
+        if (!imagesChanged | (_outputTarget == null) | (_inColorTarget == null) | (_motionVectorTarget == null))
             return false;
 
         Upscaler_Prepare(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat,
@@ -362,7 +385,7 @@ public class EnableDLSS : MonoBehaviour
         _upscale = new CommandBuffer();
         _upscale.name = "Upscale";
 
-        _camera.AddCommandBuffer( CameraEvent.BeforeGBuffer, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
@@ -413,6 +436,7 @@ public class EnableDLSS : MonoBehaviour
             _camera.RemoveCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
             _setRenderingResolution.Release();
         }
+
         if (_upscale != null)
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);

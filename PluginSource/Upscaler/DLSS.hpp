@@ -9,8 +9,8 @@
 
 class DLSS : public Upscaler {
     struct Application {
-        uint64_t                         id{231313132};
-        std::wstring                     dataPath{L"./"};
+        uint64_t     id{231313132};
+        std::wstring dataPath{L"./"};
         // clang-format off
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
@@ -69,7 +69,9 @@ class DLSS : public Upscaler {
 
     static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
+      NVSDK_NGX_DLSS_Create_Params
+    );
     static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat,
@@ -87,7 +89,7 @@ class DLSS : public Upscaler {
     Upscaler::ErrorReason VulkanInitialize();
     Upscaler::ErrorReason VulkanGetParameters();
     Upscaler::ErrorReason VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    void        VulkanDestroyImageViews();
+    void                  VulkanDestroyImageViews();
     Upscaler::ErrorReason VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
@@ -146,7 +148,8 @@ class DLSS : public Upscaler {
 
     DLSS() = default;
 
-    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to clear the current error.
+    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
+    /// clear the current error.
     ErrorReason setError(NVSDK_NGX_Result);
 
 public:
@@ -157,7 +160,8 @@ public:
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    Settings getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
+    Settings
+    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
 
     Type getType() override;
 
