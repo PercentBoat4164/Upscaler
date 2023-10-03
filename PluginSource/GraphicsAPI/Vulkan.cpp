@@ -185,7 +185,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     // Enable requested extensions in groups
     std::vector<std::string> newExtensions;
     std::vector<std::string> unsupportedExtensions;
-    size_t i{};
+    size_t                   i{};
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
         unsupportedExtensions.push_back("");
         // Mark supported features as such
@@ -230,7 +230,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     VkResult result = m_vkCreateInstance(&createInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->instance = *pInstance;
-        i = 0;
+        i                                    = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
             if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED)
                 upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
@@ -278,7 +278,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     // Enable requested extensions in groups
     std::vector<std::string> newExtensions;
     std::vector<std::string> unsupportedExtensions;
-    size_t i{};
+    size_t                   i{};
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
         unsupportedExtensions.push_back("");
         // Mark supported features as such
@@ -324,7 +324,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->device = *pDevice;
-        i = 0;
+        i                                  = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
             if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE)
                 upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
@@ -369,7 +369,7 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 }
 
 PFN_vkGetInstanceProcAddr
-Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /*unused*/) {
+Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /* unused */) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
     GraphicsAPI::get<Vulkan>()->loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;

@@ -23,7 +23,11 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDev
     return {};
 }
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(Upscaler::Settings::Resolution /* unused */, bool /* unused */) {
+Upscaler::Settings NoUpscaler::getOptimalSettings(
+  Upscaler::Settings::Resolution /* unused */,
+  Settings::Quality /* unused */,
+  bool /* unused */
+) {
     return settings;
 }
 
@@ -57,6 +61,7 @@ Upscaler::ErrorReason NoUpscaler::releaseFeature() {
 }
 
 Upscaler::ErrorReason NoUpscaler::shutdown() {
+    Upscaler::shutdown();
     return ERROR_DUMMY_UPSCALER;
 }
 

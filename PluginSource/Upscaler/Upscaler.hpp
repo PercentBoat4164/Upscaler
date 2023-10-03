@@ -21,27 +21,27 @@
 
 class Upscaler {
 private:
-    constexpr static uint8_t ERROR_TYPE_OFFSET = 30;
+    constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
     constexpr static uint8_t ERROR_CODE_OFFSET = 16;
     constexpr static uint8_t ERROR_RECOVERABLE = 1;
 
 public:
     // clang-format off
 
-    /// bit range = meaning
-    /// =======================
-    /// [31-30]   = Error type
-    /// [29-16]   = Error code
-    /// [15-2]    = RESERVED
-    /// [1]       = Attempting to use a Dummy Upscaler
-    /// [0]       = Recoverable
+    // bit range = meaning
+    // =======================
+    // [31-29]   = Error type
+    // [28-16]   = Error code
+    // [15-2]    = RESERVED
+    // [1]       = Attempting to use a Dummy Upscaler
+    // [0]       = Recoverable
     enum ErrorReason : uint32_t {
         ERROR_NONE = 0U,
         ERROR_DUMMY_UPSCALER = 2U,
-        HARDWARE_ERROR                                            = 0U << ERROR_TYPE_OFFSET,
+        HARDWARE_ERROR                                            = 1U << ERROR_TYPE_OFFSET,
         HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED            = HARDWARE_ERROR | 1U << ERROR_CODE_OFFSET,
         HARDWARE_ERROR_DEVICE_NOT_SUPPORTED                       = HARDWARE_ERROR | 2U << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR                                            = 1U << ERROR_TYPE_OFFSET,
+        SOFTWARE_ERROR                                            = 2U << ERROR_TYPE_OFFSET,
         SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED          = SOFTWARE_ERROR | 1U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE                 = SOFTWARE_ERROR | 2U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED             = SOFTWARE_ERROR | 3U << ERROR_CODE_OFFSET,
@@ -54,16 +54,17 @@ public:
         SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
-        SETTINGS_ERROR                                            = 2U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
+        SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INPUT_RESOLUTION_TOO_SMALL                 = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INPUT_RESOLUTION_TOO_BIG                   = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
-        GENERIC_ERROR                                             = 3U << ERROR_TYPE_OFFSET,
+        GENERIC_ERROR                                             = 4U << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
         UNKNOWN_ERROR = 0xFFFFFFFE,
     };
+
     // clang-format on
 
 protected:
@@ -74,10 +75,12 @@ protected:
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
 
+    bool initialized{false};
+
 private:
-    static Upscaler         *upscalerInUse;
-    ErrorReason error{ERROR_NONE};
-    std::string detailedErrorMessage{};
+    static Upscaler *upscalerInUse;
+    ErrorReason      error{ERROR_NONE};
+    std::string      detailedErrorMessage{};
 
 public:
     enum Type {
@@ -93,7 +96,7 @@ public:
             BALANCED,
             PERFORMANCE,
             ULTRA_PERFORMANCE,
-            DYNAMIC_AUTO,  // Enables dynamic resolution and automatically handles changing scale factors
+            DYNAMIC_AUTO,    // Enables dynamic resolution and automatically handles changing scale factors
             DYNAMIC_MANUAL,  // Enables dynamic resolution and lets the user handle changing scale factors
         };
 
@@ -126,9 +129,10 @@ public:
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
                 case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
-                    uint64_t pixelCount{(uint64_t) recommendedInputResolution.width * recommendedInputResolution.height};
-                    if (pixelCount <= (uint64_t)2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= (uint64_t)3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    uint64_t pixelCount{
+                      (uint64_t) recommendedInputResolution.width * recommendedInputResolution.height};
+                    if (pixelCount <= (uint64_t) 2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= (uint64_t) 3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
                 case ULTRA_QUALITY:  // Ultra Quality is not available for DLSS. Defaults to Quality.
@@ -179,13 +183,16 @@ public:
     /// Returns the current error.
     ErrorReason getError();
 
-    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error. Returns the current error.
+    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
+    /// Returns the current error.
     ErrorReason setError(ErrorReason);
 
-    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError to clear the current error. Returns the current error
+    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
+    /// to clear the current error. Returns the current error
     ErrorReason setErrorIf(bool, ErrorReason);
 
-    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the error has been cleared.
+    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
+    /// error has been cleared.
     bool resetError();
 
     bool setErrorMessage(std::string);
@@ -200,7 +207,7 @@ public:
 
     virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
 
-    virtual Settings getOptimalSettings(Settings::Resolution, bool) = 0;
+    virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
 
     virtual ErrorReason initialize() = 0;
 
@@ -221,7 +228,7 @@ public:
 
     virtual ErrorReason releaseFeature() = 0;
 
-    virtual ErrorReason shutdown() = 0;
+    virtual ErrorReason shutdown();
 
     virtual ~Upscaler() = default;
 };

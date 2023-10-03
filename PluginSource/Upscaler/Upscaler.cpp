@@ -57,20 +57,17 @@ Upscaler::ErrorReason Upscaler::getError() {
 }
 
 Upscaler::ErrorReason Upscaler::setError(Upscaler::ErrorReason t_error) {
-    if (error == ERROR_NONE)
-        error = t_error;
+    if (error == ERROR_NONE) error = t_error;
     return error;
 }
 
 Upscaler::ErrorReason Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::ErrorReason t_error) {
-    if (error == ERROR_NONE && t_shouldApplyError)
-        error = t_error;
+    if (error == ERROR_NONE && t_shouldApplyError) error = t_error;
     return error;
 }
 
 bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U)
-        error = ERROR_NONE;
+    if ((error & ERROR_RECOVERABLE) != 0U) error = ERROR_NONE;
     return error == ERROR_NONE;
 }
 
@@ -82,4 +79,13 @@ bool Upscaler::setErrorMessage(std::string msg) {
 
 std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
+}
+
+Upscaler::ErrorReason Upscaler::shutdown() {
+    if (error != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && error != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
+        error                = ERROR_NONE;
+        detailedErrorMessage = "";
+    }
+    initialized = false;
+    return ERROR_NONE;
 }
