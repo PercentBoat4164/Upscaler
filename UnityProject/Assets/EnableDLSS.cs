@@ -11,7 +11,7 @@ public class EnableDLSS : MonoBehaviour
     private const byte ErrorCodeOffset = 16;
     private const byte ErrorRecoverable = 1;
 
-    public enum ErrorReason : uint
+    protected enum ErrorReason : uint
     {
         ErrorNone = 0U,
         ErrorDummyUpscaler = 2U,
@@ -126,7 +126,7 @@ public class EnableDLSS : MonoBehaviour
     private RenderTexture _motionVectorTarget;
 
     // URP
-    private DLSSRendererFeature _dlssRendererFeature;
+    private UpscalerRendererFeature _upscalerRendererFeature;
 
     // CommandBuffers
     private CommandBuffer _setRenderingResolution;
@@ -144,110 +144,113 @@ public class EnableDLSS : MonoBehaviour
     public Quality quality = Quality.DynamicAuto;
     private Quality _lastQuality = Quality.Auto;
 
-     public class DLSSRendererFeature : ScriptableRendererFeature
-     {
-         private Camera _camera;
-         private RenderTexture _inColorTarget;
-         private RenderTexture _depthTarget;
-         private RenderTexture _motionVectorTarget;
-         private RenderTexture _outColorTarget;
-         private uint _presentWidth;
-         private uint _presentHeight;
-         private uint _renderWidth;
-         private uint _renderHeight;
-
-         public DLSSRendererFeature(Camera camera,
-             RenderTexture inColorTarget,
-             RenderTexture depthTarget,
-             RenderTexture motionVectorTarget,
-             RenderTexture outColorTarget,
-             uint presentWidth,
-             uint presentHeight,
-             uint renderWidth,
-             uint renderHeight)
-         {
-             _inColorTarget = inColorTarget;
-             _depthTarget = depthTarget;
-             _motionVectorTarget = motionVectorTarget;
-             _outColorTarget = outColorTarget;
-             _presentWidth = presentWidth;
-             _presentHeight = presentHeight;
-             _renderWidth = renderWidth;
-             _renderHeight = renderHeight;
-         }
-
-        private class BeforeOpaque : ScriptableRenderPass
+    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
+    {
+        var quad = new Mesh();
+        quad.SetVertices(new Vector3[]
         {
-            private uint _renderWidth;
-            private uint _renderHeight;
-            public BeforeOpaque(uint renderWidth, uint renderHeight)
-            {
-                _renderWidth = renderWidth;
-                _renderHeight = renderHeight;
-                CommandBuffer cmd = CommandBufferPool.Get(name: "Set Render Resolution");
-                cmd.SetViewport(new Rect(0, 0, _renderWidth, _renderHeight));
-            }
-            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-            {}
-        }
-        private class PreUpscale : ScriptableRenderPass
+            new(-1, -1, 0),
+            new(1, -1, 0),
+            new(-1, 1, 0),
+            new(1, 1, 0)
+        });
+        quad.SetUVs(0, new Vector2[]
         {
-            private RenderTexture _inColorTarget;
-            private uint _presentWidth;
-            private uint _presentHeight;
-            private uint _renderWidth;
-            private uint _renderHeight;
-            private RenderTexture _depthTarget;
-            private RenderTexture _motionVectorTarget;
+            new(0, 0),
+            new(1, 0),
+            new(0, 1),
+            new(1, 1)
+        });
+        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
+        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
+        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
+        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
+        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
+        if (!toTex)
+            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
+        cb.DrawMesh(quad, Matrix4x4.identity, material);
+    }
 
-            public PreUpscale(uint presentWidth, uint presentHeight, uint renderWidth, uint renderHeight, RenderTexture inColorTarget)
-            {
-                _renderWidth = renderWidth;
-                _renderHeight = renderHeight;
-                _presentWidth = presentWidth;
-                _presentHeight = presentHeight;
-                _inColorTarget = inColorTarget;
-                var inverseScale = new Vector2((float)_renderWidth / _presentWidth, (float)_renderHeight / _presentHeight);
-                var offset = new Vector2(0, 0);
-                CommandBuffer cmd = CommandBufferPool.Get(name: "Copy to Upscaler");
-                cmd.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
-                cmd.Blit(BuiltinRenderTextureType.CameraTarget, _inColorTarget, inverseScale, offset);
-                cmd.Blit(BuiltinRenderTextureType.Depth, _depthTarget, inverseScale, offset);
-                cmd.Blit(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
-                cmd.SetViewport(new Rect(0, 0, _presentWidth, _presentHeight));
-            }
-            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-            {}
-        }
-        private class PostUpscale : ScriptableRenderPass
+    public class UpscalerRendererFeature : ScriptableRendererFeature
+    {
+        private class SetRenderResolution : ScriptableRenderPass
         {
-            private RenderTexture _outColorTarget;
-            private RenderTexture _depthTarget;
-            public PostUpscale(RenderTexture outColorTarget, RenderTexture depthTarget)
+            private readonly EnableDLSS _parent;
+
+            public SetRenderResolution(EnableDLSS parent)
             {
-                _outColorTarget = outColorTarget;
-                _depthTarget = depthTarget;
-                CommandBuffer cmd = CommandBufferPool.Get(name: "Copy From Upscaler");
-                cmd.Blit(_outColorTarget, BuiltinRenderTextureType.CameraTarget);
-                cmd.Blit(_depthTarget, BuiltinRenderTextureType.Depth);
+                _parent = parent;
             }
+
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-            {}
+            {
+                var cmd = CommandBufferPool.Get("Set Render Resolution");
+                cmd.SetViewport(new Rect(0, 0, _parent.RenderingWidth, _parent.RenderingHeight));
+                context.ExecuteCommandBuffer(cmd);
+                CommandBufferPool.Release(cmd);
+            }
         }
-        private BeforeOpaque _beforeOpaque;
-        private PreUpscale _preUpscale;
-        private PostUpscale _postUpscale;
+
+        private class Upscale : ScriptableRenderPass
+        {
+            private readonly EnableDLSS _parent;
+
+            public Upscale(EnableDLSS parent)
+            {
+                _parent = parent;
+            }
+
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {
+                var cmd = CommandBufferPool.Get("Upscale");
+                cmd.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)_parent.UpscalingWidth,
+                    (int)_parent.UpscalingHeight, _parent._motionVectorTarget, 0, 0, 0, 0);
+                cmd.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)_parent.RenderingWidth,
+                    (int)_parent.RenderingHeight, _parent._inColorTarget, 0, 0, 0, 0);
+                BlitDepth(cmd, true, _parent._inColorTarget, _parent.RenderingResolution / _parent.UpscalingResolution);
+                cmd.SetViewport(new Rect(0, 0, _parent.UpscalingWidth, _parent.UpscalingHeight));
+                cmd.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
+                cmd.SetRenderTarget(_parent._inColorTarget);
+                cmd.ClearRenderTarget(true, false, Color.black);
+                BlitDepth(cmd, false, _parent._inColorTarget);
+                cmd.CopyTexture(_parent._outputTarget, BuiltinRenderTextureType.CameraTarget);
+                context.ExecuteCommandBuffer(cmd);
+                CommandBufferPool.Release(cmd);
+            }
+        }
+
+        private readonly EnableDLSS _parent;
+        
+        private SetRenderResolution _setRenderResolution;
+        private Upscale _upscale;
+
+        public UpscalerRendererFeature(EnableDLSS parent)
+        {
+            _parent = parent;
+        }
 
         public override void Create()
         {
-            _beforeOpaque = new BeforeOpaque(_renderWidth, _renderHeight);
-            _preUpscale = new PreUpscale(_presentWidth, _presentHeight, _renderWidth, _renderHeight, _inColorTarget);
-            _postUpscale = new PostUpscale(_outColorTarget, _depthTarget);
+            _setRenderResolution = new SetRenderResolution(_parent)
+            {
+                // Not sure if this is legal. If it is not use EnqueuePass multiple time with the 'renderPassEvent' set to different values each time.
+                renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses |
+                                  RenderPassEvent.BeforeRenderingGbuffer |
+                                  RenderPassEvent.BeforeRenderingDeferredLights |
+                                  RenderPassEvent.BeforeRenderingOpaques |
+                                  RenderPassEvent.BeforeRenderingSkybox
+            };
+            _upscale = new Upscale(_parent)
+            {
+                renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing
+            };
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-
+            renderer.EnqueuePass(_setRenderResolution);
+            renderer.EnqueuePass(_upscale);
         }
     }
     // USER NEEDS TO BE ABLE TO:
@@ -266,7 +269,9 @@ public class EnableDLSS : MonoBehaviour
     {
         var ndcJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = ndcJitter / UpscalingResolution;
+        var clipJitter = ndcJitter / RenderingResolution;
+        if (Math.Abs(clipJitter.x) > .5f || Math.Abs(clipJitter.y) > .5f)
+            Debug.Log("Bad Jitter happened!");
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
@@ -306,34 +311,6 @@ public class EnableDLSS : MonoBehaviour
         }
 
         _sequencePosition = 0;
-    }
-
-    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
-    {
-        var quad = new Mesh();
-        quad.SetVertices(new Vector3[]
-        {
-            new(-1, -1, 0),
-            new(1, -1, 0),
-            new(-1, 1, 0),
-            new(1, 1, 0)
-        });
-        quad.SetUVs(0, new Vector2[]
-        {
-            new(0, 0),
-            new(1, 0),
-            new(0, 1),
-            new(1, 1)
-        });
-        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
-        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
-        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
-        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
-        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
-        if (!toTex)
-            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
-        cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
 
     private void RecordCommandBuffers()
@@ -496,6 +473,7 @@ public class EnableDLSS : MonoBehaviour
 
     private void OnEnable()
     {
+        _upscalerRendererFeature = ScriptableObject.CreateInstance<UpscalerRendererFeature>();
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
         Upscaler_InitializePlugin();

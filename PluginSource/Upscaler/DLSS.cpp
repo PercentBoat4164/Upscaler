@@ -116,8 +116,8 @@ Upscaler::ErrorReason DLSS::VulkanSetImageResources(
     VkImageView outColorView =
       GraphicsAPI::get<Vulkan>()->get2DImageView(outColorImage, outColorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    Upscaler::Settings::Resolution maxRenderResolution = settings.quality == Upscaler::Settings::DYNAMIC_AUTO |
-        settings.quality == Upscaler::Settings::DYNAMIC_MANUAL ?
+    Upscaler::Settings::Resolution maxRenderResolution = (settings.quality == Upscaler::Settings::DYNAMIC_AUTO ||
+        settings.quality == Upscaler::Settings::DYNAMIC_MANUAL) ?
       settings.dynamicMaximumInputResolution :
       settings.currentInputResolution;
 

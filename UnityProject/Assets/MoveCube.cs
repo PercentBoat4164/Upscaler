@@ -13,6 +13,7 @@ public class MoveCube : MonoBehaviour
     private void Start()
     {
         transform.position = MoveCircular(0, 0);
+        transform.rotation = Quaternion.Euler(45, 0, 45);
     }
 
     // Update is called once per frame
@@ -33,6 +34,7 @@ public class MoveCube : MonoBehaviour
     private Quaternion Rotate(double timing, float scale)
     {
         if (_shouldRotate) _rotation += timing * scale;
-        return Quaternion.Euler(45, 0, (float)_rotation * 360 + 45);
+        var rotation = transform.rotation.eulerAngles;
+        return Quaternion.Euler(rotation.x, rotation.y, (float)_rotation * 360 + rotation.z);
     }
 }
