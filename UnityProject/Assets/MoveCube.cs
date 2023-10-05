@@ -1,41 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class MoveCube : MonoBehaviour
 {
-    private Vector3 _targetRotation;
-    private Vector3 _targetPosition;
     private Vector3 _rotationInc;
     private Vector3 _positionInc;
-    private Transform _transform;
-    
-    // Start is called before the first frame update
+    private bool _shouldMove;
+    private bool _shouldRotate;
+    private double _movement;
+    private double _rotation;
+
     private void Start()
     {
-        _transform = transform;
-        _targetRotation = _transform.eulerAngles;
-        _targetPosition = _transform.position;
+        transform.position = MoveCircular(0, 0);
     }
 
     // Update is called once per frame
     private void Update()
     {
-        if (!Input.GetKey("m"))
-            return;
-        if (_targetRotation == transform.eulerAngles)
-        {
-            _targetRotation = new Vector3(Random.value, Random.value, Random.value) * 360;
-            _rotationInc = (_targetRotation - transform.eulerAngles) / 20;
-        }
+        _shouldMove ^= Input.GetKeyDown(KeyCode.M);
+        _shouldRotate ^= Input.GetKeyDown(KeyCode.R);
+        transform.position = MoveCircular(Time.deltaTime, 3);
+        transform.rotation = Rotate(Time.deltaTime, 1);
+    }
 
-        if (_targetPosition == transform.position)
-        {
-            _targetPosition = new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * 10;
-            _positionInc = (_targetPosition - transform.position) / 20;
-        }
+    private Vector3 MoveCircular(double timing, float scale)
+    {
+        if (_shouldMove) _movement += timing * scale;
+        return new Vector3((float)Math.Sin(_movement), (float)Math.Cos(_movement), 0);
+    }
 
-        _transform.position += _positionInc;
-        _transform.eulerAngles += _rotationInc;
+    private Quaternion Rotate(double timing, float scale)
+    {
+        if (_shouldRotate) _rotation += timing * scale;
+        return Quaternion.Euler(45, 0, (float)_rotation * 360 + 45);
     }
 }

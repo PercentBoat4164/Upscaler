@@ -1,7 +1,6 @@
 #pragma once
 
 // Project
-#include "Logger.hpp"
 #include "Upscaler.hpp"
 
 // Upscaler
@@ -10,27 +9,26 @@
 
 class DLSS : public Upscaler {
     struct Application {
-        uint64_t                         id{231313132};
-        std::wstring                     dataPath{L"./"};
-        NVSDK_NGX_Application_Identifier ngxIdentifier{
+        uint64_t     id{231313132};
+        std::wstring dataPath{L"./"};
+        // clang-format off
+        NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
-                             .ApplicationId = id,
-                             }
+            .ApplicationId = id,
+          }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
-          .PathListInfo =
-            {
-                           .Path   = new const wchar_t *{L"./Assets/Plugins"},
-                           .Length = 1,
-                           },
+          .PathListInfo ={
+            .Path   = new const wchar_t *{L"./Assets/Plugins"},
+            .Length = 1,
+            },
           .InternalData = nullptr,
           .LoggingInfo  = {
-                           .LoggingCallback          = Logger::log,
-                           //        .LoggingCallback = nullptr,
-             .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
-                           .DisableOtherLoggingSinks = false,
-                           }
+            .LoggingCallback = nullptr,
+            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+            .DisableOtherLoggingSinks = false,
+          }
         };
         NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
           .SDKVersion          = NVSDK_NGX_Version_API,
@@ -39,28 +37,42 @@ class DLSS : public Upscaler {
           .ApplicationDataPath = dataPath.c_str(),
           .FeatureInfo         = &featureCommonInfo,
         };
+        // clang-format on
     } applicationInfo;
 
-    NVSDK_NGX_Handle     *featureHandle{};
-    NVSDK_NGX_Parameter  *parameters{};
-    NVSDK_NGX_Resource_VK vulkanDepthBufferResource{};
-    NVSDK_NGX_Resource_VK vulkanMotionVectorResource{};
-    NVSDK_NGX_Resource_VK vulkanInColorResource{};
-    NVSDK_NGX_Resource_VK vulkanOutColorResource{};
-    ID3D12Resource       *dx12DepthBufferResource{};
-    ID3D12Resource       *dx12MotionVectorResource{};
-    ID3D12Resource       *dx12InColorResource{};
-    ID3D12Resource       *dx12OutColorResource{};
-    ID3D11Resource       *dx11DepthBufferResource{};
-    ID3D11Resource       *dx11MotionVectorResource{};
-    ID3D11Resource       *dx11InColorResource{};
-    ID3D11Resource       *dx11OutColorResource{};
+    NVSDK_NGX_Handle    *featureHandle{};
+    NVSDK_NGX_Parameter *parameters{};
 
+    union {
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } depth;
 
-    static bool (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
-    static bool (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static bool (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
-    static bool (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+    union {
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } motion;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } inColor;
+
+    union {
+        NVSDK_NGX_Resource_VK *vulkan{VK_NULL_HANDLE};
+        ID3D12Resource        *dx12;
+        ID3D11Resource        *dx11;
+    } outColor;
+
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
+      NVSDK_NGX_DLSS_Create_Params
+    );
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat,
       void *,
@@ -70,17 +82,15 @@ class DLSS : public Upscaler {
       void *,
       UnityRenderingExtTextureFormat
     );
-    static bool (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
-    static bool (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    static bool (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
+    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
 
-    bool VulkanInitialize();
-
-    bool VulkanGetParameters();
-
-    bool VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-
-    bool VulkanSetImageResources(
+    Upscaler::ErrorReason VulkanInitialize();
+    Upscaler::ErrorReason VulkanGetParameters();
+    Upscaler::ErrorReason VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    void                  VulkanDestroyImageViews();
+    Upscaler::ErrorReason VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -90,102 +100,78 @@ class DLSS : public Upscaler {
       void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     );
-
-    bool VulkanEvaluate();
-
-    bool VulkanReleaseFeature();
-
-    bool VulkanDestroyParameters();
-
-    bool VulkanShutdown();
-
-    bool DX12Initialize();
-
-    bool DX12GetParameters();
-
-    bool DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-
-    bool DX12SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+    Upscaler::ErrorReason VulkanEvaluate();
+    Upscaler::ErrorReason VulkanReleaseFeature();
+    Upscaler::ErrorReason VulkanDestroyParameters();
+    Upscaler::ErrorReason VulkanShutdown();
+#ifdef ENABLE_DX12
+    Upscaler::ErrorReason DX12Initialize();
+    Upscaler::ErrorReason DX12GetParameters();
+    Upscaler::ErrorReason DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::ErrorReason DX12SetImageResources(
+      void *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat,
+      void *nativeMotionVectors,
+      UnityRenderingExtTextureFormat,
+      void *nativeInColor,
+      UnityRenderingExtTextureFormat,
+      void *nativeOutColor,
+      UnityRenderingExtTextureFormat
     );
+    Upscaler::ErrorReason DX12Evaluate();
+    Upscaler::ErrorReason DX12ReleaseFeature();
+    Upscaler::ErrorReason DX12DestroyParameters();
+    Upscaler::ErrorReason DX12Shutdown();
+#endif
 
-    bool DX12Evaluate();
-
-    bool DX12ReleaseFeature();
-
-    bool DX12DestroyParameters();
-
-    bool DX12Shutdown();
-
-    bool DX11Initialize();
-
-    bool DX11GetParameters();
-
-    bool DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-
-    bool DX11SetDepthBuffer(
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat,
-      void                          *,
-        UnityRenderingExtTextureFormat
+#ifdef ENABLE_DX11
+    Upscaler::ErrorReason DX11Initialize();
+    Upscaler::ErrorReason DX11GetParameters();
+    Upscaler::ErrorReason DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::ErrorReason DX11SetImageResources(
+      void *nativeDepthBuffer,
+      UnityRenderingExtTextureFormat,
+      void *nativeMotionVectors,
+      UnityRenderingExtTextureFormat,
+      void *nativeInColor,
+      UnityRenderingExtTextureFormat,
+      void *nativeOutColor,
+      UnityRenderingExtTextureFormat
     );
-
-    bool DX11Evaluate();
-
-    bool DX11ReleaseFeature();
-
-    bool DX11DestroyParameters();
-
-    bool DX11Shutdown();
+    Upscaler::ErrorReason DX11Evaluate();
+    Upscaler::ErrorReason DX11ReleaseFeature();
+    Upscaler::ErrorReason DX11DestroyParameters();
+    Upscaler::ErrorReason DX11Shutdown();
+#endif
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 
     DLSS() = default;
 
+    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
+    /// clear the current error.
+    ErrorReason setError(NVSDK_NGX_Result);
+
 public:
     static DLSS *get();
-
-    bool isSupported() override;
-
-    bool isAvailable() override;
-
-    /// Note: Can only set the value from true to false.
-    bool isSupportedAfter(bool isSupported) override;
-
-    void setSupported(bool isSupported) override;
-
-    /// Note: Can only set the value from true to false.
-    bool isAvailableAfter(bool isAvailable) override;
-
-    void setAvailable(bool isAvailable) override;
 
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
 
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
-    Settings getOptimalSettings(Settings::Resolution, bool) override;
+    Settings
+    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
 
     Type getType() override;
 
     std::string getName() override;
 
-    bool initialize() override;
+    ErrorReason initialize() override;
 
-    bool createFeature() override;
+    ErrorReason createFeature() override;
 
-    bool setImageResources(
+    ErrorReason setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -196,9 +182,9 @@ public:
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
 
-    bool evaluate() override;
+    ErrorReason evaluate() override;
 
-    bool releaseFeature() override;
+    ErrorReason releaseFeature() override;
 
-    bool shutdown() override;
+    ErrorReason shutdown() override;
 };

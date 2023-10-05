@@ -162,7 +162,6 @@ add_library(GfxPluginDLSSPlugin main.cpp
         ${VULKAN_SOURCES}
         GraphicsAPI/GraphicsAPI.cpp
         GraphicsAPI/NoGraphicsAPI.cpp
-        Logger.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
 )
