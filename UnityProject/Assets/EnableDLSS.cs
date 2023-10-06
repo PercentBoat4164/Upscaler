@@ -1,104 +1,166 @@
-// USER NEEDS TO BE ABLE TO:
-// Set the upscaler
-// Set the performance / quality mode
-// Set scaling of render resolution to reach output resolution (only used in DYNAMIC_MANUAL)
-// Set the 'reset history buffer' bit for this frame
-// Set sharpness values (Should be 0 because DLSS sharpness is deprecated)
-// Set HDR values (Exposure / auto exposure)*
-// Validate settings
-// Detect if and why upscaling has failed or is unavailable
-// * = for later
+// CPP TODOS
+/*
+    @todo Refactor CPP Enum to be Name Consistent with flags that indicate No Errors
+*/
+
+
+// API TODOS
+/*
+    @todo Integrate Sharpness with API
+    @todo Integrate Scale Factors to API (for Dynamic Manual Mode)
+    @todo Integrate C++ Width and Height Scale Range API with Scale Factor API
+    @todo Integrate Scale API with Scalable Buffer Manager (scales go from 0 to 1, but write something on top to make sure it doesn't exceed 0.5)
+    @todo Show Readonly Field for Upscaler Status in Editor
+    @todo Integrate Available Options for Upscaler with Editor
+    @todo ABSOLUTELY MASSIVE Backend DLSS Refactor In Order (productivity hurting)
+    @todo DOCUMENTATION
+*/
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
 [Serializable]
 public class EnableDLSS : BackendDLSS
 {
-    private const int ERROR_TYPE_OFFSET = 30;
-    private const int ERROR_CODE_OFFSET = 16;
-    private const int ERROR_RECOVERABLE = 1;
+    // EXPOSED API FEATURES
     
-    // [31-30] = Error type
-    // [29-16] = Error code
-    // [15-1] = RESERVED
-    // [0] = Recoverable
-    public enum UpscalerStatus : uint {
-        UPSCALER_SET_SUCCESSFULLY                        = 0U,
-        HARDWARE_ISSUE                                   = 1U << ERROR_TYPE_OFFSET,
-        HARDWARE_ISSUE_DEVICE_EXTENSIONS_NOT_SUPPORTED   = HARDWARE_ISSUE | 1U << ERROR_CODE_OFFSET,
-        HARDWARE_ISSUE_DEVICE_NOT_SUPPORTED              = HARDWARE_ISSUE | 2U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE                                   = 2U << ERROR_TYPE_OFFSET,
-        SOFTWARE_ISSUE_INSTANCE_EXTENSIONS_NOT_SUPPORTED = SOFTWARE_ISSUE | 1U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE_DEVICE_DRIVERS_OUT_OF_DATE        = SOFTWARE_ISSUE | 2U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE_OPERATING_SYSTEM_NOT_SUPPORTED    = SOFTWARE_ISSUE | 3U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE_INVALID_WRITE_PERMISSIONS         = SOFTWARE_ISSUE | 4U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE_FEATURE_DENIED                    = SOFTWARE_ISSUE | 5U << ERROR_CODE_OFFSET,
-        SOFTWARE_ISSUE_OUT_OF_GPU_MEMORY                 = SOFTWARE_ISSUE | 6U << ERROR_CODE_OFFSET,
-        SETTINGS_ISSUE                                   = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
-        SETTINGS_ISSUE_INPUT_RESOLUTION_TOO_SMALL        = SETTINGS_ISSUE | 1U << ERROR_CODE_OFFSET,
-        SETTINGS_ISSUE_INPUT_RESOLUTION_TOO_BIG          = SETTINGS_ISSUE | 2U << ERROR_CODE_OFFSET,
-        SETTINGS_ISSUE_UPSCALER_NOT_AVAILABLE            = SETTINGS_ISSUE | 3U << ERROR_CODE_OFFSET,
-        SETTINGS_ISSUE_QUALITY_MODE_NOT_AVAILABLE        = SETTINGS_ISSUE | 4U << ERROR_CODE_OFFSET,
-    }
+    // Callback Function that Will Run when an Error is Encountered by DLSS
+    // Function will be passed Status (which contains error information) and Error Message String
+    // This Function allows Developers to Determine what Should Happen when Upscaler Encounters an Error
+    // This Function is Called the Frame After an Error, and it's changes take effect that frame
+    // If the same error is encountered during multiple frames, the function is only called for the first frame
+    public Action<UpscalerStatus> ErrorCallback; 
+    
+    // Basic Upscaler Options (Can be set In Editor or By Code)
+    
+    // Current Upscaling Mode to Use
+    public UpscalerMode upscaler = UpscalerMode.None;
+    
+    // Quality / Performance Mode for the Upscaler
+    public Quality quality = Quality.Auto;
+    
+    // Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
+    public uint widthScaleFactor;
+    public uint heightScaleFactor;
 
-    private UpscalerStatus _internalStatus;
-    
-    public Type upscaler = Type.None;
+    // The Currently Upscaler Status
+    // Contains Error Information for Settings Errors or Internal Problems
     public UpscalerStatus Status { get => _internalStatus; }
 
+    // Read Only List that contains a List of Device/OS Supported Upscalers
+    public IList<UpscalerMode> SupportedUpscalingModes { get => _supportedUpscalingModes; }
     
+    // Removes history so that artifacts from previous frames are not left over in DLSS
+    // Should be called every time the scene sees a complete scene change
+    public void ResetHistoryBuffer()
+    {
+        Upscaler_ResetHistory();
+    }
+
+    // Returns true if the device and operating system support the given upscaling mode
+    // Returns false if device and OS do not support Upscaling Mode
+    public bool DeviceSupportsUpscalingMode(UpscalerMode upscalingMode)
+    {
+        return _supportedUpscalingModes.Contains(upscalingMode);
+    }
+    
+    // INTERNAL API IMPLEMENTATION
+    
+    // Internal Values for supported upscaling modes and upscaler status
+    private IList<UpscalerMode> _supportedUpscalingModes;
+    private UpscalerStatus _internalStatus;
+    private UpscalerStatus _prevStatus;
+    
+    // Runs when the Script is enabled
+    // Calls Base Class Method to Initialize Plugin and then uses Plugin Functions to gather information about device supported options
+    public new void OnEnable()
+    {
+        base.OnEnable();
+
+        var tempList = new List<UpscalerMode>();
+        
+        foreach (UpscalerMode tempUpscaler in Enum.GetValues(typeof(UpscalerMode)))
+        {
+            if (Upscaler_GetError(tempUpscaler) <= UpscalerStatus.NoUpscalerSet)
+            {
+                tempList.Add(tempUpscaler);
+            }
+        }
+
+        _supportedUpscalingModes = tempList.AsReadOnly();
+    }
+    
+    // Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
+    // Real OnPreCull Actions from Backend
     private new void OnPreCull()
     {
-        var programStatus = (UpscalerStatus) Upscaler_GetCurrentError();
-
-        if (programStatus != 0)
+        // Check if an Internal Error was Caught on the Last Frame. Set current Upscaler to None and Alert if So
+        if (InternalErrorFlag > UpscalerStatus.NoUpscalerSet)
         {
             Debug.LogError("Upscaler encountered an error. Reverting to No Upscaling. Message: " 
                            + Marshal.PtrToStringAuto(Upscaler_GetCurrentErrorMessage()));
-            base.ActiveUpscaler = Type.None;
-            _internalStatus = programStatus;
+            _internalStatus = InternalErrorFlag;
+            upscaler = UpscalerMode.None;
         }
-        else
-        {
-            _internalStatus = ValidateSettings();
+        // If an Internal Error was not Caught on the Previous Frame, check for settings changes
+        else {
+            // At this point, internal status is one frame old, and the previous status is two frames old
+            // If there was a new error last frame, call the callback function before evaluating settings
+            // This gives a chance for developers to catch an error one frame after it occurs via a callback
+            if (_internalStatus > UpscalerStatus.NoUpscalerSet && _internalStatus!=_prevStatus && ErrorCallback!=null)
+                ErrorCallback(_internalStatus);
+            
+            ValidateSettings();
         }
-        
+
+        _prevStatus = _internalStatus;
         base.OnPreCull();
     }
+
+    // Checks For/Validates Settings Changes
+    // Returns true if no changes/errors
+    // Returns false if errors occurred
+    private bool ValidateSettings()
+    {
+        // If the Active and Inactive Upscaler are the Same, Validate the Upscaler
+        if (upscaler != ActiveUpscaler)
+        {
+            UpscalerStatus newModeError = Upscaler_GetError(upscaler);
+            if (newModeError > UpscalerStatus.NoUpscalerSet)
+            {
+                upscaler = UpscalerMode.None;
+                ActiveUpscaler = UpscalerMode.None;
+                _internalStatus = newModeError;
+                Debug.LogError("There was an error updating the upscaler. Reverting to No Upscaling. Message: " 
+                               + Marshal.PtrToStringAuto(Upscaler_GetErrorMessage(upscaler)));
+            }
+
+            else
+            {
+                ActiveUpscaler = upscaler;
+                _internalStatus = UpscalerStatus.UpscalerSuccess; 
+            }
+        }
+
+        if (quality != ActiveQuality)
+        {
+            ActiveQuality = quality;
+        }
+        
+        return true;
+    }
     
-    // Every frame where the screen sees a complete change,
-    // the history buffer should be reset so that artifacts from the previous screen are not left behind
-    public void ResetHistoryBuffer()
-    {
-        
-    }
+    [DllImport("GfxPluginDLSSPlugin")]
+    protected static extern UpscalerStatus Upscaler_GetError(UpscalerMode upscaler);
 
-    public bool DeviceSupportsUpscalingMode(Type upscalingMode)
-    {
-        return Upscaler_GetError(upscalingMode) == 0;
-    }
+    [DllImport("GfxPluginDLSSPlugin")]
+    protected static extern IntPtr Upscaler_GetErrorMessage(UpscalerMode upscaler);
 
-    private UpscalerStatus ValidateSettings()
-    {
-        if (upscaler == ActiveUpscaler)
-        {
-            return UpscalerStatus.UPSCALER_SET_SUCCESSFULLY;
-        }
-        
-        UpscalerStatus newModeError = (UpscalerStatus) Upscaler_GetError(upscaler);
+    [DllImport("GfxPluginDLSSPlugin")]
+    protected static extern UpscalerStatus Upscaler_GetCurrentError();
 
-        if (newModeError != 0)
-        {
-            Debug.LogError("Error setting new upscaler. Reverting to No Upscaling. Message: " 
-                           + Marshal.PtrToStringAuto(Upscaler_GetErrorMessage(upscaler)));
-            ActiveUpscaler = Type.None;
-            return newModeError;
-        }
-
-        Debug.Log("Successfully set new upscaler.");
-        ActiveUpscaler = upscaler;
-        return UpscalerStatus.UPSCALER_SET_SUCCESSFULLY;
-    }
+    [DllImport("GfxPluginDLSSPlugin")]
+    protected static extern IntPtr Upscaler_GetCurrentErrorMessage();
 }
