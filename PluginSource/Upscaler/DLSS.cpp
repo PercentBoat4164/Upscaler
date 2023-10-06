@@ -7,12 +7,12 @@
 #    include "GraphicsAPI/DX12.hpp"
 #    include "GraphicsAPI/Vulkan.hpp"
 
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::safeFail};
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(
   NVSDK_NGX_DLSS_Create_Params
 ){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunctionPointer)(
   void *,
   UnityRenderingExtTextureFormat,
   void *,
@@ -22,12 +22,12 @@ Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentSetImageResourcesFunct
   void *,
   UnityRenderingExtTextureFormat
 ){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentEvaluateFunctionPointer)(){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentReleaseFeatureFunctionPointer)(){&DLSS::safeFail};
-Upscaler::ErrorReason (DLSS::*DLSS::graphicsAPIIndependentShutdownFunctionPointer)(){&DLSS::safeFail};
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentEvaluateFunctionPointer)(){&DLSS::safeFail};
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentReleaseFeatureFunctionPointer)(){&DLSS::safeFail};
+Upscaler::UpscalerStatus (DLSS::*DLSS::graphicsAPIIndependentShutdownFunctionPointer)(){&DLSS::safeFail};
 
 #    ifdef ENABLE_VULKAN
-Upscaler::ErrorReason DLSS::VulkanInitialize() {
+Upscaler::UpscalerStatus DLSS::VulkanInitialize() {
     UnityVulkanInstance vulkanInstance = GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance();
 
     return setError(NVSDK_NGX_VULKAN_Init(
@@ -39,19 +39,19 @@ Upscaler::ErrorReason DLSS::VulkanInitialize() {
     ));
 }
 
-Upscaler::ErrorReason DLSS::VulkanGetParameters() {
+Upscaler::UpscalerStatus DLSS::VulkanGetParameters() {
     if (parameters != nullptr) return getError();
     setError(NVSDK_NGX_VULKAN_GetCapabilityParameters(&parameters));
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+Upscaler::UpscalerStatus DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     if (parameters == nullptr) VulkanGetParameters();
     if (featureHandle != nullptr) VulkanReleaseFeature();
     GraphicsAPI::get<Vulkan>()->getUnityInterface()->EnsureOutsideRenderPass();
 
     VkCommandBuffer commandBuffer = GraphicsAPI::get<Vulkan>()->beginOneTimeSubmitRecording();
-    if (setError(NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams)) != ERROR_NONE) {
+    if (setError(NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams)) != SUCCESS) {
         GraphicsAPI::get<Vulkan>()->cancelOneTimeSubmitRecording();
         return getError();
     }
@@ -82,7 +82,7 @@ void DLSS::VulkanDestroyImageViews() {
     }
 }
 
-Upscaler::ErrorReason DLSS::VulkanSetImageResources(
+Upscaler::UpscalerStatus DLSS::VulkanSetImageResources(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
@@ -92,7 +92,7 @@ Upscaler::ErrorReason DLSS::VulkanSetImageResources(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    if (setErrorIf(nativeDepthBuffer == VK_NULL_HANDLE || nativeMotionVectors == VK_NULL_HANDLE || nativeInColor == VK_NULL_HANDLE || nativeOutColor == VK_NULL_HANDLE, ErrorReason::SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING) != ErrorReason::ERROR_NONE)
+    if (setErrorIf(nativeDepthBuffer == VK_NULL_HANDLE || nativeMotionVectors == VK_NULL_HANDLE || nativeInColor == VK_NULL_HANDLE || nativeOutColor == VK_NULL_HANDLE, UpscalerStatus::SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING) != UpscalerStatus::SUCCESS)
         return getError();
 
     VulkanDestroyImageViews();
@@ -214,7 +214,7 @@ Upscaler::ErrorReason DLSS::VulkanSetImageResources(
     );
 }
 
-Upscaler::ErrorReason DLSS::VulkanEvaluate() {
+Upscaler::UpscalerStatus DLSS::VulkanEvaluate() {
     UnityVulkanRecordingState state{};
     GraphicsAPI::get<Vulkan>()->getUnityInterface()->EnsureInsideRenderPass();
     GraphicsAPI::get<Vulkan>()->getUnityInterface()->CommandRecordingState(
@@ -238,8 +238,8 @@ Upscaler::ErrorReason DLSS::VulkanEvaluate() {
         .Height = settings.currentInputResolution.height,
       },
       .InReset    = (int)settings.resetHistory,
-      .InMVScaleX = (float)settings.outputResolution.width,
-      .InMVScaleY = (float)settings.outputResolution.height,
+      .InMVScaleX = -(float)settings.currentInputResolution.width,
+      .InMVScaleY = -(float)settings.currentInputResolution.height,
     };
     // clang-format on
 
@@ -249,21 +249,21 @@ Upscaler::ErrorReason DLSS::VulkanEvaluate() {
     );
 }
 
-Upscaler::ErrorReason DLSS::VulkanReleaseFeature() {
+Upscaler::UpscalerStatus DLSS::VulkanReleaseFeature() {
     if (featureHandle == nullptr) return getError();
     setError(NVSDK_NGX_VULKAN_ReleaseFeature(featureHandle));
     featureHandle = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::VulkanDestroyParameters() {
+Upscaler::UpscalerStatus DLSS::VulkanDestroyParameters() {
     if (parameters == nullptr) return getError();
     setError(NVSDK_NGX_VULKAN_DestroyParameters(parameters));
     parameters = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::VulkanShutdown() {
+Upscaler::UpscalerStatus DLSS::VulkanShutdown() {
     if (!initialized) return getError();
     VulkanDestroyParameters();
     VulkanReleaseFeature();
@@ -273,7 +273,7 @@ Upscaler::ErrorReason DLSS::VulkanShutdown() {
 #    endif
 
 #    ifdef ENABLE_DX12
-Upscaler::ErrorReason DLSS::DX12Initialize() {
+Upscaler::UpscalerStatus DLSS::DX12Initialize() {
     return setError(NVSDK_NGX_D3D12_Init(
       applicationInfo.id,
       applicationInfo.dataPath.c_str(),
@@ -281,16 +281,16 @@ Upscaler::ErrorReason DLSS::DX12Initialize() {
     ));
 }
 
-Upscaler::ErrorReason DLSS::DX12GetParameters() {
+Upscaler::UpscalerStatus DLSS::DX12GetParameters() {
     if (parameters != nullptr) return getError();
     return setError(NVSDK_NGX_D3D12_GetCapabilityParameters(&parameters));
 }
 
-Upscaler::ErrorReason DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+Upscaler::UpscalerStatus DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     if (featureHandle != nullptr) return getError();
 
     ID3D12GraphicsCommandList *commandList = GraphicsAPI::get<DX12>()->beginOneTimeSubmitRecording();
-    if (setError(NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams)) != ERROR_NONE) {
+    if (setError(NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams)) != SUCCESS) {
         GraphicsAPI::get<DX12>()->cancelOneTimeSubmitRecording();
         return getError();
     }
@@ -298,7 +298,7 @@ Upscaler::ErrorReason DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSC
     return setErrorIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING);
 }
 
-Upscaler::ErrorReason DLSS::DX12SetImageResources(
+Upscaler::UpscalerStatus DLSS::DX12SetImageResources(
   void *nativeDepthBuffer,
   UnityRenderingExtTextureFormat /* unused */,
   void *nativeMotionVectors,
@@ -318,7 +318,7 @@ Upscaler::ErrorReason DLSS::DX12SetImageResources(
     );
 }
 
-Upscaler::ErrorReason DLSS::DX12Evaluate() {
+Upscaler::UpscalerStatus DLSS::DX12Evaluate() {
     UnityGraphicsD3D12RecordingState state{};
     GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
 
@@ -346,21 +346,21 @@ Upscaler::ErrorReason DLSS::DX12Evaluate() {
     );
 }
 
-Upscaler::ErrorReason DLSS::DX12ReleaseFeature() {
+Upscaler::UpscalerStatus DLSS::DX12ReleaseFeature() {
     if (featureHandle == nullptr) return getError();
     setError(NVSDK_NGX_D3D12_ReleaseFeature(featureHandle));
     featureHandle = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::DX12DestroyParameters() {
+Upscaler::UpscalerStatus DLSS::DX12DestroyParameters() {
     if (parameters == nullptr) return getError();
     setError(NVSDK_NGX_D3D12_DestroyParameters(parameters));
     parameters = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::DX12Shutdown() {
+Upscaler::UpscalerStatus DLSS::DX12Shutdown() {
     if (!initialized) return getError();
     DX12DestroyParameters();
     DX12ReleaseFeature();
@@ -369,7 +369,7 @@ Upscaler::ErrorReason DLSS::DX12Shutdown() {
 #    endif
 
 #    ifdef ENABLE_DX11
-Upscaler::ErrorReason DLSS::DX11Initialize() {
+Upscaler::UpscalerStatus DLSS::DX11Initialize() {
     return setError(NVSDK_NGX_D3D11_Init(
       applicationInfo.id,
       applicationInfo.dataPath.c_str(),
@@ -377,16 +377,16 @@ Upscaler::ErrorReason DLSS::DX11Initialize() {
     ));
 }
 
-Upscaler::ErrorReason DLSS::DX11GetParameters() {
+Upscaler::UpscalerStatus DLSS::DX11GetParameters() {
     if (parameters != nullptr) return getError();
     return setError(NVSDK_NGX_D3D11_GetCapabilityParameters(&parameters));
 }
 
-Upscaler::ErrorReason DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+Upscaler::UpscalerStatus DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
     if (featureHandle != nullptr) return getError();
     ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
     NVSDK_NGX_Result result = NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams);
-    if (setError(result) != ERROR_NONE) {
+    if (setError(result) != SUCCESS) {
         GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
         return getError();
     }
@@ -394,7 +394,7 @@ Upscaler::ErrorReason DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSC
     return setErrorIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING);
 }
 
-Upscaler::ErrorReason DLSS::DX11SetImageResources(
+Upscaler::UpscalerStatus DLSS::DX11SetImageResources(
   void *nativeDepthBuffer,
   UnityRenderingExtTextureFormat /* unused */,
   void *nativeMotionVectors,
@@ -414,7 +414,7 @@ Upscaler::ErrorReason DLSS::DX11SetImageResources(
     );
 }
 
-Upscaler::ErrorReason DLSS::DX11Evaluate() {
+Upscaler::UpscalerStatus DLSS::DX11Evaluate() {
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams = {
       .Feature = {
@@ -436,7 +436,7 @@ Upscaler::ErrorReason DLSS::DX11Evaluate() {
     // clang-format on
 
     ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording();
-    if (setError(NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams)) != ERROR_NONE) {
+    if (setError(NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams)) != SUCCESS) {
         GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
         return getError();
     }
@@ -444,21 +444,21 @@ Upscaler::ErrorReason DLSS::DX11Evaluate() {
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::DX11ReleaseFeature() {
+Upscaler::UpscalerStatus DLSS::DX11ReleaseFeature() {
     if (featureHandle == nullptr) return getError();
     setError(NVSDK_NGX_D3D11_ReleaseFeature(featureHandle));
     featureHandle = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::DX11DestroyParameters() {
+Upscaler::UpscalerStatus DLSS::DX11DestroyParameters() {
     if (parameters == nullptr) return getError();
     setError(NVSDK_NGX_D3D11_DestroyParameters(parameters));
     parameters = nullptr;
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::DX11Shutdown() {
+Upscaler::UpscalerStatus DLSS::DX11Shutdown() {
     if (!initialized) return getError();
     DX11DestroyParameters();
     DX11ReleaseFeature();
@@ -536,7 +536,7 @@ std::vector<std::string> DLSS::getRequiredVulkanInstanceExtensions() {
     uint32_t                 extensionCount{};
     std::vector<std::string> extensions{};
     VkExtensionProperties   *extensionProperties{};
-    if (setError(NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties)) != ERROR_NONE)
+    if (setError(NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties)) != SUCCESS)
         return {};
     extensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) extensions.emplace_back(extensionProperties[i].extensionName);
@@ -548,7 +548,7 @@ DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice ph
     uint32_t                 extensionCount{};
     std::vector<std::string> extensions{};
     VkExtensionProperties   *extensionProperties{};
-    if (setError(NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties)) != ERROR_NONE)
+    if (setError(NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties)) != SUCCESS)
         return {};
     extensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) extensions.emplace_back(extensionProperties[i].extensionName);
@@ -563,8 +563,8 @@ std::string DLSS::getName() {
     return "NVIDIA DLSS";
 }
 
-Upscaler::ErrorReason DLSS::initialize() {
-    if (setErrorIf(initialized, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING) != ERROR_NONE) return getError();
+Upscaler::UpscalerStatus DLSS::initialize() {
+    if (setErrorIf(initialized, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING) != SUCCESS) return getError();
     if (!resetError()) return getError();
 
     // Upscaler_Initialize NGX SDK
@@ -574,14 +574,14 @@ Upscaler::ErrorReason DLSS::initialize() {
     // Check for DLSS support
     // Is driver up-to-date
     int needsUpdatedDriver{};
-    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_NeedsUpdatedDriver, &needsUpdatedDriver)) != Upscaler::ERROR_NONE)
+    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_NeedsUpdatedDriver, &needsUpdatedDriver)) != Upscaler::SUCCESS)
         return getError();
-    if (setErrorIf(needsUpdatedDriver != 0, SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE) != Upscaler::ERROR_NONE) {
+    if (setErrorIf(needsUpdatedDriver != 0, SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE) != Upscaler::SUCCESS) {
         int requiredMajorDriverVersion{};
-        if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMajor, &requiredMajorDriverVersion)) != Upscaler::ERROR_NONE)
+        if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMajor, &requiredMajorDriverVersion)) != Upscaler::SUCCESS)
             return getError();
         int requiredMinorDriverVersion{};
-        if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMinor, &requiredMinorDriverVersion)) != Upscaler::ERROR_NONE)
+        if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMinor, &requiredMinorDriverVersion)) != Upscaler::SUCCESS)
             return getError();
         setErrorMessage(
           std::to_string(requiredMajorDriverVersion) + "." + std::to_string(requiredMinorDriverVersion)
@@ -590,18 +590,18 @@ Upscaler::ErrorReason DLSS::initialize() {
     }
     // Is DLSS available on this hardware and platform
     int DLSSSupported{};
-    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported)) != Upscaler::ERROR_NONE)
+    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported)) != Upscaler::SUCCESS)
         return getError();
-    if (setErrorIf(DLSSSupported == 0, GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) != Upscaler::ERROR_NONE)
+    if (setErrorIf(DLSSSupported == 0, GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) != Upscaler::SUCCESS)
         return getError();
     // Is DLSS denied for this application
-    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported)) != Upscaler::ERROR_NONE)
+    if (setError(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported)) != Upscaler::SUCCESS)
         return getError();
     // clean up
     return setErrorIf(DLSSSupported == 0, SOFTWARE_ERROR_FEATURE_DENIED);
 }
 
-Upscaler::ErrorReason DLSS::createFeature() {
+Upscaler::UpscalerStatus DLSS::createFeature() {
     // clang-format off
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{
       .Feature = {
@@ -622,21 +622,21 @@ Upscaler::ErrorReason DLSS::createFeature() {
     // clang-format off
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    if (getError() == ERROR_NONE)
+    if (getError() == SUCCESS)
         return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
     return getError();
 }
 
-Upscaler::ErrorReason DLSS::evaluate() {
+Upscaler::UpscalerStatus DLSS::evaluate() {
     return (this->*graphicsAPIIndependentEvaluateFunctionPointer)();
 }
 
-Upscaler::ErrorReason DLSS::releaseFeature() {
+Upscaler::UpscalerStatus DLSS::releaseFeature() {
     return (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
 }
 
-Upscaler::ErrorReason DLSS::shutdown() {
-    ErrorReason error = (this->*graphicsAPIIndependentShutdownFunctionPointer)();
+Upscaler::UpscalerStatus DLSS::shutdown() {
+    UpscalerStatus error = (this->*graphicsAPIIndependentShutdownFunctionPointer)();
     Upscaler::shutdown();
     return error;
 }
@@ -661,7 +661,7 @@ Upscaler::Settings DLSS::getOptimalSettings(Settings::Resolution t_outputResolut
       &optimalSettings.dynamicMinimumInputResolution.width,
       &optimalSettings.dynamicMinimumInputResolution.height,
       &optimalSettings.sharpness
-    )) != ERROR_NONE) {
+    )) != SUCCESS) {
         optimalSettings.recommendedInputResolution    = optimalSettings.outputResolution;
         optimalSettings.dynamicMaximumInputResolution = optimalSettings.outputResolution;
         optimalSettings.dynamicMinimumInputResolution = optimalSettings.outputResolution;
@@ -671,7 +671,7 @@ Upscaler::Settings DLSS::getOptimalSettings(Settings::Resolution t_outputResolut
     return optimalSettings;
 }
 
-Upscaler::ErrorReason DLSS::setImageResources(
+Upscaler::UpscalerStatus DLSS::setImageResources(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
@@ -693,14 +693,14 @@ Upscaler::ErrorReason DLSS::setImageResources(
     );
 }
 
-Upscaler::ErrorReason DLSS::setError(NVSDK_NGX_Result t_error) {
+Upscaler::UpscalerStatus DLSS::setError(NVSDK_NGX_Result t_error) {
     std::wstring message = GetNGXResultAsString(t_error);
     Upscaler::setErrorMessage({message.begin(), message.end()});
-    ErrorReason error = ERROR_NONE;
+    UpscalerStatus error = SUCCESS;
     switch (t_error) {
-        case NVSDK_NGX_Result_Success: error = ERROR_NONE; break;
+        case NVSDK_NGX_Result_Success: error = SUCCESS; break;
         case NVSDK_NGX_Result_Fail: error = UNKNOWN_ERROR; break;
-        case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
+        case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = HARDWARE_ERROR_DEVICE_NOT_SUPPORTED; break;
         case NVSDK_NGX_Result_FAIL_PlatformError: error = SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED; break;
         case NVSDK_NGX_Result_FAIL_FeatureAlreadyExists: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_FeatureNotFound: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;

@@ -67,12 +67,12 @@ class DLSS : public Upscaler {
         ID3D11Resource        *dx11;
     } outColor;
 
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
       NVSDK_NGX_DLSS_Create_Params
     );
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat,
       void *,
@@ -82,15 +82,15 @@ class DLSS : public Upscaler {
       void *,
       UnityRenderingExtTextureFormat
     );
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    static Upscaler::ErrorReason (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
+    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
 
-    Upscaler::ErrorReason VulkanInitialize();
-    Upscaler::ErrorReason VulkanGetParameters();
-    Upscaler::ErrorReason VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::UpscalerStatus VulkanInitialize();
+    Upscaler::UpscalerStatus VulkanGetParameters();
+    Upscaler::UpscalerStatus VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
     void                  VulkanDestroyImageViews();
-    Upscaler::ErrorReason VulkanSetImageResources(
+    Upscaler::UpscalerStatus VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -100,15 +100,15 @@ class DLSS : public Upscaler {
       void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     );
-    Upscaler::ErrorReason VulkanEvaluate();
-    Upscaler::ErrorReason VulkanReleaseFeature();
-    Upscaler::ErrorReason VulkanDestroyParameters();
-    Upscaler::ErrorReason VulkanShutdown();
+    Upscaler::UpscalerStatus VulkanEvaluate();
+    Upscaler::UpscalerStatus VulkanReleaseFeature();
+    Upscaler::UpscalerStatus VulkanDestroyParameters();
+    Upscaler::UpscalerStatus VulkanShutdown();
 #ifdef ENABLE_DX12
-    Upscaler::ErrorReason DX12Initialize();
-    Upscaler::ErrorReason DX12GetParameters();
-    Upscaler::ErrorReason DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::ErrorReason DX12SetImageResources(
+    Upscaler::UpscalerStatus DX12Initialize();
+    Upscaler::UpscalerStatus DX12GetParameters();
+    Upscaler::UpscalerStatus DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::UpscalerStatus DX12SetImageResources(
       void *nativeDepthBuffer,
       UnityRenderingExtTextureFormat,
       void *nativeMotionVectors,
@@ -118,17 +118,17 @@ class DLSS : public Upscaler {
       void *nativeOutColor,
       UnityRenderingExtTextureFormat
     );
-    Upscaler::ErrorReason DX12Evaluate();
-    Upscaler::ErrorReason DX12ReleaseFeature();
-    Upscaler::ErrorReason DX12DestroyParameters();
-    Upscaler::ErrorReason DX12Shutdown();
+    Upscaler::UpscalerStatus DX12Evaluate();
+    Upscaler::UpscalerStatus DX12ReleaseFeature();
+    Upscaler::UpscalerStatus DX12DestroyParameters();
+    Upscaler::UpscalerStatus DX12Shutdown();
 #endif
 
 #ifdef ENABLE_DX11
-    Upscaler::ErrorReason DX11Initialize();
-    Upscaler::ErrorReason DX11GetParameters();
-    Upscaler::ErrorReason DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::ErrorReason DX11SetImageResources(
+    Upscaler::UpscalerStatus DX11Initialize();
+    Upscaler::UpscalerStatus DX11GetParameters();
+    Upscaler::UpscalerStatus DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::UpscalerStatus DX11SetImageResources(
       void *nativeDepthBuffer,
       UnityRenderingExtTextureFormat,
       void *nativeMotionVectors,
@@ -138,10 +138,10 @@ class DLSS : public Upscaler {
       void *nativeOutColor,
       UnityRenderingExtTextureFormat
     );
-    Upscaler::ErrorReason DX11Evaluate();
-    Upscaler::ErrorReason DX11ReleaseFeature();
-    Upscaler::ErrorReason DX11DestroyParameters();
-    Upscaler::ErrorReason DX11Shutdown();
+    Upscaler::UpscalerStatus DX11Evaluate();
+    Upscaler::UpscalerStatus DX11ReleaseFeature();
+    Upscaler::UpscalerStatus DX11DestroyParameters();
+    Upscaler::UpscalerStatus DX11Shutdown();
 #endif
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
@@ -150,7 +150,7 @@ class DLSS : public Upscaler {
 
     /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
     /// clear the current error.
-    ErrorReason setError(NVSDK_NGX_Result);
+    UpscalerStatus setError(NVSDK_NGX_Result);
 
 public:
     static DLSS *get();
@@ -167,11 +167,11 @@ public:
 
     std::string getName() override;
 
-    ErrorReason initialize() override;
+    UpscalerStatus initialize() override;
 
-    ErrorReason createFeature() override;
+    UpscalerStatus createFeature() override;
 
-    ErrorReason setImageResources(
+    UpscalerStatus setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -182,9 +182,9 @@ public:
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
 
-    ErrorReason evaluate() override;
+    UpscalerStatus evaluate() override;
 
-    ErrorReason releaseFeature() override;
+    UpscalerStatus releaseFeature() override;
 
-    ErrorReason shutdown() override;
+    UpscalerStatus shutdown() override;
 };

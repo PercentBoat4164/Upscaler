@@ -204,7 +204,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) == Upscaler::ERROR_NONE) {
+        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) == Upscaler::SUCCESS) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -298,7 +298,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE) == Upscaler::ERROR_NONE) {
+        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE) == Upscaler::SUCCESS) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
