@@ -146,7 +146,7 @@ public class EnableDLSS : MonoBehaviour
     {
         var ndcJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = ndcJitter / UpscalingResolution;
+        var clipJitter = ndcJitter / RenderingResolution;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
@@ -448,7 +448,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_InitializePlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_Set(Upscaler upscaler);
+    private static extern ErrorReason Upscaler_Set(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
     protected static extern ErrorReason Upscaler_GetError(Upscaler upscaler);
@@ -463,10 +463,19 @@ public class EnableDLSS : MonoBehaviour
     private static extern IntPtr Upscaler_GetCurrentErrorMessage();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
+    private static extern ErrorReason Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ulong Upscaler_GetRecommendedInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ulong Upscaler_GetMinimumInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ulong Upscaler_GetMaximumInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ErrorReason Upscaler_SetSharpnessValue(float sharpness);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ErrorReason Upscaler_SetCurrentInputResolution(uint width, uint height);
@@ -478,7 +487,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_ResetHistory();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_Prepare(
+    private static extern ErrorReason Upscaler_Prepare(
         IntPtr depthBuffer, GraphicsFormat depthFormat,
         IntPtr motionVectors, GraphicsFormat motionVectorFormat,
         IntPtr inColor, GraphicsFormat inColorFormat,

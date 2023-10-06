@@ -36,7 +36,7 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
 std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     std::vector<Upscaler *> upscalers;
     for (Upscaler *upscaler : getAllUpscalers())
-        if (upscaler->getError() == ERROR_NONE) upscalers.push_back(upscaler);
+        if (upscaler->getError() == SUCCESS) upscalers.push_back(upscaler);
     return upscalers;
 }
 
@@ -52,23 +52,23 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-Upscaler::ErrorReason Upscaler::getError() {
+Upscaler::UpscalerStatus Upscaler::getError() {
     return error;
 }
 
-Upscaler::ErrorReason Upscaler::setError(Upscaler::ErrorReason t_error) {
-    if (error == ERROR_NONE) error = t_error;
+Upscaler::UpscalerStatus Upscaler::setError(Upscaler::UpscalerStatus t_error) {
+    if (error == SUCCESS) error = t_error;
     return error;
 }
 
-Upscaler::ErrorReason Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::ErrorReason t_error) {
-    if (error == ERROR_NONE && t_shouldApplyError) error = t_error;
+Upscaler::UpscalerStatus Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::UpscalerStatus t_error) {
+    if (error == SUCCESS && t_shouldApplyError) error = t_error;
     return error;
 }
 
 bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U) error = ERROR_NONE;
-    return error == ERROR_NONE;
+    if ((error & ERROR_RECOVERABLE) != 0U) error = SUCCESS;
+    return error == SUCCESS;
 }
 
 bool Upscaler::setErrorMessage(std::string msg) {
@@ -81,11 +81,11 @@ std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
 }
 
-Upscaler::ErrorReason Upscaler::shutdown() {
+Upscaler::UpscalerStatus Upscaler::shutdown() {
     if (error != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && error != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
-        error                = ERROR_NONE;
+        error                = SUCCESS;
         detailedErrorMessage = "";
     }
     initialized = false;
-    return ERROR_NONE;
+    return SUCCESS;
 }
