@@ -204,7 +204,11 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) == Upscaler::ERROR_NONE) {
+        if (Upscaler::success(upscaler->setErrorIf(
+              supportedRequestedExtensionCount != requestedExtensions.size(),
+              Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
+              ""
+            ))) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -231,11 +235,13 @@ VkResult Vulkan::Hook_vkCreateInstance(
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->instance = *pInstance;
         i                                    = 0;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
-            if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED)
-                upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
-            ++i;
-        }
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+            upscaler->setErrorIf(
+              upscaler->getError() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
+              Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
+              "The Vulkan instance extensions [" + unsupportedExtensions[i++] + "] required by " +
+                upscaler->getName() + " are not supported. A graphics driver update might help."
+            );
     } else {
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->instance = *pInstance;
@@ -298,7 +304,11 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (upscaler->setErrorIf(supportedRequestedExtensionCount != requestedExtensions.size(), Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE) == Upscaler::ERROR_NONE) {
+        if (Upscaler::success(upscaler->setErrorIf(
+              supportedRequestedExtensionCount != requestedExtensions.size(),
+              Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
+              ""
+            ))) {
             for (const std::string &extension : requestedExtensions) {
                 bool enableExtension{true};
                 for (const char *enabledExtension : enabledExtensions) {
@@ -325,11 +335,14 @@ VkResult Vulkan::Hook_vkCreateDevice(
     if (result == VK_SUCCESS) {
         GraphicsAPI::get<Vulkan>()->device = *pDevice;
         i                                  = 0;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
-            if (upscaler->getError() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE)
-                upscaler->setErrorMessage(upscaler->getName() + " :" + unsupportedExtensions[i]);
-            ++i;
-        }
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+            upscaler->setErrorIf(
+              upscaler->getError() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
+              Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
+              "The Vulkan device extensions [" + unsupportedExtensions[i++] + "] required by " +
+                upscaler->getName() + " are not supported. The selected graphics device may not support " +
+                upscaler->getName() + ". If you know that it does, a graphics driver update might help."
+            );
     } else {
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
         if (result == VK_SUCCESS) GraphicsAPI::get<Vulkan>()->device = *pDevice;

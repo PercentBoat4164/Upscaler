@@ -2,7 +2,7 @@
 
 NoUpscaler *NoUpscaler::get() {
     NoUpscaler *noUpscaler{new NoUpscaler};
-    noUpscaler->setError(ERROR_DUMMY_UPSCALER);
+    noUpscaler->setError(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
     return noUpscaler;
 }
 
@@ -31,15 +31,15 @@ Upscaler::Settings NoUpscaler::getOptimalSettings(
     return settings;
 }
 
-Upscaler::ErrorReason NoUpscaler::initialize() {
-    return ERROR_DUMMY_UPSCALER;
+Upscaler::UpscalerStatus NoUpscaler::initialize() {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::ErrorReason NoUpscaler::createFeature() {
-    return ERROR_DUMMY_UPSCALER;
+Upscaler::UpscalerStatus NoUpscaler::createFeature() {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::ErrorReason NoUpscaler::setImageResources(
+Upscaler::UpscalerStatus NoUpscaler::setImageResources(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
@@ -49,20 +49,20 @@ Upscaler::ErrorReason NoUpscaler::setImageResources(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    return ERROR_DUMMY_UPSCALER;
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::ErrorReason NoUpscaler::evaluate() {
-    return ERROR_DUMMY_UPSCALER;
+Upscaler::UpscalerStatus NoUpscaler::evaluate() {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::ErrorReason NoUpscaler::releaseFeature() {
-    return ERROR_DUMMY_UPSCALER;
+Upscaler::UpscalerStatus NoUpscaler::releaseFeature() {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::ErrorReason NoUpscaler::shutdown() {
+Upscaler::UpscalerStatus NoUpscaler::shutdown() {
     Upscaler::shutdown();
-    return ERROR_DUMMY_UPSCALER;
+    return NO_UPSCALER_SET;
 }
 
 void NoUpscaler::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {

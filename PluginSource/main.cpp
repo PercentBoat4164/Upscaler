@@ -48,14 +48,14 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePl
     GraphicsAPI::get()->prepareForOneTimeSubmits();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Set(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_Set(Upscaler::Type type) {
     Upscaler::get()->shutdown();
     Upscaler::set(type);
-    return Upscaler::get()->initialize() == Upscaler::ERROR_NONE;
+    return Upscaler::get()->initialize();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetError(Upscaler::Type type
-) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API
+                                  Upscaler_GetError(Upscaler::Type type) {
     return Upscaler::get(type)->getError();
 }
 
@@ -63,7 +63,7 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetEr
     return Upscaler::get(type)->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API Upscaler_GetCurrentError() {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_GetCurrentError() {
     return Upscaler::get()->getError();
 }
 
@@ -71,23 +71,87 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCu
     return Upscaler::get()->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
   unsigned int                t_width,
   unsigned int                t_height,
   Upscaler::Settings::Quality t_quality,
   bool                        t_HDR
 ) {
-    Upscaler::settings = Upscaler::get()->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
+    Upscaler                *upscaler = Upscaler::get();
+    Upscaler::Settings       settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
+    Upscaler::UpscalerStatus status   = upscaler->getError();
+    if (status == Upscaler::SUCCESS) Upscaler::settings = settings;
+    return status;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
     return Upscaler::settings.recommendedInputResolution.asLong();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::ErrorReason UNITY_INTERFACE_API
+extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMinimumInputResolution() {
+    return Upscaler::settings.dynamicMinimumInputResolution.asLong();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMaximumInputResolution() {
+    return Upscaler::settings.dynamicMaximumInputResolution.asLong();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API
+                                  Upscaler_SetSharpnessValue(float t_sharpness) {
+    bool tooSmall = t_sharpness < 0.0;
+    bool tooBig   = t_sharpness > 1.0;
+    return Upscaler::get()->setErrorIf(
+      tooSmall || tooBig,
+      Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
+      std::string(
+        tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small."
+      ) +
+        " The given sharpness value (" + std::to_string(t_sharpness) + ") must be greater than 0 but less than 1."
+    );
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API
                                   Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
-    Upscaler::settings.currentInputResolution = {t_width, t_height};
-    return Upscaler::ERROR_NONE; /*@todo Make this detect bad resolutions and throw an error. */
+    bool      safeToContinue{true};
+    Upscaler *upscaler{Upscaler::get()};
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+      t_width > Upscaler::settings.dynamicMaximumInputResolution.width,
+      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
+      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
+        ") is too wide. It must be thinner than the maximum supported input resolution (" +
+        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" +
+        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
+        ") for the given output resolution."
+    ));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+      t_width < Upscaler::settings.dynamicMinimumInputResolution.width,
+      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
+      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
+        ") is too thin. It must be wider than the minimum supported input resolution (" +
+        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" +
+        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +
+        ") for the given output resolution."
+    ));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+      t_height > Upscaler::settings.dynamicMaximumInputResolution.height,
+      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
+      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
+        ") is too tall. It must be shorter than the maximum supported input resolution (" +
+        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" +
+        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
+        ") for the given output resolution."
+    ));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+      t_height < Upscaler::settings.dynamicMinimumInputResolution.height,
+      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
+      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
+        ") is too short. It must be taller than the minimum supported input resolution (" +
+        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" +
+        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +
+        ") for the given output resolution."
+    ));
+    if (safeToContinue) Upscaler::settings.currentInputResolution = {t_width, t_height};
+    return upscaler->getError();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
@@ -99,7 +163,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory
     Upscaler::settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,
   void                          *nativeMotionVectors,
@@ -109,19 +173,18 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeOutColor,
   UnityRenderingExtTextureFormat unityOutColorFormat
 ) {
-    bool available = Upscaler::get()->setImageResources(
-                       nativeDepthBuffer,
-                       unityDepthFormat,
-                       nativeMotionVectors,
-                       unityMotionVectorFormat,
-                       nativeInColor,
-                       unityInColorFormat,
-                       nativeOutColor,
-                       unityOutColorFormat
-                     ) == Upscaler::ERROR_NONE;
+    Upscaler::get()->setImageResources(
+      nativeDepthBuffer,
+      unityDepthFormat,
+      nativeMotionVectors,
+      unityMotionVectorFormat,
+      nativeInColor,
+      unityInColorFormat,
+      nativeOutColor,
+      unityOutColorFormat
+    );
 
-    available &= Upscaler::get()->createFeature() == Upscaler::ERROR_NONE;
-    return available;
+    return Upscaler::get()->createFeature();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
@@ -136,6 +199,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlug
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
+    //    bool debuggerConnected;
+    //    while (!debuggerConnected);
     // Enabled plugin's interception of Vulkan initialization calls.
     for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
         graphicsAPI->useUnityInterfaces(t_unityInterfaces);

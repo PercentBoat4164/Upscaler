@@ -28,6 +28,7 @@ private:
 public:
     // clang-format off
 
+    /**@todo Add helper functions for me. */
     // bit range = meaning
     // =======================
     // [31-29]   = Error type
@@ -35,9 +36,9 @@ public:
     // [15-2]    = RESERVED
     // [1]       = Attempting to use a Dummy Upscaler
     // [0]       = Recoverable
-    enum ErrorReason : uint32_t {
-        ERROR_NONE = 0U,
-        ERROR_DUMMY_UPSCALER = 2U,
+    enum UpscalerStatus : uint32_t {
+        SUCCESS = 0U,
+        NO_UPSCALER_SET = 2U,
         HARDWARE_ERROR                                            = 1U << ERROR_TYPE_OFFSET,
         HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED            = HARDWARE_ERROR | 1U << ERROR_CODE_OFFSET,
         HARDWARE_ERROR_DEVICE_NOT_SUPPORTED                       = HARDWARE_ERROR | 2U << ERROR_CODE_OFFSET,
@@ -55,8 +56,8 @@ public:
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
-        SETTINGS_ERROR_INPUT_RESOLUTION_TOO_SMALL                 = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_INPUT_RESOLUTION_TOO_BIG                   = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
@@ -67,9 +68,19 @@ public:
 
     // clang-format on
 
+    static bool success(UpscalerStatus);
+    static bool failure(UpscalerStatus);
+    static bool recoverable(UpscalerStatus);
+    static bool nonrecoverable(UpscalerStatus);
+
+    constexpr static std::string
+    composeErrorMessage(const std::string &t_verb, const std::string &t_noun, std::string t_reason = "") {
+        return {"Failed to " + t_verb + " the " + t_noun + (t_reason.empty() ? "." : " due to " + t_reason + ".")};
+    }
+
 protected:
     template<typename... Args>
-    constexpr ErrorReason safeFail(Args... /* unused */) {
+    constexpr UpscalerStatus safeFail(Args... /* unused */) {
         return SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR;
     };
 
@@ -79,7 +90,7 @@ protected:
 
 private:
     static Upscaler *upscalerInUse;
-    ErrorReason      error{ERROR_NONE};
+    UpscalerStatus   error{SUCCESS};
     std::string      detailedErrorMessage{};
 
 public:
@@ -181,21 +192,19 @@ public:
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
 
     /// Returns the current error.
-    ErrorReason getError();
+    UpscalerStatus getError();
 
     /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
     /// Returns the current error.
-    ErrorReason setError(ErrorReason);
+    UpscalerStatus setError(UpscalerStatus, std::string);
 
     /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
     /// to clear the current error. Returns the current error
-    ErrorReason setErrorIf(bool, ErrorReason);
+    UpscalerStatus setErrorIf(bool, UpscalerStatus, std::string);
 
     /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
     /// error has been cleared.
     bool resetError();
-
-    bool setErrorMessage(std::string);
 
     std::string &getErrorMessage();
 
@@ -209,11 +218,11 @@ public:
 
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
 
-    virtual ErrorReason initialize() = 0;
+    virtual UpscalerStatus initialize() = 0;
 
-    virtual ErrorReason createFeature() = 0;
+    virtual UpscalerStatus createFeature() = 0;
 
-    virtual ErrorReason setImageResources(
+    virtual UpscalerStatus setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -224,11 +233,11 @@ public:
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) = 0;
 
-    virtual ErrorReason evaluate() = 0;
+    virtual UpscalerStatus evaluate() = 0;
 
-    virtual ErrorReason releaseFeature() = 0;
+    virtual UpscalerStatus releaseFeature() = 0;
 
-    virtual ErrorReason shutdown();
+    virtual UpscalerStatus shutdown();
 
     virtual ~Upscaler() = default;
 };

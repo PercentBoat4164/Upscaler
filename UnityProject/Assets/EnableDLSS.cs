@@ -37,8 +37,8 @@ public class EnableDLSS : MonoBehaviour
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
         SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
-        SettingsErrorInputResolutionTooSmall = SettingsError | (1U << ErrorCodeOffset),
-        SettingsErrorInputResolutionTooBig = SettingsError | (2U << ErrorCodeOffset),
+        SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
+        SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
         SettingsErrorUpscalerNotAvailable = SettingsError | (3U << ErrorCodeOffset),
         SettingsErrorQualityModeNotAvailable = SettingsError | (4U << ErrorCodeOffset),
 
@@ -221,7 +221,7 @@ public class EnableDLSS : MonoBehaviour
         }
 
         private readonly EnableDLSS _parent;
-        
+
         private SetRenderResolution _setRenderResolution;
         private Upscale _upscale;
 
@@ -270,8 +270,6 @@ public class EnableDLSS : MonoBehaviour
         var ndcJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
         var clipJitter = ndcJitter / RenderingResolution;
-        if (Math.Abs(clipJitter.x) > .5f || Math.Abs(clipJitter.y) > .5f)
-            Debug.Log("Bad Jitter happened!");
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
@@ -311,6 +309,34 @@ public class EnableDLSS : MonoBehaviour
         }
 
         _sequencePosition = 0;
+    }
+
+    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
+    {
+        var quad = new Mesh();
+        quad.SetVertices(new Vector3[]
+        {
+            new(-1, -1, 0),
+            new(1, -1, 0),
+            new(-1, 1, 0),
+            new(1, 1, 0)
+        });
+        quad.SetUVs(0, new Vector2[]
+        {
+            new(0, 0),
+            new(1, 0),
+            new(0, 1),
+            new(1, 1)
+        });
+        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
+        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
+        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
+        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
+        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
+        if (!toTex)
+            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
+        cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
 
     private void RecordCommandBuffers()
@@ -546,7 +572,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_InitializePlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_Set(Upscaler upscaler);
+    private static extern ErrorReason Upscaler_Set(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
     protected static extern ErrorReason Upscaler_GetError(Upscaler upscaler);
@@ -561,10 +587,19 @@ public class EnableDLSS : MonoBehaviour
     private static extern IntPtr Upscaler_GetCurrentErrorMessage();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
+    private static extern ErrorReason Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ulong Upscaler_GetRecommendedInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ulong Upscaler_GetMinimumInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ulong Upscaler_GetMaximumInputResolution();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern ErrorReason Upscaler_SetSharpnessValue(float sharpness);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ErrorReason Upscaler_SetCurrentInputResolution(uint width, uint height);
@@ -576,7 +611,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_ResetHistory();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern bool Upscaler_Prepare(
+    private static extern ErrorReason Upscaler_Prepare(
         IntPtr depthBuffer, GraphicsFormat depthFormat,
         IntPtr motionVectors, GraphicsFormat motionVectorFormat,
         IntPtr inColor, GraphicsFormat inColorFormat,

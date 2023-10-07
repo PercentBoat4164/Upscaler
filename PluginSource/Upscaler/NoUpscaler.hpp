@@ -16,9 +16,9 @@ public:
     Settings
     getOptimalSettings(Settings::Resolution /* unused */, Settings::Quality /* unused */, bool /* unused */)
       override;
-    ErrorReason initialize() override;
-    ErrorReason createFeature() override;
-    ErrorReason setImageResources(
+    UpscalerStatus initialize() override;
+    UpscalerStatus createFeature() override;
+    UpscalerStatus setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -28,9 +28,9 @@ public:
       void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
-    ErrorReason evaluate() override;
-    ErrorReason releaseFeature() override;
-    ErrorReason shutdown() override;
+    UpscalerStatus evaluate() override;
+    UpscalerStatus releaseFeature() override;
+    UpscalerStatus shutdown() override;
 
 protected:
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
