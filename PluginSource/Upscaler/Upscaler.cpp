@@ -1,9 +1,9 @@
 #include "Upscaler.hpp"
 
-#include <utility>
-
 #include "DLSS.hpp"
 #include "NoUpscaler.hpp"
+
+#include <utility>
 
 Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
@@ -75,18 +75,15 @@ Upscaler::UpscalerStatus Upscaler::getError() {
 }
 
 Upscaler::UpscalerStatus Upscaler::setError(Upscaler::UpscalerStatus t_error, std::string t_msg) {
-    if (error == SUCCESS)
-        error                = t_error;
-    if (detailedErrorMessage.empty())
-        detailedErrorMessage = std::move(t_msg);
+    if (error == SUCCESS) error = t_error;
+    if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
     return error;
 }
 
-Upscaler::UpscalerStatus Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::UpscalerStatus t_error, std::string t_msg) {
-    if (error == SUCCESS && t_shouldApplyError)
-        error                = t_error;
-    if (detailedErrorMessage.empty() && t_shouldApplyError)
-        detailedErrorMessage = std::move(t_msg);
+Upscaler::UpscalerStatus
+Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::UpscalerStatus t_error, std::string t_msg) {
+    if (error == SUCCESS && t_shouldApplyError) error = t_error;
+    if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
     return error;
 }
 

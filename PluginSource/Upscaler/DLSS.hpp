@@ -90,7 +90,7 @@ private:
     Upscaler::UpscalerStatus VulkanInitialize();
     Upscaler::UpscalerStatus VulkanGetParameters();
     Upscaler::UpscalerStatus VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    void                  VulkanDestroyImageViews();
+    void                     VulkanDestroyImageViews();
     Upscaler::UpscalerStatus VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
