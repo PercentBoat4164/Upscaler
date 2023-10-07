@@ -1,10 +1,28 @@
 #include "Upscaler.hpp"
 
+#include <utility>
+
 #include "DLSS.hpp"
 #include "NoUpscaler.hpp"
 
 Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
+
+bool Upscaler::success(Upscaler::UpscalerStatus t_status) {
+    return t_status <= UpscalerStatus::NO_UPSCALER_SET;
+}
+
+bool Upscaler::failure(Upscaler::UpscalerStatus t_status) {
+    return t_status > UpscalerStatus::NO_UPSCALER_SET;
+}
+
+bool Upscaler::recoverable(Upscaler::UpscalerStatus t_status) {
+    return (t_status & ERROR_RECOVERABLE) == 1;
+}
+
+bool Upscaler::nonrecoverable(Upscaler::UpscalerStatus t_status) {
+    return (t_status & ERROR_RECOVERABLE) == 0;
+}
 
 uint64_t Upscaler::Settings::Resolution::asLong() const {
     return (uint64_t) width << 32U | height;
@@ -56,25 +74,28 @@ Upscaler::UpscalerStatus Upscaler::getError() {
     return error;
 }
 
-Upscaler::UpscalerStatus Upscaler::setError(Upscaler::UpscalerStatus t_error) {
-    if (error == SUCCESS) error = t_error;
+Upscaler::UpscalerStatus Upscaler::setError(Upscaler::UpscalerStatus t_error, std::string t_msg) {
+    if (error == SUCCESS)
+        error                = t_error;
+    if (detailedErrorMessage.empty())
+        detailedErrorMessage = std::move(t_msg);
     return error;
 }
 
-Upscaler::UpscalerStatus Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::UpscalerStatus t_error) {
-    if (error == SUCCESS && t_shouldApplyError) error = t_error;
+Upscaler::UpscalerStatus Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::UpscalerStatus t_error, std::string t_msg) {
+    if (error == SUCCESS && t_shouldApplyError)
+        error                = t_error;
+    if (detailedErrorMessage.empty() && t_shouldApplyError)
+        detailedErrorMessage = std::move(t_msg);
     return error;
 }
 
 bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U) error = SUCCESS;
+    if ((error & ERROR_RECOVERABLE) != 0U) {
+        error = SUCCESS;
+        detailedErrorMessage.clear();
+    }
     return error == SUCCESS;
-}
-
-bool Upscaler::setErrorMessage(std::string msg) {
-    if (!detailedErrorMessage.empty()) return false;
-    detailedErrorMessage = std::move(msg);
-    return true;
 }
 
 std::string &Upscaler::getErrorMessage() {

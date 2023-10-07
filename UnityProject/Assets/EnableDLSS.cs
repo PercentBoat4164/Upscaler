@@ -36,8 +36,8 @@ public class EnableDLSS : MonoBehaviour
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
         SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
-        SettingsErrorInputResolutionTooSmall = SettingsError | (1U << ErrorCodeOffset),
-        SettingsErrorInputResolutionTooBig = SettingsError | (2U << ErrorCodeOffset),
+        SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
+        SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
         SettingsErrorUpscalerNotAvailable = SettingsError | (3U << ErrorCodeOffset),
         SettingsErrorQualityModeNotAvailable = SettingsError | (4U << ErrorCodeOffset),
 

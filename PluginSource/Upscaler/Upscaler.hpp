@@ -68,6 +68,15 @@ public:
 
     // clang-format on
 
+    static bool success(UpscalerStatus);
+    static bool failure(UpscalerStatus);
+    static bool recoverable(UpscalerStatus);
+    static bool nonrecoverable(UpscalerStatus);
+
+    static constexpr std::string composeErrorMessage(const std::string& t_verb, const std::string& t_noun, std::string t_reason="") {
+        return {"Failed to " + t_verb + " the " + t_noun + (t_reason.empty() ? "." : " due to " + t_reason + ".")};
+    }
+
 protected:
     template<typename... Args>
     constexpr UpscalerStatus safeFail(Args... /* unused */) {
@@ -186,17 +195,15 @@ public:
 
     /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
     /// Returns the current error.
-    UpscalerStatus setError(UpscalerStatus);
+    UpscalerStatus setError(UpscalerStatus, std::string);
 
     /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
     /// to clear the current error. Returns the current error
-    UpscalerStatus setErrorIf(bool, UpscalerStatus);
+    UpscalerStatus setErrorIf(bool, UpscalerStatus, std::string);
 
     /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
     /// error has been cleared.
     bool resetError();
-
-    bool setErrorMessage(std::string);
 
     std::string &getErrorMessage();
 

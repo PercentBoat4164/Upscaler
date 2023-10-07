@@ -98,14 +98,22 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMaxim
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_SetSharpnessValue(float t_sharpness) {
-    Upscaler::get()->setErrorIf(t_sharpness < 0.0 || t_sharpness > 1.0, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE);
+    bool tooSmall = t_sharpness < 0.0;
+    bool tooBig = t_sharpness > 1.0;
+    return Upscaler::get()->setErrorIf(tooSmall || tooBig, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, std::string(tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small.") + " The given sharpness value (" + std::to_string(t_sharpness) + ") must be greater than 0 but less than 1.");
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API
                                   Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
-    Upscaler::settings.currentInputResolution = {t_width, t_height};
-    /**@todo Should throw four different errors based on X and Y inputs. */
-    return Upscaler::SUCCESS; /*@todo Make this detect bad resolutions and throw an error. */
+    bool safeToContinue{true};
+    Upscaler *upscaler{Upscaler::get()};
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(t_width > Upscaler::settings.dynamicMaximumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) + ") is too wide. It must be thinner than the maximum supported input resolution (" + std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" + std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +") for the given output resolution."));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(t_width < Upscaler::settings.dynamicMinimumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) + ") is too thin. It must be wider than the minimum supported input resolution (" + std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" + std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +") for the given output resolution."));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(t_height > Upscaler::settings.dynamicMaximumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) + ") is too tall. It must be shorter than the maximum supported input resolution (" + std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" + std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +") for the given output resolution."));
+    safeToContinue &= Upscaler::success(upscaler->setErrorIf(t_height < Upscaler::settings.dynamicMinimumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) + ") is too short. It must be taller than the minimum supported input resolution (" + std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" + std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +") for the given output resolution."));
+    if (safeToContinue)
+        Upscaler::settings.currentInputResolution = {t_width, t_height};
+    return upscaler->getError();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
@@ -117,7 +125,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory
     Upscaler::settings.resetHistory = true;
 }
 
-/**@todo Should return an error. */
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::UpscalerStatus UNITY_INTERFACE_API Upscaler_Prepare(
   void                          *nativeDepthBuffer,
   UnityRenderingExtTextureFormat unityDepthFormat,

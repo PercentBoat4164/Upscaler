@@ -8,6 +8,7 @@
 #include <nvsdk_ngx_helpers_vk.h>
 
 class DLSS : public Upscaler {
+private:
     struct Application {
         uint64_t     id{231313132};
         std::wstring dataPath{L"./"};
@@ -19,18 +20,18 @@ class DLSS : public Upscaler {
           }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
-          .PathListInfo ={
+          .PathListInfo {
             .Path   = new const wchar_t *{L"./Assets/Plugins"},
             .Length = 1,
-            },
+          },
           .InternalData = nullptr,
-          .LoggingInfo  = {
+          .LoggingInfo {
             .LoggingCallback = nullptr,
             .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
             .DisableOtherLoggingSinks = false,
           }
         };
-        NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo{
+        NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo {
           .SDKVersion          = NVSDK_NGX_Version_API,
           .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
           .Identifier          = ngxIdentifier,
@@ -150,7 +151,7 @@ class DLSS : public Upscaler {
 
     /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
     /// clear the current error.
-    UpscalerStatus setError(NVSDK_NGX_Result);
+    UpscalerStatus setError(NVSDK_NGX_Result, std::string);
 
 public:
     static DLSS *get();
