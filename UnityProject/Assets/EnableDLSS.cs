@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.Universal;  /**@todo Make me not break things if the URP is not in use for this project. */
 
 public class EnableDLSS : MonoBehaviour
 {
@@ -247,6 +247,11 @@ public class EnableDLSS : MonoBehaviour
             };
         }
 
+        // public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
+        // {
+        //     base.SetupRenderPasses(renderer, in renderingData);
+        // }
+
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             renderer.EnqueuePass(_setRenderResolution);
@@ -309,34 +314,6 @@ public class EnableDLSS : MonoBehaviour
         }
 
         _sequencePosition = 0;
-    }
-
-    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
-    {
-        var quad = new Mesh();
-        quad.SetVertices(new Vector3[]
-        {
-            new(-1, -1, 0),
-            new(1, -1, 0),
-            new(-1, 1, 0),
-            new(1, 1, 0)
-        });
-        quad.SetUVs(0, new Vector2[]
-        {
-            new(0, 0),
-            new(1, 0),
-            new(0, 1),
-            new(1, 1)
-        });
-        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
-        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
-        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
-        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
-        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
-        if (!toTex)
-            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
-        cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
 
     private void RecordCommandBuffers()
@@ -499,7 +476,7 @@ public class EnableDLSS : MonoBehaviour
 
     private void OnEnable()
     {
-        _upscalerRendererFeature = ScriptableObject.CreateInstance<UpscalerRendererFeature>();
+        _upscalerRendererFeature = ScriptableObject.CreateInstance<UpscalerRendererFeature>();  /**@todo Find out how to pass me arguments. I need the `this` object. */
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
         Upscaler_InitializePlugin();
