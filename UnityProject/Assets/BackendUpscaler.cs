@@ -1,11 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
-using AOT;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
-public class EnableDLSS : MonoBehaviour
+public class BackendUpscaler : MonoBehaviour
 {
     private const byte ErrorTypeOffset = 29;
     private const byte ErrorCodeOffset = 16;
@@ -129,9 +128,7 @@ public class EnableDLSS : MonoBehaviour
 
     // CommandBuffers
     private CommandBuffer _setRenderingResolution;
-    private CommandBuffer _preUpscale;
     private CommandBuffer _upscale;
-    private CommandBuffer _postUpscale;
 
     // Jitter
     private const uint SamplesPerPixel = 8;
@@ -144,9 +141,7 @@ public class EnableDLSS : MonoBehaviour
     protected Quality ActiveQuality = Quality.DynamicAuto;
     private Quality _lastQuality;
 
-    protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success; 
-    public static Action<UpscalerStatus, string> ErrorCallback;
-
+    protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success;
     
     private Vector2 JitterCamera()
     {
@@ -396,7 +391,7 @@ public class EnableDLSS : MonoBehaviour
             InternalErrorFlag = prepStatus;
             ActiveUpscaler = Upscaler.None;
         }
-        
+
         return true;
     }
 
@@ -412,9 +407,9 @@ public class EnableDLSS : MonoBehaviour
         _upscale.name = "Upscale";
 
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
-        _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
     }
 
@@ -437,7 +432,7 @@ public class EnableDLSS : MonoBehaviour
     {
         // Sets Default Positive Values for Internal Error Flag
         // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
-        InternalErrorFlag = (ActiveUpscaler == Upscaler.None)
+        InternalErrorFlag = ActiveUpscaler == Upscaler.None
             ? UpscalerStatus.NoUpscalerSet
             : UpscalerStatus.Success;
         
@@ -511,19 +506,8 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_Shutdown();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
-
-    [DllImport("GfxPluginDLSSPlugin")]
     private static extern void Upscaler_ShutdownPlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern IntPtr Upscaler_GetRenderingEventCallback();
-
-    private delegate void InternalErrorCallback(UpscalerStatus er, IntPtr p);
-
-    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
-    private static void InternalErrorCallbackWrapper(UpscalerStatus reason, IntPtr message)
-    {
-        ErrorCallback(reason, Marshal.PtrToStringAnsi(message));
-    }
 }

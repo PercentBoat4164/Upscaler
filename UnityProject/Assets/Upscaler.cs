@@ -1,8 +1,3 @@
-// CPP TODOS
-/*
-    @todo Refactor CPP Enum to be Name Consistent with flags that indicate No Errors
-*/
-
 // API TODOS
 /*
     @todo Integrate Sharpness with API
@@ -17,10 +12,11 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using AOT;
 using UnityEngine;
 
 [Serializable]
-public class Upscaler : EnableDLSS
+public class Upscaler : BackendUpscaler
 {
     // EXPOSED API FEATURES
     
@@ -29,15 +25,15 @@ public class Upscaler : EnableDLSS
     // This Function allows Developers to Determine what Should Happen when Upscaler Encounters an Error
     // This Function is Called the Frame After an Error, and it's changes take effect that frame
     // If the same error is encountered during multiple frames, the function is only called for the first frame
-    public Action<UpscalerStatus> ErrorCallback; 
-    
+    public static Action<UpscalerStatus, string> ErrorCallback;
+
     // Basic Upscaler Options (Can be set In Editor or By Code)
     
     // Current Upscaling Mode to Use
-    public Upscaler upscaler = Upscaler.None;
+    public Upscaler upscaler = Upscaler.DLSS;
     
     // Quality / Performance Mode for the Upscaler
-    public Quality quality = Quality.Auto;
+    public Quality quality = Quality.DynamicAuto;
     
     // Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
     public uint widthScaleFactor;
@@ -45,11 +41,11 @@ public class Upscaler : EnableDLSS
 
     // The Currently Upscaler Status
     // Contains Error Information for Settings Errors or Internal Problems
-    public UpscalerStatus Status { get => _internalStatus; }
+    public UpscalerStatus Status => _internalStatus;
 
     // Read Only List that contains a List of Device/OS Supported Upscalers
-    public IList<Upscaler> SupportedUpscalingModes { get => _supportedUpscalingModes; }
-    
+    public IList<Upscaler> SupportedUpscalingModes => _supportedUpscalingModes;
+
     // Removes history so that artifacts from previous frames are not left over in DLSS
     // Should be called every time the scene sees a complete scene change
     public void ResetHistoryBuffer()
@@ -108,7 +104,7 @@ public class Upscaler : EnableDLSS
             // If there was a new error last frame, call the callback function before evaluating settings
             // This gives a chance for developers to catch an error one frame after it occurs via a callback
             if (_internalStatus > UpscalerStatus.NoUpscalerSet && _internalStatus!=_prevStatus && ErrorCallback!=null)
-                ErrorCallback(_internalStatus);
+                ErrorCallback(_internalStatus, Marshal.PtrToStringAnsi(Upscaler_GetCurrentErrorMessage()));
             
             ValidateSettings();
         }
@@ -161,4 +157,14 @@ public class Upscaler : EnableDLSS
 
     [DllImport("GfxPluginDLSSPlugin")]
     protected static extern IntPtr Upscaler_GetCurrentErrorMessage();
+
+    [DllImport("GfxPluginDLSSPlugin")]
+    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
+    private delegate void InternalErrorCallback(UpscalerStatus er, IntPtr p);
+
+    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
+    private static void InternalErrorCallbackWrapper(UpscalerStatus reason, IntPtr message)
+    {
+        ErrorCallback(reason, Marshal.PtrToStringAnsi(message));
+    }
 }
