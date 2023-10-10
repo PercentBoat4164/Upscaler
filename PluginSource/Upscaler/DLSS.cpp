@@ -297,8 +297,8 @@ Upscaler::Status DLSS::VulkanEvaluate() {
         .Height = settings.currentInputResolution.height,
       },
       .InReset    = (int)settings.resetHistory,
-      .InMVScaleX = -(float)settings.currentInputResolution.width,
-      .InMVScaleY = -(float)settings.currentInputResolution.height,
+      .InMVScaleX = (float)settings.currentInputResolution.width * -0.5F,
+      .InMVScaleY = (float)settings.currentInputResolution.height * 0.5F,
     };
     // clang-format on
 
@@ -817,7 +817,7 @@ Upscaler::Status DLSS::createFeature() {
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
       .InFeatureCreateFlags = static_cast<int>(
-        NVSDK_NGX_DLSS_Feature_Flags_MVJittered | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
+        NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
         (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
         (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)
@@ -905,7 +905,7 @@ Upscaler::Status DLSS::setError(NVSDK_NGX_Result t_error, std::string t_msg) {
     t_msg += " | " + msg;
     Status error = SUCCESS;
     switch (t_error) {
-        case NVSDK_NGX_Result_Success: error = SUCCESS; break;
+        case NVSDK_NGX_Result_Success: return getError();
         case NVSDK_NGX_Result_Fail: error = UNKNOWN_ERROR; break;
         case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = HARDWARE_ERROR_DEVICE_NOT_SUPPORTED; break;
         case NVSDK_NGX_Result_FAIL_PlatformError: error = SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED; break;

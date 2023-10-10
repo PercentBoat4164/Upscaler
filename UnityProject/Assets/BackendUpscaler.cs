@@ -135,6 +135,7 @@ public class BackendUpscaler : MonoBehaviour
     private uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * UpscalingFactor.x * UpscalingFactor.y);
     private Vector2[] _jitterSequence;
     private uint _sequencePosition;
+    private Vector2 _jitter;
 
     protected Upscaler ActiveUpscaler = Upscaler.DLSS;
     private Upscaler _lastUpscaler;
@@ -145,16 +146,16 @@ public class BackendUpscaler : MonoBehaviour
     
     private Vector2 JitterCamera()
     {
-        var ndcJitter = _jitterSequence[_sequencePosition++];
+        _jitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = ndcJitter / RenderingResolution;
+        var clipJitter = _jitter / RenderingResolution;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
         tempProj.m12 += clipJitter.y;
         _camera.projectionMatrix = tempProj;
-        Upscaler_SetJitterInformation(ndcJitter.x, ndcJitter.y);
-        return ndcJitter;
+        Upscaler_SetJitterInformation(-_jitter.x, -_jitter.y);
+        return -_jitter;
     }
 
     private void GenerateJitterSequences()
@@ -189,7 +190,7 @@ public class BackendUpscaler : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
+    private static void BlitCustom(CommandBuffer cb, bool toTex, RenderTexture depth, RenderTexture motion, Vector2? scale = null, Vector2? mv = null)
     {
         var quad = new Mesh();
         quad.SetVertices(new Vector3[]
@@ -210,10 +211,14 @@ public class BackendUpscaler : MonoBehaviour
         var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
-        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
+        cb.SetRenderTarget(toTex ? motion.colorBuffer : BuiltinRenderTextureType.MotionVectors, toTex ? depth.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        material.SetVector(Shader.PropertyToID("_ScaleFactor"), new Vector4((scale ?? Vector2.one).x, (scale ?? Vector2.one).y, (mv ?? Vector2.zero).x, (mv ?? Vector2.zero).y));
         if (!toTex)
-            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
+        {
+            material.SetTexture(Shader.PropertyToID("_Motion"), motion, RenderTextureSubElement.Color);
+            material.SetTexture(Shader.PropertyToID("_Depth"), depth, RenderTextureSubElement.Depth);
+        }
+
         cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
 
@@ -226,14 +231,12 @@ public class BackendUpscaler : MonoBehaviour
 
         _setRenderingResolution.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
 
-        _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)UpscalingWidth,
-            (int)UpscalingHeight, _motionVectorTarget, 0, 0, 0, 0);
         _upscale.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)RenderingWidth,
             (int)RenderingHeight, _inColorTarget, 0, 0, 0, 0);
-        BlitDepth(_upscale, true, _inColorTarget, RenderingResolution / UpscalingResolution);
+        BlitCustom(_upscale, true, _inColorTarget, _motionVectorTarget, RenderingResolution / UpscalingResolution, -_jitter / RenderingResolution);
         _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
-        BlitDepth(_upscale, false, _inColorTarget);
+        BlitCustom(_upscale, false, _inColorTarget, _motionVectorTarget);
         _upscale.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
     }
 
@@ -252,7 +255,7 @@ public class BackendUpscaler : MonoBehaviour
 
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
-        
+
         if (ActiveUpscaler != Upscaler.None)
         {
             _camera.allowDynamicResolution =
@@ -333,7 +336,7 @@ public class BackendUpscaler : MonoBehaviour
         }
 
         if (dHDR | dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) |
-            dUpscaler)
+            dUpscaler | dQuality)
         {
             if (_inColorTarget != null && _inColorTarget.IsCreated())
             {
@@ -354,7 +357,7 @@ public class BackendUpscaler : MonoBehaviour
             }
         }
 
-        if (dUpscalingResolution | dUpscaler)
+        if (dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) | dUpscaler | dQuality)
         {
             if (_motionVectorTarget != null && _motionVectorTarget.IsCreated())
             {
@@ -364,7 +367,8 @@ public class BackendUpscaler : MonoBehaviour
 
             if (ActiveUpscaler != Upscaler.None)
             {
-                _motionVectorTarget = new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, motionFormat);
+                var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
+                _motionVectorTarget = new RenderTexture((int)scale.x, (int)scale.y, 0, motionFormat);
                 _motionVectorTarget.Create();
                 imagesChanged = true;
             }
@@ -410,6 +414,7 @@ public class BackendUpscaler : MonoBehaviour
         _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
+        _camera.AddCommandBuffer(CameraEvent.AfterForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
     }
 
@@ -455,6 +460,7 @@ public class BackendUpscaler : MonoBehaviour
             _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
+            _camera.RemoveCommandBuffer(CameraEvent.AfterForwardOpaque, _setRenderingResolution);
             _setRenderingResolution.Release();
         }
 
