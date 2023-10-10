@@ -2,14 +2,14 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(EnableDLSS))]
+[CustomEditor(typeof(Upscaler))]
 public class Upscaler_Editor : Editor
 {
     private SerializedProperty _upscalerType, _qualityMode;
     private bool _basicSettingsFoldout = true;
     private bool _advancedSettingsFoldout = false;
     private GUIStyle style;
-    private BackendDLSS.UpscalerStatus status;
+    private EnableDLSS.UpscalerStatus status;
     private String message;
     
     private void OnEnable()
@@ -25,9 +25,9 @@ public class Upscaler_Editor : Editor
 
         EditorGUILayout.LabelField("Upscaler Settings");
 
-        status = ((EnableDLSS)serializedObject.targetObject).Status;
+        status = ((Upscaler)serializedObject.targetObject).Status;
         
-        if (status <= BackendDLSS.UpscalerStatus.NoUpscalerSet)
+        if (status <= EnableDLSS.UpscalerStatus.NoUpscalerSet)
         {
             style.normal.textColor = Color.green;
             message = "Upscaling Mode Successfully Running";
