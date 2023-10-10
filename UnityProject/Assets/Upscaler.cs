@@ -3,7 +3,6 @@
     @todo Refactor CPP Enum to be Name Consistent with flags that indicate No Errors
 */
 
-
 // API TODOS
 /*
     @todo Integrate Sharpness with API
@@ -35,7 +34,7 @@ public class Upscaler : EnableDLSS
     // Basic Upscaler Options (Can be set In Editor or By Code)
     
     // Current Upscaling Mode to Use
-    public UpscalerMode upscaler = UpscalerMode.None;
+    public Upscaler upscaler = Upscaler.None;
     
     // Quality / Performance Mode for the Upscaler
     public Quality quality = Quality.Auto;
@@ -49,7 +48,7 @@ public class Upscaler : EnableDLSS
     public UpscalerStatus Status { get => _internalStatus; }
 
     // Read Only List that contains a List of Device/OS Supported Upscalers
-    public IList<UpscalerMode> SupportedUpscalingModes { get => _supportedUpscalingModes; }
+    public IList<Upscaler> SupportedUpscalingModes { get => _supportedUpscalingModes; }
     
     // Removes history so that artifacts from previous frames are not left over in DLSS
     // Should be called every time the scene sees a complete scene change
@@ -60,7 +59,7 @@ public class Upscaler : EnableDLSS
 
     // Returns true if the device and operating system support the given upscaling mode
     // Returns false if device and OS do not support Upscaling Mode
-    public bool DeviceSupportsUpscalingMode(UpscalerMode upscalingMode)
+    public bool DeviceSupportsUpscalingMode(Upscaler upscalingMode)
     {
         return _supportedUpscalingModes.Contains(upscalingMode);
     }
@@ -68,7 +67,7 @@ public class Upscaler : EnableDLSS
     // INTERNAL API IMPLEMENTATION
     
     // Internal Values for supported upscaling modes and upscaler status
-    private IList<UpscalerMode> _supportedUpscalingModes;
+    private IList<Upscaler> _supportedUpscalingModes;
     private UpscalerStatus _internalStatus;
     private UpscalerStatus _prevStatus;
     
@@ -78,9 +77,9 @@ public class Upscaler : EnableDLSS
     {
         base.OnEnable();
 
-        var tempList = new List<UpscalerMode>();
+        var tempList = new List<Upscaler>();
         
-        foreach (UpscalerMode tempUpscaler in Enum.GetValues(typeof(UpscalerMode)))
+        foreach (Upscaler tempUpscaler in Enum.GetValues(typeof(Upscaler)))
         {
             if (Upscaler_GetError(tempUpscaler) <= UpscalerStatus.NoUpscalerSet)
             {
@@ -101,7 +100,7 @@ public class Upscaler : EnableDLSS
             Debug.LogError("Upscaler encountered an error. Reverting to No Upscaling. Message: " 
                            + Marshal.PtrToStringAuto(Upscaler_GetCurrentErrorMessage()));
             _internalStatus = InternalErrorFlag;
-            upscaler = UpscalerMode.None;
+            upscaler = Upscaler.None;
         }
         // If an Internal Error was not Caught on the Previous Frame, check for settings changes
         else {
@@ -129,8 +128,8 @@ public class Upscaler : EnableDLSS
             UpscalerStatus newModeError = Upscaler_GetError(upscaler);
             if (newModeError > UpscalerStatus.NoUpscalerSet)
             {
-                upscaler = UpscalerMode.None;
-                ActiveUpscaler = UpscalerMode.None;
+                upscaler = Upscaler.None;
+                ActiveUpscaler = Upscaler.None;
                 _internalStatus = newModeError;
                 Debug.LogError("There was an error updating the upscaler. Reverting to No Upscaling. Message: " 
                                + Marshal.PtrToStringAuto(Upscaler_GetErrorMessage(upscaler)));
@@ -139,7 +138,7 @@ public class Upscaler : EnableDLSS
             else
             {
                 ActiveUpscaler = upscaler;
-                _internalStatus = UpscalerStatus.UpscalerSuccess; 
+                _internalStatus = UpscalerStatus.Success; 
             }
         }
 
@@ -152,10 +151,10 @@ public class Upscaler : EnableDLSS
     }
     
     [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern UpscalerStatus Upscaler_GetError(UpscalerMode upscaler);
+    protected static extern UpscalerStatus Upscaler_GetError(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern IntPtr Upscaler_GetErrorMessage(UpscalerMode upscaler);
+    protected static extern IntPtr Upscaler_GetErrorMessage(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
     protected static extern UpscalerStatus Upscaler_GetCurrentError();

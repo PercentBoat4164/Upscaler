@@ -71,7 +71,7 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
 }
 
 auto Upscaler::setErrorCallback(void (*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *) {
-    void(oldCallback)(Upscaler::Status, const char *);
+    void(*oldCallback)(Upscaler::Status, const char *) = errorCallback;
     errorCallback = t_errorCallback;
     return oldCallback;
 }

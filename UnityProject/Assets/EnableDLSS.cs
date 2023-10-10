@@ -13,7 +13,7 @@ public class EnableDLSS : MonoBehaviour
 
     public enum UpscalerStatus : uint
     {
-        UpscalerSuccess = 0U,
+        Success = 0U,
         NoUpscalerSet = 2U,
         HardwareError = 1U << ErrorTypeOffset,
         HardwareErrorDeviceExtensionsNotSupported = HardwareError | (1U << ErrorCodeOffset),
@@ -144,7 +144,7 @@ public class EnableDLSS : MonoBehaviour
     protected Quality ActiveQuality = Quality.DynamicAuto;
     private Quality _lastQuality;
 
-    protected UpscalerStatus InternalErrorFlag = UpscalerStatus.UpscalerSuccess; 
+    protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success; 
     public static Action<UpscalerStatus, string> ErrorCallback;
 
     
@@ -441,7 +441,7 @@ public class EnableDLSS : MonoBehaviour
         // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
         InternalErrorFlag = (ActiveUpscaler == Upscaler.None)
             ? UpscalerStatus.NoUpscalerSet
-            : UpscalerStatus.UpscalerSuccess;
+            : UpscalerStatus.Success;
         
         if (ManageTargets())
             Upscaler_ResetHistory();

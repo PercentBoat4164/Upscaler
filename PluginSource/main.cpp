@@ -30,9 +30,9 @@ enum Event {
 };
 
 void INTERNAL_Upscale() {
-    auto oldCallback = Upscaler::setErrorCallback(nullptr);
+    void(*cb)(Upscaler::Status, const char*) = Upscaler::setErrorCallback(nullptr);
     Upscaler::get()->evaluate();
-    Upscaler::setErrorCallback(oldCallback);
+    Upscaler::setErrorCallback(cb);
 }
 
 void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {

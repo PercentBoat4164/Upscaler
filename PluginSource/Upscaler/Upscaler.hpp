@@ -73,11 +73,6 @@ public:
     static bool recoverable(Status);
     static bool nonrecoverable(Status);
 
-    constexpr static std::string
-    composeErrorMessage(const std::string &t_verb, const std::string &t_noun, std::string t_reason = "") {
-        return {"Failed to " + t_verb + " the " + t_noun + (t_reason.empty() ? "." : " due to " + t_reason + ".")};
-    }
-
 protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /* unused */) {
