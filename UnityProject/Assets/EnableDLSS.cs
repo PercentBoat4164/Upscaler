@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using AOT;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -141,6 +142,7 @@ public class EnableDLSS : MonoBehaviour
     private Upscaler _lastUpscaler = Upscaler.None;
     public Quality quality = Quality.DynamicAuto;
     private Quality _lastQuality = Quality.Auto;
+    public static Action<ErrorReason, string> ErrorCallback;
 
     private Vector2 JitterCamera()
     {
@@ -497,8 +499,19 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_Shutdown();
 
     [DllImport("GfxPluginDLSSPlugin")]
+    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
+
+    [DllImport("GfxPluginDLSSPlugin")]
     private static extern void Upscaler_ShutdownPlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern IntPtr Upscaler_GetRenderingEventCallback();
+
+    private delegate void InternalErrorCallback(ErrorReason er, IntPtr p);
+
+    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
+    private static void InternalErrorCallbackWrapper(ErrorReason reason, IntPtr message)
+    {
+        ErrorCallback(reason, Marshal.PtrToStringAnsi(message));
+    }
 }
