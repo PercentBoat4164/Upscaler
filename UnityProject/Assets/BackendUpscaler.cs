@@ -190,7 +190,7 @@ public class BackendUpscaler : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitCustom(CommandBuffer cb, bool toTex, RenderTexture depth, RenderTexture motion, Vector2? scale = null, Vector2? mv = null)
+    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
     {
         var quad = new Mesh();
         quad.SetVertices(new Vector3[]
@@ -211,14 +211,10 @@ public class BackendUpscaler : MonoBehaviour
         var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(toTex ? motion.colorBuffer : BuiltinRenderTextureType.MotionVectors, toTex ? depth.depthBuffer : BuiltinRenderTextureType.CameraTarget);
-        material.SetVector(Shader.PropertyToID("_ScaleFactor"), new Vector4((scale ?? Vector2.one).x, (scale ?? Vector2.one).y, (mv ?? Vector2.zero).x, (mv ?? Vector2.zero).y));
+        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
         if (!toTex)
-        {
-            material.SetTexture(Shader.PropertyToID("_Motion"), motion, RenderTextureSubElement.Color);
-            material.SetTexture(Shader.PropertyToID("_Depth"), depth, RenderTextureSubElement.Depth);
-        }
-
+            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
         cb.DrawMesh(quad, Matrix4x4.identity, material);
     }
 
@@ -231,12 +227,14 @@ public class BackendUpscaler : MonoBehaviour
 
         _setRenderingResolution.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
 
+        _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)UpscalingWidth,
+            (int)UpscalingHeight, _motionVectorTarget, 0, 0, 0, 0);
         _upscale.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)RenderingWidth,
             (int)RenderingHeight, _inColorTarget, 0, 0, 0, 0);
-        BlitCustom(_upscale, true, _inColorTarget, _motionVectorTarget, RenderingResolution / UpscalingResolution, -_jitter / RenderingResolution);
+        BlitDepth(_upscale, true, _inColorTarget, RenderingResolution / UpscalingResolution);
         _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
-        BlitCustom(_upscale, false, _inColorTarget, _motionVectorTarget);
+        BlitDepth(_upscale, false, _inColorTarget);
         _upscale.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
     }
 
@@ -255,7 +253,7 @@ public class BackendUpscaler : MonoBehaviour
 
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
-
+        
         if (ActiveUpscaler != Upscaler.None)
         {
             _camera.allowDynamicResolution =
@@ -336,7 +334,7 @@ public class BackendUpscaler : MonoBehaviour
         }
 
         if (dHDR | dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) |
-            dUpscaler | dQuality)
+            dUpscaler)
         {
             if (_inColorTarget != null && _inColorTarget.IsCreated())
             {
@@ -357,7 +355,7 @@ public class BackendUpscaler : MonoBehaviour
             }
         }
 
-        if (dDynamicResolution | dUpscalingResolution | (!UseDynamicResolution && dRenderingResolution) | dUpscaler | dQuality)
+        if (dUpscalingResolution | dUpscaler)
         {
             if (_motionVectorTarget != null && _motionVectorTarget.IsCreated())
             {
@@ -367,8 +365,7 @@ public class BackendUpscaler : MonoBehaviour
 
             if (ActiveUpscaler != Upscaler.None)
             {
-                var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
-                _motionVectorTarget = new RenderTexture((int)scale.x, (int)scale.y, 0, motionFormat);
+                _motionVectorTarget = new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, motionFormat);
                 _motionVectorTarget.Create();
                 imagesChanged = true;
             }
@@ -395,7 +392,7 @@ public class BackendUpscaler : MonoBehaviour
             InternalErrorFlag = prepStatus;
             ActiveUpscaler = Upscaler.None;
         }
-
+        
         return true;
     }
 
@@ -414,7 +411,6 @@ public class BackendUpscaler : MonoBehaviour
         _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
-        _camera.AddCommandBuffer(CameraEvent.AfterForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
     }
 
@@ -460,7 +456,6 @@ public class BackendUpscaler : MonoBehaviour
             _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
-            _camera.RemoveCommandBuffer(CameraEvent.AfterForwardOpaque, _setRenderingResolution);
             _setRenderingResolution.Release();
         }
 

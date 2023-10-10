@@ -2,7 +2,6 @@ Shader "Upscaler/BlitCopyFrom"
 {
     Properties
     {
-        _Motion("Motion source", 2D) = "black"
         _Depth("Depth Source", 2D) = "white"
         _ScaleFactor("Scale Factor", Vector) = (1, 1, 1, 1)
     }
@@ -35,7 +34,6 @@ Shader "Upscaler/BlitCopyFrom"
                 float depth : SV_Depth;
             };
 
-            sampler2D _Motion;
             sampler2D _Depth;
             float4 _ScaleFactor;
 
@@ -51,8 +49,6 @@ Shader "Upscaler/BlitCopyFrom"
             FragOut frag(v2f IN) {
                 FragOut o;
                 o.depth = tex2D(_Depth, IN.uv * _ScaleFactor.xy);
-                o.mvs = tex2D(_Motion, IN.uv * _ScaleFactor.xy);
-                // o.mvs = float2(0, 0);
                 return o;
             }
 

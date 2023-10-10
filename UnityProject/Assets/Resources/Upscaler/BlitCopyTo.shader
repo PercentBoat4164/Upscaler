@@ -33,7 +33,6 @@ Shader "Upscaler/BlitCopyTo"
                 float depth : SV_Depth;
             };
 
-            sampler2D _CameraMotionVectorsTexture;
             sampler2D _CameraDepthTexture;
             float4 _ScaleFactor;
 
@@ -49,11 +48,6 @@ Shader "Upscaler/BlitCopyTo"
             FragOut frag(const v2f IN) {
                 FragOut o;
                 o.depth = tex2D(_CameraDepthTexture, IN.uv * _ScaleFactor.xy);
-                if (o.depth > 0) {
-                    o.mvs = tex2D(_CameraMotionVectorsTexture, IN.uv * _ScaleFactor.xy);
-                } else {
-                    o.mvs = float2(_ScaleFactor.wz);
-                }
                 return o;
             }
 
