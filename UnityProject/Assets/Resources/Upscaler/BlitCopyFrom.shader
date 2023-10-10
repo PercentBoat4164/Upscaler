@@ -8,6 +8,8 @@ Shader "Upscaler/BlitCopyFrom"
 
     SubShader
     {
+        Cull Off ZTest Never
+
         Pass
         {
             CGPROGRAM

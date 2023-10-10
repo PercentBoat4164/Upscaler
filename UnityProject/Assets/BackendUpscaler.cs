@@ -238,8 +238,6 @@ public class EnableDLSS : MonoBehaviour
         BlitDepth(_upscale, true, _inColorTarget, RenderingResolution / UpscalingResolution);
         _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
         _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
-        _upscale.SetRenderTarget(_inColorTarget);
-        _upscale.ClearRenderTarget(true, false, Color.black);
         BlitDepth(_upscale, false, _inColorTarget);
         _upscale.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
     }
