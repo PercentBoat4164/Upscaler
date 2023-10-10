@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using AOT;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -36,8 +37,8 @@ public class EnableDLSS : MonoBehaviour
         /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
         SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
-        SettingsErrorInputResolutionTooSmall = SettingsError | (1U << ErrorCodeOffset),
-        SettingsErrorInputResolutionTooBig = SettingsError | (2U << ErrorCodeOffset),
+        SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
+        SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
         SettingsErrorUpscalerNotAvailable = SettingsError | (3U << ErrorCodeOffset),
         SettingsErrorQualityModeNotAvailable = SettingsError | (4U << ErrorCodeOffset),
 
@@ -47,7 +48,7 @@ public class EnableDLSS : MonoBehaviour
         UnknownError = 0xFFFFFFFE
     };
 
-    public enum UpscalerMode
+    public enum Upscaler
     {
         None,
         DLSS
@@ -138,18 +139,20 @@ public class EnableDLSS : MonoBehaviour
     private Vector2[] _jitterSequence;
     private uint _sequencePosition;
 
-    protected UpscalerMode ActiveUpscaler = UpscalerMode.DLSS;
-    private UpscalerMode _lastUpscaler;
+    protected Upscaler ActiveUpscaler = Upscaler.DLSS;
+    private Upscaler _lastUpscaler;
     protected Quality ActiveQuality = Quality.DynamicAuto;
     private Quality _lastQuality;
 
     protected UpscalerStatus InternalErrorFlag = UpscalerStatus.UpscalerSuccess; 
+    public static Action<UpscalerStatus, string> ErrorCallback;
 
+    
     private Vector2 JitterCamera()
     {
         var ndcJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = ndcJitter / UpscalingResolution;
+        var clipJitter = ndcJitter / RenderingResolution;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipJitter.x;
@@ -224,7 +227,7 @@ public class EnableDLSS : MonoBehaviour
         _setRenderingResolution.Clear();
         _upscale.Clear();
 
-        if (ActiveUpscaler == UpscalerMode.None) return;
+        if (ActiveUpscaler == Upscaler.None) return;
 
         _setRenderingResolution.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
 
@@ -257,7 +260,7 @@ public class EnableDLSS : MonoBehaviour
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
         
-        if (ActiveUpscaler != UpscalerMode.None)
+        if (ActiveUpscaler != Upscaler.None)
         {
             _camera.allowDynamicResolution =
                 false; /*@todo Throw some error if Dynamic Resolution is checked in Unity while some upscaler is active.*/
@@ -277,17 +280,17 @@ public class EnableDLSS : MonoBehaviour
             if (upscalerSetStatus > UpscalerStatus.NoUpscalerSet)
             {
                 InternalErrorFlag = upscalerSetStatus;
-                ActiveUpscaler = UpscalerMode.None;
+                ActiveUpscaler = Upscaler.None;
             }
         }
 
-        if (dUpscalingResolution | dHDR | dQuality | dUpscaler && ActiveUpscaler != UpscalerMode.None)
+        if (dUpscalingResolution | dHDR | dQuality | dUpscaler && ActiveUpscaler != Upscaler.None)
         {
             var frameBufferStatus = Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, ActiveQuality, HDRActive);
             if (frameBufferStatus > UpscalerStatus.NoUpscalerSet)
             {
                 InternalErrorFlag = frameBufferStatus;
-                ActiveUpscaler = UpscalerMode.None;
+                ActiveUpscaler = Upscaler.None;
                 dUpscaler = true;
             }
             
@@ -308,7 +311,7 @@ public class EnableDLSS : MonoBehaviour
         if (inputResStatus > UpscalerStatus.NoUpscalerSet)
         {
             InternalErrorFlag = inputResStatus;
-            ActiveUpscaler = UpscalerMode.None;
+            ActiveUpscaler = Upscaler.None;
             dUpscaler = true;
         }
         
@@ -323,7 +326,7 @@ public class EnableDLSS : MonoBehaviour
                 _outputTarget = null;
             }
 
-            if (ActiveUpscaler != UpscalerMode.None)
+            if (ActiveUpscaler != Upscaler.None)
             {
                 _outputTarget =
                     new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, colorFormat)
@@ -345,7 +348,7 @@ public class EnableDLSS : MonoBehaviour
                 _inColorTarget = null;
             }
 
-            if (ActiveUpscaler != UpscalerMode.None)
+            if (ActiveUpscaler != Upscaler.None)
             {
                 var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
                 _inColorTarget =
@@ -366,7 +369,7 @@ public class EnableDLSS : MonoBehaviour
                 _motionVectorTarget = null;
             }
 
-            if (ActiveUpscaler != UpscalerMode.None)
+            if (ActiveUpscaler != Upscaler.None)
             {
                 _motionVectorTarget = new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, motionFormat);
                 _motionVectorTarget.Create();
@@ -380,7 +383,7 @@ public class EnableDLSS : MonoBehaviour
         _lastUseDynamicResolution = UseDynamicResolution;
         _lastUpscaler = ActiveUpscaler;
         _lastQuality = ActiveQuality;
-        
+
         if (!imagesChanged | (_outputTarget == null) | (_inColorTarget == null) | (_motionVectorTarget == null))
             return false;
 
@@ -393,7 +396,7 @@ public class EnableDLSS : MonoBehaviour
         if (prepStatus > UpscalerStatus.NoUpscalerSet)
         {
             InternalErrorFlag = prepStatus;
-            ActiveUpscaler = UpscalerMode.None;
+            ActiveUpscaler = Upscaler.None;
         }
         
         return true;
@@ -436,7 +439,7 @@ public class EnableDLSS : MonoBehaviour
     {
         // Sets Default Positive Values for Internal Error Flag
         // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
-        InternalErrorFlag = (ActiveUpscaler == UpscalerMode.None)
+        InternalErrorFlag = (ActiveUpscaler == Upscaler.None)
             ? UpscalerStatus.NoUpscalerSet
             : UpscalerStatus.UpscalerSuccess;
         
@@ -445,7 +448,7 @@ public class EnableDLSS : MonoBehaviour
 
         RecordCommandBuffers();
 
-        if (ActiveUpscaler != UpscalerMode.None)
+        if (ActiveUpscaler != Upscaler.None)
             JitterCamera();
     }
 
@@ -473,7 +476,7 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_InitializePlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern UpscalerStatus Upscaler_Set(UpscalerMode upscaler);
+    private static extern UpscalerStatus Upscaler_Set(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern UpscalerStatus Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
@@ -510,8 +513,19 @@ public class EnableDLSS : MonoBehaviour
     private static extern void Upscaler_Shutdown();
 
     [DllImport("GfxPluginDLSSPlugin")]
+    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
+
+    [DllImport("GfxPluginDLSSPlugin")]
     private static extern void Upscaler_ShutdownPlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern IntPtr Upscaler_GetRenderingEventCallback();
+
+    private delegate void InternalErrorCallback(UpscalerStatus er, IntPtr p);
+
+    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
+    private static void InternalErrorCallbackWrapper(UpscalerStatus reason, IntPtr message)
+    {
+        ErrorCallback(reason, Marshal.PtrToStringAnsi(message));
+    }
 }
