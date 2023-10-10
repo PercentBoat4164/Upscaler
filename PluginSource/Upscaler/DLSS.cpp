@@ -297,6 +297,9 @@ Upscaler::Status DLSS::VulkanEvaluate() {
         .Height = settings.currentInputResolution.height,
       },
       .InReset    = (int)settings.resetHistory,
+        // The DLSS docs say to run a whole complicated shader if generating motion vectors in a specific way.
+        // Instead of doing that we are scaling the resolution by (-.5F, .5F).
+        // This is the net change that the shader in the DLSS docs has.
       .InMVScaleX = (float)settings.currentInputResolution.width * -0.5F,
       .InMVScaleY = (float)settings.currentInputResolution.height * 0.5F,
     };
@@ -817,7 +820,7 @@ Upscaler::Status DLSS::createFeature() {
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
       .InFeatureCreateFlags = static_cast<int>(
-        NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
+        NVSDK_NGX_DLSS_Feature_Flags_MVJittered | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
         (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
         (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)

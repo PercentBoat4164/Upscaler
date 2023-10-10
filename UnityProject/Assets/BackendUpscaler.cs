@@ -135,7 +135,6 @@ public class BackendUpscaler : MonoBehaviour
     private uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * UpscalingFactor.x * UpscalingFactor.y);
     private Vector2[] _jitterSequence;
     private uint _sequencePosition;
-    private Vector2 _jitter;
 
     protected Upscaler ActiveUpscaler = Upscaler.DLSS;
     private Upscaler _lastUpscaler;
@@ -144,18 +143,19 @@ public class BackendUpscaler : MonoBehaviour
 
     protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success;
     
-    private Vector2 JitterCamera()
+    private void JitterCamera()
     {
-        _jitter = _jitterSequence[_sequencePosition++];
+        var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        var clipJitter = _jitter / RenderingResolution;
+        // clip space jitter must be the negative of the pixel space jitter. Why?
+        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
-        tempProj.m02 += clipJitter.x;
-        tempProj.m12 += clipJitter.y;
+        tempProj.m02 += clipSpaceJitter.x;
+        tempProj.m12 += clipSpaceJitter.y;
         _camera.projectionMatrix = tempProj;
-        Upscaler_SetJitterInformation(-_jitter.x, -_jitter.y);
-        return -_jitter;
+        // The sign of the jitter passed to DLSS must match the sign of the MVScale.
+        Upscaler_SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
     }
 
     private void GenerateJitterSequences()
