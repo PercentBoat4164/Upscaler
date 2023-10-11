@@ -68,12 +68,12 @@ private:
         ID3D11Resource        *dx11;
     } outColor;
 
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
       NVSDK_NGX_DLSS_Create_Params
     );
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat,
       void *,
@@ -83,15 +83,15 @@ private:
       void *,
       UnityRenderingExtTextureFormat
     );
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    static Upscaler::UpscalerStatus (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
 
-    Upscaler::UpscalerStatus VulkanInitialize();
-    Upscaler::UpscalerStatus VulkanGetParameters();
-    Upscaler::UpscalerStatus VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::Status         VulkanInitialize();
+    Upscaler::Status         VulkanGetParameters();
+    Upscaler::Status         VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
     void                     VulkanDestroyImageViews();
-    Upscaler::UpscalerStatus VulkanSetImageResources(
+    Upscaler::Status         VulkanSetImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -101,15 +101,15 @@ private:
       void                          *nativeOutColor,
       UnityRenderingExtTextureFormat unityOutColorFormat
     );
-    Upscaler::UpscalerStatus VulkanEvaluate();
-    Upscaler::UpscalerStatus VulkanReleaseFeature();
-    Upscaler::UpscalerStatus VulkanDestroyParameters();
-    Upscaler::UpscalerStatus VulkanShutdown();
+    Upscaler::Status VulkanEvaluate();
+    Upscaler::Status VulkanReleaseFeature();
+    Upscaler::Status VulkanDestroyParameters();
+    Upscaler::Status VulkanShutdown();
 #ifdef ENABLE_DX12
-    Upscaler::UpscalerStatus DX12Initialize();
-    Upscaler::UpscalerStatus DX12GetParameters();
-    Upscaler::UpscalerStatus DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::UpscalerStatus DX12SetImageResources(
+    Upscaler::Status DX12Initialize();
+    Upscaler::Status DX12GetParameters();
+    Upscaler::Status DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::Status DX12SetImageResources(
       void *nativeDepthBuffer,
       UnityRenderingExtTextureFormat,
       void *nativeMotionVectors,
@@ -119,17 +119,17 @@ private:
       void *nativeOutColor,
       UnityRenderingExtTextureFormat
     );
-    Upscaler::UpscalerStatus DX12Evaluate();
-    Upscaler::UpscalerStatus DX12ReleaseFeature();
-    Upscaler::UpscalerStatus DX12DestroyParameters();
-    Upscaler::UpscalerStatus DX12Shutdown();
+    Upscaler::Status DX12Evaluate();
+    Upscaler::Status DX12ReleaseFeature();
+    Upscaler::Status DX12DestroyParameters();
+    Upscaler::Status DX12Shutdown();
 #endif
 
 #ifdef ENABLE_DX11
-    Upscaler::UpscalerStatus DX11Initialize();
-    Upscaler::UpscalerStatus DX11GetParameters();
-    Upscaler::UpscalerStatus DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::UpscalerStatus DX11SetImageResources(
+    Upscaler::Status DX11Initialize();
+    Upscaler::Status DX11GetParameters();
+    Upscaler::Status DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::Status DX11SetImageResources(
       void *nativeDepthBuffer,
       UnityRenderingExtTextureFormat,
       void *nativeMotionVectors,
@@ -139,10 +139,10 @@ private:
       void *nativeOutColor,
       UnityRenderingExtTextureFormat
     );
-    Upscaler::UpscalerStatus DX11Evaluate();
-    Upscaler::UpscalerStatus DX11ReleaseFeature();
-    Upscaler::UpscalerStatus DX11DestroyParameters();
-    Upscaler::UpscalerStatus DX11Shutdown();
+    Upscaler::Status DX11Evaluate();
+    Upscaler::Status DX11ReleaseFeature();
+    Upscaler::Status DX11DestroyParameters();
+    Upscaler::Status DX11Shutdown();
 #endif
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
@@ -151,7 +151,7 @@ private:
 
     /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
     /// clear the current error.
-    UpscalerStatus setError(NVSDK_NGX_Result, std::string);
+    Status setError(NVSDK_NGX_Result, std::string);
 
 public:
     static DLSS *get();
@@ -168,11 +168,11 @@ public:
 
     std::string getName() override;
 
-    UpscalerStatus initialize() override;
+    Status initialize() override;
 
-    UpscalerStatus createFeature() override;
+    Status createFeature() override;
 
-    UpscalerStatus setImageResources(
+    Status setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -183,9 +183,9 @@ public:
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) override;
 
-    UpscalerStatus evaluate() override;
+    Status evaluate() override;
 
-    UpscalerStatus releaseFeature() override;
+    Status releaseFeature() override;
 
-    UpscalerStatus shutdown() override;
+    Status shutdown() override;
 };

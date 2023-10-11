@@ -7,6 +7,8 @@ Shader "Upscaler/BlitCopyTo"
 
     SubShader
     {
+        Cull Off ZTest Off
+
         Pass
         {
             CGPROGRAM
@@ -26,7 +28,8 @@ Shader "Upscaler/BlitCopyTo"
                 float2 uv : TEXCOORD0;
             };
 
-            struct FragOut {
+            struct frag_out {
+                float2 mvs : SV_Target0;
                 float depth : SV_Depth;
             };
 
@@ -34,7 +37,7 @@ Shader "Upscaler/BlitCopyTo"
             float4 _ScaleFactor;
 
             // Vertex
-            v2f vert(appdata IN) {
+            v2f vert(const appdata IN) {
                 v2f OUT;
                 OUT.position = UnityObjectToClipPos(IN.vertex);
                 OUT.uv = IN.uv;
@@ -42,8 +45,8 @@ Shader "Upscaler/BlitCopyTo"
             }
 
             // Fragment
-            FragOut frag(v2f IN) {
-                FragOut o;
+            frag_out frag(const v2f IN) {
+                frag_out o;
                 o.depth = tex2D(_CameraDepthTexture, IN.uv * _ScaleFactor.xy);
                 return o;
             }

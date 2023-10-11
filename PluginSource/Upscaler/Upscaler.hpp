@@ -36,7 +36,7 @@ public:
     // [15-2]    = RESERVED
     // [1]       = Attempting to use a Dummy Upscaler
     // [0]       = Recoverable
-    enum UpscalerStatus : uint32_t {
+    enum Status : uint32_t {
         SUCCESS = 0U,
         NO_UPSCALER_SET = 2U,
         HARDWARE_ERROR                                            = 1U << ERROR_TYPE_OFFSET,
@@ -68,19 +68,14 @@ public:
 
     // clang-format on
 
-    static bool success(UpscalerStatus);
-    static bool failure(UpscalerStatus);
-    static bool recoverable(UpscalerStatus);
-    static bool nonrecoverable(UpscalerStatus);
-
-    constexpr static std::string
-    composeErrorMessage(const std::string &t_verb, const std::string &t_noun, std::string t_reason = "") {
-        return {"Failed to " + t_verb + " the " + t_noun + (t_reason.empty() ? "." : " due to " + t_reason + ".")};
-    }
+    static bool success(Status);
+    static bool failure(Status);
+    static bool recoverable(Status);
+    static bool nonrecoverable(Status);
 
 protected:
     template<typename... Args>
-    constexpr UpscalerStatus safeFail(Args... /* unused */) {
+    constexpr Status safeFail(Args... /* unused */) {
         return SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR;
     };
 
@@ -89,8 +84,9 @@ protected:
     bool initialized{false};
 
 private:
+    static void(*errorCallback)(Upscaler::Status, const char *);
     static Upscaler *upscalerInUse;
-    UpscalerStatus   error{SUCCESS};
+    Status           error{SUCCESS};
     std::string      detailedErrorMessage{};
 
 public:
@@ -146,7 +142,7 @@ public:
                     if (pixelCount <= (uint64_t) 3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                case ULTRA_QUALITY:  // Ultra Quality is not available for DLSS. Defaults to Quality.
+                case ULTRA_QUALITY: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
                 case QUALITY: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case BALANCED: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -191,16 +187,18 @@ public:
 
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
 
+    static auto setErrorCallback(void(*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *);
+
     /// Returns the current error.
-    UpscalerStatus getError();
+    Status getError();
 
     /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
     /// Returns the current error.
-    UpscalerStatus setError(UpscalerStatus, std::string);
+    Status setError(Status, std::string);
 
     /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
     /// to clear the current error. Returns the current error
-    UpscalerStatus setErrorIf(bool, UpscalerStatus, std::string);
+    Status setErrorIf(bool, Status, std::string);
 
     /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
     /// error has been cleared.
@@ -218,11 +216,11 @@ public:
 
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
 
-    virtual UpscalerStatus initialize() = 0;
+    virtual Status initialize() = 0;
 
-    virtual UpscalerStatus createFeature() = 0;
+    virtual Status createFeature() = 0;
 
-    virtual UpscalerStatus setImageResources(
+    virtual Status setImageResources(
       void                          *nativeDepthBuffer,
       UnityRenderingExtTextureFormat unityDepthFormat,
       void                          *nativeMotionVectors,
@@ -233,11 +231,11 @@ public:
       UnityRenderingExtTextureFormat unityOutColorFormat
     ) = 0;
 
-    virtual UpscalerStatus evaluate() = 0;
+    virtual Status evaluate() = 0;
 
-    virtual UpscalerStatus releaseFeature() = 0;
+    virtual Status releaseFeature() = 0;
 
-    virtual UpscalerStatus shutdown();
+    virtual Status shutdown();
 
     virtual ~Upscaler() = default;
 };
