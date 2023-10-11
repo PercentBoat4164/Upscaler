@@ -29,7 +29,7 @@ Shader "Upscaler/BlitCopyFrom"
                 float2 uv : TEXCOORD0;
             };
 
-            struct FragOut {
+            struct frag_out {
                 float2 mvs : SV_Target0;
                 float depth : SV_Depth;
             };
@@ -46,8 +46,8 @@ Shader "Upscaler/BlitCopyFrom"
             }
 
             // Fragment
-            FragOut frag(v2f IN) {
-                FragOut o;
+            frag_out frag(v2f IN) {
+                frag_out o;
                 o.depth = tex2D(_Depth, IN.uv * _ScaleFactor.xy);
                 return o;
             }

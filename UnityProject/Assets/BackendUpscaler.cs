@@ -142,12 +142,12 @@ public class BackendUpscaler : MonoBehaviour
     private Quality _lastQuality;
 
     protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success;
-    
+
     private void JitterCamera()
     {
         var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
-        // clip space jitter must be the negative of the pixel space jitter. Why?
+        // Clip space jitter must be the negative of the pixel space jitter. Why?
         var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
@@ -253,12 +253,10 @@ public class BackendUpscaler : MonoBehaviour
 
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
 
-        
+
         if (ActiveUpscaler != Upscaler.None)
-        {
             _camera.allowDynamicResolution =
                 false; /*@todo Throw some error if Dynamic Resolution is checked in Unity while some upscaler is active.*/
-        }
         else if ((ActiveQuality == Quality.DynamicAuto) | (ActiveQuality == Quality.DynamicManual))
             _camera.allowDynamicResolution = true;
 
@@ -280,14 +278,15 @@ public class BackendUpscaler : MonoBehaviour
 
         if (dUpscalingResolution | dHDR | dQuality | dUpscaler && ActiveUpscaler != Upscaler.None)
         {
-            var frameBufferStatus = Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, ActiveQuality, HDRActive);
+            var frameBufferStatus =
+                Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, ActiveQuality, HDRActive);
             if (frameBufferStatus > UpscalerStatus.NoUpscalerSet)
             {
                 InternalErrorFlag = frameBufferStatus;
                 ActiveUpscaler = Upscaler.None;
                 dUpscaler = true;
             }
-            
+
             var size = Upscaler_GetRecommendedInputResolution();
             if (size == 0)
                 return true;
@@ -301,14 +300,14 @@ public class BackendUpscaler : MonoBehaviour
         if (dRenderingResolution | dUpscalingResolution)
             Debug.Log(RenderingWidth + "x" + RenderingHeight + " -> " + UpscalingWidth + "x" + UpscalingHeight);
 
-        var inputResStatus = Upscaler_SetCurrentInputResolution(RenderingWidth, RenderingHeight); 
+        var inputResStatus = Upscaler_SetCurrentInputResolution(RenderingWidth, RenderingHeight);
         if (inputResStatus > UpscalerStatus.NoUpscalerSet)
         {
             InternalErrorFlag = inputResStatus;
             ActiveUpscaler = Upscaler.None;
             dUpscaler = true;
         }
-        
+
         if (dUpscalingResolution | dRenderingResolution | (_jitterSequence == null))
             GenerateJitterSequences();
 
@@ -392,7 +391,7 @@ public class BackendUpscaler : MonoBehaviour
             InternalErrorFlag = prepStatus;
             ActiveUpscaler = Upscaler.None;
         }
-        
+
         return true;
     }
 
@@ -436,7 +435,7 @@ public class BackendUpscaler : MonoBehaviour
         InternalErrorFlag = ActiveUpscaler == Upscaler.None
             ? UpscalerStatus.NoUpscalerSet
             : UpscalerStatus.Success;
-        
+
         if (ManageTargets())
             Upscaler_ResetHistory();
 
@@ -473,7 +472,8 @@ public class BackendUpscaler : MonoBehaviour
     private static extern UpscalerStatus Upscaler_Set(Upscaler upscaler);
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern UpscalerStatus Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
+    private static extern UpscalerStatus Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality,
+        bool hdr);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern ulong Upscaler_GetRecommendedInputResolution();
