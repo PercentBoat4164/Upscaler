@@ -129,6 +129,11 @@ public class BackendUpscaler : MonoBehaviour
     // CommandBuffers
     private CommandBuffer _setRenderingResolution;
     private CommandBuffer _upscale;
+    
+    // Depth blit
+    private static Mesh _quad;
+    private static Material _blitToDepthTextureMaterial;
+    private static Material _blitToCameraDepthMaterial;
 
     // Jitter
     private const uint SamplesPerPixel = 8;
@@ -190,52 +195,57 @@ public class BackendUpscaler : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitDepth(CommandBuffer cb, bool toTex, RenderTexture tex, Vector2? scale = null)
+    private static void BlitToDepthTexture(CommandBuffer cb, RenderTexture dest, Vector2? scale = null)
     {
-        var quad = new Mesh();
-        quad.SetVertices(new Vector3[]
-        {
-            new(-1, -1, 0),
-            new(1, -1, 0),
-            new(-1, 1, 0),
-            new(1, 1, 0)
-        });
-        quad.SetUVs(0, new Vector2[]
-        {
-            new(0, 0),
-            new(1, 0),
-            new(0, 1),
-            new(1, 1)
-        });
-        quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
-        var material = new Material(Shader.Find(toTex ? "Upscaler/BlitCopyTo" : "Upscaler/BlitCopyFrom"));
+        // Set up material
+        _blitToDepthTextureMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
+        
+        // Record command buffer
+        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
+        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), Vector3.up));
+        cb.SetRenderTarget(dest.depthBuffer);
+        cb.DrawMesh(_quad, Matrix4x4.identity, _blitToDepthTextureMaterial);
+    }
+    
+    private static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src, Vector2? scale = null)
+    {
+        // Set up material
+        _blitToCameraDepthMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
+        _blitToCameraDepthMaterial.SetTexture(Shader.PropertyToID("_Depth"), src, RenderTextureSubElement.Depth);
+
+        // Record command buffer
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), new Vector3(0, 1, 0)));
-        cb.SetRenderTarget(toTex ? tex.depthBuffer : BuiltinRenderTextureType.CameraTarget);
-        material.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
-        if (!toTex)
-            material.SetTexture(Shader.PropertyToID("_Depth"), tex, RenderTextureSubElement.Depth);
-        cb.DrawMesh(quad, Matrix4x4.identity, material);
+        cb.SetRenderTarget(scale != null ? src.depthBuffer : BuiltinRenderTextureType.CameraTarget);
+        cb.DrawMesh(_quad, Matrix4x4.identity, _blitToCameraDepthMaterial);
     }
 
-    private void RecordCommandBuffers()
-    {
-        _setRenderingResolution.Clear();
-        _upscale.Clear();
+    private static void RecordCommandBuffers(
+      CommandBuffer setRenderingResolution,
+      CommandBuffer upscale,
+      Vector2 renderingResolution,
+      Vector2 upscalingResolution,
+      RenderTexture motionVectors,
+      RenderTexture inputTarget,
+      RenderTexture outputTarget,
+      Upscaler upscaler
+    ) {
+        setRenderingResolution.Clear();
+        upscale.Clear();
 
-        if (ActiveUpscaler == Upscaler.None) return;
+        if (upscaler == Upscaler.None) return;
 
-        _setRenderingResolution.SetViewport(new Rect(0, 0, RenderingWidth, RenderingHeight));
+        setRenderingResolution.SetViewport(new Rect(0, 0, renderingResolution.x, renderingResolution.y));
 
-        _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)UpscalingWidth,
-            (int)UpscalingHeight, _motionVectorTarget, 0, 0, 0, 0);
-        _upscale.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)RenderingWidth,
-            (int)RenderingHeight, _inColorTarget, 0, 0, 0, 0);
-        BlitDepth(_upscale, true, _inColorTarget, RenderingResolution / UpscalingResolution);
-        _upscale.SetViewport(new Rect(0, 0, UpscalingWidth, UpscalingHeight));
-        _upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
-        BlitDepth(_upscale, false, _inColorTarget);
-        _upscale.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
+        upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)upscalingResolution.x,
+            (int)upscalingResolution.y, motionVectors, 0, 0, 0, 0);
+        upscale.CopyTexture(BuiltinRenderTextureType.CameraTarget, 0, 0, 0, 0, (int)renderingResolution.x,
+            (int)renderingResolution.y, inputTarget, 0, 0, 0, 0);
+        BlitToDepthTexture(upscale, inputTarget, renderingResolution / upscalingResolution);
+        upscale.SetViewport(new Rect(0, 0, upscalingResolution.x, upscalingResolution.y));
+        upscale.IssuePluginEvent(Upscaler_GetRenderingEventCallback(), (int)Event.Upscale);
+        BlitToCameraDepth(upscale, inputTarget);
+        upscale.CopyTexture(outputTarget, BuiltinRenderTextureType.CameraTarget);
     }
 
     private bool ManageTargets()
@@ -397,10 +407,33 @@ public class BackendUpscaler : MonoBehaviour
 
     protected void OnEnable()
     {
+        // Set up camera
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
-        Upscaler_InitializePlugin();
 
+        // Set up quad for depth blits
+        _quad = new Mesh();
+        _quad.SetVertices(new Vector3[]
+        {
+            new(-1, -1, 0),
+            new(1, -1, 0),
+            new(-1, 1, 0),
+            new(1, 1, 0)
+        });
+        _quad.SetUVs(0, new Vector2[]
+        {
+            new(0, 0),
+            new(1, 0),
+            new(0, 1),
+            new(1, 1)
+        });
+        _quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
+
+        // Set up materials
+        _blitToDepthTextureMaterial = new Material(Shader.Find("Upscaler/BlitToDepthTexture"));
+        _blitToCameraDepthMaterial = new Material(Shader.Find("Upscaler/BlitToCameraDepth"));
+
+        // Set up command buffers
         _setRenderingResolution = new CommandBuffer();
         _setRenderingResolution.name = "Set Render Resolution";
         _upscale = new CommandBuffer();
@@ -411,6 +444,8 @@ public class BackendUpscaler : MonoBehaviour
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
+
+        Upscaler_InitializePlugin();
     }
 
     private void Update()
@@ -439,7 +474,8 @@ public class BackendUpscaler : MonoBehaviour
         if (ManageTargets())
             Upscaler_ResetHistory();
 
-        RecordCommandBuffers();
+        RecordCommandBuffers(_setRenderingResolution, _upscale, RenderingResolution, UpscalingResolution,
+            _motionVectorTarget, _inColorTarget, _outputTarget, ActiveUpscaler);
 
         if (ActiveUpscaler != Upscaler.None)
             JitterCamera();
