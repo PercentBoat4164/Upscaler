@@ -29,7 +29,6 @@ Shader "Upscaler/BlitToDepthTexture"
             };
 
             struct frag_out {
-                float2 mvs : SV_Target0;
                 float depth : SV_Depth;
             };
 

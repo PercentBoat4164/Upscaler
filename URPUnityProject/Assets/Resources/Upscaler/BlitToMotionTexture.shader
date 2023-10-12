@@ -1,8 +1,7 @@
-Shader "Upscaler/BlitToCameraDepth"
+Shader "Upscaler/BlitToMotionTexture"
 {
     Properties
     {
-        _Depth("Depth Source", 2D) = "white"
         _ScaleFactor("Scale Factor", Vector) = (1, 1, 1, 1)
     }
 
@@ -30,14 +29,14 @@ Shader "Upscaler/BlitToCameraDepth"
             };
 
             struct frag_out {
-                float depth : SV_Depth;
+                float2 mvs : SV_Target0;
             };
 
-            sampler2D _Depth;
+            sampler2D _CameraMotionVectorsTexture;
             float4 _ScaleFactor;
 
             // Vertex
-            v2f vert(appdata IN) {
+            v2f vert(const appdata IN) {
                 v2f OUT;
                 OUT.position = UnityObjectToClipPos(IN.vertex);
                 OUT.uv = IN.uv;
@@ -45,9 +44,9 @@ Shader "Upscaler/BlitToCameraDepth"
             }
 
             // Fragment
-            frag_out frag(v2f IN) {
+            frag_out frag(const v2f IN) {
                 frag_out o;
-                o.depth = tex2D(_Depth, IN.uv * _ScaleFactor.xy);
+                o.mvs = tex2D(_CameraMotionVectorsTexture, IN.uv * _ScaleFactor.xy);
                 return o;
             }
 

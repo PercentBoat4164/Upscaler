@@ -103,7 +103,7 @@ public class BackendUpscaler : MonoBehaviour
     private uint UpscalingHeight =>
         (uint)(_camera.targetTexture != null ? _camera.targetTexture.height : _camera.pixelHeight);
 
-    private Vector2 UpscalingResolution => new(UpscalingWidth, UpscalingHeight);
+    public Vector2 UpscalingResolution => new(UpscalingWidth, UpscalingHeight);
     private Vector2 _lastUpscalingResolution;
     private uint _optimalRenderingWidth;
     private uint _optimalRenderingHeight;
@@ -116,7 +116,7 @@ public class BackendUpscaler : MonoBehaviour
         ? UpscalingHeight * ScalableBufferManager.heightScaleFactor
         : _optimalRenderingHeight);
 
-    private Vector2 RenderingResolution => new(RenderingWidth, RenderingHeight);
+    public Vector2 RenderingResolution => new(RenderingWidth, RenderingHeight);
     private Vector2 UpscalingFactor => UpscalingResolution / RenderingResolution;
     private Vector2 _lastRenderingResolution;
 
@@ -125,9 +125,9 @@ public class BackendUpscaler : MonoBehaviour
     private bool _lastHDRActive;
 
     // RenderTextures
-    private RenderTexture _outputTarget;
-    private RenderTexture _inColorTarget;
-    private RenderTexture _motionVectorTarget;
+    public RenderTexture _outputTarget;
+    public RenderTexture _inColorTarget;
+    public RenderTexture _motionVectorTarget;
 
     // URP
     private UpscalerRendererFeature _upscalerRendererFeature;
@@ -155,7 +155,7 @@ public class BackendUpscaler : MonoBehaviour
         var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
         // Clip space jitter must be the negative of the pixel space jitter. Why?
-        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution;
+        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipSpaceJitter.x;
@@ -438,12 +438,18 @@ public class BackendUpscaler : MonoBehaviour
         // Set up URP
         _upscalerRendererFeature = ScriptableObject.CreateInstance<UpscalerRendererFeature>();
         _upscalerRendererFeature.SetActive(true);
-
-        var index = (int)typeof(UniversalRenderPipelineAsset).GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(UniversalRenderPipeline.asset);
-        ScriptableRendererData[] rendererDataList = (ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
-            .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)
+        _upscalerRendererFeature.upscaler = this;
+        // Use some reflection to grab the properties that hold and describe where the rendererFeatures are.
+        var index = (int)typeof(UniversalRenderPipelineAsset)
+            .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(UniversalRenderPipeline.asset);
+        var rendererDataList = (ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
+            .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(UniversalRenderPipeline.asset);
+        // Add our newly created rendererFeature.
         rendererDataList[index].rendererFeatures.Add(_upscalerRendererFeature);
+
+        Upscaler_InitializePlugin();
     }
 
     private void Update()

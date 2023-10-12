@@ -153,7 +153,7 @@ public class BackendUpscaler : MonoBehaviour
         var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
         _sequencePosition %= SequenceLength;
         // Clip space jitter must be the negative of the pixel space jitter. Why?
-        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution;
+        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
         _camera.ResetProjectionMatrix();
         var tempProj = _camera.projectionMatrix;
         tempProj.m02 += clipSpaceJitter.x;
