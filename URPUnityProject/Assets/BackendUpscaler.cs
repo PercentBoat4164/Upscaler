@@ -68,7 +68,7 @@ public class BackendUpscaler : MonoBehaviour
         DynamicManual
     }
 
-    private enum Event
+    public enum Event
     {
         Upscale
     }
@@ -197,7 +197,7 @@ public class BackendUpscaler : MonoBehaviour
         _sequencePosition = 0;
     }
 
-    private static void BlitToDepthTexture(CommandBuffer cb, RenderTexture dest, Vector2? scale = null)
+    public static void BlitToDepthTexture(CommandBuffer cb, RenderTexture dest, Vector2? scale = null)
     {
         // Set up material
         _blitToDepthTextureMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
@@ -209,7 +209,7 @@ public class BackendUpscaler : MonoBehaviour
         cb.DrawMesh(_quad, Matrix4x4.identity, _blitToDepthTextureMaterial);
     }
     
-    private static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src, Vector2? scale = null)
+    public static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src, Vector2? scale = null)
     {
         // Set up material
         _blitToCameraDepthMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
@@ -448,8 +448,23 @@ public class BackendUpscaler : MonoBehaviour
             .GetValue(UniversalRenderPipeline.asset);
         // Add our newly created rendererFeature.
         rendererDataList[index].rendererFeatures.Add(_upscalerRendererFeature);
+        // Add target management, and jittering to render pipeline events
+        RenderPipelineManager.beginCameraRendering += ManageTargetsAndJitter;
 
         Upscaler_InitializePlugin();
+    }
+
+    private void ManageTargetsAndJitter(ScriptableRenderContext context, Camera cam)
+    {
+        if (cam != _camera) return;
+
+        InternalErrorFlag = ActiveUpscaler == Upscaler.None ? UpscalerStatus.NoUpscalerSet : UpscalerStatus.Success;
+
+        if (ManageTargets())
+            Upscaler_ResetHistory();
+
+        if (ActiveUpscaler != Upscaler.None)
+            JitterCamera();
     }
 
     private void Update()
@@ -535,5 +550,5 @@ public class BackendUpscaler : MonoBehaviour
     private static extern void Upscaler_ShutdownPlugin();
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern IntPtr Upscaler_GetRenderingEventCallback();
+    public static extern IntPtr Upscaler_GetRenderingEventCallback();
 }

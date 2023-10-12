@@ -467,9 +467,7 @@ public class BackendUpscaler : MonoBehaviour
     {
         // Sets Default Positive Values for Internal Error Flag
         // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
-        InternalErrorFlag = ActiveUpscaler == Upscaler.None
-            ? UpscalerStatus.NoUpscalerSet
-            : UpscalerStatus.Success;
+        InternalErrorFlag = ActiveUpscaler == Upscaler.None ? UpscalerStatus.NoUpscalerSet : UpscalerStatus.Success;
 
         if (ManageTargets())
             Upscaler_ResetHistory();
