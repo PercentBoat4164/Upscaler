@@ -145,9 +145,7 @@ public class BackendUpscaler : MonoBehaviour
     private Upscaler _lastUpscaler;
     protected Quality ActiveQuality = Quality.DynamicAuto;
     private Quality _lastQuality;
-
-    protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success;
-
+    
     private void JitterCamera()
     {
         var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
@@ -262,8 +260,7 @@ public class BackendUpscaler : MonoBehaviour
         var imagesChanged = false;
 
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
-
-
+        
         if (ActiveUpscaler != Upscaler.None)
             _camera.allowDynamicResolution =
                 false; /*@todo Throw some error if Dynamic Resolution is checked in Unity while some upscaler is active.*/
@@ -281,7 +278,6 @@ public class BackendUpscaler : MonoBehaviour
             var upscalerSetStatus = Upscaler_Set(ActiveUpscaler);
             if (upscalerSetStatus > UpscalerStatus.NoUpscalerSet)
             {
-                InternalErrorFlag = upscalerSetStatus;
                 ActiveUpscaler = Upscaler.None;
             }
         }
@@ -292,7 +288,6 @@ public class BackendUpscaler : MonoBehaviour
                 Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, ActiveQuality, HDRActive);
             if (frameBufferStatus > UpscalerStatus.NoUpscalerSet)
             {
-                InternalErrorFlag = frameBufferStatus;
                 ActiveUpscaler = Upscaler.None;
                 dUpscaler = true;
             }
@@ -313,7 +308,6 @@ public class BackendUpscaler : MonoBehaviour
         var inputResStatus = Upscaler_SetCurrentInputResolution(RenderingWidth, RenderingHeight);
         if (inputResStatus > UpscalerStatus.NoUpscalerSet)
         {
-            InternalErrorFlag = inputResStatus;
             ActiveUpscaler = Upscaler.None;
             dUpscaler = true;
         }
@@ -398,7 +392,6 @@ public class BackendUpscaler : MonoBehaviour
 
         if (prepStatus > UpscalerStatus.NoUpscalerSet)
         {
-            InternalErrorFlag = prepStatus;
             ActiveUpscaler = Upscaler.None;
         }
 
@@ -465,12 +458,6 @@ public class BackendUpscaler : MonoBehaviour
 
     protected void OnPreCull()
     {
-        // Sets Default Positive Values for Internal Error Flag
-        // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
-        InternalErrorFlag = ActiveUpscaler == Upscaler.None
-            ? UpscalerStatus.NoUpscalerSet
-            : UpscalerStatus.Success;
-
         if (ManageTargets())
             Upscaler_ResetHistory();
 
