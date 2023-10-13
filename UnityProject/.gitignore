@@ -73,3 +73,6 @@ crashlytics-build.properties
 
 # IDE project files
 .idea
+
+# Unity Crash Reports
+*.blob
