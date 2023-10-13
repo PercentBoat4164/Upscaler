@@ -4,7 +4,8 @@
 #include "NoUpscaler.hpp"
 
 #include <utility>
-void(*Upscaler::errorCallback)(Upscaler::Status, const char *){nullptr};
+void(*Upscaler::errorCallback)(void *, Upscaler::Status, const char *){nullptr};
+void *Upscaler::userData{nullptr};
 Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
 
@@ -70,9 +71,11 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-auto Upscaler::setErrorCallback(void (*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *) {
-    void(*oldCallback)(Upscaler::Status, const char *) = errorCallback;
+auto Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *) {
+    void(*oldCallback)(void *, Upscaler::Status, const char *) = errorCallback;
     errorCallback = t_errorCallback;
+    if (data != nullptr)
+        userData = data;
     return oldCallback;
 }
 
@@ -83,18 +86,16 @@ Upscaler::Status Upscaler::getError() {
 Upscaler::Status Upscaler::setError(Upscaler::Status t_error, std::string t_msg) {
     if (success(error)) error = t_error;
     if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
-    if (failure(error) && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
+    if (failure(error) && errorCallback != nullptr)
+        errorCallback(userData, error, detailedErrorMessage.c_str());
     return error;
 }
 
 Upscaler::Status Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
     if (success(error) && t_shouldApplyError) error = t_error;
     if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
+    if (t_shouldApplyError && failure(error) && errorCallback != nullptr)
+        errorCallback(userData, error, detailedErrorMessage.c_str());
     return error;
 }
 

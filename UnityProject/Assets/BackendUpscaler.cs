@@ -47,7 +47,7 @@ public class BackendUpscaler : MonoBehaviour
         UnknownError = 0xFFFFFFFE
     };
 
-    public enum Upscaler
+    public enum Mode
     {
         None,
         DLSS
@@ -149,9 +149,9 @@ public class BackendUpscaler : MonoBehaviour
     private uint _sequencePosition;
 
     // Do not set initial values for these variables, or settings may not be validated on the first Frame
-    protected Upscaler ActiveUpscaler;
+    protected Mode ActiveMode;
     protected Quality ActiveQuality;
-    private Upscaler _lastUpscaler;
+    private Mode _lastMode;
     private Quality _lastQuality;
     
     private void JitterCamera()
@@ -234,12 +234,12 @@ public class BackendUpscaler : MonoBehaviour
       RenderTexture motionVectors,
       RenderTexture inputTarget,
       RenderTexture outputTarget,
-      Upscaler upscaler
+      Mode mode
     ) {
         setRenderingResolution.Clear();
         upscale.Clear();
 
-        if (upscaler == Upscaler.None) return;
+        if (mode == Mode.None) return;
 
         setRenderingResolution.SetViewport(new Rect(0, 0, renderingResolution.x, renderingResolution.y));
 
@@ -258,7 +258,7 @@ public class BackendUpscaler : MonoBehaviour
     {
         var dHDR = _lastHDRActive != HDRActive;
         var dUpscalingResolution = _lastUpscalingResolution != UpscalingResolution;
-        var dUpscaler = _lastUpscaler != ActiveUpscaler;
+        var dUpscaler = _lastMode != ActiveMode;
         var dQuality = _lastQuality != ActiveQuality;
         var dDynamicResolution = _lastUseDynamicResolution != UseDynamicResolution;
         
@@ -275,9 +275,9 @@ public class BackendUpscaler : MonoBehaviour
 
         // Initialize any new upscaler
         if (dUpscaler)
-            Upscaler_Set(ActiveUpscaler);
+            Upscaler_Set(ActiveMode);
 
-        if (dUpscalingResolution | dHDR | dQuality | dUpscaler && ActiveUpscaler != Upscaler.None)
+        if (dUpscalingResolution | dHDR | dQuality | dUpscaler && ActiveMode != Mode.None)
         { 
             Upscaler_SetFramebufferSettings(UpscalingWidth, UpscalingHeight, ActiveQuality, HDRActive);
 
@@ -307,7 +307,7 @@ public class BackendUpscaler : MonoBehaviour
                 _outputTarget = null;
             }
 
-            if (ActiveUpscaler != Upscaler.None)
+            if (ActiveMode != Mode.None)
             {
                 _outputTarget =
                     new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, colorFormat)
@@ -329,7 +329,7 @@ public class BackendUpscaler : MonoBehaviour
                 _inColorTarget = null;
             }
 
-            if (ActiveUpscaler != Upscaler.None)
+            if (ActiveMode != Mode.None)
             {
                 var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
                 _inColorTarget =
@@ -350,7 +350,7 @@ public class BackendUpscaler : MonoBehaviour
                 _motionVectorTarget = null;
             }
 
-            if (ActiveUpscaler != Upscaler.None)
+            if (ActiveMode != Mode.None)
             {
                 _motionVectorTarget = new RenderTexture((int)UpscalingWidth, (int)UpscalingHeight, 0, motionFormat);
                 _motionVectorTarget.Create();
@@ -358,11 +358,14 @@ public class BackendUpscaler : MonoBehaviour
             }
         }
 
+        if (ActiveMode == Mode.None)
+            Upscaler_Set(Mode.None);
+        
         _lastHDRActive = HDRActive;
         _lastUpscalingResolution = UpscalingResolution;
         _lastRenderingResolution = RenderingResolution;
         _lastUseDynamicResolution = UseDynamicResolution;
-        _lastUpscaler = ActiveUpscaler;
+        _lastMode = ActiveMode;
         _lastQuality = ActiveQuality;
 
         if (!imagesChanged | (_outputTarget == null) | (_inColorTarget == null) | (_motionVectorTarget == null))
@@ -416,8 +419,6 @@ public class BackendUpscaler : MonoBehaviour
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
-
-        Upscaler_InitializePlugin();
     }
 
     private void Update()
@@ -441,13 +442,13 @@ public class BackendUpscaler : MonoBehaviour
             Upscaler_ResetHistory();
 
         RecordCommandBuffers(_setRenderingResolution, _upscale, RenderingResolution, UpscalingResolution,
-            _motionVectorTarget, _inColorTarget, _outputTarget, ActiveUpscaler);
+            _motionVectorTarget, _inColorTarget, _outputTarget, ActiveMode);
 
-        if (ActiveUpscaler != Upscaler.None)
+        if (ActiveMode != Mode.None)
             JitterCamera();
     }
 
-    private void OnDisable()
+    protected void OnDisable()
     {
         Upscaler_ShutdownPlugin();
 
@@ -468,10 +469,7 @@ public class BackendUpscaler : MonoBehaviour
     }
 
     [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_InitializePlugin();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern UpscalerStatus Upscaler_Set(Upscaler upscaler);
+    private static extern UpscalerStatus Upscaler_Set(Mode mode);
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern UpscalerStatus Upscaler_SetFramebufferSettings(uint width, uint height, Quality quality,

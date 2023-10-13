@@ -84,7 +84,8 @@ protected:
     bool initialized{false};
 
 private:
-    static void(*errorCallback)(Upscaler::Status, const char *);
+    static void(*errorCallback)(void *, Upscaler::Status, const char *);
+    static void *userData;
     static Upscaler *upscalerInUse;
     Status           error{SUCCESS};
     std::string      detailedErrorMessage{};
@@ -187,7 +188,7 @@ public:
 
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
 
-    static auto setErrorCallback(void(*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *);
+    static auto setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *);
 
     /// Returns the current error.
     Status getError();
