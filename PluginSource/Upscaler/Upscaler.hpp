@@ -28,7 +28,6 @@ private:
 public:
     // clang-format off
 
-    /**@todo Add helper functions for me. */
     // bit range = meaning
     // =======================
     // [31-29]   = Error type

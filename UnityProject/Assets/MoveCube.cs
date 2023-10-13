@@ -3,8 +3,6 @@ using UnityEngine;
 
 public class MoveCube : MonoBehaviour
 {
-    private Vector3 _rotationInc;
-    private Vector3 _positionInc;
     private bool _shouldMove;
     private bool _shouldRotate;
     private double _movement;
@@ -33,8 +31,7 @@ public class MoveCube : MonoBehaviour
 
     private Quaternion Rotate(double timing, float scale)
     {
-        if (_shouldRotate) _rotation += timing * scale;
-        var rotation = transform.rotation.eulerAngles;
-        return Quaternion.Euler(rotation.x, rotation.y, (float)_rotation * 360 + rotation.z);
+        if (_shouldRotate) _rotation += timing * scale * 360;
+        return Quaternion.Euler(45, 0, (float)_rotation + 45);
     }
 }

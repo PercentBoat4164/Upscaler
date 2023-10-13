@@ -128,6 +128,7 @@ public class BackendUpscaler : MonoBehaviour
 
     // CommandBuffers
     private CommandBuffer _setRenderingResolution;
+    private CommandBuffer _setShadowScreenSpaceMaskSize;
     private CommandBuffer _upscale;
     
     // Depth blit
@@ -136,64 +137,15 @@ public class BackendUpscaler : MonoBehaviour
     private static Material _blitToCameraDepthMaterial;
 
     // Jitter
-    private const uint SamplesPerPixel = 8;
-    private uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * UpscalingFactor.x * UpscalingFactor.y);
-    private Vector2[] _jitterSequence;
-    private uint _sequencePosition;
+    private Jitter _jitter;
 
+    //API
     protected Upscaler ActiveUpscaler = Upscaler.DLSS;
     private Upscaler _lastUpscaler;
     protected Quality ActiveQuality = Quality.DynamicAuto;
     private Quality _lastQuality;
 
     protected UpscalerStatus InternalErrorFlag = UpscalerStatus.Success;
-
-    private void JitterCamera()
-    {
-        var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
-        _sequencePosition %= SequenceLength;
-        // Clip space jitter must be the negative of the pixel space jitter. Why?
-        var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
-        _camera.ResetProjectionMatrix();
-        var tempProj = _camera.projectionMatrix;
-        tempProj.m02 += clipSpaceJitter.x;
-        tempProj.m12 += clipSpaceJitter.y;
-        _camera.projectionMatrix = tempProj;
-        // The sign of the jitter passed to DLSS must match the sign of the MVScale.
-        Upscaler_SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
-    }
-
-    private void GenerateJitterSequences()
-    {
-        _jitterSequence = new Vector2[SequenceLength];
-        for (var i = 0; i < 2; i++)
-        {
-            var seqBase = i + 2; // Bases 2 and 3 for x and y
-            var n = 0;
-            var d = 1;
-
-            for (var index = 0; index < _jitterSequence.Length; index++)
-            {
-                var x = d - n;
-                if (x == 1)
-                {
-                    n = 1;
-                    d *= seqBase;
-                }
-                else
-                {
-                    var y = d / seqBase;
-                    while (x <= y) y /= seqBase;
-
-                    n = (seqBase + 1) * y - x;
-                }
-
-                _jitterSequence[index][i] = (float)n / d - 0.5f;
-            }
-        }
-
-        _sequencePosition = 0;
-    }
 
     private static void BlitToDepthTexture(CommandBuffer cb, RenderTexture dest, Vector2? scale = null)
     {
@@ -222,6 +174,7 @@ public class BackendUpscaler : MonoBehaviour
 
     private static void RecordCommandBuffers(
       CommandBuffer setRenderingResolution,
+      CommandBuffer setShadowScreenSpaceMaskSize,
       CommandBuffer upscale,
       Vector2 renderingResolution,
       Vector2 upscalingResolution,
@@ -231,11 +184,17 @@ public class BackendUpscaler : MonoBehaviour
       Upscaler upscaler
     ) {
         setRenderingResolution.Clear();
+        setShadowScreenSpaceMaskSize.Clear();
         upscale.Clear();
 
         if (upscaler == Upscaler.None) return;
 
         setRenderingResolution.SetViewport(new Rect(0, 0, renderingResolution.x, renderingResolution.y));
+
+        // BlitToDepthTexture(setShadowScreenSpaceMaskSize, );
+        //
+        // setShadowScreenSpaceMaskSize.CopyTexture(BuiltinRenderTextureType.CameraTarget, inputTarget);
+        // setShadowScreenSpaceMaskSize.Blit(inputTarget, BuiltinRenderTextureType.CameraTarget, upscalingResolution / renderingResolution * 2, Vector2.zero);
 
         upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, 0, 0, 0, 0, (int)upscalingResolution.x,
             (int)upscalingResolution.y, motionVectors, 0, 0, 0, 0);
@@ -318,8 +277,7 @@ public class BackendUpscaler : MonoBehaviour
             dUpscaler = true;
         }
 
-        if (dUpscalingResolution | dRenderingResolution | (_jitterSequence == null))
-            GenerateJitterSequences();
+        _jitter.Generate(RenderingResolution, UpscalingFactor);
 
         if (dHDR | dUpscalingResolution | dUpscaler)
         {
@@ -411,6 +369,9 @@ public class BackendUpscaler : MonoBehaviour
         _camera = GetComponent<Camera>();
         _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
+        // Set up the jitter
+        _jitter = new Jitter();
+
         // Set up quad for depth blits
         _quad = new Mesh();
         _quad.SetVertices(new Vector3[]
@@ -436,13 +397,20 @@ public class BackendUpscaler : MonoBehaviour
         // Set up command buffers
         _setRenderingResolution = new CommandBuffer();
         _setRenderingResolution.name = "Set Render Resolution";
+        _setShadowScreenSpaceMaskSize = new CommandBuffer();
+        _setShadowScreenSpaceMaskSize.name = "Set Shadow Screen Space Mask Size";
         _upscale = new CommandBuffer();
         _upscale.name = "Upscale";
 
         _camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
-        _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
+        // _camera.AddCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         _camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
+
+        /*@todo This needs to be run for every light in the scene. If a light is added during runtime this will not work. */
+        foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+            light.AddCommandBuffer(LightEvent.BeforeScreenspaceMask, _setShadowScreenSpaceMaskSize);
+
         _camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
 
         Upscaler_InitializePlugin();
@@ -474,11 +442,11 @@ public class BackendUpscaler : MonoBehaviour
         if (ManageTargets())
             Upscaler_ResetHistory();
 
-        RecordCommandBuffers(_setRenderingResolution, _upscale, RenderingResolution, UpscalingResolution,
+        RecordCommandBuffers(_setRenderingResolution, _setShadowScreenSpaceMaskSize, _upscale, RenderingResolution, UpscalingResolution,
             _motionVectorTarget, _inColorTarget, _outputTarget, ActiveUpscaler);
 
         if (ActiveUpscaler != Upscaler.None)
-            JitterCamera();
+            _jitter.Apply(_camera);
     }
 
     private void OnDisable()
@@ -488,11 +456,14 @@ public class BackendUpscaler : MonoBehaviour
         if (_setRenderingResolution != null)
         {
             _camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, _setRenderingResolution);
-            _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
+            // _camera.RemoveCommandBuffer(CameraEvent.BeforeDepthTexture, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
             _camera.RemoveCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
             _setRenderingResolution.Release();
         }
+
+        foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+            light.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, _setShadowScreenSpaceMaskSize);
 
         if (_upscale != null)
         {
@@ -525,9 +496,6 @@ public class BackendUpscaler : MonoBehaviour
 
     [DllImport("GfxPluginDLSSPlugin")]
     private static extern UpscalerStatus Upscaler_SetCurrentInputResolution(uint width, uint height);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetJitterInformation(float x, float y);
 
     [DllImport("GfxPluginDLSSPlugin")]
     protected static extern void Upscaler_ResetHistory();
