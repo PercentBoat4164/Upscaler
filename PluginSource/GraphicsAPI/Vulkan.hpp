@@ -111,7 +111,7 @@ public:
 
     static VkFormat getFormat(UnityRenderingExtTextureFormat format);
 
-    VkImageView get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
 
     Type getType() override;
 

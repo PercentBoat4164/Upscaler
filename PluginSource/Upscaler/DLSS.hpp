@@ -73,13 +73,19 @@ private:
     static Upscaler::Status (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(
       NVSDK_NGX_DLSS_Create_Params
     );
-    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetImageResourcesFunctionPointer)(
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
       void *,
-      UnityRenderingExtTextureFormat,
+      UnityRenderingExtTextureFormat
+    );
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetInputColorFunctionPointer)(
       void *,
-      UnityRenderingExtTextureFormat,
+      UnityRenderingExtTextureFormat
+    );
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetMotionVectorsFunctionPointer)(
       void *,
-      UnityRenderingExtTextureFormat,
+      UnityRenderingExtTextureFormat
+    );
+    static Upscaler::Status (DLSS::*graphicsAPIIndependentSetOutputColorFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat
     );
@@ -87,38 +93,36 @@ private:
     static Upscaler::Status (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     static Upscaler::Status (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
 
-    Upscaler::Status         VulkanInitialize();
-    Upscaler::Status         VulkanGetParameters();
-    Upscaler::Status         VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    void                     VulkanDestroyImageViews();
-    Upscaler::Status         VulkanSetImageResources(
-      void                          *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat unityDepthFormat,
-      void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void                          *nativeInColor,
-      UnityRenderingExtTextureFormat unityInColorFormat,
-      void                          *nativeOutColor,
-      UnityRenderingExtTextureFormat unityOutColorFormat
-    );
+#ifdef ENABLE_VULKAN
+    Upscaler::Status VulkanInitialize();
+    Upscaler::Status VulkanGetParameters();
+    Upscaler::Status VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Upscaler::Status
+    VulkanSetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    VulkanSetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Upscaler::Status VulkanEvaluate();
     Upscaler::Status VulkanReleaseFeature();
     Upscaler::Status VulkanDestroyParameters();
     Upscaler::Status VulkanShutdown();
+#endif
+
 #ifdef ENABLE_DX12
     Upscaler::Status DX12Initialize();
     Upscaler::Status DX12GetParameters();
     Upscaler::Status DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::Status DX12SetImageResources(
-      void *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat,
-      void *nativeMotionVectors,
-      UnityRenderingExtTextureFormat,
-      void *nativeInColor,
-      UnityRenderingExtTextureFormat,
-      void *nativeOutColor,
-      UnityRenderingExtTextureFormat
-    );
+    Upscaler::Status
+    DX12SetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX12SetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX12SetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX12SetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Upscaler::Status DX12Evaluate();
     Upscaler::Status DX12ReleaseFeature();
     Upscaler::Status DX12DestroyParameters();
@@ -129,16 +133,14 @@ private:
     Upscaler::Status DX11Initialize();
     Upscaler::Status DX11GetParameters();
     Upscaler::Status DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
-    Upscaler::Status DX11SetImageResources(
-      void *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat,
-      void *nativeMotionVectors,
-      UnityRenderingExtTextureFormat,
-      void *nativeInColor,
-      UnityRenderingExtTextureFormat,
-      void *nativeOutColor,
-      UnityRenderingExtTextureFormat
-    );
+    Upscaler::Status
+    DX11SetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX11SetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX11SetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Upscaler::Status
+    DX11SetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Upscaler::Status DX11Evaluate();
     Upscaler::Status DX11ReleaseFeature();
     Upscaler::Status DX11DestroyParameters();
@@ -155,37 +157,20 @@ private:
 
 public:
     static DLSS *get();
-
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
-
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
-
     Settings
     getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
-
     Type getType() override;
-
     std::string getName() override;
-
     Status initialize() override;
-
     Status createFeature() override;
-
-    Status setImageResources(
-      void                          *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat unityDepthFormat,
-      void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void                          *nativeInColor,
-      UnityRenderingExtTextureFormat unityInColorFormat,
-      void                          *nativeOutColor,
-      UnityRenderingExtTextureFormat unityOutColorFormat
-    ) override;
-
+    Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status evaluate() override;
-
     Status releaseFeature() override;
-
     Status shutdown() override;
 };

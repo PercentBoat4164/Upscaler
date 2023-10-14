@@ -25,15 +25,15 @@ public class Upscaler : BackendUpscaler
     // This Function allows Developers to Determine what Should Happen when Upscaler Encounters an Error
     // This Function is Called the Frame After an Error, and it's changes take effect that frame
     // If the same error is encountered during multiple frames, the function is only called for the first frame
-    public static Action<UpscalerStatus, string> ErrorCallback;
+    public static Action<Plugin.UpscalerStatus, string> ErrorCallback;
 
     // Basic Upscaler Options (Can be set In Editor or By Code)
 
     // Current Upscaling Mode to Use
-    public Upscaler upscaler = Upscaler.DLSS;
+    public Plugin.Upscaler upscaler = Plugin.Upscaler.DLSS;
 
     // Quality / Performance Mode for the Upscaler
-    public Quality quality = Quality.DynamicAuto;
+    public Plugin.Quality quality = Plugin.Quality.DynamicAuto;
 
     // Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
     public uint widthScaleFactor;
@@ -41,21 +41,21 @@ public class Upscaler : BackendUpscaler
 
     // The Currently Upscaler Status
     // Contains Error Information for Settings Errors or Internal Problems
-    public UpscalerStatus Status => _internalStatus;
+    public Plugin.UpscalerStatus Status => _internalStatus;
 
     // Read Only List that contains a List of Device/OS Supported Upscalers
-    public IList<Upscaler> SupportedUpscalingModes => _supportedUpscalingModes;
+    public IList<Plugin.Upscaler> SupportedUpscalingModes => _supportedUpscalingModes;
 
     // Removes history so that artifacts from previous frames are not left over in DLSS
     // Should be called every time the scene sees a complete scene change
     public void ResetHistoryBuffer()
     {
-        Upscaler_ResetHistory();
+        Plugin.ResetHistory();
     }
 
     // Returns true if the device and operating system support the given upscaling mode
     // Returns false if device and OS do not support Upscaling Mode
-    public bool DeviceSupportsUpscalingMode(Upscaler upscalingMode)
+    public bool DeviceSupportsUpscalingMode(Plugin.Upscaler upscalingMode)
     {
         return _supportedUpscalingModes.Contains(upscalingMode);
     }
@@ -63,9 +63,9 @@ public class Upscaler : BackendUpscaler
     // INTERNAL API IMPLEMENTATION
 
     // Internal Values for supported upscaling modes and upscaler status
-    private IList<Upscaler> _supportedUpscalingModes;
-    private UpscalerStatus _internalStatus;
-    private UpscalerStatus _prevStatus;
+    private IList<Plugin.Upscaler> _supportedUpscalingModes;
+    private Plugin.UpscalerStatus _internalStatus;
+    private Plugin.UpscalerStatus _prevStatus;
 
     // Runs when the Script is enabled
     // Calls Base Class Method to Initialize Plugin and then uses Plugin Functions to gather information about device supported options
@@ -73,10 +73,10 @@ public class Upscaler : BackendUpscaler
     {
         base.OnEnable();
 
-        var tempList = new List<Upscaler>();
+        var tempList = new List<Plugin.Upscaler>();
 
-        foreach (Upscaler tempUpscaler in Enum.GetValues(typeof(Upscaler)))
-            if (Upscaler_GetError(tempUpscaler) <= UpscalerStatus.NoUpscalerSet)
+        foreach (Plugin.Upscaler tempUpscaler in Enum.GetValues(typeof(Plugin.Upscaler)))
+            if (Plugin.GetError(tempUpscaler) <= Plugin.UpscalerStatus.NoUpscalerSet)
                 tempList.Add(tempUpscaler);
 
         _supportedUpscalingModes = tempList.AsReadOnly();
@@ -87,12 +87,12 @@ public class Upscaler : BackendUpscaler
     private new void OnPreCull()
     {
         // Check if an Internal Error was Caught on the Last Frame. Set current Upscaler to None and Alert if So
-        if (InternalErrorFlag > UpscalerStatus.NoUpscalerSet)
+        if (InternalErrorFlag > Plugin.UpscalerStatus.NoUpscalerSet)
         {
             Debug.LogError("Upscaler encountered an error. Reverting to No Upscaling. Message: "
-                           + Marshal.PtrToStringAuto(Upscaler_GetCurrentErrorMessage()));
+                           + Marshal.PtrToStringAuto(Plugin.GetCurrentErrorMessage()));
             _internalStatus = InternalErrorFlag;
-            upscaler = Upscaler.None;
+            upscaler = Plugin.Upscaler.None;
         }
         // If an Internal Error was not Caught on the Previous Frame, check for settings changes
         else
@@ -100,15 +100,15 @@ public class Upscaler : BackendUpscaler
             // At this point, internal status is one frame old, and the previous status is two frames old
             // If there was a new error last frame, call the callback function before evaluating settings
             // This gives a chance for developers to catch an error one frame after it occurs via a callback
-            if (_internalStatus > UpscalerStatus.NoUpscalerSet && _internalStatus != _prevStatus &&
+            if (_internalStatus > Plugin.UpscalerStatus.NoUpscalerSet && _internalStatus != _prevStatus &&
                 ErrorCallback != null)
-                ErrorCallback(_internalStatus, Marshal.PtrToStringAnsi(Upscaler_GetCurrentErrorMessage()));
+                ErrorCallback(_internalStatus, Marshal.PtrToStringAnsi(Plugin.GetCurrentErrorMessage()));
 
             ValidateSettings();
         }
 
         _prevStatus = _internalStatus;
-        base.OnPreCull();
+        base.BeforeCameraCulling();
     }
 
     // Checks For/Validates Settings Changes
@@ -119,47 +119,30 @@ public class Upscaler : BackendUpscaler
         // If the Active and Inactive Upscaler are the Same, Validate the Upscaler
         if (upscaler != ActiveUpscaler)
         {
-            var newModeError = Upscaler_GetError(upscaler);
-            if (newModeError > UpscalerStatus.NoUpscalerSet)
+            var newModeError = Plugin.GetError(upscaler);
+            if (newModeError > Plugin.UpscalerStatus.NoUpscalerSet)
             {
-                upscaler = Upscaler.None;
-                ActiveUpscaler = Upscaler.None;
+                upscaler = Plugin.Upscaler.None;
+                ActiveUpscaler = Plugin.Upscaler.None;
                 _internalStatus = newModeError;
                 Debug.LogError("There was an error updating the upscaler. Reverting to No Upscaling. Message: "
-                               + Marshal.PtrToStringAuto(Upscaler_GetErrorMessage(upscaler)));
+                               + Marshal.PtrToStringAuto(Plugin.GetErrorMessage(upscaler)));
             }
 
             else
             {
                 ActiveUpscaler = upscaler;
-                _internalStatus = UpscalerStatus.Success;
+                _internalStatus = Plugin.UpscalerStatus.Success;
             }
         }
 
-        if (quality != ActiveQuality) ActiveQuality = quality;
+        ActiveQuality = quality;
 
         return true;
     }
 
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern UpscalerStatus Upscaler_GetError(Upscaler upscaler);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern IntPtr Upscaler_GetErrorMessage(Upscaler upscaler);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern UpscalerStatus Upscaler_GetCurrentError();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern IntPtr Upscaler_GetCurrentErrorMessage();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
-
-    private delegate void InternalErrorCallback(UpscalerStatus er, IntPtr p);
-
-    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
-    private static void InternalErrorCallbackWrapper(UpscalerStatus reason, IntPtr message)
+    [MonoPInvokeCallback(typeof(Plugin.InternalErrorCallback))]
+    private static void InternalErrorCallbackWrapper(Plugin.UpscalerStatus reason, IntPtr message)
     {
         ErrorCallback(reason, Marshal.PtrToStringAnsi(message));
     }

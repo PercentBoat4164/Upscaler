@@ -9,7 +9,7 @@ public class Upscaler_Editor : Editor
     private bool _basicSettingsFoldout = true;
     private bool _advancedSettingsFoldout = false;
     private GUIStyle style;
-    private BackendUpscaler.UpscalerStatus status;
+    private Plugin.UpscalerStatus status;
     private String message;
     
     private void OnEnable()
@@ -27,7 +27,7 @@ public class Upscaler_Editor : Editor
 
         status = ((Upscaler)serializedObject.targetObject).Status;
         
-        if (status <= BackendUpscaler.UpscalerStatus.NoUpscalerSet)
+        if (status <= Plugin.UpscalerStatus.NoUpscalerSet)
         {
             style.normal.textColor = Color.green;
             message = "Upscaling Mode Successfully Running";

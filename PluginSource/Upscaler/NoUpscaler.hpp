@@ -18,16 +18,10 @@ public:
       override;
     Status initialize() override;
     Status createFeature() override;
-    Status setImageResources(
-      void                          *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat unityDepthFormat,
-      void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void                          *nativeInColor,
-      UnityRenderingExtTextureFormat unityInColorFormat,
-      void                          *nativeOutColor,
-      UnityRenderingExtTextureFormat unityOutColorFormat
-    ) override;
+    Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status evaluate() override;
     Status releaseFeature() override;
     Status shutdown() override;

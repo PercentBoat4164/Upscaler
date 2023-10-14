@@ -5,15 +5,6 @@
 #ifdef ENABLE_VULKAN
 #    include "GraphicsAPI/Vulkan.hpp"
 #endif
-#ifdef ENABLE_DX12
-#    include "GraphicsAPI/DX12.hpp"
-#endif
-#ifdef ENABLE_DX11
-#    include "GraphicsAPI/DX11.hpp"
-#endif
-#ifdef ENABLE_DLSS
-#    include "Upscaler/DLSS.hpp"
-#endif
 
 // Unity
 #include <IUnityInterface.h>
@@ -165,27 +156,35 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory
     Upscaler::settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_Prepare(
-  void                          *nativeDepthBuffer,
-  UnityRenderingExtTextureFormat unityDepthFormat,
-  void                          *nativeMotionVectors,
-  UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void                          *nativeInColor,
-  UnityRenderingExtTextureFormat unityInColorFormat,
-  void                          *nativeOutColor,
-  UnityRenderingExtTextureFormat unityOutColorFormat
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetDepthBuffer(
+  void                          *nativeHandle,
+  UnityRenderingExtTextureFormat unityFormat
 ) {
-    Upscaler::get()->setImageResources(
-      nativeDepthBuffer,
-      unityDepthFormat,
-      nativeMotionVectors,
-      unityMotionVectorFormat,
-      nativeInColor,
-      unityInColorFormat,
-      nativeOutColor,
-      unityOutColorFormat
-    );
+    return Upscaler::get()->setDepthBuffer(nativeHandle, unityFormat);
+}
 
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetInputColor(
+  void                          *nativeHandle,
+  UnityRenderingExtTextureFormat unityFormat
+) {
+    return Upscaler::get()->setInputColor(nativeHandle, unityFormat);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetMotionVectors(
+  void                          *nativeHandle,
+  UnityRenderingExtTextureFormat unityFormat
+) {
+    return Upscaler::get()->setMotionVectors(nativeHandle, unityFormat);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetOutputColor(
+  void                          *nativeHandle,
+  UnityRenderingExtTextureFormat unityFormat
+) {
+    return Upscaler::get()->setOutputColor(nativeHandle, unityFormat);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_Prepare() {
     return Upscaler::get()->createFeature();
 }
 

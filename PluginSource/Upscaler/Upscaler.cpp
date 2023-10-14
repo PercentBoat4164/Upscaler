@@ -83,18 +83,14 @@ Upscaler::Status Upscaler::getError() {
 Upscaler::Status Upscaler::setError(Upscaler::Status t_error, std::string t_msg) {
     if (success(error)) error = t_error;
     if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
-    if (failure(error) && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
+    if (failure(error) && errorCallback != nullptr) errorCallback(error, detailedErrorMessage.c_str());
     return error;
 }
 
 Upscaler::Status Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
     if (success(error) && t_shouldApplyError) error = t_error;
     if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
+    if (t_shouldApplyError && errorCallback != nullptr) errorCallback(error, detailedErrorMessage.c_str());
     return error;
 }
 

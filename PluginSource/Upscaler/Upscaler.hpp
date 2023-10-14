@@ -167,11 +167,8 @@ public:
     }
 
     static Upscaler *get(Type upscaler);
-
     static Upscaler *get();
-
     static std::vector<Upscaler *> getAllUpscalers();
-
     static std::vector<Upscaler *> getUpscalersWithoutErrors();
 
     template<typename T>
@@ -181,11 +178,8 @@ public:
     }
 
     static void set(Type upscaler);
-
     static void set(Upscaler *upscaler);
-
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-
     static auto setErrorCallback(void(*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *);
 
     /// Returns the current error.
@@ -202,39 +196,21 @@ public:
     /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
     /// error has been cleared.
     bool resetError();
-
     std::string &getErrorMessage();
 
     virtual Type getType() = 0;
-
     virtual std::string getName() = 0;
-
     virtual std::vector<std::string> getRequiredVulkanInstanceExtensions() = 0;
-
     virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
-
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
-
     virtual Status initialize() = 0;
-
     virtual Status createFeature() = 0;
-
-    virtual Status setImageResources(
-      void                          *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat unityDepthFormat,
-      void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void                          *nativeInColor,
-      UnityRenderingExtTextureFormat unityInColorFormat,
-      void                          *nativeOutColor,
-      UnityRenderingExtTextureFormat unityOutColorFormat
-    ) = 0;
-
+    virtual Upscaler::Status setDepthBuffer(void *pVoid, UnityRenderingExtTextureFormat format) = 0;
+    virtual Upscaler::Status setInputColor(void *pVoid, UnityRenderingExtTextureFormat format) = 0;
+    virtual Upscaler::Status setMotionVectors(void *pVoid, UnityRenderingExtTextureFormat format) = 0;
+    virtual Upscaler::Status setOutputColor(void *pVoid, UnityRenderingExtTextureFormat format) = 0;
     virtual Status evaluate() = 0;
-
     virtual Status releaseFeature() = 0;
-
     virtual Status shutdown();
-
     virtual ~Upscaler() = default;
 };
