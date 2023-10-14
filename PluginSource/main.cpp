@@ -43,7 +43,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePl
     Upscaler::setErrorCallback(data, t_errorCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_Set(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetUpscaler(Upscaler::Type type) {
     Upscaler::get()->shutdown();
     Upscaler::set(type);
     return Upscaler::get()->initialize();

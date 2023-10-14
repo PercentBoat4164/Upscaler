@@ -10,7 +10,7 @@ public class UpscalerEditor : Editor
     private bool _advancedSettingsFoldout;
     private GUIStyle _style;
     private Upscaler _upscalerObject; 
-    private BackendUpscaler.UpscalerStatus _status;
+    private Plugin.UpscalerStatus _status;
     private String _message;
     
     private void OnEnable()
@@ -32,7 +32,7 @@ public class UpscalerEditor : Editor
         _upscalerObject = (Upscaler)serializedObject.targetObject;
         var status = _upscalerObject.Status;
         
-        if (status <= BackendUpscaler.UpscalerStatus.NoUpscalerSet)
+        if (status <= Plugin.UpscalerStatus.NoUpscalerSet)
         {
             _style.normal.textColor = Color.green;
             _message = "Upscaling Mode Successfully Running";
@@ -62,12 +62,13 @@ public class UpscalerEditor : Editor
         {
             EditorGUI.indentLevel += 1;
             EditorGUILayout.Slider(_sharpnessVal, 0, 1, new GUIContent("Sharpness (Deprecated)"));
-            if (_upscalerObject.quality == BackendUpscaler.Quality.DynamicManual)
+            if (_upscalerObject.quality == Plugin.Quality.DynamicManual)
             {
-                EditorGUILayout.Slider(_widthScale, _upscalerObject.MinWidthScaleFactor,
-                    _upscalerObject.MaxWidthScaleFactor, new GUIContent("Width Scale Factor (Render Width / Output Width)"));
-                EditorGUILayout.Slider(_heightScale, _upscalerObject.MinHeightScaleFactor,
-                    _upscalerObject.MaxHeightScaleFactor,
+                EditorGUILayout.Slider(_widthScale, _upscalerObject.MinScaleFactor.x,
+                    _upscalerObject.MaxScaleFactor.x,
+                    new GUIContent("Width Scale Factor (Render Width / Output Width)"));
+                EditorGUILayout.Slider(_heightScale, _upscalerObject.MinScaleFactor.y,
+                    _upscalerObject.MaxScaleFactor.y,
                     new GUIContent("Height Scale Factor (Render height / Output Height)"));
             }
             EditorGUI.indentLevel -= 1;

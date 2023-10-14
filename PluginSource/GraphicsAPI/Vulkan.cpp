@@ -401,7 +401,7 @@ Vulkan *Vulkan::get() {
     return vulkan;
 }
 
-VkImageView Vulkan::get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
+VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
     // clang-format off
     VkImageViewCreateInfo createInfo{
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,

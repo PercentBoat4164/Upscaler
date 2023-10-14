@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 public class Builtin : RenderPipeline
 {
-    public override void RecordCommandBuffers(
+    public override void PrepareRendering(
         CommandBuffer setRenderingResolution,
         CommandBuffer upscale,
         Vector2 renderingResolution,
@@ -11,12 +11,12 @@ public class Builtin : RenderPipeline
         RenderTexture motionVectors,
         RenderTexture inputTarget,
         RenderTexture outputTarget,
-        Plugin.Upscaler upscaler
+        Plugin.Mode mode
     ) {
         setRenderingResolution.Clear();
         upscale.Clear();
 
-        if (upscaler == Plugin.Upscaler.None) return;
+        if (mode == Plugin.Mode.None) return;
 
         setRenderingResolution.SetViewport(new Rect(0, 0, renderingResolution.x, renderingResolution.y));
 
@@ -31,22 +31,5 @@ public class Builtin : RenderPipeline
         upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
         TexMan.BlitToCameraDepth(upscale, inputTarget);
         upscale.CopyTexture(outputTarget, BuiltinRenderTextureType.CameraTarget);
-    }
-
-    public override void BeforeCameraCulling()
-    {
-        // Sets Default Positive Values for Internal Error Flag
-        // Will Get Overwritten if Errors Are Encountered During Upscaling Execution
-        InternalErrorFlag = ActiveUpscaler == Plugin.Upscaler.None
-            ? Plugin.UpscalerStatus.NoUpscalerSet
-            : Plugin.UpscalerStatus.Success;
-
-        if (ManageTargets()) Plugin.ResetHistory();
-
-        RecordCommandBuffers(_setRenderingResolution, _upscale, RenderingResolution, UpscalingResolution,
-            _motionVectorTarget, _inColorTarget, _outputTarget, ActiveUpscaler);
-
-        if (ActiveUpscaler != Plugin.Upscaler.None)
-            Jitter.Apply(_camera);
     }
 }

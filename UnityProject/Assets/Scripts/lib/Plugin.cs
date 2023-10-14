@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using AOT;
 using UnityEngine.Experimental.Rendering;
 
 public static class Plugin
@@ -66,7 +65,7 @@ public static class Plugin
         return ((uint)status & ErrorRecoverable) != ErrorRecoverable;
     }
 
-    public enum Upscaler
+    public enum Mode
     {
         None,
         DLSS
@@ -89,22 +88,19 @@ public static class Plugin
         Upscale
     }
 
-    public delegate void InternalErrorCallback(UpscalerStatus er, IntPtr p);
+    public delegate void InternalErrorCallback(IntPtr data, UpscalerStatus er, IntPtr p);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetError")]
-    public static extern UpscalerStatus GetError(Upscaler upscaler);
+    public static extern UpscalerStatus GetError(Mode mode);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetErrorMessage")]
-    public static extern IntPtr GetErrorMessage(Upscaler upscaler);
+    public static extern IntPtr GetErrorMessage(Mode mode);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetCurrentError")]
     public static extern UpscalerStatus GetCurrentError();
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetCurrentErrorMessage")]
     public static extern IntPtr GetCurrentErrorMessage();
-
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetErrorCallback")]
-    private static extern void SetErrorCallback(InternalErrorCallback cb);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_ResetHistory")]
     public static extern void ResetHistory();
@@ -124,12 +120,11 @@ public static class Plugin
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_InitializePlugin")]
     public static extern void InitializePlugin();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_Set")]
-    public static extern UpscalerStatus Set(Upscaler upscaler);
+    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetUpscaler")]
+    public static extern UpscalerStatus SetUpscaler(Mode mode);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetFramebufferSettings")]
-    public static extern UpscalerStatus SetFramebufferSettings(uint width, uint height, Quality quality,
-        bool hdr);
+    public static extern UpscalerStatus SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetRecommendedInputResolution")]
     public static extern ulong GetRecommendedInputResolution();
@@ -160,4 +155,7 @@ public static class Plugin
 
     [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetJitterInformation")]
     public static extern void SetJitterInformation(float x, float y);
+
+    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_InitializePlugin")]
+    public static extern void InitializePlugin(IntPtr upscalerObject, InternalErrorCallback errorCallback);
 }

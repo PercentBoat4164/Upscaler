@@ -113,8 +113,9 @@ public:
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
 
+    void destroyImageView(VkImageView pT);
+
     Type getType() override;
 
     ~Vulkan() override = default;
-    void destroyImageView(VkImageView pT);
 };

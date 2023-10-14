@@ -13,65 +13,56 @@ public class Upscaler : BackendUpscaler
     // BASIC UPSCALER OPTIONS
     // Can Be Set In Editor Or By Code
 
-    // Current Upscaling Mode to Use
-    public Mode upscaler = Mode.DLSS;
+    /// Current Upscaling Mode to Use
+    public Plugin.Mode upscaler = Plugin.Mode.DLSS;
 
-    // Quality / Performance Mode for the Upscaler
-    public Quality quality = Quality.DynamicAuto;
+    /// Quality / Performance Mode for the Upscaler
+    public Plugin.Quality quality = Plugin.Quality.DynamicAuto;
 
     // ADVANCED UPSCALER OPTIONS
     // Can Be Set In Editor Or By Code
 
-    // Sharpness (Technically DLSS Deprecated); Ranges from 0 to 1
-    public float sharpness = 0;
-    private float _activeSharpness = 0;
+    /// Sharpness (Technically DLSS Deprecated); Ranges from 0 to 1
+    public float sharpness;
+    private float _activeSharpness;
 
-    // Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
+    // Must remain separate for niceness in the Editor
+    /// Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
     public float widthScaleFactor = 0.9f;
     public float heightScaleFactor = 0.9f;
 
     // Strictly Code Accessible Endpoints
 
-    // Bounds for Scale Factor Obtained from the Plugin
-    public float MinWidthScaleFactor => MinWidthScale;
-    public float MinHeightScaleFactor => MinHeightScale;
-    public float MaxWidthScaleFactor => MaxWidthScale;
-    public float MaxHeightScaleFactor => MaxHeightScale;
+    /// Bounds for Scale Factor Obtained from the Plugin
+    public Vector2 MinScaleFactor => MinScale;
+    public Vector2 MaxScaleFactor => MaxScale;
 
-    // Callback Function that Will Run when an Error is Encountered by DLSS
-    // Function will be passed Status (which contains error information) and Error Message String
-    // This Function allows Developers to Determine what Should Happen when Upscaler Encounters an Error
-    // This Function is Called the Frame After an Error, and it's changes take effect that frame
-    // If the same error is encountered during multiple frames, the function is only called for the first frame
-    [CanBeNull] public Action<UpscalerStatus, string> ErrorCallback;
+    /// Callback Function that Will Run when an Error is Encountered by DLSS
+    /// Function will be passed Status (which contains error information) and Error Message String
+    /// This Function allows Developers to Determine what Should Happen when Upscaler Encounters an Error
+    /// This Function is Called the Frame After an Error, and it's changes take effect that frame
+    /// If the same error is encountered during multiple frames, the function is only called for the first frame
+    [CanBeNull] public Action<Plugin.UpscalerStatus, string> ErrorCallback;
 
-    // The Currently Upscaler Status
-    // Contains Error Information for Settings Errors or Internal Problems
-    public Plugin.UpscalerStatus Status => _internalStatus;
+    /// The Currently Upscaler Status
+    /// Contains Error Information for Settings Errors or Internal Problems
+    public Plugin.UpscalerStatus Status { get; private set; }
 
-    // Read Only List that contains a List of Device/OS Supported Upscalers
-    public IList<Plugin.Mode> SupportedUpscalingModes => _supportedUpscalingModes;
+    /// Read Only List that contains a List of Device/OS Supported Upscalers
+    public IList<Plugin.Mode> SupportedUpscalingModes { get; private set; }
 
-    // Removes history so that artifacts from previous frames are not left over in DLSS
-    // Should be called every time the scene sees a complete scene change
-    public void ResetHistoryBuffer()
-    {
-        Plugin.ResetHistory();
-    }
+    /// Removes history so that artifacts from previous frames are not left over in DLSS
+    /// Should be called every time the scene sees a complete scene change
+    public void ResetHistoryBuffer() => Plugin.ResetHistory();
 
-    // Returns true if the device and operating system support the given upscaling mode
-    // Returns false if device and OS do not support Upscaling Mode
-    public bool DeviceSupportsUpscalingMode(Mode upscalingMode)
-    {
-        return _supportedUpscalingModes.Contains(upscalingMode);
-    }
+    /// Returns true if the device and operating system support the given upscaling mode
+    /// Returns false if device and OS do not support Upscaling Mode
+    public bool DeviceSupportsUpscalingMode(Plugin.Mode upscalingMode) => SupportedUpscalingModes.Contains(upscalingMode);
 
     // INTERNAL API IMPLEMENTATION
 
     // Internal Values for supported upscaling modes and upscaler status
-    private IList<Plugin.Mode> _supportedUpscalingModes;
-    private Plugin.UpscalerStatus _internalStatus;
-    private ulong _prevMaxRes, _prevMinRes;
+    private ulong _prevMaxScale, _prevMinScale;
 
     // Runs when the Script is enabled
     // Calls Base Class Method to Initialize Plugin and then uses Plugin Functions to gather information about device supported options
@@ -79,16 +70,16 @@ public class Upscaler : BackendUpscaler
     {
         base.OnEnable();
 
-        GCHandle handle = GCHandle.Alloc(this);
-        Upscaler_InitializePlugin((IntPtr) handle, InternalErrorCallbackWrapper);
+        var handle = GCHandle.Alloc(this);
+        Plugin.InitializePlugin((IntPtr) handle, InternalErrorCallbackWrapper);
 
-        var tempList = new List<Mode>();
+        var tempList = new List<Plugin.Mode>();
 
-        foreach (Mode tempUpscaler in Enum.GetValues(typeof(Mode)))
-            if (Upscaler_GetError(tempUpscaler) <= UpscalerStatus.NoUpscalerSet)
+        foreach (Plugin.Mode tempUpscaler in Enum.GetValues(typeof(Plugin.Mode)))
+            if (Plugin.Success(Plugin.GetError(tempUpscaler)))
                 tempList.Add(tempUpscaler);
 
-        _supportedUpscalingModes = tempList.AsReadOnly();
+        SupportedUpscalingModes = tempList.AsReadOnly();
     }
 
     /*@todo Determine if I am necessary. */
@@ -97,9 +88,9 @@ public class Upscaler : BackendUpscaler
         base.OnDisable();
     }
 
-    // Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
-    // Real OnPreCull Actions from Backend
-    private new void OnPreCull()
+    /// Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
+    /// Real OnPreCull Actions from Backend
+    private void OnPreCull()
     {
         if (ChangeInSettings())
         {
@@ -107,112 +98,102 @@ public class Upscaler : BackendUpscaler
             var settingsChange = ValidateAndPushSettings();
 
             // If Settings Change Caused Error, pass to Internal Error Handler
-            if (settingsChange.Item1 > UpscalerStatus.NoUpscalerSet)
+            if (Plugin.Failure(settingsChange.Item1))
             {
                 InternalErrorHandler(settingsChange.Item1, settingsChange.Item2);
             }
         }
 
+        /*@todo Make switching me nicer. */
         // If the upscaler is active and the quality mode is Dynamic, ensure dynamic resolution is enabled
-        if (!_camera.allowDynamicResolution && ActiveMode != Mode.None &&
-            (ActiveQuality == Quality.DynamicAuto) || (ActiveQuality == Quality.DynamicManual))
-        {
-            _camera.allowDynamicResolution = true;
-        }
+        if (Camera.allowDynamicResolution)
+            Camera.allowDynamicResolution = ActiveMode == Plugin.Mode.None;
+        // if (!Camera.allowDynamicResolution && ActiveMode != Plugin.Mode.None &&
+        //     ActiveQuality == Plugin.Quality.DynamicAuto || ActiveQuality == Plugin.Quality.DynamicManual)
+        // {
+        //     Camera.allowDynamicResolution = false;
+        // }
+        //
+        // // If the Upscaler is not None, the Quality Mode does not allow for Dynamic Resolution, and the Camera is set
+        // // to dynamic resolution, turn Dynamic Resolution off and give a warning
+        // if (ActiveMode != Plugin.Mode.None && ActiveQuality != Plugin.Quality.DynamicAuto &&
+        //     ActiveQuality != Plugin.Quality.DynamicManual && Camera.allowDynamicResolution)
+        // {
+        //     Camera.allowDynamicResolution = false;
+        //     Debug.LogWarning("Dynamic resolution has been disabled for the upscaled camera " +
+        //                      "since the current upscaling and quality modes do not allow for it.");
+        // }
 
-        // If the Upscaler is not None, the Quality Mode does not allow for Dynamic Resolution, and the Camera is set
-        // to dynamic resolution, turn Dynamic Resolution off and give a warning
-        if (ActiveMode != Mode.None && ActiveQuality != Quality.DynamicAuto &&
-            ActiveQuality != Quality.DynamicManual && _camera.allowDynamicResolution)
+        // If the upscaling resolution changed, alter bounds on scale factor and reset scale factor
+        if (DUpscalingResolution)
         {
-            _camera.allowDynamicResolution = false;
-            Debug.LogWarning("Dynamic resolution has been disabled for the upscaled camera " +
-                             "since the current upscaling and quality modes do not allow for it.");
-        }
-
-        // If the quality mode is dynamic and min/max scale changed, alter bounds on scale factor and reset scale factor
-        if (ActiveQuality == Quality.DynamicAuto || ActiveQuality == Quality.DynamicManual)
-        {
-            var maxres = Upscaler_GetMaximumInputResolution();
-            if (maxres != _prevMaxRes)
+            var maximumInputResolution = Plugin.GetMaximumInputResolution();
+            if (maximumInputResolution != _prevMaxScale)
             {
-                var maxWidth = (uint)(maxres >> 32);
-                var maxHeight = (uint)(maxres & 0xFFFFFFFF);
+                MaxScale = new Vector2((uint)(maximumInputResolution >> 32),
+                    (uint)(maximumInputResolution & 0xFFFFFFFF)) / UpscalingResolution;
 
-                MaxHeightScale = (float)maxHeight / _camera.pixelHeight;
-                MaxWidthScale = (float)maxWidth / _camera.pixelWidth;
+                _prevMaxScale = maximumInputResolution;
 
-                _prevMaxRes = maxres;
-
-                ActiveUpscalingFactorWidth = ActiveUpscalingFactorWidth;
-                ActiveUpscalingFactorHeight = ActiveUpscalingFactorHeight;
-                widthScaleFactor = ActiveUpscalingFactorWidth;
-                heightScaleFactor = ActiveUpscalingFactorHeight;
+                widthScaleFactor = ActiveUpscalingFactor.x;
+                heightScaleFactor = ActiveUpscalingFactor.y;
             }
 
-            var minres = Upscaler_GetMinimumInputResolution();
-            if (minres != _prevMinRes)
+            var minimumInputResolution = Plugin.GetMinimumInputResolution();
+            if (minimumInputResolution != _prevMinScale)
             {
-                var minWidth = (uint)(minres >> 32);
-                var minHeight = (uint)(minres & 0xFFFFFFFF);
+                MinScale = new Vector2((uint)(minimumInputResolution >> 32),
+                    (uint)(minimumInputResolution & 0xFFFFFFFF)) / UpscalingResolution;
 
-                MinHeightScale = (float)minHeight / _camera.pixelHeight;
-                MinWidthScale = (float)minWidth / _camera.pixelWidth;
+                _prevMinScale = minimumInputResolution;
 
-                _prevMinRes = minres;
-
-                ActiveUpscalingFactorWidth = ActiveUpscalingFactorWidth;
-                ActiveUpscalingFactorHeight = ActiveUpscalingFactorHeight;
-                widthScaleFactor = ActiveUpscalingFactorWidth;
-                heightScaleFactor = ActiveUpscalingFactorHeight;
+                widthScaleFactor = ActiveUpscalingFactor.x;
+                heightScaleFactor = ActiveUpscalingFactor.y;
             }
         }
 
-        base.BeforeCameraCulling();
+        BeforeCameraCulling();
     }
 
-    // Shows if Settings have Changed since Last Checked
-    // No internal change should ever reflect a settings 'change'
-    // This will only return true when a user change causes settings to fall out of sync between Upscaler and BackendUpscaler
+    /// Shows if Settings have Changed since Last Checked
+    /// No internal change should ever reflect a settings 'change'
+    /// This will only return true when a user change causes settings to fall out of sync between Upscaler and BackendUpscaler
     private bool ChangeInSettings()
     {
-        if (upscaler != ActiveMode)
-        {
-            if (_camera.allowMSAA && upscaler != Mode.None)
-            {
-                Debug.LogWarning("MSAA should not be turned on for cameras that have upscaling applied to them. " +
-                                 "It is not necessary and not performant. It could also cause image artifacting.");
-            }
-            return true;
-        }
+        if (upscaler == ActiveMode)
+            return quality != ActiveQuality || !sharpness.Equals(_activeSharpness) ||
+                   !widthScaleFactor.Equals(ActiveUpscalingFactor.x) ||
+                   !heightScaleFactor.Equals(ActiveUpscalingFactor.y);
+        /*todo Move me to where I should go. */
+        if (Camera.allowMSAA && upscaler != Plugin.Mode.None)
+            Debug.LogWarning("MSAA should not be turned on for cameras that have upscaling applied to them. " +
+                             "It is not necessary and not performant. It could also cause image artifacting.");
+        return true;
 
-        return quality != ActiveQuality || !sharpness.Equals(_activeSharpness)
-                                        || !widthScaleFactor.Equals(ActiveUpscalingFactorWidth)
-                                        || !heightScaleFactor.Equals(ActiveUpscalingFactorHeight);
     }
 
-    // Validates Settings Changes and Push them to BackendUpscaler so they Take Effect if No Issue Met
-    // Status with new settings will be returned
-    // Returns a Tuple containing New Internal Status as well as a Message About Settings Change
-    private Tuple<UpscalerStatus, String> ValidateAndPushSettings()
+    /// Validates Settings Changes and Push them to BackendUpscaler so they Take Effect if No Issue Met
+    /// Status with new settings will be returned
+    /// Returns a Tuple containing New Internal Status as well as a Message About Settings Change
+    private Tuple<Plugin.UpscalerStatus, string> ValidateAndPushSettings()
     {
-        String errorMsg = "There was an Error in Changing Upscaler Settings. Details:\n";
+        var errorMsg = "There was an Error in Changing Upscaler Settings. Details:\n";
 
         // Check for Lack of Support for Currently Selected Upscaler
-        UpscalerStatus settingsError = Upscaler_GetError(upscaler);
-        if (settingsError > UpscalerStatus.NoUpscalerSet)
+        var settingsError = Plugin.GetError(upscaler);
+        if (Plugin.Failure(settingsError))
         {
             errorMsg += "Invalid Upscaler: " +
-                        Marshal.PtrToStringAuto(Upscaler_GetErrorMessage(upscaler)) + "\n";
-            _internalStatus = settingsError;
-            return new Tuple<UpscalerStatus, string>(settingsError, errorMsg);
+                        Marshal.PtrToStringAuto(Plugin.GetErrorMessage(upscaler)) + "\n";
+            Status = settingsError;
+            return new Tuple<Plugin.UpscalerStatus, string>(settingsError, errorMsg);
         }
 
         // Check Sharpness Value for Change
         // Only Warn if Error and Revert Setting; No Error for Small Setting
         if (!sharpness.Equals(_activeSharpness))
         {
-            if (sharpness < 0 || sharpness > 1)
+            if (sharpness is < 0 or > 1)
             {
                 Debug.LogError("Sharpness value must be between 0 and 1. Sharpness reverted to previous value.");
                 sharpness = _activeSharpness;
@@ -220,7 +201,7 @@ public class Upscaler : BackendUpscaler
             else
             {
                 _activeSharpness = sharpness;
-                Upscaler_SetSharpnessValue(_activeSharpness);
+                Plugin.SetSharpnessValue(_activeSharpness);
             }
         }
 
@@ -228,26 +209,24 @@ public class Upscaler : BackendUpscaler
         ActiveMode = upscaler;
         ActiveQuality = quality;
 
-        if (!widthScaleFactor.Equals(ActiveUpscalingFactorWidth) || !heightScaleFactor.Equals(ActiveUpscalingFactorHeight))
+        if (!widthScaleFactor.Equals(ActiveUpscalingFactor.x) || !heightScaleFactor.Equals(ActiveUpscalingFactor.y))
         {
-            ActiveUpscalingFactorWidth = widthScaleFactor;
-            ActiveUpscalingFactorHeight = heightScaleFactor;
-
-            if (!ActiveUpscalingFactorWidth.Equals(widthScaleFactor))
+            ActiveUpscalingFactor = new Vector2(widthScaleFactor, heightScaleFactor);
+            if (!ActiveUpscalingFactor.x.Equals(widthScaleFactor))
             {
                 Debug.LogWarning("The Width Scale Factor Provided is outside of the proper range. It has been" +
-                                 "clipped to: " + ActiveUpscalingFactorWidth);
-                widthScaleFactor = ActiveUpscalingFactorWidth;
+                                 "clipped to: " + ActiveUpscalingFactor.x);
+                widthScaleFactor = ActiveUpscalingFactor.x;
             }
 
-            if (!ActiveUpscalingFactorHeight.Equals(heightScaleFactor))
+            if (!ActiveUpscalingFactor.y.Equals(heightScaleFactor))
             {
                 Debug.LogWarning("The Height Scale Factor Provided is outside of the proper range. It has been" +
-                                 "clipped to: " + ActiveUpscalingFactorHeight);
-                heightScaleFactor = ActiveUpscalingFactorHeight;
+                                 "clipped to: " + ActiveUpscalingFactor.y);
+                heightScaleFactor = ActiveUpscalingFactor.y;
             }
 
-            if (ActiveQuality != Quality.DynamicManual)
+            if (ActiveQuality != Plugin.Quality.DynamicManual)
             {
                 Debug.LogWarning("Changing the upscaling factor manually only applies when the " +
                                  "Quality Mode is Dynamic Manual. The value has been changed but will have no effect.");
@@ -255,11 +234,11 @@ public class Upscaler : BackendUpscaler
         }
 
         // Get Proper Success Status and Set Internal Status to match
-        var stat = (upscaler == Mode.None) ? UpscalerStatus.NoUpscalerSet : UpscalerStatus.Success;
-        _internalStatus = stat;
+        var stat = upscaler == Plugin.Mode.None ? Plugin.UpscalerStatus.NoUpscalerSet : Plugin.UpscalerStatus.Success;
+        Status = stat;
 
         // Return some success status if no settings errors were encountered
-        return new(stat, "Upscaler Settings Updated Successfully");
+        return new Tuple<Plugin.UpscalerStatus, string>(stat, "Upscaler Settings Updated Successfully");
     }
 
     // If the program ever encounters some kind of error, this will be called
@@ -269,13 +248,13 @@ public class Upscaler : BackendUpscaler
     // If there's an error at all, revert to previous successful upscaler (if it exists, otherwise none)
     // Unrecoverable Error: Remove upscaler that was set from list of supported upscalers
     // In general, call the callback once during the frame (settings will update next frame)
-    private void InternalErrorHandler(UpscalerStatus reason, String message, bool resetTargets = false)
+    private void InternalErrorHandler(Plugin.UpscalerStatus reason, string message)
     {
         if (ErrorCallback == null)
         {
             Debug.LogError(message + "\nNo error callback. Reverting upscaling to None.");
-            upscaler = Mode.None;
-            ActiveMode = Mode.None;
+            upscaler = Plugin.Mode.None;
+            ActiveMode = Plugin.Mode.None;
         }
         else
         {
@@ -284,58 +263,29 @@ public class Upscaler : BackendUpscaler
             if (!ChangeInSettings())
             {
                 Debug.LogError(message + "\nError callback did not make any settings changes. Reverting Upscaling to None.");
-                upscaler = Mode.None;
-                ActiveMode = Mode.None;
+                upscaler = Plugin.Mode.None;
+                ActiveMode = Plugin.Mode.None;
             }
 
             var settingsChangeEffect = ValidateAndPushSettings();
-            if (settingsChangeEffect.Item1 > UpscalerStatus.NoUpscalerSet)
+            if (Plugin.Failure(settingsChangeEffect.Item1))
             {
                 Debug.LogError("Original Error:\n" + message + "\nCallback attempted to fix settings " +
                                "but failed. New Error:\n" + settingsChangeEffect.Item2);
-                upscaler = Mode.None;
-                ActiveMode = Mode.None;
+                upscaler = Plugin.Mode.None;
+                ActiveMode = Plugin.Mode.None;
             }
 
             Debug.LogError("Upscaler encountered an Error, but it was fixed by callback. Original Error:\n" + message);
         }
     }
 
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern UpscalerStatus Upscaler_SetSharpnessValue(float sharpness);
-
-    private delegate void InternalErrorCallback(IntPtr upscaler, UpscalerStatus error, IntPtr message);
-
-    [MonoPInvokeCallback(typeof(InternalErrorCallback))]
-    private static void InternalErrorCallbackWrapper(IntPtr upscaler, UpscalerStatus reason, IntPtr message)
+    [MonoPInvokeCallback(typeof(Plugin.InternalErrorCallback))]
+    private static void InternalErrorCallbackWrapper(IntPtr upscaler, Plugin.UpscalerStatus reason, IntPtr message)
     {
-        GCHandle handle = (GCHandle) upscaler;
+        var handle = (GCHandle) upscaler;
 
         (handle.Target as Upscaler)!.InternalErrorHandler(reason,
             "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
     }
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_SetErrorCallback(InternalErrorCallback cb);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern UpscalerStatus Upscaler_GetError(Mode mode);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern IntPtr Upscaler_GetErrorMessage(Mode mode);
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern UpscalerStatus Upscaler_GetCurrentError();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    protected static extern IntPtr Upscaler_GetCurrentErrorMessage();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_GetMinimumInputResolution();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern ulong Upscaler_GetMaximumInputResolution();
-
-    [DllImport("GfxPluginDLSSPlugin")]
-    private static extern void Upscaler_InitializePlugin(IntPtr upscalerObject, InternalErrorCallback errorCallback);
 }

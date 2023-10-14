@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 public abstract class RenderPipeline
 {
-    public abstract void RecordCommandBuffers(
+    public abstract void PrepareRendering(
         CommandBuffer setRenderingResolution,
         CommandBuffer upscale,
         Vector2 renderingResolution,
@@ -11,8 +11,6 @@ public abstract class RenderPipeline
         RenderTexture motionVectors,
         RenderTexture inputTarget,
         RenderTexture outputTarget,
-        Plugin.Upscaler upscaler
+        Plugin.Mode mode
     );
-
-    public abstract void BeforeCameraCulling();
 }
