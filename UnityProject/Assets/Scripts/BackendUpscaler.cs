@@ -19,21 +19,22 @@ public class BackendUpscaler : MonoBehaviour
 
     // Rendering Resolution
     private Vector2Int _optimalRenderingResolution;
+    protected Vector2Int MinimumDynamicRenderingResolution;
+    protected Vector2Int MaximumDynamicRenderingResolution;
     private Vector2Int RenderingResolution => UseDynamicResolution ? new Vector2Int((int)(UpscalingResolution.x * ScalableBufferManager.widthScaleFactor), (int)(UpscalingResolution.y * ScalableBufferManager.heightScaleFactor)) : _optimalRenderingResolution;
     private Vector2Int _lastRenderingResolution;
 
-    /*@todo Use a standardized form for the UpscalingFactor (>=1). */
-    protected Vector2 MinScale;
-    protected Vector2 MaxScale;
-    private Vector2 _activeUpscalingFactor = new(0.9F, 0.9F);
-    protected Vector2 ActiveUpscalingFactor
-    {
-        set => _activeUpscalingFactor = new Vector2(Math.Clamp(value.x, MinScale.x, MaxScale.x), Math.Clamp(value.y, MinScale.y, MaxScale.y));
-        get => _activeUpscalingFactor;
-    }
+    // Resolution scale
+    // Resolution scale attributes are only used when Dynamic Resolution Scaling is enabled.
+    /*@todo Use a standardized form for the UpscalingFactor (<=1). */
+    public Vector2 MinScaleFactor => (Vector2)MinimumDynamicRenderingResolution / UpscalingResolution;
+    public Vector2 MaxScaleFactor => (Vector2)MaximumDynamicRenderingResolution / UpscalingResolution;
+
+    // Automatic dynamic resolution scaling.
+    private static RefreshRate TargetFrameRate => new DisplayInfo().refreshRate;
 
     // HDR state
-    private bool HDRActive => Camera.allowHDR;
+    protected bool HDRActive => Camera.allowHDR;
     private bool _lastHDRActive;
 
     // RenderTextures
@@ -44,6 +45,7 @@ public class BackendUpscaler : MonoBehaviour
     // CommandBuffers
     private CommandBuffer _setRenderingResolution;
     private CommandBuffer _upscale;
+    private CommandBuffer _setDepthSize;
 
     // Internal Render Pipeline abstraction
     private RenderPipeline _renderPipeline;
@@ -65,33 +67,41 @@ public class BackendUpscaler : MonoBehaviour
     private GraphicsFormat ColorFormat => SystemInfo.GetGraphicsFormat(HDRActive ? DefaultFormat.HDR : DefaultFormat.LDR);
     private static GraphicsFormat DepthFormat => SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
 
+    private void ComputeUpscalingFactorFromGPUFrameTimes()
+    {
+        /*@todo Implement a PID to control the ActiveUpscalingFactor? Pro: Smoother resolution transitions - harder to notice change in resolution. Con: Slower to react - easier to notice change in framerate. */
+        var multiplier = Math.Clamp(0.01F, 100F, (float)TargetFrameRate.value / (float)new FrameTiming().gpuFrameTime);
+        ScalableBufferManager.ResizeBuffers(ScalableBufferManager.widthScaleFactor * multiplier, ScalableBufferManager.heightScaleFactor * multiplier);
+    }
+
     private bool ManageTargets()
     {
-        // Resize the buffers
-        if ((ActiveQuality == Plugin.Quality.DynamicAuto) | Camera.allowDynamicResolution)
-            /*@todo Enable automatic scaling based on GPU frame times if quality == DynamicAuto.*/
-            ScalableBufferManager.ResizeBuffers(ActiveUpscalingFactor.x, ActiveUpscalingFactor.y);
+        if (DUpscaler) Plugin.SetUpscaler(ActiveMode);
 
-        // Initialize any new upscaler
-        if (DUpscaler)
-            Plugin.SetUpscaler(ActiveMode);
-
-        if (DUpscalingResolution | DHDR | DQuality | DUpscaler && ActiveMode != Plugin.Mode.None)
+        if (ActiveQuality == Plugin.Quality.DynamicAuto | ActiveQuality == Plugin.Quality.DynamicManual)
         {
-            Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, HDRActive);
-            var size = Plugin.GetRecommendedInputResolution();
-            _optimalRenderingResolution = new Vector2Int((int)(size >> 32), (int)(size & 0xFFFFFFFF));
+            if (ActiveQuality == Plugin.Quality.DynamicAuto) ComputeUpscalingFactorFromGPUFrameTimes();
         }
+        else
+        {
+            if (DUpscalingResolution | DHDR | DQuality | DUpscaler && ActiveMode != Plugin.Mode.None)
+            {
+                Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, HDRActive);
+                var size = Plugin.GetRecommendedInputResolution();
+                _optimalRenderingResolution = new Vector2Int((int)(size >> 32), (int)(size & 0xFFFFFFFF));
+            }
+        }
+
+        Plugin.SetCurrentInputResolution((uint)RenderingResolution.x, (uint)RenderingResolution.y);
+
+        Jitter.Generate((Vector2)UpscalingResolution / RenderingResolution);
 
         if (DRenderingResolution | DUpscalingResolution)
             Debug.Log(RenderingResolution.x + "x" + RenderingResolution.y + " -> " + UpscalingResolution.x + "x" + UpscalingResolution.y);
 
-        Plugin.SetCurrentInputResolution((uint)RenderingResolution.x, (uint)RenderingResolution.y);
-        Jitter.Generate(RenderingResolution, ActiveUpscalingFactor);
-
         var imagesChanged = false;
 
-        if (DHDR | DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler)
+        if (DHDR | DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler | DQuality)
             imagesChanged |= ManageInColorTarget();
 
         if (DHDR | DUpscalingResolution | DUpscaler)
@@ -108,15 +118,13 @@ public class BackendUpscaler : MonoBehaviour
         _lastMode = ActiveMode;
         _lastQuality = ActiveQuality;
 
-        if (!imagesChanged)
-            return false;
+        if (imagesChanged)
+            Plugin.Prepare();
 
-        Plugin.Prepare();
-
-        return true;
+        return imagesChanged;
     }
 
-    bool ManageOutputTarget() {
+    private bool ManageOutputTarget() {
         var dTarget = false;
         if (_outputTarget != null && _outputTarget.IsCreated())
         {
@@ -125,23 +133,22 @@ public class BackendUpscaler : MonoBehaviour
             dTarget = true;
         }
 
-        if (ActiveMode != Plugin.Mode.None)
-        {
-            _outputTarget =
-                new RenderTexture(UpscalingResolution.x, UpscalingResolution.y, 0, ColorFormat)
-                {
-                    enableRandomWrite = true
-                };
-            _outputTarget.Create();
+        /*@todo If the camera's target is null, use Display.displays[Camera.targetDisplay].colorBuffer */
 
-            Plugin.SetOutputColor(_outputTarget.GetNativeTexturePtr(), _outputTarget.graphicsFormat);
-            dTarget = true;
-        }
+        if (ActiveMode == Plugin.Mode.None) return dTarget;
 
-        return dTarget;
+        _outputTarget =
+            new RenderTexture(UpscalingResolution.x, UpscalingResolution.y, 0, ColorFormat)
+            {
+                enableRandomWrite = true
+            };
+        _outputTarget.Create();
+
+        Plugin.SetOutputColor(_outputTarget.GetNativeTexturePtr(), _outputTarget.graphicsFormat);
+        return true;
     }
 
-    bool ManageMotionVectorTarget() {
+    private bool ManageMotionVectorTarget() {
         var dTarget = false;
         if (_motionVectorTarget != null && _motionVectorTarget.IsCreated())
         {
@@ -150,18 +157,16 @@ public class BackendUpscaler : MonoBehaviour
             dTarget = true;
         }
 
-        if (ActiveMode != Plugin.Mode.None)
-        {
-            _motionVectorTarget = new RenderTexture(UpscalingResolution.x, UpscalingResolution.y, 0, MotionFormat);
-            _motionVectorTarget.Create();
+        if (ActiveMode == Plugin.Mode.None) return dTarget;
 
-            Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
-            dTarget = true;
-        }
-        return dTarget;
+        _motionVectorTarget = new RenderTexture(UpscalingResolution.x, UpscalingResolution.y, 0, MotionFormat);
+        _motionVectorTarget.Create();
+
+        Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
+        return true;
     }
 
-    bool ManageInColorTarget()
+    private bool ManageInColorTarget()
     {
         var dTarget = false;
 
@@ -172,31 +177,28 @@ public class BackendUpscaler : MonoBehaviour
             dTarget = true;
         }
 
-        if (ActiveMode != Plugin.Mode.None)
-        {
-            var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
-            _inColorTarget =
-                new RenderTexture(scale.x, scale.y, ColorFormat, DepthFormat)
-                {
-                    filterMode = FilterMode.Point
-                };
-            _inColorTarget.Create();
+        if (ActiveMode == Plugin.Mode.None) return dTarget;
 
-            Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
-            Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
-            dTarget = true;
-        }
+        var scale = UseDynamicResolution ? UpscalingResolution : RenderingResolution;
+        _inColorTarget =
+            new RenderTexture(scale.x, scale.y, ColorFormat, DepthFormat)
+            {
+                filterMode = FilterMode.Point
+            };
+        _inColorTarget.Create();
 
-        return dTarget;
+        Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
+        Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
+        return true;
     }
 
     protected void BeforeCameraCulling()
     {
         if (ManageTargets()) Plugin.ResetHistory();
-        _renderPipeline.PrepareRendering(_setRenderingResolution, _upscale, RenderingResolution,
+        _renderPipeline.PrepareRendering(_setRenderingResolution, _setDepthSize, _upscale, RenderingResolution,
             UpscalingResolution, _motionVectorTarget, _inColorTarget, _outputTarget,
             ActiveMode);
-        if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera);
+        if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);
     }
 
     protected void OnEnable()
@@ -213,6 +215,8 @@ public class BackendUpscaler : MonoBehaviour
         // Set up command buffers
         _setRenderingResolution = new CommandBuffer();
         _setRenderingResolution.name = "Set Render Resolution";
+        _setDepthSize = new CommandBuffer();
+        _setDepthSize.name = "Set Depth Size";
         _upscale = new CommandBuffer();
         _upscale.name = "Upscale";
 
@@ -220,18 +224,12 @@ public class BackendUpscaler : MonoBehaviour
         Camera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, _setRenderingResolution);
         Camera.AddCommandBuffer(CameraEvent.BeforeSkybox, _setRenderingResolution);
 
+        // Camera.AddCommandBuffer(CameraEvent.BeforeLighting, _setDepthSize);
+
         Camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);
 
+        // Initialize the plugin
         Plugin.InitializePlugin();
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-            ActiveUpscalingFactor = new Vector2(ActiveUpscalingFactor.x + .1F, ActiveUpscalingFactor.y + .1F);
-
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-            ActiveUpscalingFactor = new Vector2(ActiveUpscalingFactor.x - .1F, ActiveUpscalingFactor.y - .1F);
     }
 
     protected void OnDisable()
@@ -246,6 +244,12 @@ public class BackendUpscaler : MonoBehaviour
             _setRenderingResolution.Release();
         }
 
+        // if (_setDepthSize != null)
+        // {
+        //     Camera.RemoveCommandBuffer(CameraEvent.BeforeLighting, _setDepthSize);
+        // }
+
+        // ReSharper disable once InvertIf
         if (_upscale != null)
         {
             Camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, _upscale);

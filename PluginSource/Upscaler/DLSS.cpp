@@ -194,10 +194,6 @@ Upscaler::Status DLSS::VulkanSetMotionVectors(void *nativeHandle, UnityRendering
       "`VK_NULL_HANDLE` view handle."
     ))) return getError();
 
-    Upscaler::Settings::Resolution maxRenderResolution =
-      (settings.quality == Upscaler::Settings::DYNAMIC_AUTO || settings.quality == Upscaler::Settings::DYNAMIC_MANUAL) ?
-      settings.dynamicMaximumInputResolution : settings.currentInputResolution;
-
     if (motion.vulkan != nullptr) {
         GraphicsAPI::get<Vulkan>()->destroyImageView(motion.vulkan->Resource.ImageViewInfo.ImageView);
         std::free(motion.vulkan);
@@ -218,8 +214,8 @@ Upscaler::Status DLSS::VulkanSetMotionVectors(void *nativeHandle, UnityRendering
             .layerCount     = 1,
           },
           .Format = format,
-          .Width  = maxRenderResolution.width,
-          .Height = maxRenderResolution.height,
+          .Width  = settings.outputResolution.width,
+          .Height = settings.outputResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -304,11 +300,8 @@ Upscaler::Status DLSS::VulkanEvaluate() {
         .Height = settings.currentInputResolution.height,
       },
       .InReset    = (int)settings.resetHistory,
-        // The DLSS docs say to run a whole complicated shader if generating motion vectors in a specific way.
-        // Instead of doing that we are scaling the resolution by (-.5F, .5F).
-        // This is the net change that the shader in the DLSS docs has.
-      .InMVScaleX = (float)settings.currentInputResolution.width * -0.5F,
-      .InMVScaleY = (float)settings.currentInputResolution.height * 0.5F,
+      .InMVScaleX = -(float)settings.currentInputResolution.width,
+      .InMVScaleY = -(float)settings.currentInputResolution.height,
     };
     // clang-format on
 
@@ -464,8 +457,8 @@ Upscaler::Status DLSS::DX12Evaluate() {
         .Width  = settings.currentInputResolution.width,
         .Height = settings.currentInputResolution.height,
       },
-      .InMVScaleX = (float)settings.outputResolution.width,
-      .InMVScaleY = (float)settings.outputResolution.height,
+      .InMVScaleX = -(float)settings.outputResolution.width,
+      .InMVScaleY = -(float)settings.outputResolution.height,
     };
     // clang-format on
 
@@ -596,8 +589,8 @@ Upscaler::Status DLSS::DX11Evaluate() {
         .Width  = settings.currentInputResolution.width,
         .Height = settings.currentInputResolution.height,
       },
-      .InMVScaleX = (float)settings.outputResolution.width,
-      .InMVScaleY = (float)settings.outputResolution.height,
+      .InMVScaleX = -(float)settings.outputResolution.width,
+      .InMVScaleY = -(float)settings.outputResolution.height,
     };
     // clang-format on
 
@@ -898,24 +891,23 @@ Upscaler::Settings DLSS::getOptimalSettings(Settings::Resolution t_outputResolut
     optimalSettings.HDR = t_HDR;
     optimalSettings.quality = t_quality;
 
-    if (failure(setError(NGX_DLSS_GET_OPTIMAL_SETTINGS(
-      parameters,
-      optimalSettings.outputResolution.width,
-      optimalSettings.outputResolution.height,
-      optimalSettings.getQuality<Upscaler::DLSS>(),
-      &optimalSettings.recommendedInputResolution.width,
-      &optimalSettings.recommendedInputResolution.height,
-      &optimalSettings.dynamicMaximumInputResolution.width,
-      &optimalSettings.dynamicMaximumInputResolution.height,
-      &optimalSettings.dynamicMinimumInputResolution.width,
-      &optimalSettings.dynamicMinimumInputResolution.height,
-      &optimalSettings.sharpness
-    ), "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the output resolution, sharpness is between 0F and 1F, and that the Quality setting is less than Ultra Quality."))) {
-        optimalSettings.recommendedInputResolution    = optimalSettings.outputResolution;
-        optimalSettings.dynamicMaximumInputResolution = optimalSettings.outputResolution;
-        optimalSettings.dynamicMinimumInputResolution = optimalSettings.outputResolution;
-        optimalSettings.sharpness                     = 0.F;
-    }
+    failure(setError(
+      NGX_DLSS_GET_OPTIMAL_SETTINGS(
+        parameters,
+        optimalSettings.outputResolution.width,
+        optimalSettings.outputResolution.height,
+        optimalSettings.getQuality<Upscaler::DLSS>(),
+        &optimalSettings.recommendedInputResolution.width,
+        &optimalSettings.recommendedInputResolution.height,
+        &optimalSettings.dynamicMaximumInputResolution.width,
+        &optimalSettings.dynamicMaximumInputResolution.height,
+        &optimalSettings.dynamicMinimumInputResolution.width,
+        &optimalSettings.dynamicMinimumInputResolution.height,
+        &optimalSettings.sharpness
+      ),
+      "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the"
+      "output resolution, sharpness is between 0F and 1F, and that the Quality setting is less than Ultra Quality."
+    ));
 
     return optimalSettings;
 }

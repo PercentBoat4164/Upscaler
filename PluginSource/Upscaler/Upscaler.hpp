@@ -109,8 +109,8 @@ public:
         };
 
         struct Resolution {
-            unsigned int width;
-            unsigned int height;
+            uint32_t width;
+            uint32_t height;
 
             [[nodiscard]] uint64_t asLong() const;
         };

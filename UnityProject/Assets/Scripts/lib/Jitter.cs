@@ -8,14 +8,10 @@ using UnityEngine;
 public static class Jitter {
     /// The recommended number of samples per pixel as given by the DLSS documentation
     private const uint SamplesPerPixel = 8;
-    /// The amount of upscaling to be applied (>= 1) on each axis.
-    private static Vector2 _upscalingFactor;
-    /// The computed length of _jitterSequence as given by `SamplesPerPixel * _upscalingFactor.x * _upscalingFactor.y`
-    private static uint SequenceLength => (uint)Math.Ceiling(SamplesPerPixel * _upscalingFactor.x * _upscalingFactor.y);
-    /// The resolution that Unity is rendering at.
-    private static Vector2 _renderingResolution;
+    /// The amount of upscaling to be applied (&lt;= 1) on each axis. Used to determine if the sequence is out-of-date.
+    private static Vector2 _lastUpscalingFactor;
     /// The array used to store all stages of the jitter sequence.
-    private static Vector2[] _jitterSequence;
+    private static Vector2[] _sequence;
     /// The index of the current jitter stage.
     private static long _sequencePosition;
 
@@ -25,13 +21,17 @@ public static class Jitter {
      * jitter amount on its x and y axes in clip space. The pixel space equivalent of that transformation is then sent
      * to the internal upscaler.
      * <param name="camera">The Camera to apply the jitter to.</param>
+     * <param name="renderingResolution">The resolution that Unity renders at.</param>
      */
-    public static void Apply(Camera camera)
+    public static void Apply(Camera camera, Vector2 renderingResolution)
     {
-        var pixelSpaceJitter = _jitterSequence[_sequencePosition++];
-        _sequencePosition %= _jitterSequence.Length;
+        if (_sequence.Length == 0) return;
+        if (_sequencePosition > _sequence.Length)
+            _sequencePosition = 0;
+        var pixelSpaceJitter = _sequence[_sequencePosition++];
+        _sequencePosition %= _sequence.Length;
         // Clip space jitter must be the negative of the pixel space jitter. Why?
-        var clipSpaceJitter = -pixelSpaceJitter / _renderingResolution * 2;
+        var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
         /*@todo Change this so that the camera is not reset just before rendering every frame. No reason to do this if we can just subtract the last frame's jitters.*/
         camera.ResetProjectionMatrix();
         var tempProj = camera.projectionMatrix;
@@ -44,37 +44,33 @@ public static class Jitter {
 
     /**
      *  Used to determine if the current pre-computed jitter sequence is out-of-date.
-     * <param name="renderingResolution">The resolution that Unity is rendering at.</param>
-     * <param name="upscalingFactor">The amount of upscaling to be applied (>= 1) on each axis.</param>
+     * <param name="upscalingFactor">The amount of upscaling to be applied (&lt;= 1) on each axis.</param>
      * <returns>`true` if the jitter sequence is out-of-date, `false` otherwise.</returns>
      */
-    private static bool ShouldRegenerate(Vector2 renderingResolution, Vector2 upscalingFactor)
+    private static bool ShouldRegenerate(Vector2 upscalingFactor)
     {
-        return renderingResolution != _renderingResolution | upscalingFactor != _upscalingFactor |
-               _jitterSequence == null;
+        return upscalingFactor != _lastUpscalingFactor | _sequence == null;
     }
 
     /**
      *  Generates the required jitter sequence for the given rendering resolution and scaling factor. The generation
      * only happens if it is determined that the current sequence is out-of-date.
-     * <param name="renderingResolution">The resolution that Unity is rendering at.</param>
-     * <param name="upscalingFactor">The amount of upscaling to be applied (>= 1) on each axis.</param>
+     * <param name="upscalingFactor">The amount of upscaling to be applied (&lt;= 1) on each axis.</param>
      */
-    public static void Generate(Vector2 renderingResolution, Vector2 upscalingFactor)
+    public static void Generate(Vector2 upscalingFactor)
     {
         // Abort early if the jitter sequence is not out-of-date
-        if (!ShouldRegenerate(renderingResolution, upscalingFactor)) return;
-        _renderingResolution = renderingResolution;
-        _upscalingFactor = upscalingFactor;
+        if (!ShouldRegenerate(upscalingFactor)) return;
+        _lastUpscalingFactor = upscalingFactor;
         /*@todo This could be sped up by not regenerating pre-existing samples and only generating the new ones.*/
-        _jitterSequence = new Vector2[SequenceLength];
+        _sequence = new Vector2[(uint)Math.Ceiling(SamplesPerPixel * upscalingFactor.x * upscalingFactor.y)];
         for (var i = 0; i < 2; i++)
         {
             var seqBase = i + 2; // Bases 2 and 3 for x and y
             var n = 0;
             var d = 1;
 
-            for (var index = 0; index < _jitterSequence.Length; index++)
+            for (var index = 0; index < _sequence.Length; index++)
             {
                 var x = d - n;
                 if (x == 1)
@@ -90,10 +86,9 @@ public static class Jitter {
                     n = (seqBase + 1) * y - x;
                 }
 
-                _jitterSequence[index][i] = (float)n / d - 0.5f;
+                _sequence[index][i] = (float)n / d - 0.5f;
             }
         }
-
         _sequencePosition = 0;
     }
 }

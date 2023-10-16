@@ -5,6 +5,7 @@ public abstract class RenderPipeline
 {
     public abstract void PrepareRendering(
         CommandBuffer setRenderingResolution,
+        CommandBuffer setDepthSize,
         CommandBuffer upscale,
         Vector2 renderingResolution,
         Vector2 upscalingResolution,

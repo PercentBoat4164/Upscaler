@@ -11,7 +11,7 @@ public class UpscalerEditor : Editor
     private GUIStyle _style;
     private Upscaler _upscalerObject; 
     private Plugin.UpscalerStatus _status;
-    private String _message;
+    private string _message;
     
     private void OnEnable()
     {
@@ -25,8 +25,6 @@ public class UpscalerEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        serializedObject.Update();
-
         EditorGUILayout.LabelField("Upscaler Settings");
 
         _upscalerObject = (Upscaler)serializedObject.targetObject;
@@ -62,13 +60,11 @@ public class UpscalerEditor : Editor
         {
             EditorGUI.indentLevel += 1;
             EditorGUILayout.Slider(_sharpnessVal, 0, 1, new GUIContent("Sharpness (Deprecated)"));
-            if (_upscalerObject.quality == Plugin.Quality.DynamicManual)
+            if (_upscalerObject.quality == Plugin.Quality.DynamicManual && _upscalerObject != null)
             {
-                EditorGUILayout.Slider(_widthScale, _upscalerObject.MinScaleFactor.x,
-                    _upscalerObject.MaxScaleFactor.x,
+                EditorGUILayout.Slider(_widthScale, _upscalerObject.MinScaleFactor.x, _upscalerObject.MaxScaleFactor.x,
                     new GUIContent("Width Scale Factor (Render Width / Output Width)"));
-                EditorGUILayout.Slider(_heightScale, _upscalerObject.MinScaleFactor.y,
-                    _upscalerObject.MaxScaleFactor.y,
+                EditorGUILayout.Slider(_heightScale, _upscalerObject.MinScaleFactor.y, _upscalerObject.MaxScaleFactor.y,
                     new GUIContent("Height Scale Factor (Render height / Output Height)"));
             }
             EditorGUI.indentLevel -= 1;

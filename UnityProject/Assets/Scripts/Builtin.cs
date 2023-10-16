@@ -5,6 +5,7 @@ public class Builtin : RenderPipeline
 {
     public override void PrepareRendering(
         CommandBuffer setRenderingResolution,
+        CommandBuffer setDepthSize,
         CommandBuffer upscale,
         Vector2 renderingResolution,
         Vector2 upscalingResolution,
@@ -14,11 +15,15 @@ public class Builtin : RenderPipeline
         Plugin.Mode mode
     ) {
         setRenderingResolution.Clear();
+        setDepthSize.Clear();
         upscale.Clear();
 
         if (mode == Plugin.Mode.None) return;
 
         setRenderingResolution.SetViewport(new Rect(0, 0, renderingResolution.x, renderingResolution.y));
+
+        // TexMan.BlitToDepthTexture(setDepthSize, inputTarget, renderingResolution / upscalingResolution);
+        // TexMan.BlitToCameraDepth(setDepthSize, inputTarget);
 
         /*@todo Fix shadows when using the deferred rendering path. */
         /*@todo Use the full resolution depth buffers when using the forward rendering path. */
