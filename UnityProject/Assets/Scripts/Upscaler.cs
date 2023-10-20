@@ -73,7 +73,7 @@ public class Upscaler : BackendUpscaler
         Plugin.InitializePlugin((IntPtr) handle, InternalErrorCallbackWrapper);
 
         // Initialize resolutions and scaling factors.
-        Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, HDRActive);
+        Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, ActiveHDR);
         var inputResolution = Plugin.GetMaximumInputResolution();
         MaximumDynamicRenderingResolution = new Vector2Int((int)(inputResolution >> 32), (int)(inputResolution & 0xFFFFFFFF));
         inputResolution = Plugin.GetMinimumInputResolution();
@@ -87,12 +87,6 @@ public class Upscaler : BackendUpscaler
             ).ToList();
 
         SupportedUpscalingModes = tempList.AsReadOnly();
-    }
-
-    /*@todo Determine if I am necessary. */
-    private new void OnDisable()
-    {
-        base.OnDisable();
     }
 
     /// Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
@@ -192,8 +186,7 @@ public class Upscaler : BackendUpscaler
         var settingsError = Plugin.GetError(upscaler);
         if (Plugin.Failure(settingsError))
         {
-            errorMsg += "Invalid Upscaler: " +
-                        Marshal.PtrToStringAuto(Plugin.GetErrorMessage(upscaler)) + "\n";
+            errorMsg += "Invalid Upscaler: " + Marshal.PtrToStringAuto(Plugin.GetErrorMessage(upscaler)) + "\n";
             Status = settingsError;
             return new Tuple<Plugin.UpscalerStatus, string>(settingsError, errorMsg);
         }
@@ -210,7 +203,7 @@ public class Upscaler : BackendUpscaler
             else
             {
                 _lastSharpness = sharpness;
-                Plugin.SetSharpnessValue(_lastSharpness);
+                Plugin.SetSharpnessValue(sharpness);
             }
         }
 
@@ -292,6 +285,6 @@ public class Upscaler : BackendUpscaler
         var handle = (GCHandle) upscaler;
 
         (handle.Target as Upscaler)!.InternalErrorHandler(reason,
-            "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
+            "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAuto(message) + "\n");
     }
 }

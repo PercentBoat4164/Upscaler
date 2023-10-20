@@ -95,14 +95,17 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
                                   Upscaler_SetSharpnessValue(float t_sharpness) {
     bool tooSmall = t_sharpness < 0.0;
     bool tooBig   = t_sharpness > 1.0;
-    return Upscaler::get()->setErrorIf(
+    if (Upscaler::success(Upscaler::get()->setErrorIf(
       tooSmall || tooBig,
       Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
       std::string(
         tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small."
       ) +
         " The given sharpness value (" + std::to_string(t_sharpness) + ") must be greater than 0 but less than 1."
-    );
+    ))) {
+        Upscaler::settings.sharpness = t_sharpness;
+    }
+    return Upscaler::get()->getError();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API

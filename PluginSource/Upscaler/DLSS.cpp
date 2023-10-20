@@ -855,7 +855,7 @@ Upscaler::Status DLSS::createFeature() {
       },
       .InFeatureCreateFlags = static_cast<int>(
         NVSDK_NGX_DLSS_Feature_Flags_MVJittered | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
-        (settings.sharpness > 0 ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
+        (settings.sharpness > 0F ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
         (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)
       ),
