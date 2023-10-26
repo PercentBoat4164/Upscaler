@@ -14,7 +14,7 @@ public class BackendUpscaler : MonoBehaviour
     private bool _lastUseDynamicResolution;
 
     // Upscaling Resolution
-    protected Vector2Int UpscalingResolution => new(Camera.targetTexture != null ? Camera.targetTexture.width : Camera.pixelWidth, Camera.targetTexture != null ? Camera.targetTexture.height : Camera.pixelHeight);
+    protected Vector2Int UpscalingResolution => Camera.targetTexture != null ? new Vector2Int(Camera.targetTexture.width, Camera.targetTexture.height) : new Vector2Int(Camera.pixelWidth, Camera.pixelHeight);
     private Vector2Int _lastUpscalingResolution;
 
     // Rendering Resolution
@@ -88,11 +88,11 @@ public class BackendUpscaler : MonoBehaviour
         if (DHDR | DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageInColorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
-        if (DHDR | DUpscalingResolution | DUpscaler)
+        if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageOutputTarget(ActiveMode, UpscalingResolution);
 
-        if (DUpscalingResolution | DUpscaler)
-            imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UpscalingResolution);
+        if (DUpscalingResolution | DUpscaler | DQuality)
+            imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
         // Do not look at this. It is very pretty, I assure you.
         _lastHDRActive = ActiveHDR;
@@ -106,13 +106,6 @@ public class BackendUpscaler : MonoBehaviour
             Plugin.Prepare();
 
         return imagesChanged;
-    }
-
-    protected void BeforeCameraCulling()
-    {
-        if (ManageTargets()) Plugin.ResetHistory();
-        _renderPipeline.PrepareRendering(RenderingResolution, UpscalingResolution, ActiveMode);
-        if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);
     }
 
     protected void OnEnable()
@@ -130,6 +123,23 @@ public class BackendUpscaler : MonoBehaviour
 
         // Initialize the plugin
         Plugin.InitializePlugin();
+    }
+
+    protected void OnPreCull()
+    {
+        if (ManageTargets()) Plugin.ResetHistory();
+        if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);
+    }
+
+    protected void OnPreRender()
+    {
+        if (ActiveMode != Plugin.Mode.None)
+            ((Builtin)_renderPipeline).PrepareRendering(RenderingResolution, UpscalingResolution, ActiveMode);
+    }
+
+    protected void OnPostRender()
+    {
+        if (ActiveMode != Plugin.Mode.None) ((Builtin)_renderPipeline).Upscale();
     }
 
     protected void OnDisable()

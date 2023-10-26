@@ -200,6 +200,10 @@ Upscaler::Status DLSS::VulkanSetMotionVectors(void *nativeHandle, UnityRendering
         motion.vulkan = nullptr;
     }
 
+    Upscaler::Settings::Resolution maxRenderResolution =
+      (settings.quality == Upscaler::Settings::DYNAMIC_AUTO || settings.quality == Upscaler::Settings::DYNAMIC_MANUAL) ?
+      settings.dynamicMaximumInputResolution : settings.currentInputResolution;
+
     // clang-format off
     motion.vulkan = new NVSDK_NGX_Resource_VK {
       .Resource = {
@@ -214,8 +218,8 @@ Upscaler::Status DLSS::VulkanSetMotionVectors(void *nativeHandle, UnityRendering
             .layerCount     = 1,
           },
           .Format = format,
-          .Width  = settings.outputResolution.width,
-          .Height = settings.outputResolution.height,
+          .Width  = maxRenderResolution.width,
+          .Height = maxRenderResolution.height,
         },
       },
       .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
@@ -302,6 +306,9 @@ Upscaler::Status DLSS::VulkanEvaluate() {
       .InReset    = (int)settings.resetHistory,
       .InMVScaleX = -(float)settings.currentInputResolution.width,
       .InMVScaleY = -(float)settings.currentInputResolution.height,
+#ifndef NDEBUG
+      .InIndicatorInvertYAxis = 1,
+#endif
     };
     // clang-format on
 
@@ -854,8 +861,9 @@ Upscaler::Status DLSS::createFeature() {
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
       .InFeatureCreateFlags = static_cast<int>(
-        NVSDK_NGX_DLSS_Feature_Flags_MVJittered | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
-        (settings.sharpness > 0F ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
+        NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_MVJittered |
+        NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
+        (settings.sharpness > 0.0F ? NVSDK_NGX_DLSS_Feature_Flags_DoSharpening : 0U) |
         (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U) |
         (settings.autoExposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0U)
       ),

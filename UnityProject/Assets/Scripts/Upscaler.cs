@@ -91,7 +91,7 @@ public class Upscaler : BackendUpscaler
 
     /// Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
     /// Real OnPreCull Actions from Backend
-    private void OnPreCull()
+    private new void OnPreCull()
     {
         if (ChangeInSettings())
         {
@@ -155,7 +155,7 @@ public class Upscaler : BackendUpscaler
             }
         }
 
-        BeforeCameraCulling();
+        base.OnPreCull();
     }
 
     /// Shows if Settings have Changed since Last Checked
@@ -186,7 +186,7 @@ public class Upscaler : BackendUpscaler
         var settingsError = Plugin.GetError(upscaler);
         if (Plugin.Failure(settingsError))
         {
-            errorMsg += "Invalid Upscaler: " + Marshal.PtrToStringAuto(Plugin.GetErrorMessage(upscaler)) + "\n";
+            errorMsg += "Invalid Upscaler: " + Marshal.PtrToStringAnsi(Plugin.GetErrorMessage(upscaler)) + "\n";
             Status = settingsError;
             return new Tuple<Plugin.UpscalerStatus, string>(settingsError, errorMsg);
         }
@@ -285,6 +285,6 @@ public class Upscaler : BackendUpscaler
         var handle = (GCHandle) upscaler;
 
         (handle.Target as Upscaler)!.InternalErrorHandler(reason,
-            "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAuto(message) + "\n");
+            "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
     }
 }
