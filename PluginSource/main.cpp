@@ -10,7 +10,8 @@
 #include <IUnityInterface.h>
 #include <IUnityRenderingExtensions.h>
 
-// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals on Linux.
+// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GCC on Linux.
+// Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
 namespace Unity {
 IUnityGraphics *graphicsInterface;
@@ -51,7 +52,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
                                   Upscaler_GetError(Upscaler::Type type) {
-    return Upscaler::get(type)->getError();
+    return Upscaler::get(type)->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
@@ -59,7 +60,7 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetEr
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetCurrentError() {
-    return Upscaler::get()->getError();
+    return Upscaler::get()->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
@@ -74,7 +75,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 ) {
     Upscaler                *upscaler = Upscaler::get();
     Upscaler::Settings       settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
-    Upscaler::Status         status   = upscaler->getError();
+    Upscaler::Status         status   = upscaler->getStatus();
     if (status == Upscaler::SUCCESS) Upscaler::settings = settings;
     return status;
 }
@@ -95,24 +96,25 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
                                   Upscaler_SetSharpnessValue(float t_sharpness) {
     bool tooSmall = t_sharpness < 0.0;
     bool tooBig   = t_sharpness > 1.0;
-    if (Upscaler::success(Upscaler::get()->setErrorIf(
-      tooSmall || tooBig,
-      Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
-      std::string(
-        tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small."
-      ) +
-        " The given sharpness value (" + std::to_string(t_sharpness) + ") must be greater than 0 but less than 1."
-    ))) {
+    if (Upscaler::success(Upscaler::get()->setStatusIf(
+          tooSmall || tooBig,
+          Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
+          std::string(
+            tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small."
+          ) +
+            " The given sharpness value (" + std::to_string(t_sharpness) +
+            ") must be greater than 0 but less than 1."
+        ))) {
         Upscaler::settings.sharpness = t_sharpness;
     }
-    return Upscaler::get()->getError();
+    return Upscaler::get()->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
                                   Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
     bool      safeToContinue{true};
     Upscaler *upscaler{Upscaler::get()};
-    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
       t_width > Upscaler::settings.dynamicMaximumInputResolution.width,
       Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
       "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
@@ -121,7 +123,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
         std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
         ") for the given output resolution."
     ));
-    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
       t_width < Upscaler::settings.dynamicMinimumInputResolution.width,
       Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
       "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
@@ -130,7 +132,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
         std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +
         ") for the given output resolution."
     ));
-    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
       t_height > Upscaler::settings.dynamicMaximumInputResolution.height,
       Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
       "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
@@ -139,7 +141,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
         std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
         ") for the given output resolution."
     ));
-    safeToContinue &= Upscaler::success(upscaler->setErrorIf(
+    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
       t_height < Upscaler::settings.dynamicMinimumInputResolution.height,
       Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
       "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
@@ -149,7 +151,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
         ") for the given output resolution."
     ));
     if (safeToContinue) Upscaler::settings.currentInputResolution = {t_width, t_height};
-    return upscaler->getError();
+    return upscaler->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {

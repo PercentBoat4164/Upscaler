@@ -2,7 +2,7 @@
 
 NoUpscaler *NoUpscaler::get() {
     NoUpscaler *noUpscaler{new NoUpscaler};
-    noUpscaler->setError(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
+    noUpscaler->setStatus(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
     return noUpscaler;
 }
 

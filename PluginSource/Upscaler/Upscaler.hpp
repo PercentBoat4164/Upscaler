@@ -51,9 +51,9 @@ public:
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET,
-        /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
+        /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
-        /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
+        /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -76,7 +76,7 @@ public:
 protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /* unused */) {
-        return SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR;
+        return UNKNOWN_ERROR;
     };
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
@@ -87,7 +87,7 @@ private:
     static void(*errorCallback)(void *, Upscaler::Status, const char *);
     static void *userData;
     static Upscaler *upscalerInUse;
-    Status           error{SUCCESS};
+    Status           status{SUCCESS};
     std::string      detailedErrorMessage{};
 
 public:
@@ -184,20 +184,20 @@ public:
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
     static auto setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *);
 
-    /// Returns the current error.
-    Status getError();
+    /// Returns the current status.
+    Status getStatus();
 
-    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
-    /// Returns the current error.
-    Status setError(Status, std::string);
+    /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
+    /// Returns the current status.
+    Status setStatus(Status, std::string);
 
-    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
-    /// to clear the current error. Returns the current error
-    Status setErrorIf(bool, Status, std::string);
+    /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use resetStatus
+    /// to clear the current status. Returns the current status
+    Status setStatusIf(bool, Status, std::string);
 
-    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
-    /// error has been cleared.
-    bool resetError();
+    /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
+    /// status has been cleared.
+    bool         resetStatus();
     std::string &getErrorMessage();
 
     virtual Type getType() = 0;

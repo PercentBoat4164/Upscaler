@@ -151,8 +151,8 @@ private:
 
     DLSS() = default;
 
-    /// Sets current error to the error represented by t_error if there is no current error. Use resetError to
-    /// clear the current error.
+    /// Sets current status to the status represented by t_error if there is no current status. Use resetStatus to
+    /// clear the current status.
     Status setError(NVSDK_NGX_Result, std::string);
 
 public:

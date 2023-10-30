@@ -90,72 +90,72 @@ public static class Plugin
 
     public delegate void InternalErrorCallback(IntPtr data, UpscalerStatus er, IntPtr p);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetError")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetError")]
     public static extern UpscalerStatus GetError(Mode mode);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetErrorMessage")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetErrorMessage")]
     public static extern IntPtr GetErrorMessage(Mode mode);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetCurrentError")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCurrentError")]
     public static extern UpscalerStatus GetCurrentError();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetCurrentErrorMessage")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCurrentErrorMessage")]
     public static extern IntPtr GetCurrentErrorMessage();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_ResetHistory")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetHistory")]
     public static extern void ResetHistory();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetDepthBuffer")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetDepthBuffer")]
     public static extern void SetDepthBuffer(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetInputColor")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetInputColor")]
     public static extern void SetInputColor(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetMotionVectors")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetMotionVectors")]
     public static extern void SetMotionVectors(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetOutputColor")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetOutputColor")]
     public static extern void SetOutputColor(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_InitializePlugin")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
     public static extern void InitializePlugin();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetUpscaler")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscaler")]
     public static extern UpscalerStatus SetUpscaler(Mode mode);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetFramebufferSettings")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFramebufferSettings")]
     public static extern UpscalerStatus SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetRecommendedInputResolution")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedInputResolution")]
     public static extern ulong GetRecommendedInputResolution();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetMinimumInputResolution")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumInputResolution")]
     public static extern ulong GetMinimumInputResolution();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetMaximumInputResolution")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumInputResolution")]
     public static extern ulong GetMaximumInputResolution();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetSharpnessValue")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetSharpnessValue")]
     public static extern UpscalerStatus SetSharpnessValue(float sharpness);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetCurrentInputResolution")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCurrentInputResolution")]
     public static extern UpscalerStatus SetCurrentInputResolution(uint width, uint height);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_Prepare")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Prepare")]
     public static extern UpscalerStatus Prepare();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_Shutdown")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Shutdown")]
     public static extern void Shutdown();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_ShutdownPlugin")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ShutdownPlugin")]
     public static extern void ShutdownPlugin();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_GetRenderingEventCallback")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRenderingEventCallback")]
     public static extern IntPtr GetRenderingEventCallback();
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_SetJitterInformation")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetJitterInformation")]
     public static extern void SetJitterInformation(float x, float y);
 
-    [DllImport("GfxPluginDLSSPlugin", EntryPoint = "Upscaler_InitializePlugin")]
+    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
     public static extern void InitializePlugin(IntPtr upscalerObject, InternalErrorCallback errorCallback);
 }

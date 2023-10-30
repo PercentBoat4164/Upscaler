@@ -55,7 +55,7 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
 std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     std::vector<Upscaler *> upscalers;
     for (Upscaler *upscaler : getAllUpscalers())
-        if (upscaler->getError() == SUCCESS) upscalers.push_back(upscaler);
+        if (upscaler->getStatus() == SUCCESS) upscalers.push_back(upscaler);
     return upscalers;
 }
 
@@ -79,30 +79,30 @@ auto Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upsc
     return oldCallback;
 }
 
-Upscaler::Status Upscaler::getError() {
-    return error;
+Upscaler::Status Upscaler::getStatus() {
+    return status;
 }
 
-Upscaler::Status Upscaler::setError(Upscaler::Status t_error, std::string t_msg) {
-    if (success(error)) error = t_error;
+Upscaler::Status Upscaler::setStatus(Upscaler::Status t_error, std::string t_msg) {
+    if (success(status)) status = t_error;
     if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
-    if (failure(error) && errorCallback != nullptr) errorCallback(userData,error, detailedErrorMessage.c_str());
-    return error;
+    if (failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
+    return status;
 }
 
-Upscaler::Status Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
-    if (success(error) && t_shouldApplyError) error = t_error;
+Upscaler::Status Upscaler::setStatusIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
+    if (success(status) && t_shouldApplyError) status = t_error;
     if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && failure(error) && errorCallback != nullptr) errorCallback(userData, error, detailedErrorMessage.c_str());
-    return error;
+    if (t_shouldApplyError && failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
+    return status;
 }
 
-bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U) {
-        error = SUCCESS;
+bool Upscaler::resetStatus() {
+    if ((status & ERROR_RECOVERABLE) != 0U) {
+        status = SUCCESS;
         detailedErrorMessage.clear();
     }
-    return error == SUCCESS;
+    return status == SUCCESS;
 }
 
 std::string &Upscaler::getErrorMessage() {
@@ -110,8 +110,8 @@ std::string &Upscaler::getErrorMessage() {
 }
 
 Upscaler::Status Upscaler::shutdown() {
-    if (error != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && error != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
-        error                = SUCCESS;
+    if (status != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && status != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
+        status               = SUCCESS;
         detailedErrorMessage = "";
     }
     initialized = false;
