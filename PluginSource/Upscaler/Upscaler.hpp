@@ -51,9 +51,9 @@ public:
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET,
-        /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
+        /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
-        /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
+        /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -76,7 +76,7 @@ public:
 protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /* unused */) {
-        return SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR;
+        return UNKNOWN_ERROR;
     };
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
@@ -84,9 +84,10 @@ protected:
     bool initialized{false};
 
 private:
-    static void(*errorCallback)(Upscaler::Status, const char *);
+    static void(*errorCallback)(void *, Upscaler::Status, const char *);
+    static void *userData;
     static Upscaler *upscalerInUse;
-    Status           error{SUCCESS};
+    Status           status{SUCCESS};
     std::string      detailedErrorMessage{};
 
 public:
@@ -108,8 +109,8 @@ public:
         };
 
         struct Resolution {
-            unsigned int width;
-            unsigned int height;
+            uint32_t width;
+            uint32_t height;
 
             [[nodiscard]] uint64_t asLong() const;
         };
@@ -168,11 +169,8 @@ public:
     }
 
     static Upscaler *get(Type upscaler);
-
     static Upscaler *get();
-
     static std::vector<Upscaler *> getAllUpscalers();
-
     static std::vector<Upscaler *> getUpscalersWithoutErrors();
 
     template<typename T>
@@ -182,60 +180,39 @@ public:
     }
 
     static void set(Type upscaler);
-
     static void set(Upscaler *upscaler);
-
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
+    static auto setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *);
 
-    static auto setErrorCallback(void(*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *);
+    /// Returns the current status.
+    Status getStatus();
 
-    /// Returns the current error.
-    Status getError();
+    /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
+    /// Returns the current status.
+    Status setStatus(Status, std::string);
 
-    /// Sets current error to t_error if there is no current error. Use resetError to clear the current error.
-    /// Returns the current error.
-    Status setError(Status, std::string);
+    /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use resetStatus
+    /// to clear the current status. Returns the current status
+    Status setStatusIf(bool, Status, std::string);
 
-    /// Sets current error to t_error if t_shouldApplyError == true AND there is no current error. Use resetError
-    /// to clear the current error. Returns the current error
-    Status setErrorIf(bool, Status, std::string);
-
-    /// Returns false and does not modify the error if the current error is non-recoverable. Returns true if the
-    /// error has been cleared.
-    bool resetError();
-
+    /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
+    /// status has been cleared.
+    bool         resetStatus();
     std::string &getErrorMessage();
 
     virtual Type getType() = 0;
-
     virtual std::string getName() = 0;
-
     virtual std::vector<std::string> getRequiredVulkanInstanceExtensions() = 0;
-
     virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
-
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
-
     virtual Status initialize() = 0;
-
     virtual Status createFeature() = 0;
-
-    virtual Status setImageResources(
-      void                          *nativeDepthBuffer,
-      UnityRenderingExtTextureFormat unityDepthFormat,
-      void                          *nativeMotionVectors,
-      UnityRenderingExtTextureFormat unityMotionVectorFormat,
-      void                          *nativeInColor,
-      UnityRenderingExtTextureFormat unityInColorFormat,
-      void                          *nativeOutColor,
-      UnityRenderingExtTextureFormat unityOutColorFormat
-    ) = 0;
-
+    virtual Upscaler::Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Upscaler::Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Upscaler::Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Upscaler::Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status evaluate() = 0;
-
     virtual Status releaseFeature() = 0;
-
     virtual Status shutdown();
-
     virtual ~Upscaler() = default;
 };

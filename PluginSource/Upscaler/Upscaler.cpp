@@ -4,7 +4,8 @@
 #include "NoUpscaler.hpp"
 
 #include <utility>
-void(*Upscaler::errorCallback)(Upscaler::Status, const char *){nullptr};
+void(*Upscaler::errorCallback)(void *, Upscaler::Status, const char *){nullptr};
+void *Upscaler::userData{nullptr};
 Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
 
@@ -54,7 +55,7 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
 std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     std::vector<Upscaler *> upscalers;
     for (Upscaler *upscaler : getAllUpscalers())
-        if (upscaler->getError() == SUCCESS) upscalers.push_back(upscaler);
+        if (upscaler->getStatus() == SUCCESS) upscalers.push_back(upscaler);
     return upscalers;
 }
 
@@ -70,40 +71,38 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-auto Upscaler::setErrorCallback(void (*t_errorCallback)(Upscaler::Status, const char *)) -> void(*)(Upscaler::Status, const char *) {
-    void(*oldCallback)(Upscaler::Status, const char *) = errorCallback;
+auto Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *) {
+    void(*oldCallback)(void *, Upscaler::Status, const char *) = errorCallback;
     errorCallback = t_errorCallback;
+    if (data != nullptr)
+        userData = data;
     return oldCallback;
 }
 
-Upscaler::Status Upscaler::getError() {
-    return error;
+Upscaler::Status Upscaler::getStatus() {
+    return status;
 }
 
-Upscaler::Status Upscaler::setError(Upscaler::Status t_error, std::string t_msg) {
-    if (success(error)) error = t_error;
-    if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
-    if (failure(error) && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
-    return error;
+Upscaler::Status Upscaler::setStatus(Upscaler::Status t_error, std::string t_msg) {
+    if (success(status)) status = t_error;
+    if (detailedErrorMessage.empty() && failure(status)) detailedErrorMessage = std::move(t_msg);
+    if (failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
+    return status;
 }
 
-Upscaler::Status Upscaler::setErrorIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
-    if (success(error) && t_shouldApplyError) error = t_error;
-    if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && errorCallback != nullptr) {
-        errorCallback(error, detailedErrorMessage.c_str());
-    }
-    return error;
+Upscaler::Status Upscaler::setStatusIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
+    if (success(status) && t_shouldApplyError) status = t_error;
+    if (detailedErrorMessage.empty() && failure(status)) detailedErrorMessage = std::move(t_msg);
+    if (t_shouldApplyError && failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
+    return status;
 }
 
-bool Upscaler::resetError() {
-    if ((error & ERROR_RECOVERABLE) != 0U) {
-        error = SUCCESS;
+bool Upscaler::resetStatus() {
+    if ((status & ERROR_RECOVERABLE) != 0U) {
+        status = SUCCESS;
         detailedErrorMessage.clear();
     }
-    return error == SUCCESS;
+    return status == SUCCESS;
 }
 
 std::string &Upscaler::getErrorMessage() {
@@ -111,8 +110,8 @@ std::string &Upscaler::getErrorMessage() {
 }
 
 Upscaler::Status Upscaler::shutdown() {
-    if (error != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && error != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
-        error                = SUCCESS;
+    if (status != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && status != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
+        status               = SUCCESS;
         detailedErrorMessage = "";
     }
     initialized = false;

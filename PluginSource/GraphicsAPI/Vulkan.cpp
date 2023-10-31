@@ -169,7 +169,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
   const VkAllocationCallbacks *pAllocator,
   VkInstance                  *pInstance
 ) {
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->resetError();
+    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->resetStatus();
 
     VkInstanceCreateInfo createInfo = *pCreateInfo;
 
@@ -204,7 +204,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (Upscaler::success(upscaler->setErrorIf(
+        if (Upscaler::success(upscaler->setStatusIf(
               supportedRequestedExtensionCount != requestedExtensions.size(),
               Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
               ""
@@ -236,8 +236,8 @@ VkResult Vulkan::Hook_vkCreateInstance(
         GraphicsAPI::get<Vulkan>()->instance = *pInstance;
         i                                    = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            upscaler->setErrorIf(
-              upscaler->getError() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
+            upscaler->setStatusIf(
+              upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
               Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
               "The Vulkan instance extensions [" + unsupportedExtensions[i++] + "] required by " +
                 upscaler->getName() + " are not supported. A graphics driver update might help."
@@ -304,7 +304,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
                 unsupportedExtensions[i] += " " + requestedExtension;
         }
         // If all extensions that were requested in this extension group are supported, then enable them.
-        if (Upscaler::success(upscaler->setErrorIf(
+        if (Upscaler::success(upscaler->setStatusIf(
               supportedRequestedExtensionCount != requestedExtensions.size(),
               Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               ""
@@ -336,8 +336,8 @@ VkResult Vulkan::Hook_vkCreateDevice(
         GraphicsAPI::get<Vulkan>()->device = *pDevice;
         i                                  = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
-            upscaler->setErrorIf(
-              upscaler->getError() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
+            upscaler->setStatusIf(
+              upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               "The Vulkan device extensions [" + unsupportedExtensions[i++] + "] required by " +
                 upscaler->getName() + " are not supported. The selected graphics device may not support " +
@@ -401,7 +401,7 @@ Vulkan *Vulkan::get() {
     return vulkan;
 }
 
-VkImageView Vulkan::get2DImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
+VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) {
     // clang-format off
     VkImageViewCreateInfo createInfo{
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,

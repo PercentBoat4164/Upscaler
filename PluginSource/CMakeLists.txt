@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(DLSSPlugin)
+project(Upscaler)
 
 set(CMAKE_CXX_STANDARD 23)
 set(BUILD_SHARED_LIBS ON)
@@ -38,9 +38,9 @@ if (ENABLE_DLSS)
     cmake_path(SET DLSS_DIR "${CMAKE_SOURCE_DIR}/nvngx_dlss_sdk")
     cmake_path(SET PLUGINS_DIR "${CMAKE_SOURCE_DIR}/../UnityProject/Assets/Plugins")
     if (WIN32)
-        cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/GfxPluginDLSSPlugin.dll")
+        cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll")
     elseif (UNIX AND NOT APPLE)
-        cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/libGfxPluginDLSSPlugin.so")
+        cmake_path(SET PLUGIN_FILE "${CMAKE_BINARY_DIR}/libGfxPluginUpscaler.so")
     endif ()
 endif ()
 
@@ -155,7 +155,7 @@ if (ENABLE_DLSS)
 endif ()
 
 # Add library and link Unity files
-add_library(GfxPluginDLSSPlugin main.cpp
+add_library(GfxPluginUpscaler main.cpp
         ${DLSS_SOURCES}
         ${DX11_SOURCES}
         ${DX12_SOURCES}
@@ -165,33 +165,33 @@ add_library(GfxPluginDLSSPlugin main.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
 )
-target_include_directories(GfxPluginDLSSPlugin PUBLIC ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
+target_include_directories(GfxPluginUpscaler PUBLIC ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 
 # Link selected graphics APIs
 if (ENABLE_VULKAN)
-    target_include_directories(GfxPluginDLSSPlugin PUBLIC ${Vulkan_INCLUDE_DIR})
+    target_include_directories(GfxPluginUpscaler PUBLIC ${Vulkan_INCLUDE_DIR})
 endif ()
 
 # Link selected upscaler libraries
 if (ENABLE_DLSS)
-    target_link_libraries(GfxPluginDLSSPlugin ngx)
+    target_link_libraries(GfxPluginUpscaler ngx)
 endif ()
 
 # Add compile definitions for selected graphics APIs
 if (ENABLE_VULKAN)
-    target_compile_definitions(GfxPluginDLSSPlugin PUBLIC ENABLE_VULKAN=${ENABLE_VULKAN})
+    target_compile_definitions(GfxPluginUpscaler PUBLIC ENABLE_VULKAN=${ENABLE_VULKAN})
 endif ()
 if (ENABLE_DX12)
-    target_compile_definitions(GfxPluginDLSSPlugin PUBLIC ENABLE_DX12=${ENABLE_DX12})
+    target_compile_definitions(GfxPluginUpscaler PUBLIC ENABLE_DX12=${ENABLE_DX12})
 endif ()
 if (ENABLE_DX11)
-    target_compile_definitions(GfxPluginDLSSPlugin PUBLIC ENABLE_DX11=${ENABLE_DX11})
+    target_compile_definitions(GfxPluginUpscaler PUBLIC ENABLE_DX11=${ENABLE_DX11})
 endif ()
 
 # Add compile definitions for selected upscalers
 if (ENABLE_DLSS)
-    target_compile_definitions(GfxPluginDLSSPlugin PUBLIC ENABLE_DLSS=${ENABLE_DLSS})
+    target_compile_definitions(GfxPluginUpscaler PUBLIC ENABLE_DLSS=${ENABLE_DLSS})
 endif ()
 
 # Copy the resulting shared library to the Unity Project's Asset/Plugins directory.
-add_custom_command(TARGET GfxPluginDLSSPlugin COMMAND ${CMAKE_COMMAND} -E copy ${PLUGIN_FILE} ${DLSS_SHARED_LIB} ${PLUGINS_DIR} COMMENT "Copying shared libraries. Please restart Unity." POST_BUILD)
+add_custom_command(TARGET GfxPluginUpscaler COMMAND ${CMAKE_COMMAND} -E copy ${PLUGIN_FILE} ${DLSS_SHARED_LIB} ${PLUGINS_DIR} COMMENT "Copying shared libraries. Please restart Unity." POST_BUILD)

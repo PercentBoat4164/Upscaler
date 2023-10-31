@@ -2,7 +2,7 @@
 
 NoUpscaler *NoUpscaler::get() {
     NoUpscaler *noUpscaler{new NoUpscaler};
-    noUpscaler->setError(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
+    noUpscaler->setStatus(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
     return noUpscaler;
 }
 
@@ -39,17 +39,20 @@ Upscaler::Status NoUpscaler::createFeature() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setImageResources(
-  void                          *nativeDepthBuffer,
-  UnityRenderingExtTextureFormat unityDepthFormat,
-  void                          *nativeMotionVectors,
-  UnityRenderingExtTextureFormat unityMotionVectorFormat,
-  void                          *nativeInColor,
-  UnityRenderingExtTextureFormat unityInColorFormat,
-  void                          *nativeOutColor,
-  UnityRenderingExtTextureFormat unityOutColorFormat
-) {
-    return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setDepthBuffer(void *pVoid, UnityRenderingExtTextureFormat format) {
+  return NO_UPSCALER_SET;
+}
+
+Upscaler::Status NoUpscaler::setInputColor(void *pVoid, UnityRenderingExtTextureFormat format) {
+  return NO_UPSCALER_SET;
+}
+
+Upscaler::Status NoUpscaler::setMotionVectors(void *pVoid, UnityRenderingExtTextureFormat format) {
+  return NO_UPSCALER_SET;
+}
+
+Upscaler::Status NoUpscaler::setOutputColor(void *pVoid, UnityRenderingExtTextureFormat format) {
+  return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
