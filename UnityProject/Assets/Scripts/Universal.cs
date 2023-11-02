@@ -27,8 +27,15 @@
             // Add our newly created rendererFeature.
             _features.Add(_upscalerRendererFeature);
             // Add target management, and jittering to render pipeline events
-            RenderPipelineManager.beginCameraRendering += (_, _) => onPreCull();
+            RenderPipelineManager.beginCameraRendering += (_, _) =>
+            {
+                onPreCull();
+                _upscalerRendererFeature.PreUpscale();
+            };
         }
+
+        public override void UpdatePostUpscaleCommandBuffer() =>
+            _upscalerRendererFeature.UpdatePostUpscaleCommandBuffer();
 
         public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
             _upscalerRendererFeature.ManageOutputTarget(mode, upscalingResolution);

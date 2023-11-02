@@ -90,6 +90,9 @@ public class BackendUpscaler : MonoBehaviour
         if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageOutputTarget(ActiveMode, UpscalingResolution);
 
+        if (imagesChanged)
+            _renderPipeline.UpdatePostUpscaleCommandBuffer();
+
         if (DUpscalingResolution | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
@@ -139,8 +142,7 @@ public class BackendUpscaler : MonoBehaviour
 
     protected void OnPreRender()
     {
-        if (ActiveMode != Plugin.Mode.None)
-            ((Builtin)_renderPipeline).PrepareRendering();
+        if (ActiveMode != Plugin.Mode.None) ((Builtin)_renderPipeline).PrepareRendering();
     }
 
     protected void OnPostRender()

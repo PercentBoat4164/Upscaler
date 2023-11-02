@@ -14,7 +14,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
         // CommandBuffers
         private readonly CommandBuffer _upscale = CommandBufferPool.Get("Upscale");
-        private readonly CommandBuffer _postUpscale = CommandBufferPool.Get("Post Upscale");
+        private readonly CommandBuffer _postUpscaleNullCameraTarget = CommandBufferPool.Get("Post Upscale");
+        private readonly CommandBuffer _postUpscaleValidCameraTarget = CommandBufferPool.Get("Post Upscale");
 
         // Camera
         private readonly Camera _camera;
@@ -28,39 +29,33 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
         }
 
-        private void UpdatePostUpscaleCommandBuffer()
+        public void UpdatePostUpscaleCommandBuffer()
         {
-            _postUpscale.Clear();
-            if (_cameraTarget)
-                _postUpscale.CopyTexture(_outputTarget, _cameraTarget);
-            else
-                _postUpscale.Blit(_outputTarget, _cameraTarget);
-            TexMan.BlitToCameraDepth(_postUpscale, _inColorTarget);
+            _postUpscaleNullCameraTarget.Clear();
+            _postUpscaleValidCameraTarget.Clear();
+
+            // The two command buffers are the same save that one copies while the other blits. Copying is faster, but you can only blit to the screen. The command buffer that is actually used is decided during rendering based on the CameraTarget for the given frame.
+            _postUpscaleNullCameraTarget.Blit(_outputTarget, _cameraTarget);
+            _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, _cameraTarget);
+
+            TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget, _inColorTarget);
+            TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             // Execute the upscale
             context.ExecuteCommandBuffer(_upscale);
-            renderingData.cameraData.targetTexture = _cameraTarget;
+            _camera.targetTexture = _cameraTarget;
             RenderTexture.active = _cameraTarget;
-            context.ExecuteCommandBuffer(_postUpscale);
+            context.ExecuteCommandBuffer(_cameraTarget ? _postUpscaleValidCameraTarget : _postUpscaleNullCameraTarget);
         }
 
-        public void Shutdown()
+        public void PreUpscale()
         {
-            // Release command buffers
-            CommandBufferPool.Release(_upscale);
-            CommandBufferPool.Release(_postUpscale);
-
-            if (_outputTarget && _outputTarget.IsCreated())
-                _outputTarget.Release();
-
-            if (_inColorTarget && _inColorTarget.IsCreated())
-                _inColorTarget.Release();
-
-            if (_motionVectorTarget && _motionVectorTarget.IsCreated())
-                _motionVectorTarget.Release();
+            _cameraTarget = _camera.targetTexture;
+            _camera.targetTexture = _inColorTarget;
+            RenderTexture.active = _inColorTarget;
         }
 
         public bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution)
@@ -91,7 +86,6 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             }
 
             Plugin.SetOutputColor(_outputTarget.GetNativeTexturePtr(), _outputTarget.graphicsFormat);
-            UpdatePostUpscaleCommandBuffer();
             return true;
         }
 
@@ -136,8 +130,24 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
             Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
-            UpdatePostUpscaleCommandBuffer();
             return true;
+        }
+
+        public void Shutdown()
+        {
+            // Release command buffers
+            CommandBufferPool.Release(_upscale);
+            CommandBufferPool.Release(_postUpscaleNullCameraTarget);
+            CommandBufferPool.Release(_postUpscaleValidCameraTarget);
+
+            if (_outputTarget && _outputTarget.IsCreated())
+                _outputTarget.Release();
+
+            if (_inColorTarget && _inColorTarget.IsCreated())
+                _inColorTarget.Release();
+
+            if (_motionVectorTarget && _motionVectorTarget.IsCreated())
+                _motionVectorTarget.Release();
         }
     }
 
@@ -151,10 +161,14 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Motion);
         _upscalerRenderRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
         renderer.EnqueuePass(_upscalerRenderRenderPass);
+        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Motion);
     }
+
+    public void PreUpscale() => _upscalerRenderRenderPass.PreUpscale();
+
+    public void UpdatePostUpscaleCommandBuffer() => _upscalerRenderRenderPass.UpdatePostUpscaleCommandBuffer();
 
     public bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
         _upscalerRenderRenderPass.ManageOutputTarget(mode, upscalingResolution);

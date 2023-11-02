@@ -9,13 +9,15 @@ public abstract class RenderPipeline
     }
 
     public static PipelineType Type;
-    protected readonly Camera _camera;
+    protected readonly Camera Camera;
 
     protected RenderPipeline(Camera camera, PipelineType type)
     {
         Type = type;
-        _camera = camera;
+        Camera = camera;
     }
+
+    public abstract void UpdatePostUpscaleCommandBuffer();
 
     public abstract bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
 
