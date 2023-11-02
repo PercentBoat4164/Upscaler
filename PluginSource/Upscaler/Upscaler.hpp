@@ -182,7 +182,7 @@ public:
     static void set(Type upscaler);
     static void set(Upscaler *upscaler);
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-    static auto setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *);
+    static void setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *));
 
     /// Returns the current status.
     Status getStatus();
@@ -199,6 +199,8 @@ public:
     /// status has been cleared.
     bool         resetStatus();
     std::string &getErrorMessage();
+    static std::tuple<void *, void (*)(void *, Status, const char *)> getErrorCallbackData();
+    bool isInitialized() const;
 
     virtual Type getType() = 0;
     virtual std::string getName() = 0;

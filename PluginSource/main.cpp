@@ -23,9 +23,10 @@ enum Event {
 
 void INTERNAL_Upscale() {
     // Disable the callback so that errors are not thrown mid-render. Errors can instead be handled during the next frame.
-    void(*cb)(void *, Upscaler::Status, const char*) = Upscaler::setErrorCallback(nullptr, nullptr);
+    auto callbackData = Upscaler::getErrorCallbackData();
+    Upscaler::setErrorCallback(nullptr, nullptr);
     Upscaler::get()->evaluate();
-    Upscaler::setErrorCallback(nullptr, cb);
+    Upscaler::setErrorCallback(std::get<0>(callbackData), std::get<1>(callbackData));
 }
 
 void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
@@ -45,8 +46,9 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePl
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetUpscaler(Upscaler::Type type) {
-    if (Upscaler::get()->getType() == type) return Upscaler::get()->getStatus();
-    Upscaler::get()->shutdown();
+    Upscaler *upscaler = Upscaler::get();
+    if (upscaler->getType() == type) return upscaler->getStatus();
+    upscaler->shutdown();
     Upscaler::set(type);
     return Upscaler::get()->initialize();
 }
@@ -201,6 +203,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
+    Upscaler::set<NoUpscaler>();
     // Finish all one time submits
     GraphicsAPI::get()->finishOneTimeSubmits();
     // Clean up

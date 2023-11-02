@@ -71,12 +71,17 @@ void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-auto Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *) {
-    void(*oldCallback)(void *, Upscaler::Status, const char *) = errorCallback;
+void Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) {
     errorCallback = t_errorCallback;
-    if (data != nullptr)
-        userData = data;
-    return oldCallback;
+    userData = data;
+}
+
+std::tuple<void *, void(*)(void *, Upscaler::Status, const char *)> Upscaler::getErrorCallbackData() {
+    return {userData, errorCallback};
+}
+
+bool Upscaler::isInitialized() const {
+    return initialized;
 }
 
 Upscaler::Status Upscaler::getStatus() {

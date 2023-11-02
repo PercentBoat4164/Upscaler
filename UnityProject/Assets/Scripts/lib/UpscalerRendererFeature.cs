@@ -91,6 +91,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             }
 
             Plugin.SetOutputColor(_outputTarget.GetNativeTexturePtr(), _outputTarget.graphicsFormat);
+            UpdatePostUpscaleCommandBuffer();
             return true;
         }
 
@@ -135,6 +136,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
             Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
+            UpdatePostUpscaleCommandBuffer();
             return true;
         }
     }

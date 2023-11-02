@@ -1,4 +1,5 @@
     using System;
+    using System.Collections.Generic;
     using System.Reflection;
     using UnityEngine;
     using UnityEngine.Rendering;
@@ -7,6 +8,8 @@
     public class Universal : RenderPipeline
     {
         private readonly UpscalerRendererFeature _upscalerRendererFeature;
+        private readonly List<ScriptableRendererFeature> _features;
+        private readonly int _featureIndex;
 
         public Universal(Camera camera, Action onPreCull) : base(camera, PipelineType.Universal)
         {
@@ -15,14 +18,14 @@
             _upscalerRendererFeature.camera = camera;
             _upscalerRendererFeature.SetActive(true);
             // Use some reflection to grab the properties that hold and describe where the rendererFeatures are.
-            var index = (int)typeof(UniversalRenderPipelineAsset)
-                .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset);
-            var rendererDataList = (ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
+            _features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
                 .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset);
+                .GetValue(UniversalRenderPipeline.asset))[(int)typeof(UniversalRenderPipelineAsset)
+                .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(UniversalRenderPipeline.asset)].rendererFeatures;
+            _featureIndex = _features.Count;
             // Add our newly created rendererFeature.
-            rendererDataList[index].rendererFeatures.Add(_upscalerRendererFeature);
+            _features.Add(_upscalerRendererFeature);
             // Add target management, and jittering to render pipeline events
             RenderPipelineManager.beginCameraRendering += (_, _) => onPreCull();
         }
@@ -36,5 +39,9 @@
         public override bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution) =>
             _upscalerRendererFeature.ManageInColorTarget(mode, maximumDynamicRenderingResolution);
 
-        public override void Shutdown() => _upscalerRendererFeature.Shutdown();
+        public override void Shutdown()
+        {
+            _upscalerRendererFeature.Shutdown();
+            _features.RemoveAt(_featureIndex);
+        }
     }
