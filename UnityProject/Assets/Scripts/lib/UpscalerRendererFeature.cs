@@ -163,7 +163,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         _upscalerRenderRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
         renderer.EnqueuePass(_upscalerRenderRenderPass);
-        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Motion);
+        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
     }
 
     public void PreUpscale() => _upscalerRenderRenderPass.PreUpscale();

@@ -120,7 +120,7 @@ public class BackendUpscaler : MonoBehaviour
         TexMan.Setup();
 
         // Initialize the plugin.
-        /*@todo Handle the case that different quality modes use different render pipelines. */
+        /*@todo Handle the case that different quality modes use different render pipelines. RenderPipelineManager.activeRenderPipelineTypeChanged? */
         if (GraphicsSettings.currentRenderPipeline == null)
             _renderPipeline = new Builtin(Camera);
         else
