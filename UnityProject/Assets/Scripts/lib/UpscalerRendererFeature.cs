@@ -25,7 +25,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         private void UpdateUpscaleCommandBuffer()
         {
             _upscale.Clear();
-            _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
+            // _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
+            TexMan.BlitToMotionTexture(_upscale, _motionVectorTarget);
             _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
         }
 
@@ -152,18 +153,23 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
     }
 
     // Camera
+    [HideInInspector]
     public Camera camera;
 
     // Render passes
     private UpscalerRenderPass _upscalerRenderRenderPass;
 
-    public override void Create() => _upscalerRenderRenderPass = new UpscalerRenderPass(camera);
+    public override void Create()
+    {
+        _upscalerRenderRenderPass = new UpscalerRenderPass(camera);
+        name = "Upscaler";
+    }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
+        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
         _upscalerRenderRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
         renderer.EnqueuePass(_upscalerRenderRenderPass);
-        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
     }
 
     public void PreUpscale() => _upscalerRenderRenderPass.PreUpscale();

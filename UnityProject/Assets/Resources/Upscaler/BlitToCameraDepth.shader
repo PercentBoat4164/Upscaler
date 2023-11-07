@@ -2,8 +2,7 @@ Shader "Upscaler/BlitToCameraDepth"
 {
     Properties
     {
-        _Depth("Depth Source", 2D) = "white"
-        _ScaleFactor("Scale Factor", Vector) = (1, 1, 1, 1)
+        [HideInInspector] _Depth("Depth Source", 2D) = "white"
     }
 
     SubShader
@@ -17,38 +16,14 @@ Shader "Upscaler/BlitToCameraDepth"
             #pragma vertex vert
             #pragma fragment frag
 
-            #include "UnityCG.cginc"
-
-            struct appdata {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct v2f {
-                float4 position : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct frag_out {
-                float depth : SV_Depth;
-            };
-
             sampler2D _Depth;
-            float4 _ScaleFactor;
 
-            // Vertex
-            v2f vert(appdata IN) {
-                v2f OUT;
-                OUT.position = UnityObjectToClipPos(IN.vertex);
-                OUT.uv = IN.uv;
-                return OUT;
+            float2 vert(float2 uv : TEXCOORD0) : TEXCOORD0 {
+                return uv;
             }
 
-            // Fragment
-            frag_out frag(v2f IN) {
-                frag_out o;
-                o.depth = tex2D(_Depth, IN.uv * _ScaleFactor.xy);
-                return o;
+            float frag(const float2 uv : TEXCOORD0) : SV_Depth {
+                return tex2D(_Depth, uv).x;
             }
 
             ENDCG

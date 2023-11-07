@@ -30,7 +30,6 @@ public static class Jitter {
             _sequencePosition = 0;
         var pixelSpaceJitter = _sequence[_sequencePosition++];
         _sequencePosition %= _sequence.Length;
-        // Clip space jitter must be the negative of the pixel space jitter. Why?
         var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
         /*@todo Change this so that the camera is not reset just before rendering every frame. No reason to do this if we can just subtract the last frame's jitters.*/
         camera.ResetProjectionMatrix();
@@ -38,7 +37,6 @@ public static class Jitter {
         tempProj.m02 += clipSpaceJitter.x;
         tempProj.m12 += clipSpaceJitter.y;
         camera.projectionMatrix = tempProj;
-        // The sign of the jitter passed to DLSS must match the sign of the MVScale.
         Plugin.SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
     }
 

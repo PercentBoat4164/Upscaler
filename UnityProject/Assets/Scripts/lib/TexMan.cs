@@ -5,6 +5,7 @@ public static class TexMan
 {
     private static Mesh _quad;
     private static Material _blitToCameraDepthMaterial;
+    private static Material _blitToMotionTextureMaterial;
 
     public static void Setup()
     {
@@ -24,26 +25,25 @@ public static class TexMan
             new(0, 1),
             new(1, 1)
         });
-        _quad.SetIndices(new[] { 2, 1, 0, 1, 2, 3 }, MeshTopology.Triangles, 0);
+        _quad.SetTriangles(new[] { 1, 0, 2, 1, 2, 3 }, 0);
 
         // Set up materials
         _blitToCameraDepthMaterial = new Material(Shader.Find("Upscaler/BlitToCameraDepth"));
+        _blitToMotionTextureMaterial = new Material(Shader.Find("Upscaler/BlitToMotionTexture"));
     }
 
-    public static void BlitToCameraDepth(RenderTexture src, Vector2? scale = null)
+    public static void BlitToMotionTexture(CommandBuffer cb, RenderTexture dest)
     {
-        // Set up material
-        _blitToCameraDepthMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
-        _blitToCameraDepthMaterial.SetTexture(Shader.PropertyToID("_Depth"), src, RenderTextureSubElement.Depth);
-
-        // Execute Graphics commands
-        Graphics.RenderMesh(new RenderParams(_blitToCameraDepthMaterial), _quad, 0, Matrix4x4.identity);
+        // Record command buffer
+        cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
+        cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), Vector3.up));
+        cb.SetRenderTarget(dest.colorBuffer);
+        cb.DrawMesh(_quad, Matrix4x4.identity, _blitToMotionTextureMaterial);
     }
 
-    public static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src, Vector2? scale = null)
+    public static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src)
     {
         // Set up material
-        _blitToCameraDepthMaterial.SetVector(Shader.PropertyToID("_ScaleFactor"), scale ?? Vector2.one);
         _blitToCameraDepthMaterial.SetTexture(Shader.PropertyToID("_Depth"), src, RenderTextureSubElement.Depth);
 
         // Execute Graphics commands
