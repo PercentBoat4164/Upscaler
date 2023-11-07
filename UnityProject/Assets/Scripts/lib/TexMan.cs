@@ -41,11 +41,12 @@ public static class TexMan
         cb.DrawMesh(_quad, Matrix4x4.identity, _blitToMotionTextureMaterial);
     }
 
-    public static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src)
+    /// <summary>
+    /// Blits `_CameraDepthTexture` into the currently active RenderTexture's depth buffer.
+    /// </summary>
+    /// <param name="cb">Command buffer to record the blit into.</param>
+    public static void BlitToCameraDepth(CommandBuffer cb)
     {
-        // Set up material
-        _blitToCameraDepthMaterial.SetTexture(Shader.PropertyToID("_Depth"), src, RenderTextureSubElement.Depth);
-
         // Execute Graphics commands
         cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
         cb.SetViewMatrix(Matrix4x4.LookAt(new Vector3(0, 0, -1), new Vector3(0, 0, 1), Vector3.up));

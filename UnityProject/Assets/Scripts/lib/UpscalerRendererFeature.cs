@@ -25,7 +25,6 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         private void UpdateUpscaleCommandBuffer()
         {
             _upscale.Clear();
-            // _upscale.CopyTexture(BuiltinRenderTextureType.MotionVectors, _motionVectorTarget);
             TexMan.BlitToMotionTexture(_upscale, _motionVectorTarget);
             _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
         }
@@ -39,8 +38,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             _postUpscaleNullCameraTarget.Blit(_outputTarget, _cameraTarget);
             _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, _cameraTarget);
 
-            TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget, _inColorTarget);
-            TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
+            TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget);
+            TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

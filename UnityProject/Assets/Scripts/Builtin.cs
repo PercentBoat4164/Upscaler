@@ -56,8 +56,8 @@ public class Builtin : RenderPipeline
         _postUpscaleNullCameraTarget.Blit(_outputTarget, BuiltinRenderTextureType.CameraTarget);
         _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
 
-        TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget, _inColorTarget);
-        TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
+        TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget);
+        TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget);
     }
 
     public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution)
