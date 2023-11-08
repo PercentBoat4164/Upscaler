@@ -1,4 +1,5 @@
 using System;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -123,8 +124,10 @@ public class BackendUpscaler : MonoBehaviour
         /*@todo Handle the case that different quality modes use different render pipelines. RenderPipelineManager.activeRenderPipelineTypeChanged? */
         if (GraphicsSettings.currentRenderPipeline == null)
             _renderPipeline = new Builtin(Camera);
+        #if UPSCALER_USE_URP
         else
             _renderPipeline = new Universal(Camera, OnPreCull);
+        #endif
 
         // Initialize the plugin
         Plugin.InitializePlugin();

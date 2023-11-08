@@ -38,6 +38,8 @@ public class Builtin : RenderPipeline
         Camera.targetTexture = _cameraTarget;
         RenderTexture.active = _cameraTarget;
         Graphics.ExecuteCommandBuffer(_cameraTarget ? _postUpscaleValidCameraTarget : _postUpscaleNullCameraTarget);
+        if (Input.GetKey(KeyCode.V))
+            Graphics.Blit(_inColorTarget, _cameraTarget);
     }
 
     private void UpdateUpscaleCommandBuffer()
@@ -56,8 +58,8 @@ public class Builtin : RenderPipeline
         _postUpscaleNullCameraTarget.Blit(_outputTarget, BuiltinRenderTextureType.CameraTarget);
         _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
 
-        TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget);
-        TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget);
+        TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget, _inColorTarget);
+        TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
     }
 
     public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution)

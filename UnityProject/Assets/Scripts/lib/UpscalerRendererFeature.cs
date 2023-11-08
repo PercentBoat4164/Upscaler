@@ -1,3 +1,4 @@
+#if UPSCALER_USE_URP
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -38,8 +39,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             _postUpscaleNullCameraTarget.Blit(_outputTarget, _cameraTarget);
             _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, _cameraTarget);
 
-            TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget);
-            TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget);
+            TexMan.CopyCameraDepth(_postUpscaleNullCameraTarget);
+            TexMan.CopyCameraDepth(_postUpscaleValidCameraTarget);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -186,3 +187,4 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
     public void Shutdown() => _upscalerRenderRenderPass.Shutdown();
 }
+#endif
