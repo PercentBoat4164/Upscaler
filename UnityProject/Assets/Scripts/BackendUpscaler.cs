@@ -126,7 +126,7 @@ public class BackendUpscaler : MonoBehaviour
             _renderPipeline = new Builtin(Camera);
         #if UPSCALER_USE_URP
         else
-            _renderPipeline = new Universal(Camera, OnPreCull);
+            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
         #endif
 
         // Initialize the plugin
@@ -137,7 +137,7 @@ public class BackendUpscaler : MonoBehaviour
         Plugin.SetCurrentInputResolution((uint)RenderingResolution.x, (uint)RenderingResolution.y);
     }
 
-    protected void OnPreCull()
+    protected virtual void OnPreCull()
     {
         if (ManageTargets()) Plugin.ResetHistory();
         if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);

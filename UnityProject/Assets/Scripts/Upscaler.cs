@@ -91,7 +91,7 @@ public class Upscaler : BackendUpscaler
 
     /// Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
     /// Real OnPreCull Actions from Backend
-    private new void OnPreCull()
+    protected override void OnPreCull()
     {
         if (ChangeInSettings())
         {

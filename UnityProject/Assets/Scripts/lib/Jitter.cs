@@ -29,7 +29,7 @@ public static class Jitter {
         if (_sequencePosition > _sequence.Length)
             _sequencePosition = 0;
         var pixelSpaceJitter = _sequence[_sequencePosition++];
-        _sequencePosition %= _sequence.Length;
+        _sequencePosition %= _sequence.Length;  // @todo Move me to replace the above if statement?
         var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
         /*@todo Change this so that the camera is not reset just before rendering every frame. No reason to do this if we can just subtract the last frame's jitters.*/
         camera.ResetProjectionMatrix();
