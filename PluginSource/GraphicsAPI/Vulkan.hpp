@@ -4,20 +4,15 @@
 #include "GraphicsAPI.hpp"
 
 // Unity
-#include <IUnityGraphics.h>
 #include <IUnityGraphicsVulkan.h>
 #include <IUnityRenderingExtensions.h>
-
-// Upscaler
-#include <nvsdk_ngx_defs.h>
 
 // Standard library
 #include <cstring>
 #include <sstream>
 #include <vector>
 
-class Vulkan : public GraphicsAPI {
-private:
+class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr                  m_vkGetInstanceProcAddr;
     static PFN_vkGetDeviceProcAddr                    m_vkGetDeviceProcAddr;
     static PFN_vkCreateInstance                       m_vkCreateInstance;
@@ -25,9 +20,9 @@ private:
     static PFN_vkCreateDevice                         m_vkCreateDevice;
     static PFN_vkEnumerateDeviceExtensionProperties   m_vkEnumerateDeviceExtensionProperties;
 
-    VkInstance              instance;
-    IUnityGraphicsVulkanV2 *vulkanInterface;
-    VkDevice                device;
+    VkInstance              instance{};
+    IUnityGraphicsVulkanV2 *vulkanInterface{};
+    VkDevice                device{};
 
     static PFN_vkCreateImageView        m_vkCreateImageView;
     static PFN_vkDestroyImageView       m_vkDestroyImageView;
@@ -50,11 +45,11 @@ private:
     VkFence         _oneTimeSubmitFence{VK_NULL_HANDLE};
     bool            _oneTimeSubmitRecording{false};
 
-    bool loadEarlyFunctionPointers();
+    static bool loadEarlyFunctionPointers();
 
-    bool loadInstanceFunctionPointers();
+    [[nodiscard]] bool loadInstanceFunctionPointers() const;
 
-    bool loadLateFunctionPointers();
+    [[nodiscard]] bool loadLateFunctionPointers() const;
 
     static std::vector<std::string> getSupportedInstanceExtensions();
 
@@ -69,7 +64,7 @@ private:
     static VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
       VkPhysicalDevice          physicalDevice,
       const VkDeviceCreateInfo *pCreateInfo,
-      VkAllocationCallbacks    *pAllocator,
+      const VkAllocationCallbacks    *pAllocator,
       VkDevice                 *pDevice
     );
 
@@ -97,11 +92,11 @@ public:
 
     bool useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
 
-    IUnityGraphicsVulkanV2 *getUnityInterface();
+    [[nodiscard]] IUnityGraphicsVulkanV2 *getUnityInterface() const;
 
     void prepareForOneTimeSubmits() override;
 
-    VkCommandBuffer beginOneTimeSubmitRecording();
+    [[nodiscard]] VkCommandBuffer beginOneTimeSubmitRecording() const;
 
     void endOneTimeSubmitRecording();
 
@@ -111,9 +106,11 @@ public:
 
     static VkFormat getFormat(UnityRenderingExtTextureFormat format);
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) const;
 
-    void destroyImageView(VkImageView pT);
+    void destroyImageView(VkImageView viewToDestroy) const;
+
+    [[nodiscard]] VkDevice getDevice() const;
 
     Type getType() override;
 

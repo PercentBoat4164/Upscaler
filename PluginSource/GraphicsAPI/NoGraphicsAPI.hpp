@@ -2,14 +2,13 @@
 
 #include "GraphicsAPI.hpp"
 
-class NoGraphicsAPI : public GraphicsAPI {
-private:
+class NoGraphicsAPI final : public GraphicsAPI {
     NoGraphicsAPI() = default;
 
 public:
     static NoGraphicsAPI *get();
     Type                  getType() override;
-    bool                  useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
+    bool                  useUnityInterfaces(IUnityInterfaces */* unused */) override;
     void                  prepareForOneTimeSubmits() override;
     void                  finishOneTimeSubmits() override;
 };

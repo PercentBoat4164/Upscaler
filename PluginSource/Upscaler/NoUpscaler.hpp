@@ -2,8 +2,7 @@
 
 #include "Upscaler.hpp"
 
-class NoUpscaler : public Upscaler {
-private:
+class NoUpscaler final : public Upscaler {
     NoUpscaler() = default;
 
 public:
@@ -12,20 +11,20 @@ public:
     std::string              getName() override;
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
     std::vector<std::string>
-    getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice device) override;
+    getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) override;
     Settings
     getOptimalSettings(Settings::Resolution /* unused */, Settings::Quality /* unused */, bool /* unused */)
       override;
     Status initialize() override;
     Status createFeature() override;
-    Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setDepthBuffer(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setInputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setMotionVectors(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status evaluate() override;
     Status releaseFeature() override;
     Status shutdown() override;
 
 protected:
-    void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
+    void setFunctionPointers(GraphicsAPI::Type /* unused */) override;
 };

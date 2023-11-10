@@ -15,12 +15,12 @@
 #include <IUnityRenderingExtensions.h>
 
 // System
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
 
 class Upscaler {
-private:
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
     constexpr static uint8_t ERROR_CODE_OFFSET = 16;
     constexpr static uint8_t ERROR_RECOVERABLE = 1;
@@ -28,7 +28,6 @@ private:
 public:
     // clang-format off
 
-    /**@todo Add helper functions for me. */
     // bit range = meaning
     // =======================
     // [31-29]   = Error type
@@ -77,7 +76,7 @@ protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /* unused */) {
         return UNKNOWN_ERROR;
-    };
+    }
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
 
@@ -113,7 +112,7 @@ public:
             uint32_t height;
 
             [[nodiscard]] uint64_t asLong() const;
-        };
+        } __attribute__((aligned(8)));
 
         Quality    quality{AUTO};
         Resolution recommendedInputResolution{};
@@ -121,19 +120,19 @@ public:
         Resolution dynamicMinimumInputResolution{};
         Resolution outputResolution{};
         Resolution currentInputResolution{};
-        float      jitter[2] = {0.F, 0.F};
+        std::array<float, 2>      jitter{0.F, 0.F};
         float      sharpness{};
         bool       HDR{};
         bool       autoExposure{};
         bool       resetHistory{};
 
-        template<Type T, typename _ = std::enable_if_t<T == Upscaler::NONE>>
-        Quality getQuality() {
+        template<Type T, typename _ = std::enable_if_t<T == NONE>>
+        [[nodiscard]] Quality getQuality() const {
             return quality;
         };
 
 #ifdef ENABLE_DLSS
-        template<Type T, typename _ = std::enable_if_t<T == Upscaler::DLSS>>
+        template<Type T, typename _ = std::enable_if_t<T == DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
                 case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
@@ -154,7 +153,7 @@ public:
             return NVSDK_NGX_PerfQuality_Value_Balanced;
         };
 #endif
-    } settings;
+    } __attribute__((aligned(64))) __attribute__((packed)) settings;
 
     Upscaler()                            = default;
     Upscaler(const Upscaler &)            = delete;
@@ -182,10 +181,10 @@ public:
     static void set(Type upscaler);
     static void set(Upscaler *upscaler);
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-    static auto setErrorCallback(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *);
+    static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
 
     /// Returns the current status.
-    Status getStatus();
+    [[nodiscard]] Status getStatus() const;
 
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
@@ -207,10 +206,10 @@ public:
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
     virtual Status initialize() = 0;
     virtual Status createFeature() = 0;
-    virtual Upscaler::Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Upscaler::Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Upscaler::Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Upscaler::Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status evaluate() = 0;
     virtual Status releaseFeature() = 0;
     virtual Status shutdown();

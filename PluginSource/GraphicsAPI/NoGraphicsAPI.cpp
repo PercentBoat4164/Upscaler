@@ -15,6 +15,6 @@ void NoGraphicsAPI::prepareForOneTimeSubmits() {
 void NoGraphicsAPI::finishOneTimeSubmits() {
 }
 
-bool NoGraphicsAPI::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
+bool NoGraphicsAPI::useUnityInterfaces(IUnityInterfaces */* unused */) {
     return false;
 }

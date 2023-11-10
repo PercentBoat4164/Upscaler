@@ -4,32 +4,32 @@
 #include "NoUpscaler.hpp"
 
 #include <utility>
-void(*Upscaler::errorCallback)(void *, Upscaler::Status, const char *){nullptr};
+void(*Upscaler::errorCallback)(void *, Status, const char *){nullptr};
 void *Upscaler::userData{nullptr};
 Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
 Upscaler::Settings Upscaler::settings{};
 
-bool Upscaler::success(Upscaler::Status t_status) {
-    return t_status <= Status::NO_UPSCALER_SET;
+bool Upscaler::success(const Status t_status) {
+    return t_status <= NO_UPSCALER_SET;
 }
 
-bool Upscaler::failure(Upscaler::Status t_status) {
-    return t_status > Status::NO_UPSCALER_SET;
+bool Upscaler::failure(const Status t_status) {
+    return t_status > NO_UPSCALER_SET;
 }
 
-bool Upscaler::recoverable(Upscaler::Status t_status) {
+bool Upscaler::recoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == 1;
 }
 
-bool Upscaler::nonrecoverable(Upscaler::Status t_status) {
+bool Upscaler::nonrecoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == 0;
 }
 
 uint64_t Upscaler::Settings::Resolution::asLong() const {
-    return (uint64_t) width << 32U | height;
+    return static_cast<uint64_t>(width) << 32U | height;
 }
 
-Upscaler *Upscaler::get(Type upscaler) {
+Upscaler *Upscaler::get(const Type upscaler) {
     switch (upscaler) {
         case NONE: return get<NoUpscaler>();
 #ifdef ENABLE_DLSS
@@ -45,7 +45,7 @@ Upscaler *Upscaler::get() {
 
 std::vector<Upscaler *> Upscaler::getAllUpscalers() {
     return {
-      get<::NoUpscaler>(),
+      get<NoUpscaler>(),
 #ifdef ENABLE_DLSS
       get<::DLSS>(),
 #endif
@@ -59,7 +59,7 @@ std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     return upscalers;
 }
 
-void Upscaler::set(Type upscaler) {
+void Upscaler::set(const Type upscaler) {
     set(get(upscaler));
 }
 
@@ -67,30 +67,30 @@ void Upscaler::set(Upscaler *upscaler) {
     upscalerInUse = upscaler;
 }
 
-void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
+void Upscaler::setGraphicsAPI(const GraphicsAPI::Type graphicsAPI) {
     for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
-auto Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) -> void(*)(void *, Upscaler::Status, const char *) {
-    void(*oldCallback)(void *, Upscaler::Status, const char *) = errorCallback;
+void (*Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *) {
+    void(*oldCallback)(void *, Status, const char *) = errorCallback;
     errorCallback = t_errorCallback;
     if (data != nullptr)
         userData = data;
     return oldCallback;
 }
 
-Upscaler::Status Upscaler::getStatus() {
+Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
-Upscaler::Status Upscaler::setStatus(Upscaler::Status t_error, std::string t_msg) {
+Upscaler::Status Upscaler::setStatus(const Status t_error, std::string t_msg) {
     if (success(status)) status = t_error;
     if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
     if (failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }
 
-Upscaler::Status Upscaler::setStatusIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
+Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
     if (success(status) && t_shouldApplyError) status = t_error;
     if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
     if (t_shouldApplyError && failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());

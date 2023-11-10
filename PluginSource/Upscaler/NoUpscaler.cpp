@@ -19,12 +19,12 @@ std::vector<std::string> NoUpscaler::getRequiredVulkanInstanceExtensions() {
 }
 
 std::vector<std::string>
-NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice device) {
+NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) {
     return {};
 }
 
 Upscaler::Settings NoUpscaler::getOptimalSettings(
-  Upscaler::Settings::Resolution /* unused */,
+  Settings::Resolution /* unused */,
   Settings::Quality /* unused */,
   bool /* unused */
 ) {
@@ -39,19 +39,19 @@ Upscaler::Status NoUpscaler::createFeature() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepthBuffer(void *pVoid, UnityRenderingExtTextureFormat format) {
+Upscaler::Status NoUpscaler::setDepthBuffer(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
   return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setInputColor(void *pVoid, UnityRenderingExtTextureFormat format) {
+Upscaler::Status NoUpscaler::setInputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
   return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setMotionVectors(void *pVoid, UnityRenderingExtTextureFormat format) {
+Upscaler::Status NoUpscaler::setMotionVectors(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
   return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setOutputColor(void *pVoid, UnityRenderingExtTextureFormat format) {
+Upscaler::Status NoUpscaler::setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
   return NO_UPSCALER_SET;
 }
 
@@ -68,5 +68,5 @@ Upscaler::Status NoUpscaler::shutdown() {
     return NO_UPSCALER_SET;
 }
 
-void NoUpscaler::setFunctionPointers(GraphicsAPI::Type graphicsAPI) {
+void NoUpscaler::setFunctionPointers(GraphicsAPI::Type /* unused */) {
 }

@@ -8,7 +8,6 @@
 #include <vector>
 
 class GraphicsAPI {
-private:
     static GraphicsAPI *graphicsAPIInUse;
 
 public:
