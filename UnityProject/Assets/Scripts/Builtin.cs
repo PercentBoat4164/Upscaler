@@ -105,7 +105,10 @@ public class Builtin : RenderPipeline
 
         if (mode == Plugin.Mode.None) return dTarget;
 
-        _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+        _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat())
+        {
+            useDynamicScale = true
+        };
         _motionVectorTarget.Create();
 
         Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -128,7 +131,7 @@ public class Builtin : RenderPipeline
         _inColorTarget =
             new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, Plugin.ColorFormat(Camera.allowHDR), Plugin.DepthFormat())
             {
-                filterMode = FilterMode.Point
+                filterMode = FilterMode.Point, useDynamicScale = true
             };
         _inColorTarget.Create();
 

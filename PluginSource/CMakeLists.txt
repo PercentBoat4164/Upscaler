@@ -54,6 +54,8 @@ string(APPEND GLOBBING_EXPRESSION "/Unity/Hub/Editor/*")
 file(GLOB UNITY_FILES ${GLOBBING_EXPRESSION})
 if (NOT UNITY_FILES STREQUAL "")
     list(GET UNITY_FILES 0 UNITY_FILES)
+    cmake_path(GET UNITY_FILES FILENAME UNITY_VERSION)
+    message("Compiling against Unity version ${UNITY_VERSION}.")
     cmake_path(APPEND UNITY_FILES "Editor/Data/PluginAPI")
 endif ()
 

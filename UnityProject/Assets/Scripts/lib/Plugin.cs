@@ -111,7 +111,7 @@ public static class Plugin
     public static extern void SetOutputColor(IntPtr handle, GraphicsFormat format);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-    public static extern void InitializePlugin();
+    public static extern void Initialize();
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscaler")]
     public static extern UpscalerStatus SetUpscaler(Mode mode);
@@ -150,5 +150,5 @@ public static class Plugin
     public static extern void SetJitterInformation(float x, float y);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-    public static extern void InitializePlugin(IntPtr upscalerObject, InternalErrorCallback errorCallback);
+    public static extern void Initialize(IntPtr upscalerObject, InternalErrorCallback errorCallback);
 }

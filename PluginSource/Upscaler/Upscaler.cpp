@@ -4,48 +4,48 @@
 #include "NoUpscaler.hpp"
 
 #include <utility>
-void(*Upscaler::errorCallback)(void *, Upscaler::Status, const char *){nullptr};
-void *Upscaler::userData{nullptr};
-Upscaler          *Upscaler::upscalerInUse{get<NoUpscaler>()};
-Upscaler::Settings Upscaler::settings{};
 
-bool Upscaler::success(Upscaler::Status t_status) {
-    return t_status <= Status::NO_UPSCALER_SET;
+bool Upscaler::success(const Status t_status) {
+    return t_status <= NO_UPSCALER_SET;
 }
 
-bool Upscaler::failure(Upscaler::Status t_status) {
-    return t_status > Status::NO_UPSCALER_SET;
+bool Upscaler::failure(const Status t_status) {
+    return t_status > NO_UPSCALER_SET;
 }
 
-bool Upscaler::recoverable(Upscaler::Status t_status) {
+bool Upscaler::recoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == 1;
 }
 
-bool Upscaler::nonrecoverable(Upscaler::Status t_status) {
+bool Upscaler::nonrecoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == 0;
 }
 
 uint64_t Upscaler::Settings::Resolution::asLong() const {
-    return (uint64_t) width << 32U | height;
+    return static_cast<uint64_t>(width) << 32U | height;
 }
 
-Upscaler *Upscaler::get(Type upscaler) {
-    switch (upscaler) {
-        case NONE: return get<NoUpscaler>();
-#ifdef ENABLE_DLSS
-        case DLSS: return get<::DLSS>();
-#endif
-    }
-    return get<NoUpscaler>();
+Upscaler::Settings Upscaler::settings{};
+
+void      (*Upscaler::errorCallback)(void *, Status, const char *){nullptr};
+void     *Upscaler::userData{nullptr};
+Upscaler *Upscaler::upscalerInUse{get<NoUpscaler>()};
+
+void Upscaler::set(const Type upscaler) {
+    set(get(upscaler));
 }
 
-Upscaler *Upscaler::get() {
-    return upscalerInUse;
+void Upscaler::set(Upscaler *upscaler) {
+    upscalerInUse = upscaler;
+}
+
+void Upscaler::setGraphicsAPI(const GraphicsAPI::Type graphicsAPI) {
+    for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
 }
 
 std::vector<Upscaler *> Upscaler::getAllUpscalers() {
     return {
-      get<::NoUpscaler>(),
+      get<NoUpscaler>(),
 #ifdef ENABLE_DLSS
       get<::DLSS>(),
 #endif
@@ -59,46 +59,45 @@ std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     return upscalers;
 }
 
-void Upscaler::set(Type upscaler) {
-    set(get(upscaler));
+Upscaler *Upscaler::get(const Type upscaler) {
+    switch (upscaler) {
+        case NONE: return get<NoUpscaler>();
+#ifdef ENABLE_DLSS
+        case DLSS: return get<::DLSS>();
+#endif
+    }
+    return get<NoUpscaler>();
 }
 
-void Upscaler::set(Upscaler *upscaler) {
-    upscalerInUse = upscaler;
+Upscaler *Upscaler::get() {
+    return upscalerInUse;
 }
 
-void Upscaler::setGraphicsAPI(GraphicsAPI::Type graphicsAPI) {
-    for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
+Upscaler::Status Upscaler::shutdown() {
+    if (status != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && status != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
+        status               = SUCCESS;
+        detailedErrorMessage = "";
+    }
+    initialized = false;
+    return SUCCESS;
 }
 
-void Upscaler::setErrorCallback(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) {
-    errorCallback = t_errorCallback;
-    userData = data;
-}
-
-std::tuple<void *, void(*)(void *, Upscaler::Status, const char *)> Upscaler::getErrorCallbackData() {
-    return {userData, errorCallback};
-}
-
-bool Upscaler::isInitialized() const {
-    return initialized;
-}
-
-Upscaler::Status Upscaler::getStatus() {
+Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
-Upscaler::Status Upscaler::setStatus(Upscaler::Status t_error, std::string t_msg) {
+Upscaler::Status Upscaler::setStatus(const Status t_error, std::string t_msg) {
     if (success(status)) status = t_error;
-    if (detailedErrorMessage.empty() && failure(status)) detailedErrorMessage = std::move(t_msg);
+    if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
     if (failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }
 
-Upscaler::Status Upscaler::setStatusIf(bool t_shouldApplyError, Upscaler::Status t_error, std::string t_msg) {
+Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
     if (success(status) && t_shouldApplyError) status = t_error;
-    if (detailedErrorMessage.empty() && failure(status)) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
+    if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
+    if (t_shouldApplyError && failure(status) && errorCallback != nullptr)
+        errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }
 
@@ -114,11 +113,10 @@ std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
 }
 
-Upscaler::Status Upscaler::shutdown() {
-    if (status != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && status != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
-        status               = SUCCESS;
-        detailedErrorMessage = "";
-    }
-    initialized = false;
-    return SUCCESS;
+void (*Upscaler::
+        setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *) {
+    void (*oldCallback)(void *, Status, const char *) = errorCallback;
+    errorCallback                                     = t_errorCallback;
+    if (data != nullptr) userData = data;
+    return oldCallback;
 }

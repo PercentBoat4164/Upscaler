@@ -1,5 +1,4 @@
 // Project
-#include "GraphicsAPI/NoGraphicsAPI.hpp"
 #include "Upscaler/NoUpscaler.hpp"
 
 #ifdef ENABLE_VULKAN
@@ -22,14 +21,14 @@ enum Event {
 };
 
 void INTERNAL_Upscale() {
-    // Disable the callback so that errors are not thrown mid-render. Errors can instead be handled during the next frame.
-    auto callbackData = Upscaler::getErrorCallbackData();
-    Upscaler::setErrorCallback(nullptr, nullptr);
+    // Disable the callback so that errors are not thrown mid-render. Errors can instead be handled during the next
+    // frame.
+    void (*cb)(void *, Upscaler::Status, const char *) = Upscaler::setErrorCallback(nullptr, nullptr);
     Upscaler::get()->evaluate();
-    Upscaler::setErrorCallback(std::get<0>(callbackData), std::get<1>(callbackData));
+    Upscaler::setErrorCallback(nullptr, cb);
 }
 
-void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(Event event) {
+void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(const Event event) {
     switch (event) {
         case UPSCALE: INTERNAL_Upscale(); break;
     }
@@ -39,26 +38,27 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
     return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_InitializePlugin(void *data, void(*t_errorCallback)(void *, Upscaler::Status, const char *)) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
+Upscaler_InitializePlugin(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
     GraphicsAPI::get()->prepareForOneTimeSubmits();
     Upscaler::setErrorCallback(data, t_errorCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetUpscaler(Upscaler::Type type) {
-    Upscaler *upscaler = Upscaler::get();
-    if (upscaler->getType() == type) return upscaler->getStatus();
-    upscaler->shutdown();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
+                                  Upscaler_SetUpscaler(const Upscaler::Type type) {
+    Upscaler::get()->shutdown();
     Upscaler::set(type);
     return Upscaler::get()->initialize();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-                                  Upscaler_GetError(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetError(const Upscaler::Type type
+) {
     return Upscaler::get(type)->getStatus();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetErrorMessage(Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API
+Upscaler_GetErrorMessage(const Upscaler::Type type) {
     return Upscaler::get(type)->getErrorMessage().c_str();
 }
 
@@ -71,14 +71,14 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCu
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
-  unsigned int                t_width,
-  unsigned int                t_height,
-  Upscaler::Settings::Quality t_quality,
-  bool                        t_HDR
+  const unsigned int                t_width,
+  const unsigned int                t_height,
+  const Upscaler::Settings::Quality t_quality,
+  const bool                        t_HDR
 ) {
     Upscaler                *upscaler = Upscaler::get();
-    Upscaler::Settings       settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
-    Upscaler::Status         status   = upscaler->getStatus();
+    const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
+    const Upscaler::Status   status   = upscaler->getStatus();
     if (status == Upscaler::SUCCESS) Upscaler::settings = settings;
     return status;
 }
@@ -96,10 +96,9 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMaxim
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-                                  Upscaler_SetSharpnessValue(float t_sharpness) {
-    bool tooSmall = t_sharpness < 0.0;
-    bool tooBig   = t_sharpness > 1.0;
-    if (Upscaler::success(Upscaler::get()->setStatusIf(
+                                  Upscaler_SetSharpnessValue(const float t_sharpness) {
+    const bool tooSmall = t_sharpness < 0.0;
+    if (const bool tooBig = t_sharpness > 1.0; Upscaler::success(Upscaler::get()->setStatusIf(
           tooSmall || tooBig,
           Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
           std::string(
@@ -107,14 +106,13 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
           ) +
             " The given sharpness value (" + std::to_string(t_sharpness) +
             ") must be greater than 0 but less than 1."
-        ))) {
+        )))
         Upscaler::settings.sharpness = t_sharpness;
-    }
     return Upscaler::get()->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-                                  Upscaler_SetCurrentInputResolution(unsigned int t_width, unsigned int t_height) {
+Upscaler_SetCurrentInputResolution(const unsigned int t_width, const unsigned int t_height) {
     bool      safeToContinue{true};
     Upscaler *upscaler{Upscaler::get()};
     safeToContinue &= Upscaler::success(upscaler->setStatusIf(
@@ -157,7 +155,8 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
     return upscaler->getStatus();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetJitterInformation(float x, float y) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
+Upscaler_SetJitterInformation(const float x, const float y) {
     Upscaler::settings.jitter[0] = x;
     Upscaler::settings.jitter[1] = y;
 }
@@ -166,31 +165,23 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory
     Upscaler::settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetDepthBuffer(
-  void                          *nativeHandle,
-  UnityRenderingExtTextureFormat unityFormat
-) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
+Upscaler_SetDepthBuffer(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setDepthBuffer(nativeHandle, unityFormat);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetInputColor(
-  void                          *nativeHandle,
-  UnityRenderingExtTextureFormat unityFormat
-) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
+Upscaler_SetInputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setInputColor(nativeHandle, unityFormat);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetMotionVectors(
-  void                          *nativeHandle,
-  UnityRenderingExtTextureFormat unityFormat
-) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
+Upscaler_SetMotionVectors(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setMotionVectors(nativeHandle, unityFormat);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetOutputColor(
-  void                          *nativeHandle,
-  UnityRenderingExtTextureFormat unityFormat
-) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
+Upscaler_SetOutputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setOutputColor(nativeHandle, unityFormat);
 }
 
@@ -203,21 +194,20 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
-    Upscaler::set<NoUpscaler>();
     // Finish all one time submits
     GraphicsAPI::get()->finishOneTimeSubmits();
     // Clean up
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *t_unityInterfaces) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *unityInterfaces) {
     //    bool debuggerConnected;
     //    while (!debuggerConnected);
     // Enabled plugin's interception of Vulkan initialization calls.
     for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
-        graphicsAPI->useUnityInterfaces(t_unityInterfaces);
+        graphicsAPI->useUnityInterfaces(unityInterfaces);
     // Record graphics interface for future use.
-    Unity::graphicsInterface = t_unityInterfaces->Get<IUnityGraphics>();
+    Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {

@@ -10,32 +10,34 @@
 // Unity
 #    include "IUnityGraphicsD3D11.h"
 
-class DX11 : public GraphicsAPI {
-private:
+class DX11 final : public GraphicsAPI {
     ID3D11DeviceContext *_oneTimeSubmitContext{nullptr};
     bool                 _oneTimeSubmitRecording{false};
 
     DX11() = default;
 
-    IUnityGraphicsD3D11 *DX11Interface;
+    IUnityGraphicsD3D11 *DX11Interface{};
     ID3D11Device        *device{};
 
 public:
-    DX11(const DX11 &)            = delete;
-    DX11(DX11 &&)                 = default;
+    DX11(const DX11 &) = delete;
+    DX11(DX11 &&)      = default;
+
     DX11 &operator=(const DX11 &) = delete;
     DX11 &operator=(DX11 &&)      = default;
 
     static DX11 *get();
 
-    Type                 getType() override;
+    Type getType() override;
+
     void                 prepareForOneTimeSubmits() override;
     ID3D11DeviceContext *beginOneTimeSubmitRecording();
     void                 endOneTimeSubmitRecording();
     void                 cancelOneTimeSubmitRecording();
     void                 finishOneTimeSubmits() override;
-    bool                 useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
-    IUnityGraphicsD3D11 *getUnityInterface();
+
+    bool                               useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
+    [[nodiscard]] IUnityGraphicsD3D11 *getUnityInterface() const;
 
     ~DX11() override = default;
 };

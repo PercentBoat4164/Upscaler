@@ -7,9 +7,34 @@
 #include "Upscaler/Upscaler.hpp"
 #include "Vulkan.hpp"
 
-GraphicsAPI *GraphicsAPI::graphicsAPIInUse{(GraphicsAPI *) get<NoGraphicsAPI>()};
+GraphicsAPI *GraphicsAPI::graphicsAPIInUse{get<NoGraphicsAPI>()};
 
-GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
+void GraphicsAPI::set(const UnityGfxRenderer renderer) {
+    switch (renderer) {
+#ifdef ENABLE_VULKAN
+        case kUnityGfxRendererVulkan: set<Vulkan>(); break;
+#endif
+#ifdef ENABLE_DX12
+        case kUnityGfxRendererD3D12: set<::DX12>(); break;
+#endif
+#ifdef ENABLE_DX11
+        case kUnityGfxRendererD3D11: set<::DX11>(); break;
+#endif
+        default: set<NoGraphicsAPI>(); break;
+    }
+}
+
+void GraphicsAPI::set(const Type graphicsAPI) {
+    set(get(graphicsAPI));
+}
+
+void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
+    graphicsAPIInUse = graphicsAPI;
+    if (graphicsAPI == get<NoGraphicsAPI>()) Upscaler::setGraphicsAPI(NONE);
+    else Upscaler::setGraphicsAPI(graphicsAPI->getType());
+}
+
+GraphicsAPI *GraphicsAPI::get(const Type graphicsAPI) {
     switch (graphicsAPI) {
         case NONE: return get<NoGraphicsAPI>();
 #ifdef ENABLE_VULKAN
@@ -21,37 +46,12 @@ GraphicsAPI *GraphicsAPI::get(GraphicsAPI::Type graphicsAPI) {
 #ifdef ENABLE_DX11
         case DX11: return get<::DX11>();
 #endif
+        default: return get<NoGraphicsAPI>();
     }
-    return get<NoGraphicsAPI>();
 }
 
 GraphicsAPI *GraphicsAPI::get() {
     return graphicsAPIInUse;
-}
-
-void GraphicsAPI::set(GraphicsAPI::Type graphicsAPI) {
-    set(get(graphicsAPI));
-}
-
-void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
-    graphicsAPIInUse = graphicsAPI;
-    if (graphicsAPI == get<NoGraphicsAPI>()) Upscaler::setGraphicsAPI(NONE);
-    else Upscaler::setGraphicsAPI(graphicsAPI->getType());
-}
-
-void GraphicsAPI::set(UnityGfxRenderer renderer) {
-    switch (renderer) {
-#ifdef ENABLE_VULKAN
-        case kUnityGfxRendererVulkan: GraphicsAPI::set<Vulkan>(); break;
-#endif
-#ifdef ENABLE_DX12
-        case kUnityGfxRendererD3D12: GraphicsAPI::set<::DX12>(); break;
-#endif
-#ifdef ENABLE_DX11
-        case kUnityGfxRendererD3D11: GraphicsAPI::set<::DX11>(); break;
-#endif
-        default: GraphicsAPI::set<NoGraphicsAPI>(); break;
-    }
 }
 
 std::vector<GraphicsAPI *> GraphicsAPI::getAllGraphicsAPIs() {

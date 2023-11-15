@@ -4,30 +4,20 @@
 #include "GraphicsAPI.hpp"
 
 // Unity
-#include <IUnityGraphics.h>
 #include <IUnityGraphicsVulkan.h>
 #include <IUnityRenderingExtensions.h>
 
-// Upscaler
-#include <nvsdk_ngx_defs.h>
-
 // Standard library
-#include <cstring>
 #include <sstream>
 #include <vector>
 
-class Vulkan : public GraphicsAPI {
-private:
+class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr                  m_vkGetInstanceProcAddr;
     static PFN_vkGetDeviceProcAddr                    m_vkGetDeviceProcAddr;
     static PFN_vkCreateInstance                       m_vkCreateInstance;
     static PFN_vkEnumerateInstanceExtensionProperties m_vkEnumerateInstanceExtensionProperties;
     static PFN_vkCreateDevice                         m_vkCreateDevice;
     static PFN_vkEnumerateDeviceExtensionProperties   m_vkEnumerateDeviceExtensionProperties;
-
-    VkInstance              instance;
-    IUnityGraphicsVulkanV2 *vulkanInterface;
-    VkDevice                device;
 
     static PFN_vkCreateImageView        m_vkCreateImageView;
     static PFN_vkDestroyImageView       m_vkDestroyImageView;
@@ -45,32 +35,31 @@ private:
     static PFN_vkResetFences            m_vkResetFences;
     static PFN_vkDestroyFence           m_vkDestroyFence;
 
-    VkCommandPool   _oneTimeSubmitCommandPool{VK_NULL_HANDLE};
-    VkCommandBuffer _oneTimeSubmitCommandBuffer{VK_NULL_HANDLE};
-    VkFence         _oneTimeSubmitFence{VK_NULL_HANDLE};
-    bool            _oneTimeSubmitRecording{false};
+    IUnityGraphicsVulkanV2 *_vulkanInterface{};
+    VkInstance              _instance{};
+    VkDevice                _device{};
+    VkCommandPool           _oneTimeSubmitCommandPool{VK_NULL_HANDLE};
+    VkCommandBuffer         _oneTimeSubmitCommandBuffer{VK_NULL_HANDLE};
+    VkFence                 _oneTimeSubmitFence{VK_NULL_HANDLE};
+    bool                    _oneTimeSubmitRecording{false};
 
-    bool loadEarlyFunctionPointers();
+    static bool        loadEarlyFunctionPointers();
+    [[nodiscard]] bool loadInstanceFunctionPointers() const;
+    [[nodiscard]] bool loadLateFunctionPointers() const;
 
-    bool loadInstanceFunctionPointers();
-
-    bool loadLateFunctionPointers();
-
-    static std::vector<std::string> getSupportedInstanceExtensions();
-
+    static std::vector<std::string>       getSupportedInstanceExtensions();
     static VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateInstance(
       const VkInstanceCreateInfo  *pCreateInfo,
       const VkAllocationCallbacks *pAllocator,
       VkInstance                  *pInstance
     );
 
-    static std::vector<std::string> getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice);
-
+    static std::vector<std::string>       getSupportedDeviceExtensions(VkPhysicalDevice physicalDevice);
     static VKAPI_ATTR VkResult VKAPI_CALL Hook_vkCreateDevice(
-      VkPhysicalDevice          physicalDevice,
-      const VkDeviceCreateInfo *pCreateInfo,
-      VkAllocationCallbacks    *pAllocator,
-      VkDevice                 *pDevice
+      VkPhysicalDevice             physicalDevice,
+      const VkDeviceCreateInfo    *pCreateInfo,
+      const VkAllocationCallbacks *pAllocator,
+      VkDevice                    *pDevice
     );
 
     static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -82,40 +71,35 @@ private:
     Vulkan() = default;
 
 public:
-    Vulkan(const Vulkan &)            = delete;
-    Vulkan(Vulkan &&)                 = default;
+            Vulkan(const Vulkan &)    = delete;
+            Vulkan(Vulkan &&)         = default;
     Vulkan &operator=(const Vulkan &) = delete;
     Vulkan &operator=(Vulkan &&)      = default;
 
-    static PFN_vkGetInstanceProcAddr getVkGetInstanceProcAddr();
-
-    static PFN_vkGetDeviceProcAddr getVkGetDeviceProcAddr();
-
-    static Vulkan *get();
-
     static bool RemoveInterceptInitialization();
-
-    bool useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
-
-    IUnityGraphicsVulkanV2 *getUnityInterface();
-
-    void prepareForOneTimeSubmits() override;
-
-    VkCommandBuffer beginOneTimeSubmitRecording();
-
-    void endOneTimeSubmitRecording();
-
-    void cancelOneTimeSubmitRecording();
-
-    void finishOneTimeSubmits() override;
 
     static VkFormat getFormat(UnityRenderingExtTextureFormat format);
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
+    static PFN_vkGetInstanceProcAddr getVkGetInstanceProcAddr();
+    static PFN_vkGetDeviceProcAddr   getVkGetDeviceProcAddr();
 
-    void destroyImageView(VkImageView pT);
+    static Vulkan *get();
 
     Type getType() override;
+
+    bool                                  useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
+    [[nodiscard]] IUnityGraphicsVulkanV2 *getUnityInterface() const;
+
+    void                          prepareForOneTimeSubmits() override;
+    [[nodiscard]] VkCommandBuffer beginOneTimeSubmitRecording() const;
+    void                          endOneTimeSubmitRecording();
+    void                          cancelOneTimeSubmitRecording();
+    void                          finishOneTimeSubmits() override;
+
+    [[nodiscard]] VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) const;
+    void                      destroyImageView(VkImageView viewToDestroy) const;
+
+    [[nodiscard]] VkDevice getDevice() const;
 
     ~Vulkan() override = default;
 };

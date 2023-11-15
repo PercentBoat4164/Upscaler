@@ -11,35 +11,37 @@
 // Unity
 #    include "IUnityGraphicsD3D12.h"
 
-class DX12 : public GraphicsAPI {
-private:
+class DX12 final : public GraphicsAPI {
     ID3D12CommandAllocator    *_oneTimeSubmitCommandAllocator{nullptr};
     ID3D12GraphicsCommandList *_oneTimeSubmitCommandList{nullptr};
     bool                       _oneTimeSubmitRecording{false};
     ID3D12Fence               *_oneTimeSubmitFence{};
-    HANDLE                     _oneTimeSubmitEvent;
+    HANDLE                     _oneTimeSubmitEvent{};
 
     DX12() = default;
 
-    IUnityGraphicsD3D12v7 *DX12Interface;
+    IUnityGraphicsD3D12v7 *DX12Interface{};
     ID3D12Device          *device{};
 
 public:
-    DX12(const DX12 &)            = delete;
-    DX12(DX12 &&)                 = default;
+    DX12(const DX12 &) = delete;
+    DX12(DX12 &&)      = default;
+
     DX12 &operator=(const DX12 &) = delete;
     DX12 &operator=(DX12 &&)      = default;
 
     static DX12 *get();
 
-    Type                       getType() override;
+    Type         getType() override;
+
     void                       prepareForOneTimeSubmits() override;
     ID3D12GraphicsCommandList *beginOneTimeSubmitRecording();
     void                       endOneTimeSubmitRecording();
     void                       cancelOneTimeSubmitRecording();
     void                       finishOneTimeSubmits() override;
-    bool                       useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
-    IUnityGraphicsD3D12v7     *getUnityInterface();
+
+    bool                                 useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
+    [[nodiscard]] IUnityGraphicsD3D12v7 *getUnityInterface() const;
 
     ~DX12() override = default;
 };

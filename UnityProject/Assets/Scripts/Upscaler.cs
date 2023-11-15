@@ -60,9 +60,6 @@ public class Upscaler : BackendUpscaler
 
     // INTERNAL API IMPLEMENTATION
 
-    // Internal Values for supported upscaling modes and upscaler status
-    private ulong _prevMaxScale, _prevMinScale;
-
     // Runs when the Script is enabled
     // Calls Base Class Method to Initialize Plugin and then uses Plugin Functions to gather information about device supported options
     public new void OnEnable()
@@ -70,7 +67,7 @@ public class Upscaler : BackendUpscaler
         base.OnEnable();
 
         var handle = GCHandle.Alloc(this);
-        Plugin.InitializePlugin((IntPtr) handle, InternalErrorCallbackWrapper);
+        Plugin.Initialize((IntPtr) handle, InternalErrorCallbackWrapper);
 
         // Initialize resolutions and scaling factors.
         Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, ActiveHDR);
@@ -129,30 +126,16 @@ public class Upscaler : BackendUpscaler
         if (DUpscalingResolution)
         {
             var maximumInputResolution = Plugin.GetMaximumInputResolution();
-            if (maximumInputResolution != _prevMaxScale)
-            {
-                MaximumDynamicRenderingResolution = new Vector2Int((int)(maximumInputResolution >> 32),
-                    (int)(maximumInputResolution & 0xFFFFFFFF));
-
-                _prevMaxScale = maximumInputResolution;
-
-                // Because the MaxScale has changed, it is necessary to re-clamp the ActiveUpscalingFactor.
-                widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
-                heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
-            }
+            MaximumDynamicRenderingResolution = new Vector2Int((int)(maximumInputResolution >> 32),
+                (int)(maximumInputResolution & 0xFFFFFFFF));
 
             var minimumInputResolution = Plugin.GetMinimumInputResolution();
-            if (minimumInputResolution != _prevMinScale)
-            {
-                MinimumDynamicRenderingResolution = new Vector2Int((int)(minimumInputResolution >> 32),
-                    (int)(minimumInputResolution & 0xFFFFFFFF));
+            MinimumDynamicRenderingResolution = new Vector2Int((int)(minimumInputResolution >> 32),
+                (int)(minimumInputResolution & 0xFFFFFFFF));
 
-                _prevMinScale = minimumInputResolution;
-
-                // Because the MaxScale has changed, it is necessary to re-clamp the ActiveUpscalingFactor.
-                widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
-                heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
-            }
+            // Because the MaxScale has changed, it is necessary to re-clamp the ActiveUpscalingFactor.
+            widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
+            heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
         }
 
         base.OnPreCull();
@@ -172,7 +155,6 @@ public class Upscaler : BackendUpscaler
             Debug.LogWarning("MSAA should not be turned on for cameras that have upscaling applied to them. " +
                              "It is not necessary and not performant. It could also cause image artifacting.");
         return true;
-
     }
 
     /// Validates Settings Changes and Push them to BackendUpscaler so they Take Effect if No Issue Met
@@ -202,8 +184,9 @@ public class Upscaler : BackendUpscaler
             }
             else
             {
-                _lastSharpness = sharpness;
-                Plugin.SetSharpnessValue(sharpness);
+                if (_lastSharpness == 0 | sharpness == 0 && _lastSharpness.Equals(sharpness))
+                    Plugin.Prepare();
+                Plugin.SetSharpnessValue(_lastSharpness = sharpness);
             }
         }
 
@@ -211,23 +194,10 @@ public class Upscaler : BackendUpscaler
         ActiveMode = upscaler;
         ActiveQuality = quality;
 
-        if (widthScaleFactor > MaxScaleFactor.x | widthScaleFactor < MinScaleFactor.x &&
-            ActiveQuality != Plugin.Quality.DynamicManual)
-        {
-            widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
-            Debug.LogWarning("The Width Scale Factor is outside of the proper range. It has been clipped to: " + widthScaleFactor);
-        }
+        widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
+        heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
 
-        if (heightScaleFactor > MaxScaleFactor.y | widthScaleFactor < MinScaleFactor.y &&
-            ActiveQuality != Plugin.Quality.DynamicManual)
-        {
-            heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
-            Debug.LogWarning("The Height Scale Factor is outside of the proper range. It has been clipped to: " + heightScaleFactor);
-        }
-
-        // Ignore ReShaper's problems with this line. The precision is exact because the values should be exactly the same.
-        if (widthScaleFactor != _lastWidthScaleFactor | heightScaleFactor != _lastHeightScaleFactor)
-            ScalableBufferManager.ResizeBuffers(widthScaleFactor, heightScaleFactor);
+        ScalableBufferManager.ResizeBuffers(widthScaleFactor, heightScaleFactor);
 
         _lastWidthScaleFactor = widthScaleFactor;
         _lastHeightScaleFactor = heightScaleFactor;
