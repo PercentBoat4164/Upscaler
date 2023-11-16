@@ -35,7 +35,7 @@ public static class Jitter {
         tempProj.m02 += clipSpaceJitter.x;
         tempProj.m12 += clipSpaceJitter.y;
         camera.projectionMatrix = tempProj;
-        Plugin.SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
+        Plugin.SetJitterInformation(-pixelSpaceJitter.x, -pixelSpaceJitter.y);
     }
 
     /**

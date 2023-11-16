@@ -14,7 +14,7 @@ public class BackendUpscaler : MonoBehaviour
     private double _lastFrameStartTime;
 
     // Upscaling Resolution
-    protected Vector2Int UpscalingResolution => Camera.targetTexture != null ? new Vector2Int(Camera.targetTexture.width, Camera.targetTexture.height) : new Vector2Int(Camera.pixelWidth, Camera.pixelHeight);
+    protected Vector2Int UpscalingResolution => Camera ? Camera.targetTexture != null ? new Vector2Int(Camera.targetTexture.width, Camera.targetTexture.height) : new Vector2Int(Camera.pixelWidth, Camera.pixelHeight) : new Vector2Int(Display.displays[Display.activeEditorGameViewTarget].renderingWidth, Display.displays[Display.activeEditorGameViewTarget].renderingWidth);
     private Vector2Int _lastUpscalingResolution;
 
     // Rendering Resolution

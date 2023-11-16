@@ -29,7 +29,7 @@ Shader "Upscaler/BlitToMotionTexture"
                 }
 
                 float2 frag(const v2f input) : SV_Target {
-                    return tex2D(_MotionVectorTexture, input.uv);
+                    return -tex2D(_MotionVectorTexture, input.uv);
                 }
             ENDHLSL
         }
