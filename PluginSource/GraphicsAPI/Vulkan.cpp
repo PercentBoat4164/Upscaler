@@ -582,7 +582,8 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
 }
 
 void Vulkan::destroyImageView(VkImageView viewToDestroy) const {
-    m_vkDestroyImageView(_device, viewToDestroy, nullptr);
+    if (viewToDestroy != VK_NULL_HANDLE)
+        m_vkDestroyImageView(_device, viewToDestroy, nullptr);
 }
 
 VkDevice Vulkan::getDevice() const {

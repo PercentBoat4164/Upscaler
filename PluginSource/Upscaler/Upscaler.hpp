@@ -146,8 +146,8 @@ private:
     std::string      detailedErrorMessage{};
 
 protected:
-    template<typename... Args>
-    constexpr Status safeFail(Args... /* unused */) {
+    template<typename T, typename... Args>
+    constexpr T safeFail(Args... /* unused */) {
         return UNKNOWN_ERROR;
     }
 
@@ -198,6 +198,7 @@ public:
     virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
     virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual void   updateImages()                                                                   = 0;
     virtual Status evaluate()                                                                       = 0;
     virtual Status releaseFeature()                                                                 = 0;
     virtual Status shutdown();

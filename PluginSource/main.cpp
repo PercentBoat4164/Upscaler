@@ -80,6 +80,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
     const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
     const Upscaler::Status   status   = upscaler->getStatus();
     if (status == Upscaler::SUCCESS) Upscaler::settings = settings;
+    upscaler->updateImages();
     return status;
 }
 
@@ -152,6 +153,7 @@ Upscaler_SetCurrentInputResolution(const unsigned int t_width, const unsigned in
         ") for the given output resolution."
     ));
     if (safeToContinue) Upscaler::settings.currentInputResolution = {t_width, t_height};
+    upscaler->updateImages();
     return upscaler->getStatus();
 }
 
@@ -201,8 +203,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlug
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *unityInterfaces) {
-    //    bool debuggerConnected;
-    //    while (!debuggerConnected);
     // Enabled plugin's interception of Vulkan initialization calls.
     for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
         graphicsAPI->useUnityInterfaces(unityInterfaces);

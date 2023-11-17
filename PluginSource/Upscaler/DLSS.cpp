@@ -14,7 +14,7 @@ void DLSS::RAII_NGXVulkanResource::ChangeResource(const NVSDK_NGX_ImageViewInfo_
       NVSDK_NGX_Resource_VK{.Resource = info, .Type = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW, .ReadWrite = true};
 }
 
-NVSDK_NGX_Resource_VK DLSS::RAII_NGXVulkanResource::GetResource() const {
+NVSDK_NGX_Resource_VK &DLSS::RAII_NGXVulkanResource::GetResource() {
     return resource;
 }
 
@@ -992,6 +992,24 @@ Upscaler::Status DLSS::setOutputColor(
   const UnityRenderingExtTextureFormat unityFormat
 ) {
     return (this->*graphicsAPIIndependentSetOutputColorFunctionPointer)(nativeHandle, unityFormat);
+}
+
+void DLSS::updateImages(){
+    NVSDK_NGX_ImageViewInfo_VK &imageViewInfoInColor = inColor.vulkan->GetResource().Resource.ImageViewInfo;
+    imageViewInfoInColor.Width  = settings.currentInputResolution.width;
+    imageViewInfoInColor.Height = settings.currentInputResolution.height;
+
+    NVSDK_NGX_ImageViewInfo_VK &imageViewInfoOutColor = outColor.vulkan->GetResource().Resource.ImageViewInfo;
+    imageViewInfoOutColor.Width  = settings.outputResolution.width;
+    imageViewInfoOutColor.Height = settings.outputResolution.height;
+
+    NVSDK_NGX_ImageViewInfo_VK &imageViewInfoDepth = depth.vulkan->GetResource().Resource.ImageViewInfo;
+    imageViewInfoDepth.Width  = settings.currentInputResolution.width;
+    imageViewInfoDepth.Height = settings.currentInputResolution.height;
+
+    NVSDK_NGX_ImageViewInfo_VK &imageViewInfoMotion = motion.vulkan->GetResource().Resource.ImageViewInfo;
+    imageViewInfoMotion.Width  = settings.currentInputResolution.width;
+    imageViewInfoMotion.Height = settings.currentInputResolution.height;
 }
 
 Upscaler::Status DLSS::evaluate() {

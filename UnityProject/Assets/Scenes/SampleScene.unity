@@ -572,12 +572,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   upscaler: 1
-  quality: 5
+  quality: 7
   sharpness: 0
-  widthScaleFactor: 0
-  heightScaleFactor: 0
-  _lastWidthScaleFactor: 0
-  _lastHeightScaleFactor: 0
+  renderScale: 0
+  _lastRenderScale: 0
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0

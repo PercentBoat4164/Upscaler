@@ -5,7 +5,7 @@ using UnityEngine;
 [CustomEditor(typeof(Upscaler))]
 public class UpscalerEditor : Editor
 {
-    private SerializedProperty _upscalerType, _qualityMode, _sharpnessVal, _widthScale, _heightScale;
+    private SerializedProperty _upscalerType, _qualityMode, _sharpnessVal, _renderScale;
     private bool _basicSettingsFoldout = true;
     private bool _advancedSettingsFoldout;
     private GUIStyle _style;
@@ -18,8 +18,7 @@ public class UpscalerEditor : Editor
         _upscalerType = serializedObject.FindProperty("upscaler");
         _qualityMode = serializedObject.FindProperty("quality");
         _sharpnessVal = serializedObject.FindProperty("sharpness");
-        _heightScale = serializedObject.FindProperty("heightScaleFactor");
-        _widthScale = serializedObject.FindProperty("widthScaleFactor");
+        _renderScale = serializedObject.FindProperty("renderScale");
         _style = new GUIStyle();
     }
 
@@ -62,10 +61,8 @@ public class UpscalerEditor : Editor
             EditorGUILayout.Slider(_sharpnessVal, 0, 1, new GUIContent("Sharpness (Deprecated)"));
             if (_upscalerObject.quality == Plugin.Quality.DynamicManual && _upscalerObject != null)
             {
-                EditorGUILayout.Slider(_widthScale, _upscalerObject.MinScaleFactor.x, _upscalerObject.MaxScaleFactor.x,
-                    new GUIContent("Width Scale Factor (Render Width / Output Width)"));
-                EditorGUILayout.Slider(_heightScale, _upscalerObject.MinScaleFactor.y, _upscalerObject.MaxScaleFactor.y,
-                    new GUIContent("Height Scale Factor (Render height / Output Height)"));
+                EditorGUILayout.Slider(_renderScale, _upscalerObject.MinScaleFactor, _upscalerObject.MaxScaleFactor,
+                    new GUIContent("Render Scale"));
             }
             EditorGUI.indentLevel -= 1;
         }

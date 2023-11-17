@@ -26,8 +26,8 @@ public class BackendUpscaler : MonoBehaviour
 
     // Resolution scale
     // Resolution scale attributes are only used when Dynamic Resolution Scaling is enabled.
-    public Vector2 MinScaleFactor => (Vector2)MinimumDynamicRenderingResolution / UpscalingResolution;
-    public Vector2 MaxScaleFactor => (Vector2)MaximumDynamicRenderingResolution / UpscalingResolution;
+    public float MinScaleFactor => (float)MinimumDynamicRenderingResolution.x / UpscalingResolution.x;
+    public float MaxScaleFactor => (float)MaximumDynamicRenderingResolution.x / UpscalingResolution.x;
 
     // Automatic dynamic resolution scaling.
     // private static RefreshRate TargetFrameRate => new DisplayInfo().refreshRate;
@@ -55,6 +55,8 @@ public class BackendUpscaler : MonoBehaviour
 
     private void ManageTargets()
     {
+        Camera.allowDynamicResolution = ActiveQuality == Plugin.Quality.DynamicManual;
+
         if (DUpscaler) Plugin.SetUpscaler(ActiveMode);
         if (DUpscalingResolution | DHDR | DQuality | DUpscaler && ActiveMode != Plugin.Mode.None)
         {
@@ -66,11 +68,9 @@ public class BackendUpscaler : MonoBehaviour
         if (ActiveQuality == Plugin.Quality.DynamicAuto)
         {
             /*@todo Fix the timings here. */
-            var multiplier = (float)Math.Clamp((Time.realtimeSinceStartupAsDouble - _lastFrameStartTime) / (1 / 60.0), 0.01, 100.0);
-            ScalableBufferManager.ResizeBuffers(
-                Math.Clamp(ScalableBufferManager.widthScaleFactor * multiplier, MinScaleFactor.x, MaxScaleFactor.x),
-                Math.Clamp(ScalableBufferManager.heightScaleFactor * multiplier, MinScaleFactor.y, MaxScaleFactor.y)
-            );
+            var scale = (float)Math.Clamp((Time.realtimeSinceStartupAsDouble - _lastFrameStartTime) / (1 / 60.0), 0.01, 100.0);
+            scale = Math.Clamp(ScalableBufferManager.widthScaleFactor * scale, MinScaleFactor, MaxScaleFactor);
+            ScalableBufferManager.ResizeBuffers(scale, scale);
             _lastFrameStartTime = Time.realtimeSinceStartupAsDouble;
         }
 
@@ -96,6 +96,9 @@ public class BackendUpscaler : MonoBehaviour
         if (DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
+        if (imagesChanged)
+            Plugin.Prepare();
+
         // Do not look at this. It is very pretty, I assure you.
         _lastHDRActive = ActiveHDR;
         _lastUpscalingResolution = UpscalingResolution;
@@ -103,9 +106,6 @@ public class BackendUpscaler : MonoBehaviour
         _lastUseDynamicResolution = UseDynamicResolution;
         _lastMode = ActiveMode;
         _lastQuality = ActiveQuality;
-
-        if (imagesChanged)
-            Plugin.Prepare();
     }
 
     protected void OnEnable()
@@ -138,6 +138,7 @@ public class BackendUpscaler : MonoBehaviour
     {
         if (!Application.isPlaying) return;
         ManageTargets();
+        if (Input.GetKey(KeyCode.H)) Plugin.ResetHistory();
         if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);
     }
 

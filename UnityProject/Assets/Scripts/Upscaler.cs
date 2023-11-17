@@ -28,11 +28,13 @@ public class Upscaler : BackendUpscaler
     private float _lastSharpness;
 
     // Must remain separate for niceness in the Editor
-    /// Upscale Factors for Width and Height Respectively (Only Used in Dynamic Manual Scaling)
-    public float widthScaleFactor;
-    public float heightScaleFactor;
-    public float _lastWidthScaleFactor;
-    public float _lastHeightScaleFactor;
+    /// According to the DLSS documentation:
+    ///  > To guarantee the accuracy of the DLSS image reconstruction, the aspect ratio of the render size must stay
+    ///  > constant with [that of] the final display size.
+    /// This is the render scale (Only Used in Dynamic Manual Scaling).
+    /// It is the factor by which the output resolution must be multiplied to get the rendering resolution.
+    public float renderScale;
+    public float _lastRenderScale;
 
     // Strictly Code Accessible Endpoints
 
@@ -76,8 +78,7 @@ public class Upscaler : BackendUpscaler
         inputResolution = Plugin.GetMinimumInputResolution();
         MinimumDynamicRenderingResolution = new Vector2Int((int)(inputResolution >> 32), (int)(inputResolution & 0xFFFFFFFF));
 
-        widthScaleFactor = 1f;
-        heightScaleFactor = 1f;
+        renderScale = 1f;
 
         var tempList = Enum.GetValues(typeof(Plugin.Mode)).Cast<Plugin.Mode>().Where(
               tempUpscaler => Plugin.Success(Plugin.GetError(tempUpscaler))
@@ -134,8 +135,7 @@ public class Upscaler : BackendUpscaler
                 (int)(minimumInputResolution & 0xFFFFFFFF));
 
             // Because the MaxScale has changed, it is necessary to re-clamp the ActiveUpscalingFactor.
-            widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
-            heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
+            renderScale = Math.Clamp(renderScale, MinScaleFactor, MaxScaleFactor);
         }
 
         base.OnPreCull();
@@ -147,9 +147,7 @@ public class Upscaler : BackendUpscaler
     private bool ChangeInSettings()
     {
         if (upscaler == ActiveMode)
-            return quality != ActiveQuality || !sharpness.Equals(_lastSharpness) ||
-                   !widthScaleFactor.Equals(_lastWidthScaleFactor) ||
-                   !heightScaleFactor.Equals(_lastHeightScaleFactor);
+            return quality != ActiveQuality || !sharpness.Equals(_lastSharpness) || !renderScale.Equals(_lastRenderScale);
         /*todo Move me to where I should go. */
         if (Camera.allowMSAA && upscaler != Plugin.Mode.None)
             Debug.LogWarning("MSAA should not be turned on for cameras that have upscaling applied to them. " +
@@ -184,9 +182,10 @@ public class Upscaler : BackendUpscaler
             }
             else
             {
-                if (_lastSharpness == 0 | sharpness == 0 && _lastSharpness.Equals(sharpness))
+                Plugin.SetSharpnessValue(sharpness);
+                if (_lastSharpness == 0 | sharpness == 0)
                     Plugin.Prepare();
-                Plugin.SetSharpnessValue(_lastSharpness = sharpness);
+                _lastSharpness = sharpness;
             }
         }
 
@@ -194,13 +193,9 @@ public class Upscaler : BackendUpscaler
         ActiveMode = upscaler;
         ActiveQuality = quality;
 
-        widthScaleFactor = Math.Clamp(widthScaleFactor, MinScaleFactor.x, MaxScaleFactor.x);
-        heightScaleFactor = Math.Clamp(heightScaleFactor, MinScaleFactor.y, MaxScaleFactor.y);
-
-        ScalableBufferManager.ResizeBuffers(widthScaleFactor, heightScaleFactor);
-
-        _lastWidthScaleFactor = widthScaleFactor;
-        _lastHeightScaleFactor = heightScaleFactor;
+        renderScale = Math.Clamp(renderScale, MinScaleFactor, MaxScaleFactor);
+        ScalableBufferManager.ResizeBuffers(renderScale, renderScale);
+        _lastRenderScale = renderScale;
 
         // Get Proper Success Status and Set Internal Status to match
         var stat = upscaler == Plugin.Mode.None ? Plugin.UpscalerStatus.NoUpscalerSet : Plugin.UpscalerStatus.Success;

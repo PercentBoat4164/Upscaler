@@ -28,6 +28,7 @@ public:
     Status setInputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setMotionVectors(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    void updateImages() override;
     Status evaluate() override;
     Status releaseFeature() override;
     Status shutdown() override;

@@ -54,8 +54,11 @@ Upscaler::Status NoUpscaler::setMotionVectors(void */* unused */, UnityRendering
   return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
-  return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+    return NO_UPSCALER_SET;
+}
+
+void NoUpscaler::updateImages() {
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
