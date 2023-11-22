@@ -30,11 +30,11 @@ public:
 
     Type getType() override;
 
-    void                 prepareForOneTimeSubmits() override;
+    void                 prepareForOneTimeSubmits();
     ID3D11DeviceContext *beginOneTimeSubmitRecording();
     void                 endOneTimeSubmitRecording();
     void                 cancelOneTimeSubmitRecording();
-    void                 finishOneTimeSubmits() override;
+    void                 finishOneTimeSubmits();
 
     bool                               useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
     [[nodiscard]] IUnityGraphicsD3D11 *getUnityInterface() const;

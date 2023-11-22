@@ -40,6 +40,9 @@ public class BackendUpscaler : MonoBehaviour
     // Internal Render Pipeline abstraction
     private RenderPipeline _renderPipeline;
 
+    // Upscaler preparer command buffer
+    private CommandBuffer _upscalerPrepare;
+
     // API
     protected Plugin.Mode ActiveMode = Plugin.Mode.DLSS;
     private Plugin.Mode _lastMode;
@@ -98,7 +101,7 @@ public class BackendUpscaler : MonoBehaviour
             imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
         if (imagesChanged || Input.GetKey(KeyCode.P))
-            Plugin.Prepare();
+            Graphics.ExecuteCommandBuffer(_upscalerPrepare);
 
         if (ActiveMode == Plugin.Mode.None)
             Jitter.Reset(Camera);
@@ -127,6 +130,10 @@ public class BackendUpscaler : MonoBehaviour
         // Set up camera
         Camera = GetComponent<Camera>();
         Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+
+        _upscalerPrepare = new CommandBuffer();
+        _upscalerPrepare.name = "Prepare upscaler";
+        _upscalerPrepare.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Prepare);
 
         // Set up the TexMan
         TexMan.Setup();

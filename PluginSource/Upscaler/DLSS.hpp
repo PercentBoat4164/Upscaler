@@ -7,16 +7,6 @@
 #    include <nvsdk_ngx_helpers.h>
 #    include <nvsdk_ngx_helpers_vk.h>
 
-#    if defined(__clang__)
-
-#    elif defined(__GNUC__) || defined(__GNUG__)
-#        define ALIGN(x) __attribute__((aligned(64)))
-#    elif defined(_MSC_VER)
-#        define ALIGN(x) __declspec(align(x))
-#    else
-#        define ALIGN(x)
-#    endif
-
 class DLSS final : public Upscaler {
     struct Application {
         uint64_t     id{231313132};
@@ -48,7 +38,7 @@ class DLSS final : public Upscaler {
           .FeatureInfo         = &featureCommonInfo,
         };
         // clang-format on
-    } ALIGN(128) applicationInfo;
+    };
 
     struct RAII_NGXVulkanResource {
         explicit RAII_NGXVulkanResource()                                    = default;
@@ -66,16 +56,19 @@ class DLSS final : public Upscaler {
 
     private:
         NVSDK_NGX_Resource_VK resource{};
-    } ALIGN(64);
-
-    NVSDK_NGX_Handle    *featureHandle{};
-    NVSDK_NGX_Parameter *parameters{};
+    };
 
     union Resource {
         RAII_NGXVulkanResource *vulkan;
         ID3D12Resource         *dx12;
         ID3D11Resource         *dx11;
     };
+
+    Application applicationInfo;
+
+    NVSDK_NGX_Handle    *featureHandle{};
+    NVSDK_NGX_Parameter *parameters{};
+    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams;
 
     Resource inColor{nullptr};
     Resource outColor{nullptr};
@@ -84,7 +77,7 @@ class DLSS final : public Upscaler {
 
     static Status (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params);
+    static Status (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat
@@ -110,7 +103,7 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
     Status VulkanGetParameters();
-    Status VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Status VulkanCreateFeature();
     Status VulkanSetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
@@ -124,7 +117,7 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_DX12
     Status DX12Initialize();
     Status DX12GetParameters();
-    Status DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Status DX12CreateFeature();
     Status DX12SetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);
     Status DX12SetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);
     Status DX12SetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);
@@ -138,7 +131,7 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_DX11
     Status DX11Initialize();
     Status DX11GetParameters();
-    Status DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams);
+    Status DX11CreateFeature();
     Status DX11SetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);
     Status DX11SetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);
     Status DX11SetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat /* unused */);

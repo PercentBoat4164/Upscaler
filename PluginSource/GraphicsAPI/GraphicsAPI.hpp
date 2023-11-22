@@ -47,9 +47,6 @@ public:
 
     virtual Type getType() = 0;
 
-    virtual void prepareForOneTimeSubmits() = 0;
-    virtual void finishOneTimeSubmits()     = 0;
-
     virtual bool useUnityInterfaces(IUnityInterfaces *) = 0;
 
     virtual ~GraphicsAPI() = default;

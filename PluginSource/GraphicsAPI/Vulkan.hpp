@@ -90,12 +90,6 @@ public:
     bool                                  useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
     [[nodiscard]] IUnityGraphicsVulkanV2 *getUnityInterface() const;
 
-    void                          prepareForOneTimeSubmits() override;
-    [[nodiscard]] VkCommandBuffer beginOneTimeSubmitRecording() const;
-    void                          endOneTimeSubmitRecording();
-    void                          cancelOneTimeSubmitRecording();
-    void                          finishOneTimeSubmits() override;
-
     [[nodiscard]] VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) const;
     void                      destroyImageView(VkImageView viewToDestroy) const;
 

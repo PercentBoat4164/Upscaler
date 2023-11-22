@@ -29,8 +29,7 @@ void DLSS::RAII_NGXVulkanResource::Destroy() {
 
 Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
 Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentGetParametersFunctionPointer)(){&DLSS::safeFail};
-Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(NVSDK_NGX_DLSS_Create_Params
-){&DLSS::safeFail};
+Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentCreateFeatureFunctionPointer)(){&DLSS::safeFail};
 Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentSetDepthBufferFunctionPointer)(
   void *,
   UnityRenderingExtTextureFormat
@@ -79,20 +78,22 @@ Upscaler::Status DLSS::VulkanGetParameters() {
     return error;
 }
 
-Upscaler::Status DLSS::VulkanCreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+Upscaler::Status DLSS::VulkanCreateFeature() {
     if (parameters == nullptr) VulkanGetParameters();
     if (featureHandle != nullptr) VulkanReleaseFeature();
-    GraphicsAPI::get<Vulkan>()->getUnityInterface()->EnsureOutsideRenderPass();
 
-    if (VkCommandBuffer commandBuffer = GraphicsAPI::get<Vulkan>()->beginOneTimeSubmitRecording();
-        failure(setStatus(
-          NGX_VULKAN_CREATE_DLSS_EXT(commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams),
+    UnityVulkanRecordingState state{};
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->EnsureInsideRenderPass();
+    GraphicsAPI::get<Vulkan>()->getUnityInterface()->CommandRecordingState(
+      &state,
+      kUnityVulkanGraphicsQueueAccess_DontCare
+    );
+
+    if (failure(setStatus(
+          NGX_VULKAN_CREATE_DLSS_EXT(state.commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams),
           "Failed to create the " + getName() + " feature."
-        ))) {
-        GraphicsAPI::get<Vulkan>()->cancelOneTimeSubmitRecording();
+        )))
         return getStatus();
-    }
-    GraphicsAPI::get<Vulkan>()->endOneTimeSubmitRecording();
     return setStatusIf(
       featureHandle == nullptr,
       SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
@@ -351,7 +352,7 @@ Upscaler::Status DLSS::VulkanShutdown() {
     outColor.vulkan->Destroy();
     depth.vulkan->Destroy();
     motion.vulkan->Destroy();
-    initialized = false;
+//    initialized = false;
     return setStatus(
       NVSDK_NGX_VULKAN_Shutdown1(GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance().device),
       "Failed to shutdown the NGX instance."
@@ -379,18 +380,18 @@ Upscaler::Status DLSS::DX12GetParameters() {
     );
 }
 
-Upscaler::Status DLSS::DX12CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
-    if (featureHandle != nullptr) return getStatus();
+Upscaler::Status DLSS::DX12CreateFeature() {
+    if (parameters == nullptr) DX12GetParameters();
+    if (featureHandle != nullptr) DX12ReleaseFeature();
 
-    if (ID3D12GraphicsCommandList *commandList = GraphicsAPI::get<DX12>()->beginOneTimeSubmitRecording();
-        failure(setStatus(
-          NGX_D3D12_CREATE_DLSS_EXT(commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams),
+    UnityGraphicsD3D12RecordingState state{};
+    GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
+
+    if (failure(setStatus(
+          NGX_D3D12_CREATE_DLSS_EXT(state.commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams),
           "Failed to create the " + getName() + " feature."
-        ))) {
-        GraphicsAPI::get<DX12>()->cancelOneTimeSubmitRecording();
+        )))
         return getStatus();
-    }
-    GraphicsAPI::get<DX12>()->endOneTimeSubmitRecording();
     return setStatusIf(
       featureHandle == nullptr,
       SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
@@ -523,8 +524,9 @@ Upscaler::Status DLSS::DX11GetParameters() {
     );
 }
 
-Upscaler::Status DLSS::DX11CreateFeature(NVSDK_NGX_DLSS_Create_Params DLSSCreateParams) {
+Upscaler::Status DLSS::DX11CreateFeature() {
     if (featureHandle != nullptr) return getStatus();
+
     if (ID3D11DeviceContext *context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording(); failure(setStatus(
           NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams),
           "Failed to create the " + getName() + " feature."
@@ -943,7 +945,7 @@ Upscaler::Status DLSS::initialize() {
 
 Upscaler::Status DLSS::createFeature() {
     // clang-format off
-    const NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{
+    DLSSCreateParams = {
       .Feature = {
         .InWidth            = settings.recommendedInputResolution.width,
         .InHeight           = settings.recommendedInputResolution.height,
@@ -965,7 +967,7 @@ Upscaler::Status DLSS::createFeature() {
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
     if (success(getStatus()))
-        return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
+        return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)();
     return getStatus();
 }
 

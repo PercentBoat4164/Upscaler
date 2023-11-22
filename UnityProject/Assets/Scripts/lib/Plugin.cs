@@ -74,7 +74,8 @@ public static class Plugin
 
     public enum Event
     {
-        Upscale
+        Upscale,
+        Prepare
     }
 
     public static GraphicsFormat MotionFormat() => GraphicsFormat.R16G16_SFloat;

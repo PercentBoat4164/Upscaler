@@ -2,6 +2,7 @@
 #include "Upscaler/NoUpscaler.hpp"
 
 #ifdef ENABLE_VULKAN
+#    include "GraphicsAPI/DX11.hpp"
 #    include "GraphicsAPI/Vulkan.hpp"
 #endif
 
@@ -18,6 +19,7 @@ IUnityGraphics *graphicsInterface;
 
 enum Event {
     UPSCALE,
+    PREPARE,
 };
 
 void INTERNAL_Upscale() {
@@ -28,9 +30,14 @@ void INTERNAL_Upscale() {
     Upscaler::setErrorCallback(nullptr, cb);
 }
 
+void INTERNAL_Prepare() {
+    Upscaler::get()->createFeature();
+}
+
 void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(const Event event) {
     switch (event) {
         case UPSCALE: INTERNAL_Upscale(); break;
+        case PREPARE: INTERNAL_Prepare(); break;
     }
 }
 
@@ -41,7 +48,10 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
 Upscaler_InitializePlugin(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
-    GraphicsAPI::get()->prepareForOneTimeSubmits();
+#ifdef ENABLE_DX11
+    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
+        GraphicsAPI::get<DX11>()->prepareForOneTimeSubmits();
+#endif
     Upscaler::setErrorCallback(data, t_errorCallback);
 }
 
@@ -196,8 +206,11 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
+#ifdef ENABLE_DX11
     // Finish all one time submits
-    GraphicsAPI::get()->finishOneTimeSubmits();
+    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
+        GraphicsAPI::get<DX11>()->finishOneTimeSubmits();
+#endif
     // Clean up
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
 }

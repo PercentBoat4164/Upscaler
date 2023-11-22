@@ -34,12 +34,6 @@ public:
 
     Type         getType() override;
 
-    void                       prepareForOneTimeSubmits() override;
-    ID3D12GraphicsCommandList *beginOneTimeSubmitRecording();
-    void                       endOneTimeSubmitRecording();
-    void                       cancelOneTimeSubmitRecording();
-    void                       finishOneTimeSubmits() override;
-
     bool                                 useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
     [[nodiscard]] IUnityGraphicsD3D12v7 *getUnityInterface() const;
 

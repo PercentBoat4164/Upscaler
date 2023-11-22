@@ -10,8 +10,5 @@ public:
 
     Type                  getType() override;
 
-    void                  prepareForOneTimeSubmits() override;
-    void                  finishOneTimeSubmits() override;
-
     bool                  useUnityInterfaces(IUnityInterfaces */* unused */) override;
 };

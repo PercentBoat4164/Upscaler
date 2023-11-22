@@ -572,7 +572,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   upscaler: 1
-  quality: 7
+  quality: 4
   sharpness: 0
   renderScale: 0
   _lastRenderScale: 0
