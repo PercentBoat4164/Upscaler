@@ -60,7 +60,7 @@ class DLSS final : public Upscaler {
 
         void                   ChangeResource(const NVSDK_NGX_ImageViewInfo_VK &info);
         NVSDK_NGX_Resource_VK &GetResource();
-        void                   Destroy() const;
+        void                   Destroy();
 
         ~RAII_NGXVulkanResource();
 
@@ -77,10 +77,10 @@ class DLSS final : public Upscaler {
         ID3D11Resource         *dx11;
     };
 
-    Resource inColor{};
-    Resource outColor{};
-    Resource depth{};
-    Resource motion{};
+    Resource inColor{nullptr};
+    Resource outColor{nullptr};
+    Resource depth{nullptr};
+    Resource motion{nullptr};
 
     static Status (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();

@@ -67,8 +67,9 @@ public class BackendUpscaler : MonoBehaviour
 
         if (ActiveQuality == Plugin.Quality.DynamicAuto)
         {
+            var targetFrameTime = Application.targetFrameRate == -1 ? Screen.currentResolution.refreshRateRatio.value / QualitySettings.vSyncCount : Application.targetFrameRate;
             /*@todo Fix the timings here. */
-            var scale = (float)Math.Clamp((Time.realtimeSinceStartupAsDouble - _lastFrameStartTime) / (1 / 60.0), 0.01, 100.0);
+            var scale = (float)Math.Clamp((Time.realtimeSinceStartupAsDouble - _lastFrameStartTime) / targetFrameTime, 0.01, 100.0);
             scale = Math.Clamp(ScalableBufferManager.widthScaleFactor * scale, MinScaleFactor, MaxScaleFactor);
             ScalableBufferManager.ResizeBuffers(scale, scale);
             _lastFrameStartTime = Time.realtimeSinceStartupAsDouble;
@@ -96,8 +97,11 @@ public class BackendUpscaler : MonoBehaviour
         if (DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler | DQuality)
             imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
-        if (imagesChanged)
+        if (imagesChanged || Input.GetKey(KeyCode.P))
             Plugin.Prepare();
+
+        if (ActiveMode == Plugin.Mode.None)
+            Jitter.Reset(Camera);
 
         // Do not look at this. It is very pretty, I assure you.
         _lastHDRActive = ActiveHDR;
@@ -106,6 +110,16 @@ public class BackendUpscaler : MonoBehaviour
         _lastUseDynamicResolution = UseDynamicResolution;
         _lastMode = ActiveMode;
         _lastQuality = ActiveQuality;
+    }
+
+    private void SetPipeline()
+    {
+        if (GraphicsSettings.currentRenderPipeline == null)
+            _renderPipeline = new Builtin(Camera);
+#if UPSCALER_USE_URP
+        else
+            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
+#endif
     }
 
     protected void OnEnable()
@@ -119,15 +133,12 @@ public class BackendUpscaler : MonoBehaviour
 
         // Initialize the plugin.
         /*@todo Handle the case that different quality modes use different render pipelines. RenderPipelineManager.activeRenderPipelineTypeChanged? */
-        if (GraphicsSettings.currentRenderPipeline == null)
-            _renderPipeline = new Builtin(Camera);
-        #if UPSCALER_USE_URP
-        else
-            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
-        #endif
+        RenderPipelineManager.activeRenderPipelineAssetChanged += (_, _) => SetPipeline();
+        SetPipeline();
 
         // Initialize the plugin
         Plugin.Initialize();
+        _lastMode = ActiveMode;
         Plugin.SetUpscaler(ActiveMode);
         if (ActiveMode == Plugin.Mode.None) return;
         Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, ActiveHDR);
@@ -159,6 +170,7 @@ public class BackendUpscaler : MonoBehaviour
         // Shutdown internal plugin
         Plugin.ShutdownPlugin();
 
+        /* @todo Make this happen every time the None upscaler is selected. */
         // Shutdown the active render pipeline
         _renderPipeline.Shutdown();
     }

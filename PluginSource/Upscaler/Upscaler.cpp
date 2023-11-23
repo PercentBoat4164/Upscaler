@@ -55,7 +55,7 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
 std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
     std::vector<Upscaler *> upscalers;
     for (Upscaler *upscaler : getAllUpscalers())
-        if (upscaler->getStatus() == SUCCESS) upscalers.push_back(upscaler);
+        if (success(upscaler->getStatus())) upscalers.push_back(upscaler);
     return upscalers;
 }
 

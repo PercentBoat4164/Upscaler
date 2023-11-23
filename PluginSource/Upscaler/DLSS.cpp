@@ -11,7 +11,7 @@
 void DLSS::RAII_NGXVulkanResource::ChangeResource(const NVSDK_NGX_ImageViewInfo_VK &info) {
     Destroy();
     resource =
-      NVSDK_NGX_Resource_VK{.Resource = info, .Type = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW, .ReadWrite = true};
+      NVSDK_NGX_Resource_VK{.Resource = {info}, .Type = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW, .ReadWrite = true};
 }
 
 NVSDK_NGX_Resource_VK &DLSS::RAII_NGXVulkanResource::GetResource() {
@@ -22,8 +22,9 @@ DLSS::RAII_NGXVulkanResource::~RAII_NGXVulkanResource() {
     Destroy();
 }
 
-void DLSS::RAII_NGXVulkanResource::Destroy() const {
+void DLSS::RAII_NGXVulkanResource::Destroy() {
     GraphicsAPI::get<Vulkan>()->destroyImageView(resource.Resource.ImageViewInfo.ImageView);
+    resource = {};
 }
 
 Upscaler::Status (DLSS::*DLSS::graphicsAPIIndependentInitializeFunctionPointer)(){&DLSS::safeFail};
@@ -350,6 +351,7 @@ Upscaler::Status DLSS::VulkanShutdown() {
     outColor.vulkan->Destroy();
     depth.vulkan->Destroy();
     motion.vulkan->Destroy();
+    initialized = false;
     return setStatus(
       NVSDK_NGX_VULKAN_Shutdown1(GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance().device),
       "Failed to shutdown the NGX instance."
@@ -762,7 +764,8 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
 }
 
 DLSS *DLSS::get() {
-    static DLSS *dlss{new DLSS};
+    static DLSS *dlss{nullptr};
+    if (dlss == nullptr) dlss = new DLSS;
     return dlss;
 }
 
@@ -958,10 +961,10 @@ Upscaler::Status DLSS::createFeature() {
       ),
       .InEnableOutputSubrects = false,
     };
-    // clang-format off
+    // clang-format on
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    if (getStatus() == SUCCESS)
+    if (success(getStatus()))
         return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)(DLSSCreateParams);
     return getStatus();
 }

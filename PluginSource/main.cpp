@@ -79,7 +79,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
     Upscaler                *upscaler = Upscaler::get();
     const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
     const Upscaler::Status   status   = upscaler->getStatus();
-    if (status == Upscaler::SUCCESS) Upscaler::settings = settings;
+    if (Upscaler::success(status)) Upscaler::settings = settings;
     upscaler->updateImages();
     return status;
 }
