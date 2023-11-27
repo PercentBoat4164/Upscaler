@@ -84,9 +84,6 @@ public class BackendUpscaler : MonoBehaviour
         if (DRenderingResolution | DUpscalingResolution)
             Jitter.Generate((Vector2)UpscalingResolution / RenderingResolution);
 
-        if (DRenderingResolution | DUpscalingResolution)
-            Debug.Log(RenderingResolution.x + "x" + RenderingResolution.y + " -> " + UpscalingResolution.x + "x" + UpscalingResolution.y);
-
         var upscalerOutdated = false;
 
         if (DSharpness)
@@ -117,7 +114,6 @@ public class BackendUpscaler : MonoBehaviour
         if (DUpscaler && ActiveMode == Plugin.Mode.None)
         {
             Jitter.Reset(Camera);
-            SetPipeline();
         }
 
         // Do not look at this. It is very pretty, I assure you.
@@ -132,15 +128,12 @@ public class BackendUpscaler : MonoBehaviour
 
     private void SetPipeline()
     {
-        _renderPipeline?.Shutdown();
-        if (ActiveMode != Plugin.Mode.None)
-            if (GraphicsSettings.currentRenderPipeline == null)
-                _renderPipeline = new Builtin(Camera);
+        if (GraphicsSettings.currentRenderPipeline == null)
+            _renderPipeline = new Builtin(Camera);
 #if UPSCALER_USE_URP
-            else
-                _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
+        else
+            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
 #endif
-        else _renderPipeline = null;
     }
 
     protected void Setup(IntPtr handle, Plugin.InternalErrorCallback callback)

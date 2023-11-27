@@ -49,6 +49,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
         public void PreUpscale()
         {
+            if (!_inColorTarget) return;
+
             _cameraTarget = _camera.targetTexture;
             _camera.targetTexture = _inColorTarget;
             RenderTexture.active = _inColorTarget;
