@@ -59,6 +59,10 @@ public class Upscaler : BackendUpscaler
     /// Returns false if device and OS do not support Upscaling Mode
     public bool DeviceSupportsUpscalingMode(Plugin.Mode upscalingMode) => SupportedUpscalingModes.Contains(upscalingMode);
 
+    // INTERNAL CAMERA OPTION HISTORY
+    private bool _lastAllowDynamicResolution;
+    private bool _lastAllowMSAA;
+
     // INTERNAL API IMPLEMENTATION
 
     // Runs when the Script is enabled
@@ -66,6 +70,8 @@ public class Upscaler : BackendUpscaler
     public void OnEnable()
     {
         Setup((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper);
+
+        ScalableBufferManager.ResizeBuffers(1f, 1f);
 
         SupportedUpscalingModes = Enum.GetValues(typeof(Plugin.Mode)).Cast<Plugin.Mode>().Where(
               tempUpscaler => Plugin.Success(Plugin.GetError(tempUpscaler))
@@ -87,26 +93,6 @@ public class Upscaler : BackendUpscaler
             if (Plugin.Failure(settingsChange.Item1))
                 InternalErrorHandler(settingsChange.Item1, settingsChange.Item2);
         }
-
-        /*@todo Make switching me nicer. */
-        // If the upscaler is active and the quality mode is dynamic, ensure dynamic resolution is enabled.
-        if (Camera.allowDynamicResolution)
-            Camera.allowDynamicResolution = ActiveMode == Plugin.Mode.None;
-        // if (!Camera.allowDynamicResolution && ActiveMode != Plugin.Mode.None &&
-        //     ActiveQuality == Plugin.Quality.DynamicAuto || ActiveQuality == Plugin.Quality.DynamicManual)
-        // {
-        //     Camera.allowDynamicResolution = false;
-        // }
-        //
-        // // If the Upscaler is not None, the Quality Mode does not allow for Dynamic Resolution, and the Camera is set
-        // // to dynamic resolution, turn Dynamic Resolution off and give a warning
-        // if (ActiveMode != Plugin.Mode.None && ActiveQuality != Plugin.Quality.DynamicAuto &&
-        //     ActiveQuality != Plugin.Quality.DynamicManual && Camera.allowDynamicResolution)
-        // {
-        //     Camera.allowDynamicResolution = false;
-        //     Debug.LogWarning("Dynamic resolution has been disabled for the upscaled camera " +
-        //                      "since the current upscaling and quality modes do not allow for it.");
-        // }
         base.OnPreCull();
     }
 
@@ -115,13 +101,7 @@ public class Upscaler : BackendUpscaler
     /// This will only return true when a user change causes settings to fall out of sync between Upscaler and BackendUpscaler
     private bool ChangeInSettings()
     {
-        if (upscaler == ActiveMode)
-            return quality != ActiveQuality || !sharpness.Equals(LastSharpness) || !renderScale.Equals(_lastRenderScale);
-        /*@todo Move me to ValidateAndPushSettings. */
-        if (Camera.allowMSAA && upscaler != Plugin.Mode.None)
-            Debug.LogWarning("MSAA should not be turned on for cameras that have upscaling applied to them. " +
-                             "It is not necessary and not performant. It could also cause image artifacting.");
-        return true;
+        return upscaler != ActiveMode || quality != ActiveQuality || !sharpness.Equals(LastSharpness) || !renderScale.Equals(_lastRenderScale) || _lastAllowDynamicResolution != Camera.allowDynamicResolution || _lastAllowMSAA != Camera.allowMSAA;
     }
 
     /// Validates settings changes and pushes them to BackendUpscaler so they take effect if no issue met.
@@ -141,20 +121,39 @@ public class Upscaler : BackendUpscaler
 
         // Propagate changes to backend if no errors when changing settings.
         ActiveMode = upscaler;
-        ActiveQuality = quality;
         LastSharpness = Sharpness;
         Sharpness = sharpness;
 
-        /*@todo Move me to BackendUpscaler::ManageTargets. */
+        // MSAA is not compatible with upscaling.
+        if (Camera.allowMSAA && upscaler != Plugin.Mode.None)
+            Camera.allowMSAA = false;
+
+        _lastAllowMSAA = Camera.allowMSAA;
+
+        // Dynamic resolution
+        if (upscaler != Plugin.Mode.None)
+        {
+            if (_lastAllowDynamicResolution != Camera.allowDynamicResolution)
+                quality = Camera.allowDynamicResolution ? Plugin.Quality.DynamicAuto : Plugin.Quality.Auto;
+            else
+                Camera.allowDynamicResolution = Plugin.IsDynamicResolutionEnabled(quality);
+
+            if (_lastAllowDynamicResolution != Camera.allowDynamicResolution)
+                if (Camera.allowDynamicResolution) renderScale = 1f;
+                else ScalableBufferManager.ResizeBuffers(1f, 1f);
+
+            _lastAllowDynamicResolution = Camera.allowDynamicResolution;
+        }
+
+        ActiveQuality = quality;
+
+        // Manual dynamic resolution
         if (ActiveQuality == Plugin.Quality.DynamicManual)
         {
             renderScale = Math.Clamp(renderScale, MinScaleFactor, MaxScaleFactor);
             ScalableBufferManager.ResizeBuffers(renderScale, renderScale);
             _lastRenderScale = renderScale;
         }
-
-        if (UpscalingResolution.x < 32 || UpscalingResolution.y < 32)
-            Debug.LogError("");
 
         // Get proper success status and set internal status to match.
         Status = upscaler == Plugin.Mode.None ? Plugin.UpscalerStatus.NoUpscalerSet : Plugin.UpscalerStatus.Success;

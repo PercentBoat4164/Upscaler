@@ -21,9 +21,9 @@ public abstract class RenderPipeline
 
     public abstract bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
 
-    public abstract bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
+    public abstract bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int upscalingResolution);
 
-    public abstract bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution);
+    public abstract bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution);
 
     public abstract void Shutdown();
 }

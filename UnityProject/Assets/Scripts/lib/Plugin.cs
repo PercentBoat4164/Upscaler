@@ -72,6 +72,11 @@ public static class Plugin
         DynamicManual
     }
 
+    public static bool IsDynamicResolutionEnabled(Quality quality)
+    {
+        return quality is Quality.DynamicAuto or Quality.DynamicManual;
+    }
+
     public enum Event
     {
         Upscale,

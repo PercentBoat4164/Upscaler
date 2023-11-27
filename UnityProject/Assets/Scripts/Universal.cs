@@ -43,11 +43,11 @@ public class Universal : RenderPipeline
     public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
         _upscalerRendererFeature.ManageOutputTarget(mode, upscalingResolution);
 
-    public override bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
-        _upscalerRendererFeature.ManageMotionVectorTarget(mode, upscalingResolution);
+    public override bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int upscalingResolution) =>
+        _upscalerRendererFeature.ManageMotionVectorTarget(mode, quality, upscalingResolution);
 
-    public override bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution) =>
-        _upscalerRendererFeature.ManageInColorTarget(mode, maximumDynamicRenderingResolution);
+    public override bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution) =>
+        _upscalerRendererFeature.ManageInColorTarget(mode, quality, maximumDynamicRenderingResolution);
 
     public override void Shutdown()
     {

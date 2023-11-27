@@ -829,6 +829,10 @@ Upscaler::Settings DLSS::getOptimalSettings(
         return settings;
     }
 
+    if (t_outputResolution.height < 32 || t_outputResolution.width < 32) {
+        Upscaler::setStatus(SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, getName() + " does not support output resolutions less than 32x32.");
+    }
+
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = t_outputResolution;
     optimalSettings.HDR              = t_HDR;

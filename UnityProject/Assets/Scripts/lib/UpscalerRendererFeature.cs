@@ -87,7 +87,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             return true;
         }
 
-        public bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution)
+        public bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution)
         {
             var dTarget = false;
             if (_motionVectorTarget && _motionVectorTarget.IsCreated())
@@ -99,10 +99,9 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             if (mode == Plugin.Mode.None) return dTarget;
 
-            _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat())
-            {
-                useDynamicScale = true
-            };
+            _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+            if (Plugin.IsDynamicResolutionEnabled(quality))
+                _motionVectorTarget.useDynamicScale = true;
             _motionVectorTarget.Create();
 
             Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -110,7 +109,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             return true;
         }
 
-        public bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution)
+        public bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution)
         {
             var dTarget = false;
             if (_inColorTarget && _inColorTarget.IsCreated())
@@ -125,8 +124,10 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             _inColorTarget =
                 new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, Plugin.ColorFormat(_camera.allowHDR), Plugin.DepthFormat())
                 {
-                    filterMode = FilterMode.Point, useDynamicScale = true
+                    filterMode = FilterMode.Point
                 };
+            if (Plugin.IsDynamicResolutionEnabled(quality))
+                _inColorTarget.useDynamicScale = true;
             _inColorTarget.Create();
 
             Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
@@ -178,11 +179,11 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
     public bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
         _upscalerRenderRenderPass.ManageOutputTarget(mode, upscalingResolution);
 
-    public bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
-        _upscalerRenderRenderPass.ManageMotionVectorTarget(mode, upscalingResolution);
+    public bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int upscalingResolution) =>
+        _upscalerRenderRenderPass.ManageMotionVectorTarget(mode, quality, upscalingResolution);
 
-    public bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution) =>
-        _upscalerRenderRenderPass.ManageInColorTarget(mode, maximumDynamicRenderingResolution);
+    public bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution) =>
+        _upscalerRenderRenderPass.ManageInColorTarget(mode, quality, maximumDynamicRenderingResolution);
 
     public void Shutdown() => _upscalerRenderRenderPass.Shutdown();
 }

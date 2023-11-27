@@ -58,8 +58,6 @@ public class BackendUpscaler : MonoBehaviour
 
     private void ManageTargets()
     {
-        Camera.allowDynamicResolution = ActiveQuality == Plugin.Quality.DynamicManual;
-
         if (DUpscaler)
             Plugin.SetUpscaler(ActiveMode);
 
@@ -94,7 +92,7 @@ public class BackendUpscaler : MonoBehaviour
 
         if (DHDR | DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) |
             DUpscaler | DQuality)
-            upscalerOutdated |= _renderPipeline.ManageInColorTarget(ActiveMode,
+            upscalerOutdated |= _renderPipeline.ManageInColorTarget(ActiveMode, ActiveQuality,
                 UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
         if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
@@ -105,7 +103,7 @@ public class BackendUpscaler : MonoBehaviour
 
         if (DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) |
             DUpscaler | DQuality)
-            upscalerOutdated |= _renderPipeline.ManageMotionVectorTarget(ActiveMode,
+            upscalerOutdated |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, ActiveQuality,
                 UseDynamicResolution ? UpscalingResolution : RenderingResolution);
 
         if (upscalerOutdated)
