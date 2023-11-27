@@ -472,24 +472,24 @@ IUnityGraphicsVulkanV2 *Vulkan::getUnityInterface() const {
 VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) const {
     // clang-format off
     const VkImageViewCreateInfo createInfo {
-        .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext    = nullptr,
-        .flags    = 0x0,
-        .image    = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format   = format,
-        .components = {
-            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-          },
-          .subresourceRange = {
-            .aspectMask     = flags,
-            .baseMipLevel   = 0,
-            .levelCount     = 1,
-            .baseArrayLayer = 0,
-            .layerCount     = 1,
-          },
-        };
+      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext    = nullptr,
+      .flags    = 0x0,
+      .image    = image,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format   = format,
+      .components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+      },
+      .subresourceRange = {
+        .aspectMask     = flags,
+        .baseMipLevel   = 0,
+        .levelCount     = 1,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+      },
+    };
     // clang-format on
 
     VkImageView view{VK_NULL_HANDLE};

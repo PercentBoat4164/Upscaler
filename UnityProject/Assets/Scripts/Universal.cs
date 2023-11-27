@@ -11,6 +11,7 @@ public class Universal : RenderPipeline
     private readonly UpscalerRendererFeature _upscalerRendererFeature;
     private readonly List<ScriptableRendererFeature> _features;
     private readonly int _featureIndex;
+    private bool _initialized;
 
     public Universal(Camera camera, Action onPreCull) : base(camera, PipelineType.Universal)
     {
@@ -33,6 +34,7 @@ public class Universal : RenderPipeline
             onPreCull();
             _upscalerRendererFeature.PreUpscale();
         };
+        _initialized = true;
     }
 
     public override void UpdatePostUpscaleCommandBuffer() =>
@@ -49,8 +51,11 @@ public class Universal : RenderPipeline
 
     public override void Shutdown()
     {
+        if (!_initialized) return;
+
         _upscalerRendererFeature.Shutdown();
         _features.RemoveAt(_featureIndex);
+        _initialized = false;
     }
 }
 #endif

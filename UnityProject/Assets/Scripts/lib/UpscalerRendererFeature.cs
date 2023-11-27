@@ -15,8 +15,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
         // CommandBuffers
         private readonly CommandBuffer _upscale = CommandBufferPool.Get("Upscale");
-        private readonly CommandBuffer _postUpscaleNullCameraTarget = CommandBufferPool.Get("Post Upscale");
-        private readonly CommandBuffer _postUpscaleValidCameraTarget = CommandBufferPool.Get("Post Upscale");
+        private readonly CommandBuffer _postUpscale = CommandBufferPool.Get("Post Upscale");
 
         // Camera
         private readonly Camera _camera;
@@ -32,15 +31,11 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
         public void UpdatePostUpscaleCommandBuffer()
         {
-            _postUpscaleNullCameraTarget.Clear();
-            _postUpscaleValidCameraTarget.Clear();
+            _postUpscale.Clear();
 
-            // The two command buffers are the same save that one copies while the other blits. Copying is faster, but you can only blit to the screen. The command buffer that is actually used is decided during rendering based on the CameraTarget for the given frame.
-            _postUpscaleNullCameraTarget.Blit(_outputTarget, _cameraTarget);
-            _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, _cameraTarget);
+            _postUpscale.Blit(_outputTarget, _cameraTarget);
 
-            TexMan.CopyCameraDepth(_postUpscaleNullCameraTarget);
-            TexMan.CopyCameraDepth(_postUpscaleValidCameraTarget);
+            TexMan.CopyCameraDepth(_postUpscale);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -49,7 +44,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             context.ExecuteCommandBuffer(_upscale);
             _camera.targetTexture = _cameraTarget;
             RenderTexture.active = _cameraTarget;
-            context.ExecuteCommandBuffer(_cameraTarget ? _postUpscaleValidCameraTarget : _postUpscaleNullCameraTarget);
+            context.ExecuteCommandBuffer(_postUpscale);
         }
 
         public void PreUpscale()
@@ -141,8 +136,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         {
             // Release command buffers
             CommandBufferPool.Release(_upscale);
-            CommandBufferPool.Release(_postUpscaleNullCameraTarget);
-            CommandBufferPool.Release(_postUpscaleValidCameraTarget);
+            CommandBufferPool.Release(_postUpscale);
 
             if (_outputTarget && _outputTarget.IsCreated())
                 _outputTarget.Release();

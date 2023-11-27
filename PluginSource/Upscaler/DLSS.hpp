@@ -9,13 +9,11 @@
 
 class DLSS final : public Upscaler {
     struct Application {
-        uint64_t     id{231313132};
-        std::wstring dataPath{L"./"};
         // clang-format off
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
-            .ApplicationId = id,
+            .ApplicationId = 231313132,
           }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
@@ -26,7 +24,7 @@ class DLSS final : public Upscaler {
           .InternalData = nullptr,
           .LoggingInfo {
             .LoggingCallback = nullptr,
-            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
             .DisableOtherLoggingSinks = false,
           }
         };
@@ -34,7 +32,7 @@ class DLSS final : public Upscaler {
           .SDKVersion          = NVSDK_NGX_Version_API,
           .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
           .Identifier          = ngxIdentifier,
-          .ApplicationDataPath = dataPath.c_str(),
+          .ApplicationDataPath = L"./",
           .FeatureInfo         = &featureCommonInfo,
         };
         // clang-format on

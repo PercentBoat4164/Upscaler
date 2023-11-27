@@ -1,4 +1,3 @@
-using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -32,12 +31,12 @@ public class UpscalerEditor : Editor
         if (status <= Plugin.UpscalerStatus.NoUpscalerSet)
         {
             _style.normal.textColor = Color.green;
-            _message = "Upscaling Mode Successfully Running";
+            _message = "Upscaling successfully running";
         }
         else
         {
             _style.normal.textColor = Color.red;
-            _message = "Upscaler Had an Error. Fell back to No Upscaling.";
+            _message = "Upscaler had an Error. Fell back to None.";
         }
         
         EditorGUILayout.LabelField(new GUIContent("Upscaler Status"), new GUIContent(_message));
@@ -61,7 +60,7 @@ public class UpscalerEditor : Editor
             EditorGUILayout.Slider(_sharpnessVal, 0, 1, new GUIContent("Sharpness (Deprecated)"));
             if (_upscalerObject.quality == Plugin.Quality.DynamicManual && _upscalerObject != null)
             {
-                EditorGUILayout.Slider(_renderScale, _upscalerObject.MinScaleFactor, _upscalerObject.MaxScaleFactor,
+                EditorGUILayout.Slider(_renderScale, BackendUpscaler.MinScaleFactor, BackendUpscaler.MaxScaleFactor,
                     new GUIContent("Render Scale"));
             }
             EditorGUI.indentLevel -= 1;

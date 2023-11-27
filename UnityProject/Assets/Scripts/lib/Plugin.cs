@@ -111,9 +111,6 @@ public static class Plugin
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetOutputColor")]
     public static extern void SetOutputColor(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-    public static extern void Initialize();
-
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscaler")]
     public static extern UpscalerStatus SetUpscaler(Mode mode);
 
@@ -134,9 +131,6 @@ public static class Plugin
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCurrentInputResolution")]
     public static extern UpscalerStatus SetCurrentInputResolution(uint width, uint height);
-
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Prepare")]
-    public static extern UpscalerStatus Prepare();
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Shutdown")]
     public static extern void Shutdown();

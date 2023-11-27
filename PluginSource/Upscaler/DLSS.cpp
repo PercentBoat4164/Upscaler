@@ -56,8 +56,8 @@ Upscaler::Status DLSS::VulkanInitialize() {
 
     return setStatus(
       NVSDK_NGX_VULKAN_Init(
-        applicationInfo.id,
-        applicationInfo.dataPath.c_str(),
+        applicationInfo.ngxIdentifier.v.ApplicationId,
+        applicationInfo.featureCommonInfo.PathListInfo.Path[0],
         vulkanInstance.instance,
         vulkanInstance.physicalDevice,
         vulkanInstance.device
@@ -352,7 +352,6 @@ Upscaler::Status DLSS::VulkanShutdown() {
     outColor.vulkan->Destroy();
     depth.vulkan->Destroy();
     motion.vulkan->Destroy();
-//    initialized = false;
     return setStatus(
       NVSDK_NGX_VULKAN_Shutdown1(GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance().device),
       "Failed to shutdown the NGX instance."
@@ -364,8 +363,8 @@ Upscaler::Status DLSS::VulkanShutdown() {
 Upscaler::Status DLSS::DX12Initialize() {
     return setStatus(
       NVSDK_NGX_D3D12_Init(
-        applicationInfo.id,
-        applicationInfo.dataPath.c_str(),
+        applicationInfo.ngxIdentifier.v.ApplicationId,
+        applicationInfo.featureCommonInfo.PathListInfo.Path[0],
         GraphicsAPI::get<DX12>()->getUnityInterface()->GetDevice()
       ),
       "Failed to initialize the NGX instance."
@@ -508,8 +507,8 @@ Upscaler::Status DLSS::DX12Shutdown() {
 Upscaler::Status DLSS::DX11Initialize() {
     return setStatus(
       NVSDK_NGX_D3D11_Init(
-        applicationInfo.id,
-        applicationInfo.dataPath.c_str(),
+        applicationInfo.ngxIdentifier.v.ApplicationId,
+        applicationInfo.featureCommonInfo.PathListInfo.Path[0],
         GraphicsAPI::get<DX11>()->getUnityInterface()->GetDevice()
       ),
       "Failed to initialize the NGX instance."
@@ -824,6 +823,11 @@ Upscaler::Settings DLSS::getOptimalSettings(
   const bool                 t_HDR
 ) {
     if (parameters == nullptr) return settings;
+
+    if (t_quality == Settings::ULTRA_QUALITY) {
+        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra Quality mode.");
+        return settings;
+    }
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = t_outputResolution;

@@ -95,7 +95,9 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
-    return Upscaler::settings.recommendedInputResolution.asLong();
+    const auto recommendation = Upscaler::settings.recommendedInputResolution.asLong();
+    Upscaler::get()->setStatusIf(recommendation == 0, Upscaler::Status::SETTINGS_ERROR, "Some setting is invalid. Please call reset the framebuffer settings to something valid.");
+    return recommendation;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMinimumInputResolution() {
@@ -195,10 +197,6 @@ Upscaler_SetMotionVectors(void *nativeHandle, const UnityRenderingExtTextureForm
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
 Upscaler_SetOutputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setOutputColor(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_Prepare() {
-    return Upscaler::get()->createFeature();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
