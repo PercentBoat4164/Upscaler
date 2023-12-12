@@ -63,7 +63,7 @@ public static class Plugin
     public enum QualityMode
     {
         Auto,
-        UltraQuality,
+        // UltraQuality,
         Quality,
         Balanced,
         Performance,

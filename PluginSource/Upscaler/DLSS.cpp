@@ -815,10 +815,10 @@ Upscaler::Settings DLSS::getOptimalSettings(
 ) {
     if (parameters == nullptr) return settings;
 
-    if (t_quality == Settings::UltraQuality) {
-        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra QualityMode mode.");
-        return settings;
-    }
+//    if (t_quality == Settings::UltraQuality) {
+//        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra QualityMode mode.");
+//        return settings;
+//    }
 
     if (t_outputResolution.height < 32 || t_outputResolution.width < 32) {
         Upscaler::setStatus(SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, getName() + " does not support output resolutions less than 32x32.");
