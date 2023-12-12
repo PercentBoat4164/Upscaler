@@ -81,7 +81,7 @@ public:
     static struct Settings {
         enum QualityMode {
             Auto,  // Chooses a performance quality mode based on output resolution
-            UltraQuality,
+//            UltraQuality,
             Quality,
             Balanced,
             Performance,
@@ -123,7 +123,7 @@ public:
                     if (pixelCount <= static_cast<uint64_t>(3840) * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
+//                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
