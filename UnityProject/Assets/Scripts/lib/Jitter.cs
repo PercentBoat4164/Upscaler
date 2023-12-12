@@ -14,6 +14,8 @@ public static class Jitter {
     private static Vector2[] _sequence;
     /// The index of the current jitter stage.
     private static long _sequencePosition;
+    /// The jitter that was applied last frame
+    private static Vector2 _lastFrameJitter;
 
     /**
      *  Handles applying jitter to the camera and the upscaler.
@@ -26,19 +28,14 @@ public static class Jitter {
     public static void Apply(Camera camera, Vector2 renderingResolution)
     {
         if (_sequence.Length == 0) return;
-        if (_sequencePosition > _sequence.Length)
-            _sequencePosition = 0;
-        var pixelSpaceJitter = _sequence[_sequencePosition++];
         _sequencePosition %= _sequence.Length;
-        // Clip space jitter must be the negative of the pixel space jitter. Why?
+        var pixelSpaceJitter = _sequence[_sequencePosition++];
         var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
-        /*@todo Change this so that the camera is not reset just before rendering every frame. No reason to do this if we can just subtract the last frame's jitters.*/
-        camera.ResetProjectionMatrix();
         var tempProj = camera.projectionMatrix;
-        tempProj.m02 += clipSpaceJitter.x;
-        tempProj.m12 += clipSpaceJitter.y;
+        tempProj.m02 += clipSpaceJitter.x - _lastFrameJitter.x;
+        tempProj.m12 += clipSpaceJitter.y - _lastFrameJitter.y;
+        _lastFrameJitter = clipSpaceJitter;
         camera.projectionMatrix = tempProj;
-        // The sign of the jitter passed to DLSS must match the sign of the MVScale.
         Plugin.SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
     }
 
@@ -50,6 +47,19 @@ public static class Jitter {
     private static bool ShouldRegenerate(Vector2 upscalingFactor)
     {
         return upscalingFactor != _lastUpscalingFactor | _sequence == null;
+    }
+
+    /**
+     *  Moves the camera back to the center of the pixel. Only provided for completeness. Should only be used when the None upscaler is active.
+     */
+    public static void Reset(Camera camera)
+    {
+        var tempProj = camera.projectionMatrix;
+        tempProj.m02 -= _lastFrameJitter.x;
+        tempProj.m12 -= _lastFrameJitter.y;
+        _lastFrameJitter = Vector2.zero;
+        camera.projectionMatrix = tempProj;
+        Plugin.SetJitterInformation(0, 0);
     }
 
     /**
@@ -89,6 +99,5 @@ public static class Jitter {
                 _sequence[index][i] = (float)n / d - 0.5f;
             }
         }
-        _sequencePosition = 0;
     }
 }

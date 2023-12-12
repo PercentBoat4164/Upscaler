@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 public class BackendUpscaler : MonoBehaviour
@@ -8,138 +7,147 @@ public class BackendUpscaler : MonoBehaviour
     // Camera
     protected Camera Camera;
 
-    // Dynamic Resolution state
-    private bool UseDynamicResolution =>
-        (ActiveQuality == Plugin.Quality.DynamicAuto) | (ActiveQuality == Plugin.Quality.DynamicManual);
-    private bool _lastUseDynamicResolution;
-
     // Upscaling Resolution
-    protected Vector2Int UpscalingResolution => Camera.targetTexture != null ? new Vector2Int(Camera.targetTexture.width, Camera.targetTexture.height) : new Vector2Int(Camera.pixelWidth, Camera.pixelHeight);
+    private Vector2Int UpscalingResolution => Camera ? Camera.targetTexture != null ? new Vector2Int(Camera.targetTexture.width, Camera.targetTexture.height) : new Vector2Int(Camera.pixelWidth, Camera.pixelHeight) : new Vector2Int(Display.displays[Display.activeEditorGameViewTarget].renderingWidth, Display.displays[Display.activeEditorGameViewTarget].renderingWidth);
     private Vector2Int _lastUpscalingResolution;
 
     // Rendering Resolution
-    private Vector2Int _optimalRenderingResolution;
-    protected Vector2Int MinimumDynamicRenderingResolution;
-    protected Vector2Int MaximumDynamicRenderingResolution;
-    private Vector2Int RenderingResolution => UseDynamicResolution ? new Vector2Int((int)(UpscalingResolution.x * ScalableBufferManager.widthScaleFactor), (int)(UpscalingResolution.y * ScalableBufferManager.heightScaleFactor)) : _optimalRenderingResolution;
+    private Vector2Int RenderingResolution { get; set; }
     private Vector2Int _lastRenderingResolution;
 
-    // Resolution scale
-    // Resolution scale attributes are only used when Dynamic Resolution Scaling is enabled.
-    /*@todo Use a standardized form for the UpscalingFactor (<=1). */
-    public Vector2 MinScaleFactor => (Vector2)MinimumDynamicRenderingResolution / UpscalingResolution;
-    public Vector2 MaxScaleFactor => (Vector2)MaximumDynamicRenderingResolution / UpscalingResolution;
-
-    // Automatic dynamic resolution scaling.
-    private static RefreshRate TargetFrameRate => new DisplayInfo().refreshRate;
-
     // HDR state
-    protected bool ActiveHDR => Camera.allowHDR;
+    private bool ActiveHDR => Camera.allowHDR;
     private bool _lastHDRActive;
+
+    // Sharpness
+    protected float Sharpness = 0;
+    protected float LastSharpness;
 
     // Internal Render Pipeline abstraction
     private RenderPipeline _renderPipeline;
 
+    // Upscaler preparer command buffer
+    private CommandBuffer _upscalerPrepare;
+
     // API
-    protected Plugin.Mode ActiveMode = Plugin.Mode.DLSS;
-    private Plugin.Mode _lastMode;
-    protected Plugin.Quality ActiveQuality = Plugin.Quality.DynamicAuto;
-    private Plugin.Quality _lastQuality;
+    protected Plugin.UpscalerMode ActiveUpscalerMode = Plugin.UpscalerMode.DLSS;
+    private Plugin.UpscalerMode _lastUpscalerMode;
+    protected Plugin.QualityMode ActiveQualityMode = Plugin.QualityMode.Auto;
+    private Plugin.QualityMode _lastQualityMode;
 
     private bool DHDR => _lastHDRActive != ActiveHDR;
-    protected bool DUpscalingResolution => _lastUpscalingResolution != UpscalingResolution;
-    private bool DUpscaler => _lastMode != ActiveMode;
-    private bool DQuality => _lastQuality != ActiveQuality;
-    private bool DDynamicResolution => _lastUseDynamicResolution != UseDynamicResolution;
+    private bool DSharpness => LastSharpness.Equals(Sharpness);
+    private bool DUpscalingResolution => _lastUpscalingResolution != UpscalingResolution;
+    private bool DUpscaler => _lastUpscalerMode != ActiveUpscalerMode;
+    private bool DQuality => _lastQualityMode != ActiveQualityMode;
     private bool DRenderingResolution => _lastRenderingResolution != RenderingResolution;
 
-    private bool ManageTargets()
+    private void ManageTargets()
     {
-        if (DUpscaler) Plugin.SetUpscaler(ActiveMode);
+        if (DUpscaler)
+            Plugin.SetUpscaler(ActiveUpscalerMode);
 
-        if (ActiveQuality == Plugin.Quality.DynamicAuto | ActiveQuality == Plugin.Quality.DynamicManual)
+        if (DUpscalingResolution | DHDR | DQuality | DUpscaler && ActiveUpscalerMode != Plugin.UpscalerMode.None)
         {
-            if (ActiveQuality == Plugin.Quality.DynamicAuto)
-            {
-                /*@todo Implement a PID to control the scale factor? Pro: Smoother resolution transitions - harder to notice change in resolution. Con: More expensive, Slower to react - easier to notice change in framerate. */
-                var multiplier = Math.Clamp(0.01F, 100F, (float)TargetFrameRate.value / (float)new FrameTiming().gpuFrameTime);
-                ScalableBufferManager.ResizeBuffers(ScalableBufferManager.widthScaleFactor * multiplier, ScalableBufferManager.heightScaleFactor * multiplier);
-            }
+            Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQualityMode, ActiveHDR);
+            var size = Plugin.GetRecommendedInputResolution();
+            RenderingResolution = new Vector2Int((int)(size >> 32), (int)(size & 0xFFFFFFFF));
         }
-        else
-        {
-            if (DUpscalingResolution | DHDR | DQuality | DUpscaler && ActiveMode != Plugin.Mode.None)
-            {
-                Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQuality, ActiveHDR);
-                var size = Plugin.GetRecommendedInputResolution();
-                _optimalRenderingResolution = new Vector2Int((int)(size >> 32), (int)(size & 0xFFFFFFFF));
-            }
-        }
-
-        Plugin.SetCurrentInputResolution((uint)RenderingResolution.x, (uint)RenderingResolution.y);
-
-        Jitter.Generate((Vector2)UpscalingResolution / RenderingResolution);
 
         if (DRenderingResolution | DUpscalingResolution)
-            Debug.Log(RenderingResolution.x + "x" + RenderingResolution.y + " -> " + UpscalingResolution.x + "x" + UpscalingResolution.y);
+            Jitter.Generate((Vector2)UpscalingResolution / RenderingResolution);
 
-        var imagesChanged = false;
+        var upscalerOutdated = false;
 
-        if (DHDR | DDynamicResolution | DUpscalingResolution | (!UseDynamicResolution && DRenderingResolution) | DUpscaler | DQuality)
-            imagesChanged |= _renderPipeline.ManageInColorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
+        if (DSharpness)
+        {
+            Plugin.SetSharpnessValue(Sharpness);
+            upscalerOutdated = LastSharpness == 0 ^ Sharpness == 0;
+        }
+
+        if (DHDR | DUpscalingResolution | DRenderingResolution |
+            DUpscaler | DQuality)
+            upscalerOutdated |= _renderPipeline.ManageInColorTarget(ActiveUpscalerMode, ActiveQualityMode, RenderingResolution);
 
         if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
-            imagesChanged |= _renderPipeline.ManageOutputTarget(ActiveMode, UpscalingResolution);
+            upscalerOutdated |= _renderPipeline.ManageOutputTarget(ActiveUpscalerMode, UpscalingResolution);
 
-        if (DUpscalingResolution | DUpscaler | DQuality)
-            imagesChanged |= _renderPipeline.ManageMotionVectorTarget(ActiveMode, UseDynamicResolution ? UpscalingResolution : RenderingResolution);
+        if (upscalerOutdated)
+            _renderPipeline.UpdatePostUpscaleCommandBuffer();
+
+        if (DUpscalingResolution | DRenderingResolution | DUpscaler | DQuality)
+            upscalerOutdated |= _renderPipeline.ManageMotionVectorTarget(ActiveUpscalerMode, ActiveQualityMode, RenderingResolution);
+
+        if (upscalerOutdated)
+            Graphics.ExecuteCommandBuffer(_upscalerPrepare);
+
+        if (DUpscaler && ActiveUpscalerMode == Plugin.UpscalerMode.None)
+        {
+            Jitter.Reset(Camera);
+        }
 
         // Do not look at this. It is very pretty, I assure you.
         _lastHDRActive = ActiveHDR;
         _lastUpscalingResolution = UpscalingResolution;
         _lastRenderingResolution = RenderingResolution;
-        _lastUseDynamicResolution = UseDynamicResolution;
-        _lastMode = ActiveMode;
-        _lastQuality = ActiveQuality;
-
-        if (imagesChanged | DHDR)
-            Plugin.Prepare();
-
-        return imagesChanged;
+        _lastUpscalerMode = ActiveUpscalerMode;
+        _lastQualityMode = ActiveQualityMode;
+        LastSharpness = Sharpness;
     }
 
-    protected void OnEnable()
+    private void SetPipeline()
+    {
+        if (GraphicsSettings.currentRenderPipeline == null)
+            _renderPipeline = new Builtin(Camera);
+#if UPSCALER_USE_URP
+        else
+            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
+#endif
+    }
+
+    protected void Setup(IntPtr handle, Plugin.InternalErrorCallback callback)
     {
         // Set up camera
         Camera = GetComponent<Camera>();
         Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
+        _upscalerPrepare = new CommandBuffer();
+        _upscalerPrepare.name = "Prepare upscaler";
+        _upscalerPrepare.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Prepare);
+
         // Set up the TexMan
         TexMan.Setup();
 
         // Initialize the plugin.
-        /*@todo Handle the case that different quality modes use different render pipelines. */
-        _renderPipeline = new Builtin(Camera);
+        RenderPipelineManager.activeRenderPipelineAssetChanged += (_, _) => SetPipeline();
+        SetPipeline();
 
         // Initialize the plugin
-        Plugin.InitializePlugin();
+        Plugin.Initialize(handle, callback);
+        _lastUpscalerMode = ActiveUpscalerMode;
+        Plugin.SetUpscaler(ActiveUpscalerMode);
+        if (ActiveUpscalerMode == Plugin.UpscalerMode.None) return;
+        Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, ActiveQualityMode, ActiveHDR);
     }
 
-    protected void OnPreCull()
+    protected virtual void OnPreCull()
     {
-        if (ManageTargets()) Plugin.ResetHistory();
-        if (ActiveMode != Plugin.Mode.None) Jitter.Apply(Camera, RenderingResolution);
+        if (!Application.isPlaying) return;
+        ManageTargets();
+        if (Input.GetKey(KeyCode.H)) Plugin.ResetHistory();
+        if (ActiveUpscalerMode != Plugin.UpscalerMode.None) Jitter.Apply(Camera, RenderingResolution);
     }
 
     protected void OnPreRender()
     {
-        if (ActiveMode != Plugin.Mode.None)
-            ((Builtin)_renderPipeline).PrepareRendering(RenderingResolution, UpscalingResolution, ActiveMode);
+        if (!Application.isPlaying) return;
+        if (ActiveUpscalerMode != Plugin.UpscalerMode.None) ((Builtin)_renderPipeline).PrepareRendering();
     }
 
     protected void OnPostRender()
     {
-        if (ActiveMode != Plugin.Mode.None) ((Builtin)_renderPipeline).Upscale();
+        if (!Application.isPlaying) return;
+        if (ActiveUpscalerMode != Plugin.UpscalerMode.None) ((Builtin)_renderPipeline).Upscale();
     }
 
     protected void OnDisable()

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 
 public abstract class RenderPipeline
 {
@@ -9,27 +8,22 @@ public abstract class RenderPipeline
         Universal
     }
 
-    protected const GraphicsFormat MotionFormat = GraphicsFormat.R16G16_SFloat;
-    protected static GraphicsFormat ColorFormat(bool HDRActive) => SystemInfo.GetGraphicsFormat(HDRActive ? DefaultFormat.HDR : DefaultFormat.LDR);
-    protected static GraphicsFormat DepthFormat => SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
     public static PipelineType Type;
+    protected readonly Camera Camera;
 
-    protected RenderPipeline(PipelineType type)
+    protected RenderPipeline(Camera camera, PipelineType type)
     {
         Type = type;
+        Camera = camera;
     }
 
-    public abstract void PrepareRendering(
-        Vector2Int renderingResolution,
-        Vector2Int upscalingResolution,
-        Plugin.Mode mode
-    );
+    public abstract void UpdatePostUpscaleCommandBuffer();
+
+    public abstract bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution);
+
+    public abstract bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int upscalingResolution);
+
+    public abstract bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution);
 
     public abstract void Shutdown();
-
-    public abstract bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
-
-    public abstract bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
-
-    public abstract bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution);
 }

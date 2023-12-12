@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using UnityEngine.Device;
 using UnityEngine.Experimental.Rendering;
 
 public static class Plugin
@@ -45,33 +46,21 @@ public static class Plugin
         UnknownError = 0xFFFFFFFE
     }
 
-    public static bool Success(UpscalerStatus status)
-    {
-        return status <= UpscalerStatus.NoUpscalerSet;
-    }
+    public static bool Success(UpscalerStatus status) => status <= UpscalerStatus.NoUpscalerSet;
 
-    public static bool Failure(UpscalerStatus status)
-    {
-        return status > UpscalerStatus.NoUpscalerSet;
-    }
+    public static bool Failure(UpscalerStatus status) => status > UpscalerStatus.NoUpscalerSet;
 
-    public static bool Recoverable(UpscalerStatus status)
-    {
-        return ((uint)status & ErrorRecoverable) == ErrorRecoverable;
-    }
+    public static bool Recoverable(UpscalerStatus status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
-    public static bool NonRecoverable(UpscalerStatus status)
-    {
-        return ((uint)status & ErrorRecoverable) != ErrorRecoverable;
-    }
+    public static bool NonRecoverable(UpscalerStatus status) => ((uint)status & ErrorRecoverable) != ErrorRecoverable;
 
-    public enum Mode
+    public enum UpscalerMode
     {
         None,
         DLSS
     }
 
-    public enum Quality
+    public enum QualityMode
     {
         Auto,
         UltraQuality,
@@ -79,22 +68,25 @@ public static class Plugin
         Balanced,
         Performance,
         UltraPerformance,
-        DynamicAuto,
-        DynamicManual
     }
 
     public enum Event
     {
-        Upscale
+        Upscale,
+        Prepare
     }
+
+    public static GraphicsFormat MotionFormat() => GraphicsFormat.R16G16_SFloat;
+    public static GraphicsFormat ColorFormat(bool HDRActive) => SystemInfo.GetGraphicsFormat(HDRActive ? DefaultFormat.HDR : DefaultFormat.LDR);
+    public static GraphicsFormat DepthFormat() => SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
 
     public delegate void InternalErrorCallback(IntPtr data, UpscalerStatus er, IntPtr p);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetError")]
-    public static extern UpscalerStatus GetError(Mode mode);
+    public static extern UpscalerStatus GetError(UpscalerMode upscalerMode);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetErrorMessage")]
-    public static extern IntPtr GetErrorMessage(Mode mode);
+    public static extern IntPtr GetErrorMessage(UpscalerMode upscalerMode);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCurrentError")]
     public static extern UpscalerStatus GetCurrentError();
@@ -117,32 +109,17 @@ public static class Plugin
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetOutputColor")]
     public static extern void SetOutputColor(IntPtr handle, GraphicsFormat format);
 
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-    public static extern void InitializePlugin();
-
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscaler")]
-    public static extern UpscalerStatus SetUpscaler(Mode mode);
+    public static extern UpscalerStatus SetUpscaler(UpscalerMode upscalerMode);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFramebufferSettings")]
-    public static extern UpscalerStatus SetFramebufferSettings(uint width, uint height, Quality quality, bool hdr);
+    public static extern UpscalerStatus SetFramebufferSettings(uint width, uint height, QualityMode qualityMode, bool hdr);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedInputResolution")]
     public static extern ulong GetRecommendedInputResolution();
 
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumInputResolution")]
-    public static extern ulong GetMinimumInputResolution();
-
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumInputResolution")]
-    public static extern ulong GetMaximumInputResolution();
-
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetSharpnessValue")]
     public static extern UpscalerStatus SetSharpnessValue(float sharpness);
-
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCurrentInputResolution")]
-    public static extern UpscalerStatus SetCurrentInputResolution(uint width, uint height);
-
-    [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Prepare")]
-    public static extern UpscalerStatus Prepare();
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_Shutdown")]
     public static extern void Shutdown();
@@ -157,5 +134,5 @@ public static class Plugin
     public static extern void SetJitterInformation(float x, float y);
 
     [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-    public static extern void InitializePlugin(IntPtr upscalerObject, InternalErrorCallback errorCallback);
+    public static extern void Initialize(IntPtr upscalerObject, InternalErrorCallback errorCallback);
 }

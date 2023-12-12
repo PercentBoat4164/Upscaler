@@ -1,5 +1,8 @@
 #include "NoUpscaler.hpp"
 
+void NoUpscaler::setFunctionPointers(GraphicsAPI::Type /* unused */) {
+}
+
 NoUpscaler *NoUpscaler::get() {
     NoUpscaler *noUpscaler{new NoUpscaler};
     noUpscaler->setStatus(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
@@ -25,7 +28,7 @@ NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysica
 
 Upscaler::Settings NoUpscaler::getOptimalSettings(
   Settings::Resolution /* unused */,
-  Settings::Quality /* unused */,
+  Settings::QualityMode /* unused */,
   bool /* unused */
 ) {
     return settings;
@@ -51,8 +54,11 @@ Upscaler::Status NoUpscaler::setMotionVectors(void */* unused */, UnityRendering
   return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
-  return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+    return NO_UPSCALER_SET;
+}
+
+void NoUpscaler::updateImages() {
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
@@ -66,7 +72,4 @@ Upscaler::Status NoUpscaler::releaseFeature() {
 Upscaler::Status NoUpscaler::shutdown() {
     Upscaler::shutdown();
     return NO_UPSCALER_SET;
-}
-
-void NoUpscaler::setFunctionPointers(GraphicsAPI::Type /* unused */) {
 }

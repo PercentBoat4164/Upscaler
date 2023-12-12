@@ -9,12 +9,6 @@ GraphicsAPI::Type NoGraphicsAPI::getType() {
     return NONE;
 }
 
-void NoGraphicsAPI::prepareForOneTimeSubmits() {
-}
-
-void NoGraphicsAPI::finishOneTimeSubmits() {
-}
-
 bool NoGraphicsAPI::useUnityInterfaces(IUnityInterfaces */* unused */) {
     return false;
 }

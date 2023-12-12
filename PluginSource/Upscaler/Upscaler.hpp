@@ -56,9 +56,10 @@ public:
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
         GENERIC_ERROR                                             = 4U << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -72,39 +73,19 @@ public:
     static bool recoverable(Status);
     static bool nonrecoverable(Status);
 
-protected:
-    template<typename... Args>
-    constexpr Status safeFail(Args... /* unused */) {
-        return UNKNOWN_ERROR;
-    }
-
-    virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
-
-    bool initialized{false};
-
-private:
-    static void(*errorCallback)(void *, Upscaler::Status, const char *);
-    static void *userData;
-    static Upscaler *upscalerInUse;
-    Status           status{SUCCESS};
-    std::string      detailedErrorMessage{};
-
-public:
     enum Type {
         NONE,
         DLSS,
     };
 
     static struct Settings {
-        enum Quality {
-            AUTO,  // Chooses a performance quality mode based on output resolution
-            ULTRA_QUALITY,
-            QUALITY,
-            BALANCED,
-            PERFORMANCE,
-            ULTRA_PERFORMANCE,
-            DYNAMIC_AUTO,    // Enables dynamic resolution and automatically handles changing scale factors
-            DYNAMIC_MANUAL,  // Enables dynamic resolution and lets the user handle changing scale factors
+        enum QualityMode {
+            Auto,  // Chooses a performance quality mode based on output resolution
+            UltraQuality,
+            Quality,
+            Balanced,
+            Performance,
+            UltraPerformance,
         };
 
         struct Resolution {
@@ -112,65 +93,71 @@ public:
             uint32_t height;
 
             [[nodiscard]] uint64_t asLong() const;
-        } __attribute__((aligned(8)));
+        };
 
-        Quality    quality{AUTO};
-        Resolution recommendedInputResolution{};
-        Resolution dynamicMaximumInputResolution{};
-        Resolution dynamicMinimumInputResolution{};
-        Resolution outputResolution{};
-        Resolution currentInputResolution{};
-        std::array<float, 2>      jitter{0.F, 0.F};
-        float      sharpness{};
-        bool       HDR{};
-        bool       autoExposure{};
-        bool       resetHistory{};
+        QualityMode          quality{Auto};
+        Resolution           recommendedInputResolution{};
+        Resolution           dynamicMaximumInputResolution{};
+        Resolution           dynamicMinimumInputResolution{};
+        Resolution           outputResolution{};
+        std::array<float, 2> jitter{0.F, 0.F};
+        float                sharpness{};
+        bool                 HDR{};
+        bool                 autoExposure{};
+        bool                 resetHistory{};
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] Quality getQuality() const {
+        [[nodiscard]] QualityMode getQuality() const {
             return quality;
-        };
+        }
 
 #ifdef ENABLE_DLSS
         template<Type T, typename _ = std::enable_if_t<T == DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
-                case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
-                    uint64_t pixelCount{
-                      (uint64_t) recommendedInputResolution.width * recommendedInputResolution.height};
-                    if (pixelCount <= (uint64_t) 2560 * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= (uint64_t) 3840 * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
+                    const uint64_t pixelCount{
+                      static_cast<uint64_t>(recommendedInputResolution.width) * recommendedInputResolution.height
+                    };
+                    if (pixelCount <= static_cast<uint64_t>(2560) * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= static_cast<uint64_t>(3840) * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                case ULTRA_QUALITY: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
-                case QUALITY: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                case BALANCED: return NVSDK_NGX_PerfQuality_Value_Balanced;
-                case PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                case ULTRA_PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                case DYNAMIC_AUTO:
-                case DYNAMIC_MANUAL: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
+                case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
+                case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
             }
             return NVSDK_NGX_PerfQuality_Value_Balanced;
-        };
+        }
 #endif
-    } __attribute__((aligned(64))) __attribute__((packed)) settings;
+    } settings;
 
-    Upscaler()                            = default;
-    Upscaler(const Upscaler &)            = delete;
-    Upscaler(Upscaler &&)                 = default;
-    Upscaler &operator=(const Upscaler &) = delete;
-    Upscaler &operator=(Upscaler &&)      = default;
+private:
+    static void      (*errorCallback)(void *, Status, const char *);
+    static void     *userData;
+    static Upscaler *upscalerInUse;
+    Status           status{SUCCESS};
+    std::string      detailedErrorMessage{};
 
-    template<typename T>
-        requires std::derived_from<T, Upscaler>
-    constexpr static T *get() {
-        return T::get();
+protected:
+    template<typename T, typename... Args>
+    constexpr T safeFail(Args... /* unused */) {
+        return UNKNOWN_ERROR;
     }
 
-    static Upscaler *get(Type upscaler);
-    static Upscaler *get();
-    static std::vector<Upscaler *> getAllUpscalers();
-    static std::vector<Upscaler *> getUpscalersWithoutErrors();
+    virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
+
+    bool initialized{false};
+
+public:
+    Upscaler()                 = default;
+    Upscaler(const Upscaler &) = delete;
+    Upscaler(Upscaler &&)      = default;
+
+    Upscaler &operator=(const Upscaler &) = delete;
+    Upscaler &operator=(Upscaler &&)      = default;
 
     template<typename T>
         requires std::derived_from<T, Upscaler>
@@ -181,37 +168,50 @@ public:
     static void set(Type upscaler);
     static void set(Upscaler *upscaler);
     static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-    static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
+
+    template<typename T>
+        requires std::derived_from<T, Upscaler>
+    constexpr static T *get() {
+        return T::get();
+    }
+
+    static std::vector<Upscaler *> getAllUpscalers();
+    static std::vector<Upscaler *> getUpscalersWithoutErrors();
+    static Upscaler               *get(Type upscaler);
+    static Upscaler               *get();
+
+    virtual Type        getType() = 0;
+    virtual std::string getName() = 0;
+
+    virtual std::vector<std::string> getRequiredVulkanInstanceExtensions()                           = 0;
+    virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
+
+    virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
+
+    virtual Status initialize()                                                                     = 0;
+    virtual Status createFeature()                                                                  = 0;
+    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
+    virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual void   updateImages()                                                                   = 0;
+    virtual Status evaluate()                                                                       = 0;
+    virtual Status releaseFeature()                                                                 = 0;
+    virtual Status shutdown();
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
-
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
-    Status setStatus(Status, std::string);
-
-    /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use resetStatus
-    /// to clear the current status. Returns the current status
-    Status setStatusIf(bool, Status, std::string);
-
+    Status               setStatus(Status, std::string);
+    /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use
+    /// resetStatus to clear the current status. Returns the current status
+    Status               setStatusIf(bool, Status, std::string);
     /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
     /// status has been cleared.
-    bool         resetStatus();
-    std::string &getErrorMessage();
+    bool                 resetStatus();
+    std::string         &getErrorMessage();
+    static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
 
-    virtual Type getType() = 0;
-    virtual std::string getName() = 0;
-    virtual std::vector<std::string> getRequiredVulkanInstanceExtensions() = 0;
-    virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
-    virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
-    virtual Status initialize() = 0;
-    virtual Status createFeature() = 0;
-    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status evaluate() = 0;
-    virtual Status releaseFeature() = 0;
-    virtual Status shutdown();
     virtual ~Upscaler() = default;
 };

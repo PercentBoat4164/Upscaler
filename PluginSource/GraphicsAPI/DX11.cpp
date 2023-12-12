@@ -6,6 +6,11 @@
 // Unity
 #include <IUnityGraphicsD3D11.h>
 
+DX11 *DX11::get() {
+    static DX11 *dx11{new DX11};
+    return dx11;
+}
+
 GraphicsAPI::Type DX11::getType() {
     return GraphicsAPI::DX11;
 }
@@ -36,16 +41,11 @@ void DX11::finishOneTimeSubmits() {
     _oneTimeSubmitContext->Release();
 }
 
-DX11 *DX11::get() {
-    static DX11 *dx11{new DX11};
-    return dx11;
-}
-
 bool DX11::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
     DX11Interface = t_unityInterfaces->Get<IUnityGraphicsD3D11>();
     return true;
 }
 
-IUnityGraphicsD3D11 *DX11::getUnityInterface() {
+IUnityGraphicsD3D11 *DX11::getUnityInterface() const {
     return DX11Interface;
 }

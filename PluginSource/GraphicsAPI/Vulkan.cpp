@@ -1,6 +1,6 @@
 #include "Vulkan.hpp"
 
-#include "Upscaler/DLSS.hpp"
+#include <Upscaler/Upscaler.hpp>
 
 PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr                    Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
@@ -25,88 +25,6 @@ PFN_vkWaitForFences          Vulkan::m_vkWaitForFences{VK_NULL_HANDLE};
 PFN_vkResetFences            Vulkan::m_vkResetFences{VK_NULL_HANDLE};
 PFN_vkDestroyFence           Vulkan::m_vkDestroyFence{VK_NULL_HANDLE};
 
-void Vulkan::prepareForOneTimeSubmits() {
-    if (_oneTimeSubmitRecording) return;
-    const UnityVulkanInstance     vulkanInstance = getUnityInterface()->Instance();
-    const VkCommandPoolCreateInfo commandPoolCreateInfo{
-      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .pNext            = nullptr,
-      .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = vulkanInstance.queueFamilyIndex,
-    };
-
-    m_vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &_oneTimeSubmitCommandPool);
-
-    const VkCommandBufferAllocateInfo allocateInfo{
-      .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .pNext              = nullptr,
-      .commandPool        = _oneTimeSubmitCommandPool,
-      .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = 0x1,
-    };
-
-    m_vkAllocateCommandBuffers(device, &allocateInfo, &_oneTimeSubmitCommandBuffer);
-
-    constexpr VkFenceCreateInfo fenceCreateInfo{
-      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0x0};
-
-    m_vkCreateFence(device, &fenceCreateInfo, nullptr, &_oneTimeSubmitFence);
-    _oneTimeSubmitRecording = true;
-}
-
-VkCommandBuffer Vulkan::beginOneTimeSubmitRecording() const {
-    constexpr VkCommandBufferBeginInfo beginInfo{
-      .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .pNext            = nullptr,
-      .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-      .pInheritanceInfo = nullptr,
-    };
-
-    m_vkBeginCommandBuffer(_oneTimeSubmitCommandBuffer, &beginInfo);
-
-    return _oneTimeSubmitCommandBuffer;
-}
-
-void Vulkan::endOneTimeSubmitRecording() {
-    if (!_oneTimeSubmitRecording) return;
-    const UnityVulkanInstance vulkanInstance = getUnityInterface()->Instance();
-
-    m_vkEndCommandBuffer(_oneTimeSubmitCommandBuffer);
-
-    const VkSubmitInfo submitInfo{
-      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .pNext                = nullptr,
-      .waitSemaphoreCount   = 0x0,
-      .pWaitSemaphores      = nullptr,
-      .pWaitDstStageMask    = nullptr,
-      .commandBufferCount   = 0x1,
-      .pCommandBuffers      = &_oneTimeSubmitCommandBuffer,
-      .signalSemaphoreCount = 0x0,
-      .pSignalSemaphores    = nullptr,
-    };
-
-    m_vkQueueSubmit(vulkanInstance.graphicsQueue, 1, &submitInfo, _oneTimeSubmitFence);
-    m_vkWaitForFences(device, 1, &_oneTimeSubmitFence, VK_TRUE, UINT64_MAX);
-    m_vkResetFences(device, 1, &_oneTimeSubmitFence);
-    m_vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
-    _oneTimeSubmitRecording = false;
-}
-
-void Vulkan::cancelOneTimeSubmitRecording() {
-    if (!_oneTimeSubmitRecording) return;
-    m_vkResetCommandBuffer(_oneTimeSubmitCommandBuffer, 0x0);
-    _oneTimeSubmitRecording = false;
-}
-
-void Vulkan::finishOneTimeSubmits() {
-    cancelOneTimeSubmitRecording();
-    m_vkFreeCommandBuffers(device, _oneTimeSubmitCommandPool, 1, &_oneTimeSubmitCommandBuffer);
-    m_vkDestroyCommandPool(device, _oneTimeSubmitCommandPool, nullptr);
-    m_vkDestroyFence(device, _oneTimeSubmitFence, nullptr);
-}
-
 bool Vulkan::loadEarlyFunctionPointers() {
     // clang-format off
     m_vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
@@ -117,30 +35,30 @@ bool Vulkan::loadEarlyFunctionPointers() {
 
 bool Vulkan::loadInstanceFunctionPointers() const {
     // clang-format off
-    m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(instance, "vkEnumerateDeviceExtensionProperties"));
-    m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, "vkCreateDevice"));
-    m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(instance, "vkGetDeviceProcAddr"));
+    m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(_instance, "vkEnumerateDeviceExtensionProperties"));
+    m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(_instance, "vkCreateDevice"));
+    m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(_instance, "vkGetDeviceProcAddr"));
     return m_vkEnumerateInstanceExtensionProperties != VK_NULL_HANDLE && m_vkCreateDevice != VK_NULL_HANDLE && m_vkGetDeviceProcAddr != VK_NULL_HANDLE;
     // clang-format on
 }
 
 bool Vulkan::loadLateFunctionPointers() const {
     // clang-format off
-    m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, "vkCreateImageView"));
-    m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, "vkDestroyImageView"));
-    m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(device, "vkCreateCommandPool"));
-    m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"));
-    m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"));
-    m_vkEndCommandBuffer = reinterpret_cast<PFN_vkEndCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkEndCommandBuffer"));
-    m_vkQueueSubmit = reinterpret_cast<PFN_vkQueueSubmit>(m_vkGetDeviceProcAddr(device, "vkQueueSubmit"));
-    m_vkQueueWaitIdle = reinterpret_cast<PFN_vkQueueWaitIdle>(m_vkGetDeviceProcAddr(device, "vkQueueWaitIdle"));
-    m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkResetCommandBuffer"));
-    m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
-    m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
-    m_vkCreateFence = reinterpret_cast<PFN_vkCreateFence>(m_vkGetDeviceProcAddr(device, "vkCreateFence"));
-    m_vkWaitForFences = reinterpret_cast<PFN_vkWaitForFences>(m_vkGetDeviceProcAddr(device, "vkWaitForFences"));
-    m_vkResetFences = reinterpret_cast<PFN_vkResetFences>(m_vkGetDeviceProcAddr(device, "vkResetFences"));
-    m_vkDestroyFence = reinterpret_cast<PFN_vkDestroyFence>(m_vkGetDeviceProcAddr(device, "vkDestroyFence"));
+    m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(_device, "vkCreateImageView"));
+    m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(_device, "vkDestroyImageView"));
+    m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(_device, "vkCreateCommandPool"));
+    m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(_device, "vkAllocateCommandBuffers"));
+    m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(_device, "vkBeginCommandBuffer"));
+    m_vkEndCommandBuffer = reinterpret_cast<PFN_vkEndCommandBuffer>(m_vkGetDeviceProcAddr(_device, "vkEndCommandBuffer"));
+    m_vkQueueSubmit = reinterpret_cast<PFN_vkQueueSubmit>(m_vkGetDeviceProcAddr(_device, "vkQueueSubmit"));
+    m_vkQueueWaitIdle = reinterpret_cast<PFN_vkQueueWaitIdle>(m_vkGetDeviceProcAddr(_device, "vkQueueWaitIdle"));
+    m_vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(m_vkGetDeviceProcAddr(_device, "vkResetCommandBuffer"));
+    m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(_device, "vkFreeCommandBuffers"));
+    m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(_device, "vkDestroyCommandPool"));
+    m_vkCreateFence = reinterpret_cast<PFN_vkCreateFence>(m_vkGetDeviceProcAddr(_device, "vkCreateFence"));
+    m_vkWaitForFences = reinterpret_cast<PFN_vkWaitForFences>(m_vkGetDeviceProcAddr(_device, "vkWaitForFences"));
+    m_vkResetFences = reinterpret_cast<PFN_vkResetFences>(m_vkGetDeviceProcAddr(_device, "vkResetFences"));
+    m_vkDestroyFence = reinterpret_cast<PFN_vkDestroyFence>(m_vkGetDeviceProcAddr(_device, "vkDestroyFence"));
     return m_vkCreateImageView != VK_NULL_HANDLE && m_vkDestroyImageView != VK_NULL_HANDLE &&
       m_vkCreateCommandPool != VK_NULL_HANDLE && m_vkAllocateCommandBuffers != VK_NULL_HANDLE &&
       m_vkBeginCommandBuffer != VK_NULL_HANDLE && m_vkEndCommandBuffer != VK_NULL_HANDLE &&
@@ -233,8 +151,8 @@ VkResult Vulkan::Hook_vkCreateInstance(
     // Create the Instance.
     VkResult result = m_vkCreateInstance(&createInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
-        get()->instance = *pInstance;
-        i                                    = 0;
+        get()->_instance = *pInstance;
+        i                = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             upscaler->setStatusIf(
               upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
@@ -244,7 +162,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
             );
     } else {
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
-        if (result == VK_SUCCESS) get()->instance = *pInstance;
+        if (result == VK_SUCCESS) get()->_instance = *pInstance;
     }
     return result;
 }
@@ -262,10 +180,10 @@ std::vector<std::string> Vulkan::getSupportedDeviceExtensions(VkPhysicalDevice p
 }
 
 VkResult Vulkan::Hook_vkCreateDevice(
-  VkPhysicalDevice          physicalDevice,
-  const VkDeviceCreateInfo *pCreateInfo,
-  const VkAllocationCallbacks    *pAllocator,
-  VkDevice                 *pDevice
+  VkPhysicalDevice             physicalDevice,
+  const VkDeviceCreateInfo    *pCreateInfo,
+  const VkAllocationCallbacks *pAllocator,
+  VkDevice                    *pDevice
 ) {
     if (!get()->loadInstanceFunctionPointers()) return VK_ERROR_UNKNOWN;
 
@@ -289,7 +207,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
         unsupportedExtensions.push_back("");
         // Mark supported features as such
         std::vector<std::string> requestedExtensions =
-          upscaler->getRequiredVulkanDeviceExtensions(get()->instance, physicalDevice);
+          upscaler->getRequiredVulkanDeviceExtensions(get()->_instance, physicalDevice);
         uint32_t supportedRequestedExtensionCount{};
         for (const std::string &requestedExtension : requestedExtensions) {
             const uint32_t currentSupportedRequestedExtensionCount{supportedRequestedExtensionCount};
@@ -333,8 +251,8 @@ VkResult Vulkan::Hook_vkCreateDevice(
     // Create the Device
     VkResult result = m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     if (result == VK_SUCCESS) {
-        get()->device = *pDevice;
-        i                     = 0;
+        get()->_device = *pDevice;
+        i              = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers())
             upscaler->setStatusIf(
               upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
@@ -345,30 +263,10 @@ VkResult Vulkan::Hook_vkCreateDevice(
             );
     } else {
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
-        if (result == VK_SUCCESS) get()->device = *pDevice;
+        if (result == VK_SUCCESS) get()->_device = *pDevice;
     }
-    if (get()->device != VK_NULL_HANDLE && !get()->loadLateFunctionPointers())
-        return result;
+    if (get()->_device != VK_NULL_HANDLE && !get()->loadLateFunctionPointers()) return result;
     return result;
-}
-
-bool Vulkan::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
-    get()->vulkanInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
-    return get()->vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
-}
-
-bool Vulkan::RemoveInterceptInitialization() {
-    const bool result = get()->vulkanInterface->RemoveInterceptInitialization(interceptInitialization);
-    get()->vulkanInterface = nullptr;
-    return result;
-}
-
-IUnityGraphicsVulkanV2 *Vulkan::getUnityInterface() const {
-    return vulkanInterface;
-}
-
-GraphicsAPI::Type Vulkan::getType() {
-    return VULKAN;
 }
 
 PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char *pName) {
@@ -380,59 +278,16 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 }
 
 PFN_vkGetInstanceProcAddr
-Vulkan::interceptInitialization(const PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /* unused */) {
+Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void * /* unused */) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
-    get()->loadEarlyFunctionPointers();
+    loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;
 }
 
-PFN_vkGetInstanceProcAddr Vulkan::getVkGetInstanceProcAddr() {
-    return m_vkGetInstanceProcAddr;
-}
-
-PFN_vkGetDeviceProcAddr Vulkan::getVkGetDeviceProcAddr() {
-    return m_vkGetDeviceProcAddr;
-}
-
-Vulkan *Vulkan::get() {
-    static Vulkan *vulkan{new Vulkan};
-    return vulkan;
-}
-
-VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) const {
-    // clang-format off
-    const VkImageViewCreateInfo createInfo {
-      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-      .pNext    = nullptr,
-      .flags    = 0x0,
-      .image    = image,
-      .viewType = VK_IMAGE_VIEW_TYPE_2D,
-      .format   = format,
-      .components = {
-        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-      },
-      .subresourceRange = {
-        .aspectMask     = flags,
-        .baseMipLevel   = 0,
-        .levelCount     = 1,
-        .baseArrayLayer = 0,
-        .layerCount     = 1,
-      },
-    };
-    // clang-format on
-
-    VkImageView view{VK_NULL_HANDLE};
-    m_vkCreateImageView(device, &createInfo, nullptr, &view);
-    return view;
-}
-
-void Vulkan::destroyImageView(VkImageView viewToDestroy) const {
-    m_vkDestroyImageView(device, viewToDestroy, nullptr);
-}
-
-VkDevice Vulkan::getDevice() const {
-    return device;
+bool Vulkan::RemoveInterceptInitialization() {
+    const bool result       = get()->_vulkanInterface->RemoveInterceptInitialization(interceptInitialization);
+    get()->_vulkanInterface = nullptr;
+    return result;
 }
 
 VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
@@ -490,8 +345,8 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case kUnityRenderingExtFormatL8_UNorm:  // INVALID
-        case kUnityRenderingExtFormatA8_UNorm:  // INVALID
+        case kUnityRenderingExtFormatL8_UNorm:                               // INVALID
+        case kUnityRenderingExtFormatA8_UNorm:                               // INVALID
         case kUnityRenderingExtFormatA16_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
         case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
@@ -518,25 +373,25 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
         case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
         case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
-        case kUnityRenderingExtFormatA2R10G10B10_XRSRGBPack32:  // INVALID
-        case kUnityRenderingExtFormatA2R10G10B10_XRUNormPack32:  // INVALID
-        case kUnityRenderingExtFormatR10G10B10_XRSRGBPack32:  // INVALID
-        case kUnityRenderingExtFormatR10G10B10_XRUNormPack32:  // INVALID
-        case kUnityRenderingExtFormatA10R10G10B10_XRSRGBPack32:  // INVALID
-        case kUnityRenderingExtFormatA10R10G10B10_XRUNormPack32:  // INVALID
-        case kUnityRenderingExtFormatA8R8G8B8_SRGB:  // INVALID
-        case kUnityRenderingExtFormatA8R8G8B8_UNorm:  // INVALID
-        case kUnityRenderingExtFormatA32R32G32B32_SFloat: return VK_FORMAT_UNDEFINED;         // INVALID
+        case kUnityRenderingExtFormatA2R10G10B10_XRSRGBPack32:                         // INVALID
+        case kUnityRenderingExtFormatA2R10G10B10_XRUNormPack32:                        // INVALID
+        case kUnityRenderingExtFormatR10G10B10_XRSRGBPack32:                           // INVALID
+        case kUnityRenderingExtFormatR10G10B10_XRUNormPack32:                          // INVALID
+        case kUnityRenderingExtFormatA10R10G10B10_XRSRGBPack32:                        // INVALID
+        case kUnityRenderingExtFormatA10R10G10B10_XRUNormPack32:                       // INVALID
+        case kUnityRenderingExtFormatA8R8G8B8_SRGB:                                    // INVALID
+        case kUnityRenderingExtFormatA8R8G8B8_UNorm:                                   // INVALID
+        case kUnityRenderingExtFormatA32R32G32B32_SFloat: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatD16_UNorm: return VK_FORMAT_D16_UNORM;
         case kUnityRenderingExtFormatD24_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatD24_UNorm_S8_UInt: return VK_FORMAT_D24_UNORM_S8_UINT;
         case kUnityRenderingExtFormatD32_SFloat: return VK_FORMAT_D32_SFLOAT;
         case kUnityRenderingExtFormatD32_SFloat_S8_UInt: return VK_FORMAT_D32_SFLOAT_S8_UINT;
         case kUnityRenderingExtFormatS8_UInt: return VK_FORMAT_S8_UINT;
-        case kUnityRenderingExtFormatRGBA_DXT1_SRGB:  // case kUnityRenderingExtFormatRGBA_DXT1_UNorm:  // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT3_SRGB:  // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT1_SRGB:   // case kUnityRenderingExtFormatRGBA_DXT1_UNorm:  // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT3_SRGB:   // INVALID
         case kUnityRenderingExtFormatRGBA_DXT3_UNorm:  // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT5_SRGB:  // INVALID
+        case kUnityRenderingExtFormatRGBA_DXT5_SRGB:   // INVALID
         case kUnityRenderingExtFormatRGBA_DXT5_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatR_BC4_UNorm: return VK_FORMAT_BC4_UNORM_BLOCK;
         case kUnityRenderingExtFormatR_BC4_SNorm: return VK_FORMAT_BC4_SNORM_BLOCK;
@@ -586,4 +441,69 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatRGBA_ASTC12X12_UFloat:
         default: return VK_FORMAT_UNDEFINED;
     }
+}
+
+PFN_vkGetInstanceProcAddr Vulkan::getVkGetInstanceProcAddr() {
+    return m_vkGetInstanceProcAddr;
+}
+
+PFN_vkGetDeviceProcAddr Vulkan::getVkGetDeviceProcAddr() {
+    return m_vkGetDeviceProcAddr;
+}
+
+Vulkan *Vulkan::get() {
+    static Vulkan *vulkan{new Vulkan};
+    return vulkan;
+}
+
+GraphicsAPI::Type Vulkan::getType() {
+    return VULKAN;
+}
+
+bool Vulkan::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
+    get()->_vulkanInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
+    return get()->_vulkanInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
+}
+
+IUnityGraphicsVulkanV2 *Vulkan::getUnityInterface() const {
+    return _vulkanInterface;
+}
+
+VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) const {
+    // clang-format off
+    const VkImageViewCreateInfo createInfo {
+      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext    = nullptr,
+      .flags    = 0x0,
+      .image    = image,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format   = format,
+      .components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+      },
+      .subresourceRange = {
+        .aspectMask     = flags,
+        .baseMipLevel   = 0,
+        .levelCount     = 1,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+      },
+    };
+    // clang-format on
+
+    VkImageView view{VK_NULL_HANDLE};
+    m_vkCreateImageView(_device, &createInfo, nullptr, &view);
+    return view;
+}
+
+void Vulkan::destroyImageView(VkImageView viewToDestroy) const {
+    if (viewToDestroy != VK_NULL_HANDLE) {
+        m_vkDestroyImageView(_device, viewToDestroy, nullptr);
+        viewToDestroy = VK_NULL_HANDLE;
+    }
+}
+
+VkDevice Vulkan::getDevice() const {
+    return _device;
 }

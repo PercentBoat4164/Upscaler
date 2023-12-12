@@ -11,39 +11,35 @@ public class Builtin : RenderPipeline
 
     // CommandBuffers
     private readonly CommandBuffer _upscale;
+    private readonly CommandBuffer _postUpscaleNullCameraTarget;
+    private readonly CommandBuffer _postUpscaleValidCameraTarget;
 
-    private readonly Camera _camera;
-
-    public Builtin(Camera camera) : base(PipelineType.Builtin)
+    public Builtin(Camera camera) : base(camera, PipelineType.Builtin)
     {
-        _camera = camera;
-
         // Set up command buffers
         _upscale = new CommandBuffer();
         _upscale.name = "Upscale";
+        _postUpscaleNullCameraTarget = new CommandBuffer();
+        _postUpscaleNullCameraTarget.name = "Post Upscale";
+        _postUpscaleValidCameraTarget = new CommandBuffer();
+        _postUpscaleValidCameraTarget.name = "Post Upscale";
     }
 
-    public override void PrepareRendering(
-        Vector2Int renderingResolution,
-        Vector2Int upscalingResolution,
-        Plugin.Mode mode
-    )
+    public void PrepareRendering()
     {
-        _cameraTarget = _camera.targetTexture;
-        _camera.targetTexture = _inColorTarget;
+        _cameraTarget = Camera.targetTexture;
+        Camera.targetTexture = _inColorTarget;
         RenderTexture.active = _inColorTarget;
     }
 
     public void Upscale()
     {
         Graphics.ExecuteCommandBuffer(_upscale);
-        _camera.targetTexture = _cameraTarget;
+        Camera.targetTexture = _cameraTarget;
         RenderTexture.active = _cameraTarget;
-        if (_cameraTarget)
-            Graphics.CopyTexture(_outputTarget, _cameraTarget);
-        else
-            Graphics.Blit(_outputTarget, _cameraTarget);
-        TexMan.BlitToCameraDepth(_inColorTarget);
+        Graphics.ExecuteCommandBuffer(_cameraTarget ? _postUpscaleValidCameraTarget : _postUpscaleNullCameraTarget);
+        if (Input.GetKey(KeyCode.V))
+            Graphics.Blit(_inColorTarget, _cameraTarget);
     }
 
     private void UpdateUpscaleCommandBuffer()
@@ -53,15 +49,23 @@ public class Builtin : RenderPipeline
         _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
     }
 
-    public override void Shutdown()
+    public override void UpdatePostUpscaleCommandBuffer()
     {
-        _upscale?.Release();
+        _postUpscaleNullCameraTarget.Clear();
+        _postUpscaleValidCameraTarget.Clear();
+
+        // The two command buffers are the same save that one copies while the other blits. Copying is faster, but you can only blit to the screen. The command buffer that is actually used is decided during rendering based on the CameraTarget for the given frame.
+        _postUpscaleNullCameraTarget.Blit(_outputTarget, BuiltinRenderTextureType.CameraTarget);
+        _postUpscaleValidCameraTarget.CopyTexture(_outputTarget, BuiltinRenderTextureType.CameraTarget);
+
+        TexMan.BlitToCameraDepth(_postUpscaleNullCameraTarget, _inColorTarget);
+        TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
     }
 
-    public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution)
+    public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
     {
         var dTarget = false;
-        var cameraTargetIsOutputTarget = _camera.targetTexture == _outputTarget;
+        var cameraTargetIsOutputTarget = Camera.targetTexture == _outputTarget;
         if (_outputTarget && _outputTarget.IsCreated())
         {
             _outputTarget.Release();
@@ -69,11 +73,11 @@ public class Builtin : RenderPipeline
             dTarget = true;
         }
 
-        if (mode == Plugin.Mode.None) return dTarget;
+        if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
-        if (!_camera.targetTexture | cameraTargetIsOutputTarget)
+        if (!Camera.targetTexture | cameraTargetIsOutputTarget)
         {
-            _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, ColorFormat(_camera.allowHDR))
+            _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, Plugin.ColorFormat(Camera.allowHDR))
             {
                 enableRandomWrite = true
             };
@@ -89,7 +93,7 @@ public class Builtin : RenderPipeline
         return true;
     }
 
-    public override bool ManageMotionVectorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution)
+    public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
     {
         var dTarget = false;
         if (_motionVectorTarget && _motionVectorTarget.IsCreated())
@@ -99,9 +103,9 @@ public class Builtin : RenderPipeline
             dTarget = true;
         }
 
-        if (mode == Plugin.Mode.None) return dTarget;
+        if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
-        _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, MotionFormat);
+        _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
         _motionVectorTarget.Create();
 
         Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -109,7 +113,7 @@ public class Builtin : RenderPipeline
         return true;
     }
 
-    public override bool ManageInColorTarget(Plugin.Mode mode, Vector2Int maximumDynamicRenderingResolution)
+    public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
     {
         var dTarget = false;
         if (_inColorTarget && _inColorTarget.IsCreated())
@@ -119,10 +123,10 @@ public class Builtin : RenderPipeline
             dTarget = true;
         }
 
-        if (mode == Plugin.Mode.None) return dTarget;
+        if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
         _inColorTarget =
-            new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, ColorFormat(_camera.allowHDR), DepthFormat)
+            new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, Plugin.ColorFormat(Camera.allowHDR), Plugin.DepthFormat())
             {
                 filterMode = FilterMode.Point
             };
@@ -131,5 +135,21 @@ public class Builtin : RenderPipeline
         Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
         Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
         return true;
+    }
+
+    public override void Shutdown()
+    {
+        _upscale?.Release();
+        _postUpscaleNullCameraTarget?.Release();
+        _postUpscaleValidCameraTarget?.Release();
+
+        if (_outputTarget && _outputTarget.IsCreated())
+            _outputTarget.Release();
+
+        if (_inColorTarget && _inColorTarget.IsCreated())
+            _inColorTarget.Release();
+
+        if (_motionVectorTarget && _motionVectorTarget.IsCreated())
+            _motionVectorTarget.Release();
     }
 }

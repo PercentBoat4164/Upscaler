@@ -1,21 +1,16 @@
-Shader "Upscaler/BlitToCameraDepth"
+Shader "Upscaler/CopyCameraDepth"
 {
-    Properties
-    {
-        [HideInInspector] _Depth("", 2D) = ""
-    }
-
     SubShader
     {
         ZTest Off Cull Off
         Pass
         {
-            Name "Copy Depth Texture"
+            Name "Copy Depth Buffer"
             HLSLPROGRAM
-                sampler2D _Depth;
+                sampler2D _CameraDepthTexture;
 
                 struct Attr {
-                    float4 vertex : POSITION;
+                    float3 vertex : POSITION;
                 };
 
                 struct v2f {
@@ -34,7 +29,7 @@ Shader "Upscaler/BlitToCameraDepth"
                 }
 
                 float frag(const v2f input) : SV_Depth {
-                    return tex2D(_Depth, input.uv);
+                    return tex2D(_CameraDepthTexture, input.uv);
                 }
             ENDHLSL
         }
