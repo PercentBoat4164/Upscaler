@@ -157,7 +157,7 @@ public:
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
     Settings
-    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::Quality t_quality, bool t_HDR) override;
+    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::QualityMode t_quality, bool t_HDR) override;
 
     Status initialize() override;
     Status createFeature() override;

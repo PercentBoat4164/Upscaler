@@ -83,7 +83,7 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCu
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
   const unsigned int                t_width,
   const unsigned int                t_height,
-  const Upscaler::Settings::Quality t_quality,
+  const Upscaler::Settings::QualityMode t_quality,
   const bool                        t_HDR
 ) {
     Upscaler                *upscaler = Upscaler::get();
@@ -100,14 +100,6 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecom
     return recommendation;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMinimumInputResolution() {
-    return Upscaler::settings.dynamicMinimumInputResolution.asLong();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetMaximumInputResolution() {
-    return Upscaler::settings.dynamicMaximumInputResolution.asLong();
-}
-
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
                                   Upscaler_SetSharpnessValue(const float t_sharpness) {
     const bool tooSmall = t_sharpness < 0.0;
@@ -122,51 +114,6 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
         )))
         Upscaler::settings.sharpness = t_sharpness;
     return Upscaler::get()->getStatus();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-Upscaler_SetCurrentInputResolution(const unsigned int t_width, const unsigned int t_height) {
-    bool      safeToContinue{true};
-    Upscaler *upscaler{Upscaler::get()};
-    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
-      t_width > Upscaler::settings.dynamicMaximumInputResolution.width,
-      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
-      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
-        ") is too wide. It must be thinner than the maximum supported input resolution (" +
-        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" +
-        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
-        ") for the given output resolution."
-    ));
-    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
-      t_width < Upscaler::settings.dynamicMinimumInputResolution.width,
-      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
-      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
-        ") is too thin. It must be wider than the minimum supported input resolution (" +
-        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" +
-        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +
-        ") for the given output resolution."
-    ));
-    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
-      t_height > Upscaler::settings.dynamicMaximumInputResolution.height,
-      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
-      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
-        ") is too tall. It must be shorter than the maximum supported input resolution (" +
-        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.width) + "x" +
-        std::to_string(Upscaler::settings.dynamicMaximumInputResolution.height) +
-        ") for the given output resolution."
-    ));
-    safeToContinue &= Upscaler::success(upscaler->setStatusIf(
-      t_height < Upscaler::settings.dynamicMinimumInputResolution.height,
-      Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION,
-      "The given input resolution (" + std::to_string(t_width) + "x" + std::to_string(t_height) +
-        ") is too short. It must be taller than the minimum supported input resolution (" +
-        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.width) + "x" +
-        std::to_string(Upscaler::settings.dynamicMinimumInputResolution.height) +
-        ") for the given output resolution."
-    ));
-    if (safeToContinue) Upscaler::settings.currentInputResolution = {t_width, t_height};
-    upscaler->updateImages();
-    return upscaler->getStatus();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API

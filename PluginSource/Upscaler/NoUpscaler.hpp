@@ -19,7 +19,7 @@ public:
     getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) override;
 
     Settings
-    getOptimalSettings(Settings::Resolution /* unused */, Settings::Quality /* unused */, bool /* unused */)
+    getOptimalSettings(Settings::Resolution /* unused */, Settings::QualityMode /* unused */, bool /* unused */)
       override;
 
     Status initialize() override;

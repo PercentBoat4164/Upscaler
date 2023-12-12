@@ -19,11 +19,11 @@ public abstract class RenderPipeline
 
     public abstract void UpdatePostUpscaleCommandBuffer();
 
-    public abstract bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution);
+    public abstract bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution);
 
-    public abstract bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int upscalingResolution);
+    public abstract bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int upscalingResolution);
 
-    public abstract bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution);
+    public abstract bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution);
 
     public abstract void Shutdown();
 }

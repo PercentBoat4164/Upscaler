@@ -79,15 +79,13 @@ public:
     };
 
     static struct Settings {
-        enum Quality {
-            AUTO,  // Chooses a performance quality mode based on output resolution
-            ULTRA_QUALITY,
-            QUALITY,
-            BALANCED,
-            PERFORMANCE,
-            ULTRA_PERFORMANCE,
-            DYNAMIC_AUTO,    // Enables dynamic resolution and automatically handles changing scale factors
-            DYNAMIC_MANUAL,  // Enables dynamic resolution and lets the user handle changing scale factors
+        enum QualityMode {
+            Auto,  // Chooses a performance quality mode based on output resolution
+            UltraQuality,
+            Quality,
+            Balanced,
+            Performance,
+            UltraPerformance,
         };
 
         struct Resolution {
@@ -97,12 +95,11 @@ public:
             [[nodiscard]] uint64_t asLong() const;
         };
 
-        Quality              quality{AUTO};
+        QualityMode          quality{Auto};
         Resolution           recommendedInputResolution{};
         Resolution           dynamicMaximumInputResolution{};
         Resolution           dynamicMinimumInputResolution{};
         Resolution           outputResolution{};
-        Resolution           currentInputResolution{};
         std::array<float, 2> jitter{0.F, 0.F};
         float                sharpness{};
         bool                 HDR{};
@@ -110,7 +107,7 @@ public:
         bool                 resetHistory{};
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] Quality getQuality() const {
+        [[nodiscard]] QualityMode getQuality() const {
             return quality;
         }
 
@@ -118,7 +115,7 @@ public:
         template<Type T, typename _ = std::enable_if_t<T == DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
-                case AUTO: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
+                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
                     const uint64_t pixelCount{
                       static_cast<uint64_t>(recommendedInputResolution.width) * recommendedInputResolution.height
                     };
@@ -126,13 +123,11 @@ public:
                     if (pixelCount <= static_cast<uint64_t>(3840) * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                case ULTRA_QUALITY: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
-                case QUALITY: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                case BALANCED: return NVSDK_NGX_PerfQuality_Value_Balanced;
-                case PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                case ULTRA_PERFORMANCE: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                case DYNAMIC_AUTO:
-                case DYNAMIC_MANUAL: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
+                case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
+                case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
             }
             return NVSDK_NGX_PerfQuality_Value_Balanced;
         }
@@ -191,7 +186,7 @@ public:
     virtual std::vector<std::string> getRequiredVulkanInstanceExtensions()                           = 0;
     virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
 
-    virtual Settings getOptimalSettings(Settings::Resolution, Settings::Quality, bool) = 0;
+    virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
     virtual Status initialize()                                                                     = 0;
     virtual Status createFeature()                                                                  = 0;

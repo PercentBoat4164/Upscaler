@@ -40,14 +40,14 @@ public class Universal : RenderPipeline
     public override void UpdatePostUpscaleCommandBuffer() =>
         _upscalerRendererFeature.UpdatePostUpscaleCommandBuffer();
 
-    public override bool ManageOutputTarget(Plugin.Mode mode, Vector2Int upscalingResolution) =>
-        _upscalerRendererFeature.ManageOutputTarget(mode, upscalingResolution);
+    public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution) =>
+        _upscalerRendererFeature.ManageOutputTarget(upscalerMode, upscalingResolution);
 
-    public override bool ManageMotionVectorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int upscalingResolution) =>
-        _upscalerRendererFeature.ManageMotionVectorTarget(mode, quality, upscalingResolution);
+    public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int upscalingResolution) =>
+        _upscalerRendererFeature.ManageMotionVectorTarget(upscalerMode, qualityMode, upscalingResolution);
 
-    public override bool ManageInColorTarget(Plugin.Mode mode, Plugin.Quality quality, Vector2Int maximumDynamicRenderingResolution) =>
-        _upscalerRendererFeature.ManageInColorTarget(mode, quality, maximumDynamicRenderingResolution);
+    public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution) =>
+        _upscalerRendererFeature.ManageInColorTarget(upscalerMode, qualityMode, maximumDynamicRenderingResolution);
 
     public override void Shutdown()
     {

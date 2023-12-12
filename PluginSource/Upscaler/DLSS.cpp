@@ -124,10 +124,7 @@ Upscaler::Status DLSS::VulkanSetDepthBuffer(void *nativeHandle, const UnityRende
         )))
         return getStatus();
 
-    const auto [width, height] =
-      settings.quality == Settings::DYNAMIC_AUTO || settings.quality == Settings::DYNAMIC_MANUAL ?
-      settings.dynamicMaximumInputResolution :
-      settings.currentInputResolution;
+    const auto [width, height] = settings.recommendedInputResolution;
 
     // clang-format off
     depth.vulkan->ChangeResource({
@@ -170,10 +167,7 @@ Upscaler::Status DLSS::VulkanSetInputColor(void *nativeHandle, const UnityRender
         )))
         return getStatus();
 
-    const auto [width, height] =
-      settings.quality == Settings::DYNAMIC_AUTO || settings.quality == Settings::DYNAMIC_MANUAL ?
-      settings.dynamicMaximumInputResolution :
-      settings.currentInputResolution;
+    const auto [width, height] = settings.recommendedInputResolution;
 
     // clang-format off
     inColor.vulkan->ChangeResource({
@@ -217,10 +211,7 @@ DLSS::VulkanSetMotionVectors(void *nativeHandle, const UnityRenderingExtTextureF
         )))
         return getStatus();
 
-    const auto [width, height] =
-      settings.quality == Settings::DYNAMIC_AUTO || settings.quality == Settings::DYNAMIC_MANUAL ?
-      settings.dynamicMaximumInputResolution :
-      settings.currentInputResolution;
+    const auto [width, height] = settings.recommendedInputResolution;
 
     // clang-format off
     motion.vulkan->ChangeResource({
@@ -308,12 +299,12 @@ Upscaler::Status DLSS::VulkanEvaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.currentInputResolution.width,
-        .Height = settings.currentInputResolution.height,
+        .Width  = settings.recommendedInputResolution.width,
+        .Height = settings.recommendedInputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.currentInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.currentInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -460,12 +451,12 @@ Upscaler::Status DLSS::DX12Evaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.currentInputResolution.width,
-        .Height = settings.currentInputResolution.height,
+        .Width  = settings.recommendedInputResolution.width,
+        .Height = settings.recommendedInputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.currentInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.currentInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -600,12 +591,12 @@ Upscaler::Status DLSS::DX11Evaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.currentInputResolution.width,
-        .Height = settings.currentInputResolution.height,
+        .Width  = settings.recommendedInputResolution.width,
+        .Height = settings.recommendedInputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.currentInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.currentInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -819,13 +810,13 @@ DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice ph
 
 Upscaler::Settings DLSS::getOptimalSettings(
   const Settings::Resolution t_outputResolution,
-  const Settings::Quality    t_quality,
+  const Settings::QualityMode t_quality,
   const bool                 t_HDR
 ) {
     if (parameters == nullptr) return settings;
 
-    if (t_quality == Settings::ULTRA_QUALITY) {
-        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra Quality mode.");
+    if (t_quality == Settings::UltraQuality) {
+        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra QualityMode mode.");
         return settings;
     }
 
@@ -853,7 +844,7 @@ Upscaler::Settings DLSS::getOptimalSettings(
         &optimalSettings.sharpness
       ),
       "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the"
-      "output resolution, sharpness is between 0F and 1F, and that the Quality setting is less than Ultra Quality."
+      "output resolution, sharpness is between 0F and 1F, and that the QualityMode setting is less than Ultra QualityMode."
     ));
 
     return optimalSettings;
@@ -869,7 +860,7 @@ Upscaler::Status DLSS::initialize() {
     if (!resetStatus()) return getStatus();
 
     // Upscaler_Initialize NGX SDK
-    Upscaler::setStatus((this->*graphicsAPIIndependentInitializeFunctionPointer)(), "Failed to initialized NGX.");
+    Upscaler::setStatus((this->*graphicsAPIIndependentInitializeFunctionPointer)(), "Failed to initialize NGX.");
     if (failure(getStatus())) return getStatus();
     initialized = true;
     Upscaler::setStatus(
@@ -1009,20 +1000,20 @@ Upscaler::Status DLSS::setOutputColor(
 
 void DLSS::updateImages(){
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoInColor = inColor.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoInColor.Width  = settings.currentInputResolution.width;
-    imageViewInfoInColor.Height = settings.currentInputResolution.height;
+    imageViewInfoInColor.Width  = settings.recommendedInputResolution.width;
+    imageViewInfoInColor.Height = settings.recommendedInputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoOutColor = outColor.vulkan->GetResource().Resource.ImageViewInfo;
     imageViewInfoOutColor.Width  = settings.outputResolution.width;
     imageViewInfoOutColor.Height = settings.outputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoDepth = depth.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoDepth.Width  = settings.currentInputResolution.width;
-    imageViewInfoDepth.Height = settings.currentInputResolution.height;
+    imageViewInfoDepth.Width  = settings.recommendedInputResolution.width;
+    imageViewInfoDepth.Height = settings.recommendedInputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoMotion = motion.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoMotion.Width  = settings.currentInputResolution.width;
-    imageViewInfoMotion.Height = settings.currentInputResolution.height;
+    imageViewInfoMotion.Width  = settings.recommendedInputResolution.width;
+    imageViewInfoMotion.Height = settings.recommendedInputResolution.height;
 }
 
 Upscaler::Status DLSS::evaluate() {

@@ -14,8 +14,8 @@ public class UpscalerEditor : Editor
     
     private void OnEnable()
     {
-        _upscalerType = serializedObject.FindProperty("upscaler");
-        _qualityMode = serializedObject.FindProperty("quality");
+        _upscalerType = serializedObject.FindProperty("upscalerMode");
+        _qualityMode = serializedObject.FindProperty("qualityMode");
         _sharpnessVal = serializedObject.FindProperty("sharpness");
         _renderScale = serializedObject.FindProperty("renderScale");
         _style = new GUIStyle();
@@ -48,8 +48,8 @@ public class UpscalerEditor : Editor
         if (_basicSettingsFoldout)
         {
             EditorGUI.indentLevel += 1;
-            EditorGUILayout.PropertyField(_upscalerType, new GUIContent("Upscaler to Use"));
-            EditorGUILayout.PropertyField(_qualityMode, new GUIContent("Quality Performance Mode"));
+            EditorGUILayout.PropertyField(_upscalerType, new GUIContent("Upscaler mode"));
+            EditorGUILayout.PropertyField(_qualityMode, new GUIContent("Quality mode"));
             EditorGUI.indentLevel -= 1;
         }
 
@@ -58,11 +58,6 @@ public class UpscalerEditor : Editor
         {
             EditorGUI.indentLevel += 1;
             EditorGUILayout.Slider(_sharpnessVal, 0, 1, new GUIContent("Sharpness (Deprecated)"));
-            if (_upscalerObject.quality == Plugin.Quality.DynamicManual && _upscalerObject != null)
-            {
-                EditorGUILayout.Slider(_renderScale, BackendUpscaler.MinScaleFactor, BackendUpscaler.MaxScaleFactor,
-                    new GUIContent("Render Scale"));
-            }
             EditorGUI.indentLevel -= 1;
         }
 
