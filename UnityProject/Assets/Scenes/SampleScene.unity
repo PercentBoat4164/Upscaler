@@ -571,10 +571,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  upscaler: 1
-  quality: 6
+  upscalerMode: 1
+  qualityMode: 4
   sharpness: 0
-  renderScale: 0
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0

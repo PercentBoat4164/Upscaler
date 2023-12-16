@@ -7,7 +7,7 @@ Shader "Upscaler/BlitToCameraDepth"
 
     SubShader
     {
-        ZTest Off Cull Off
+        ZTest Off ZWrite On Cull Off
         Pass
         {
             Name "Copy Depth Texture"

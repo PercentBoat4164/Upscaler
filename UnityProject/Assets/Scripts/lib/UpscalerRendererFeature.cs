@@ -1,4 +1,5 @@
 #if UPSCALER_USE_URP
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -20,7 +21,14 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         // Camera
         private readonly Camera _camera;
 
-        public UpscalerRenderPass(Camera camera) => _camera = camera;
+        // Action
+        private readonly System.Action _onPreCull;
+
+        public UpscalerRenderPass(Camera camera, Action onPreCull)
+        {
+            _camera = camera;
+            _onPreCull = onPreCull;
+        }
 
         private void UpdateUpscaleCommandBuffer()
         {
@@ -32,9 +40,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         public void UpdatePostUpscaleCommandBuffer()
         {
             _postUpscale.Clear();
-
             _postUpscale.Blit(_outputTarget, _cameraTarget);
-
             TexMan.CopyCameraDepth(_postUpscale);
         }
 
@@ -56,7 +62,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             RenderTexture.active = _inColorTarget;
         }
 
-        public bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
+        public bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution)
         {
             var dTarget = false;
             var cameraTargetIsOutputTarget = _camera.targetTexture == _outputTarget;
@@ -71,7 +77,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             if (!_camera.targetTexture | cameraTargetIsOutputTarget)
             {
-                _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, Plugin.ColorFormat(_camera.allowHDR))
+                _outputTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.ColorFormat(_camera.allowHDR))
                 {
                     enableRandomWrite = true
                 };
@@ -87,7 +93,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             return true;
         }
 
-        public bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
+        public bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution)
         {
             var dTarget = false;
             if (_motionVectorTarget && _motionVectorTarget.IsCreated())
@@ -99,7 +105,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
-            _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+            _motionVectorTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.MotionFormat());
             _motionVectorTarget.Create();
 
             Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -107,7 +113,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             return true;
         }
 
-        public bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
+        public bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int maximumDynamicRenderingResolution)
         {
             var dTarget = false;
             if (_inColorTarget && _inColorTarget.IsCreated())
@@ -149,38 +155,39 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
     }
 
     // Camera
-    [HideInInspector]
-    public Camera camera;
+    [HideInInspector] public Camera camera;
+    // OnPreCull action
+    public System.Action OnPreCull;
 
     // Render passes
-    private UpscalerRenderPass _upscalerRenderRenderPass;
+    private UpscalerRenderPass _upscalerRenderPass;
 
     public override void Create()
     {
-        _upscalerRenderRenderPass = new UpscalerRenderPass(camera);
+        _upscalerRenderPass = new UpscalerRenderPass(camera, OnPreCull);
         name = "Upscaler";
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        _upscalerRenderRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
-        _upscalerRenderRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
-        renderer.EnqueuePass(_upscalerRenderRenderPass);
+        _upscalerRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
+        _upscalerRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
+        renderer.EnqueuePass(_upscalerRenderPass);
     }
 
-    public void PreUpscale() => _upscalerRenderRenderPass.PreUpscale();
+    public void PreUpscale() => _upscalerRenderPass.PreUpscale();
 
-    public void UpdatePostUpscaleCommandBuffer() => _upscalerRenderRenderPass.UpdatePostUpscaleCommandBuffer();
+    public void UpdatePostUpscaleCommandBuffer() => _upscalerRenderPass.UpdatePostUpscaleCommandBuffer();
 
-    public bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution) =>
-        _upscalerRenderRenderPass.ManageOutputTarget(upscalerMode, upscalingResolution);
+    public bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
+        _upscalerRenderPass.ManageOutputTarget(upscalerMode, resolution);
 
-    public bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int upscalingResolution) =>
-        _upscalerRenderRenderPass.ManageMotionVectorTarget(upscalerMode, qualityMode, upscalingResolution);
+    public bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
+        _upscalerRenderPass.ManageMotionVectorTarget(upscalerMode, resolution);
 
-    public bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution) =>
-        _upscalerRenderRenderPass.ManageInColorTarget(upscalerMode, qualityMode, maximumDynamicRenderingResolution);
+    public bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
+        _upscalerRenderPass.ManageInColorTarget(upscalerMode, resolution);
 
-    public void Shutdown() => _upscalerRenderRenderPass.Shutdown();
+    public void Shutdown() => _upscalerRenderPass.Shutdown();
 }
 #endif

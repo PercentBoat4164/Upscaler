@@ -65,9 +65,8 @@ public class BackendUpscaler : MonoBehaviour
             upscalerOutdated = LastSharpness == 0 ^ Sharpness == 0;
         }
 
-        if (DHDR | DUpscalingResolution | DRenderingResolution |
-            DUpscaler | DQuality)
-            upscalerOutdated |= _renderPipeline.ManageInColorTarget(ActiveUpscalerMode, ActiveQualityMode, RenderingResolution);
+        if (DHDR | DUpscalingResolution | DRenderingResolution | DUpscaler | DQuality)
+            upscalerOutdated |= _renderPipeline.ManageInColorTarget(ActiveUpscalerMode, RenderingResolution);
 
         if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
             upscalerOutdated |= _renderPipeline.ManageOutputTarget(ActiveUpscalerMode, UpscalingResolution);
@@ -76,7 +75,7 @@ public class BackendUpscaler : MonoBehaviour
             _renderPipeline.UpdatePostUpscaleCommandBuffer();
 
         if (DUpscalingResolution | DRenderingResolution | DUpscaler | DQuality)
-            upscalerOutdated |= _renderPipeline.ManageMotionVectorTarget(ActiveUpscalerMode, ActiveQualityMode, RenderingResolution);
+            upscalerOutdated |= _renderPipeline.ManageMotionVectorTarget(ActiveUpscalerMode, RenderingResolution);
 
         if (upscalerOutdated)
             Graphics.ExecuteCommandBuffer(_upscalerPrepare);

@@ -62,7 +62,7 @@ public class Builtin : RenderPipeline
         TexMan.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
     }
 
-    public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
+    public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution)
     {
         var dTarget = false;
         var cameraTargetIsOutputTarget = Camera.targetTexture == _outputTarget;
@@ -77,7 +77,7 @@ public class Builtin : RenderPipeline
 
         if (!Camera.targetTexture | cameraTargetIsOutputTarget)
         {
-            _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, Plugin.ColorFormat(Camera.allowHDR))
+            _outputTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.ColorFormat(Camera.allowHDR))
             {
                 enableRandomWrite = true
             };
@@ -93,7 +93,7 @@ public class Builtin : RenderPipeline
         return true;
     }
 
-    public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
+    public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution)
     {
         var dTarget = false;
         if (_motionVectorTarget && _motionVectorTarget.IsCreated())
@@ -105,7 +105,7 @@ public class Builtin : RenderPipeline
 
         if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
-        _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+        _motionVectorTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.MotionFormat());
         _motionVectorTarget.Create();
 
         Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -113,7 +113,7 @@ public class Builtin : RenderPipeline
         return true;
     }
 
-    public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode, Vector2Int maximumDynamicRenderingResolution)
+    public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution)
     {
         var dTarget = false;
         if (_inColorTarget && _inColorTarget.IsCreated())
@@ -126,7 +126,7 @@ public class Builtin : RenderPipeline
         if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
         _inColorTarget =
-            new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, Plugin.ColorFormat(Camera.allowHDR), Plugin.DepthFormat())
+            new RenderTexture(resolution.x, resolution.y, Plugin.ColorFormat(Camera.allowHDR), Plugin.DepthFormat())
             {
                 filterMode = FilterMode.Point
             };
