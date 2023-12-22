@@ -24,7 +24,7 @@ Shader "Upscaler/CopyCameraDepth"
                 v2f vert(Attr input) {
                     v2f output;
                     output.pos = float4(input.vertex.xy, 0.0, 1.0);
-                    output.uv = (input.vertex.xy + 1) * 0.5;
+                    output.uv = (input.vertex.xy + 1) * 0.5 * float2(1.0, -1.0) + float2(0.0, 1.0);
                     return output;
                 }
 

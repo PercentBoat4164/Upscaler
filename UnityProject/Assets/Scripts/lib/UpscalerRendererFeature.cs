@@ -16,32 +16,20 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
         // CommandBuffers
         private readonly CommandBuffer _upscale = CommandBufferPool.Get("Upscale");
-        private readonly CommandBuffer _postUpscale = CommandBufferPool.Get("Post Upscale");
 
         // Camera
         private readonly Camera _camera;
 
-        // Action
-        private readonly System.Action _onPreCull;
-
-        public UpscalerRenderPass(Camera camera, Action onPreCull)
-        {
-            _camera = camera;
-            _onPreCull = onPreCull;
-        }
+        public UpscalerRenderPass(Camera camera) => _camera = camera;
 
         private void UpdateUpscaleCommandBuffer()
         {
             _upscale.Clear();
+            _upscale.SetRenderTarget(_inColorTarget.colorBuffer, _inColorTarget.depthBuffer);
+            TexMan.CopyCameraDepth(_upscale);
             TexMan.BlitToMotionTexture(_upscale, _motionVectorTarget);
             _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
-        }
-
-        public void UpdatePostUpscaleCommandBuffer()
-        {
-            _postUpscale.Clear();
-            _postUpscale.Blit(_outputTarget, _cameraTarget);
-            TexMan.CopyCameraDepth(_postUpscale);
+            _upscale.Blit(_outputTarget, _cameraTarget);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -50,7 +38,6 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
             context.ExecuteCommandBuffer(_upscale);
             _camera.targetTexture = _cameraTarget;
             RenderTexture.active = _cameraTarget;
-            context.ExecuteCommandBuffer(_postUpscale);
         }
 
         public void PreUpscale()
@@ -141,7 +128,6 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         {
             // Release command buffers
             CommandBufferPool.Release(_upscale);
-            CommandBufferPool.Release(_postUpscale);
 
             if (_outputTarget && _outputTarget.IsCreated())
                 _outputTarget.Release();
@@ -156,15 +142,13 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
     // Camera
     [HideInInspector] public Camera camera;
-    // OnPreCull action
-    public System.Action OnPreCull;
 
     // Render passes
     private UpscalerRenderPass _upscalerRenderPass;
 
     public override void Create()
     {
-        _upscalerRenderPass = new UpscalerRenderPass(camera, OnPreCull);
+        _upscalerRenderPass = new UpscalerRenderPass(camera);
         name = "Upscaler";
     }
 
@@ -176,8 +160,6 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
     }
 
     public void PreUpscale() => _upscalerRenderPass.PreUpscale();
-
-    public void UpdatePostUpscaleCommandBuffer() => _upscalerRenderPass.UpdatePostUpscaleCommandBuffer();
 
     public bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
         _upscalerRenderPass.ManageOutputTarget(upscalerMode, resolution);

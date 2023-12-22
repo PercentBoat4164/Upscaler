@@ -37,8 +37,7 @@ public class Universal : RenderPipeline
         _initialized = true;
     }
 
-    public override void UpdatePostUpscaleCommandBuffer() =>
-        _upscalerRendererFeature.UpdatePostUpscaleCommandBuffer();
+    public override void UpdatePostUpscaleCommandBuffer() {}
 
     public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
         _upscalerRendererFeature.ManageOutputTarget(upscalerMode, resolution);
