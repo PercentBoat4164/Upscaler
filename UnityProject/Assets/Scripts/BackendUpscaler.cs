@@ -134,7 +134,6 @@ public class BackendUpscaler : MonoBehaviour
     {
         if (!Application.isPlaying) return;
         ManageTargets();
-        if (Input.GetKey(KeyCode.H)) Plugin.ResetHistory();
         if (ActiveUpscalerMode != Plugin.UpscalerMode.None) Jitter.Apply(Camera, RenderingResolution);
     }
 

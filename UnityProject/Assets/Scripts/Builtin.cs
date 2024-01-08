@@ -38,8 +38,6 @@ public class Builtin : RenderPipeline
         Camera.targetTexture = _cameraTarget;
         RenderTexture.active = _cameraTarget;
         Graphics.ExecuteCommandBuffer(_cameraTarget ? _postUpscaleValidCameraTarget : _postUpscaleNullCameraTarget);
-        if (Input.GetKey(KeyCode.V))
-            Graphics.Blit(_inColorTarget, _cameraTarget);
     }
 
     private void UpdateUpscaleCommandBuffer()
