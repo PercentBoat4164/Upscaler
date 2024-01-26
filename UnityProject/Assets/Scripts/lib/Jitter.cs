@@ -27,7 +27,7 @@ public static class Jitter {
      */
     public static void Apply(Camera camera, Vector2 renderingResolution)
     {
-        if (_sequence.Length == 0) return;
+        if (_sequence == null || _sequence.Length == 0) return;
         _sequencePosition %= _sequence.Length;
         var pixelSpaceJitter = _sequence[_sequencePosition++];
         var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
