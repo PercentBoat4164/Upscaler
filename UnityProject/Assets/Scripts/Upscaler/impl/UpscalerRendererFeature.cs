@@ -25,7 +25,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
         private void UpdateUpscaleCommandBuffer()
         {
             _upscale.Clear();
-            TexMan.BlitToMotionTexture(_upscale, _motionVectorTarget);
+            BlitLib.BlitToMotionTexture(_upscale, _motionVectorTarget);
             _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
         }
 
@@ -35,7 +35,7 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             _postUpscale.Blit(_outputTarget, _cameraTarget);
 
-            TexMan.CopyCameraDepth(_postUpscale);
+            BlitLib.CopyCameraDepth(_postUpscale);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -71,7 +71,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             if (!_camera.targetTexture | cameraTargetIsOutputTarget)
             {
-                _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, Plugin.ColorFormat(_camera.allowHDR))
+                _outputTarget =
+ new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0, Plugin.ColorFormat(_camera.allowHDR))
                 {
                     enableRandomWrite = true
                 };
@@ -99,7 +100,8 @@ public class UpscalerRendererFeature : ScriptableRendererFeature
 
             if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
 
-            _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+            _motionVectorTarget =
+ new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
             _motionVectorTarget.Create();
 
             Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
