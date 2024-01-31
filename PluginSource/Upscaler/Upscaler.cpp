@@ -86,17 +86,17 @@ Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
-Upscaler::Status Upscaler::setStatus(const Status t_error, std::string t_msg) {
-    if (success(status)) status = t_error;
-    if (detailedErrorMessage.empty()) detailedErrorMessage = std::move(t_msg);
-    if (failure(status) && errorCallback != nullptr) errorCallback(userData, status, detailedErrorMessage.c_str());
-    return status;
+Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_msg) {
+    return setStatusIf(true, t_error, t_msg);
 }
 
 Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
-    if (success(status) && t_shouldApplyError) status = t_error;
-    if (detailedErrorMessage.empty() && t_shouldApplyError) detailedErrorMessage = std::move(t_msg);
-    if (t_shouldApplyError && failure(status) && errorCallback != nullptr)
+    bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
+    if (shouldApplyError) {
+        status               = t_error;
+        detailedErrorMessage = std::move(t_msg);
+    }
+    if (shouldApplyError && failure(status) && errorCallback != nullptr)
         errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }

@@ -21,12 +21,13 @@ namespace Upscaler.impl
 
         public abstract void UpdatePostUpscaleCommandBuffer();
 
-        public abstract bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution);
+        public abstract bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int upscalingResolution);
 
-        public abstract bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode,
+        public abstract bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode,
+            Upscaler.QualityMode qualityMode,
             Vector2Int upscalingResolution);
 
-        public abstract bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode,
+        public abstract bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Upscaler.QualityMode qualityMode,
             Vector2Int maximumDynamicRenderingResolution);
 
         public abstract void Shutdown();

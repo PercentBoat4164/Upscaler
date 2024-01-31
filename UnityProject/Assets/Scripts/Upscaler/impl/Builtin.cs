@@ -25,6 +25,8 @@ namespace Upscaler.impl
             _postUpscaleNullCameraTarget.name = "Post Upscale";
             _postUpscaleValidCameraTarget = new CommandBuffer();
             _postUpscaleValidCameraTarget.name = "Post Upscale";
+
+            UpdateUpscaleCommandBuffer();
         }
 
         public void PrepareRendering()
@@ -62,7 +64,7 @@ namespace Upscaler.impl
             BlitLib.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
         }
 
-        public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
+        public override bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
         {
             var dTarget = false;
             var cameraTargetIsOutputTarget = Camera.targetTexture == _outputTarget;
@@ -73,7 +75,7 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
 
             if (!Camera.targetTexture | cameraTargetIsOutputTarget)
             {
@@ -94,7 +96,8 @@ namespace Upscaler.impl
             return true;
         }
 
-        public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode,
+        public override bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode,
+            Upscaler.QualityMode qualityMode,
             Vector2Int maximumDynamicRenderingResolution)
         {
             var dTarget = false;
@@ -105,7 +108,7 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
 
             _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x,
                 maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
@@ -116,7 +119,7 @@ namespace Upscaler.impl
             return true;
         }
 
-        public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Plugin.QualityMode qualityMode,
+        public override bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Upscaler.QualityMode qualityMode,
             Vector2Int maximumDynamicRenderingResolution)
         {
             var dTarget = false;
@@ -127,7 +130,7 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Plugin.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
 
             _inColorTarget =
                 new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y,

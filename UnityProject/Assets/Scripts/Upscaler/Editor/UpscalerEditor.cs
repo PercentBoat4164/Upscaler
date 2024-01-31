@@ -1,24 +1,23 @@
 using UnityEditor;
 using UnityEngine;
-using Upscaler.impl;
 
-namespace Editor
+namespace Upscaler.Editor
 {
-    [CustomEditor(typeof(global::Upscaler.Upscaler))]
-    public class Upscaler : UnityEditor.Editor
+    [CustomEditor(typeof(Upscaler))]
+    public class UpscalerEditor : UnityEditor.Editor
     {
         private bool _basicSettingsFoldout = true;
         private bool _advancedSettingsFoldout;
 
         public override void OnInspectorGUI()
         {
-            var upscalerObject = (global::Upscaler.Upscaler)serializedObject.targetObject;
+            var upscalerObject = (Upscaler)serializedObject.targetObject;
 
             EditorGUILayout.LabelField("Upscaler Settings");
             var style = new GUIStyle();
             var status = upscalerObject.Status;
             string message;
-            if (Plugin.Success(status))
+            if (Upscaler.Success(status))
             {
                 style.normal.textColor = Color.green;
                 message = "Upscaling successfully running.";
@@ -33,27 +32,26 @@ namespace Editor
                 "Provides a description of the current status of the upscaler in plain English."
             ), new GUIContent(message));
             EditorGUILayout.LabelField(new GUIContent("Status Code",
-                    "Indicates the current 'UpscalerStatus' enum value.\n" +
-                    "\nThis can also be accessed via the API using the 'Upscaler.Status' property.\n" +
-                    "\nNote: Both 'NoUpscalerSet' and 'Success' indicate that the plugin is working as expected."
-                ), new GUIContent(status.ToString()), style);
+                "Indicates the current 'UpscalerStatus' enum value.\n" +
+                "\nThis can also be accessed via the API using the 'Upscaler.Status' property.\n" +
+                "\nNote: Both 'NoUpscalerSet' and 'Success' indicate that the plugin is working as expected."
+            ), new GUIContent(status.ToString()), style);
 
 
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
             if (_basicSettingsFoldout)
             {
                 EditorGUI.indentLevel += 1;
-                upscalerObject.upscalerMode = (Plugin.UpscalerMode)EditorGUILayout.EnumPopup(
+                upscalerObject.upscalerMode = (Upscaler.UpscalerMode)EditorGUILayout.EnumPopup(
                     new GUIContent("Upscaler",
                         "Choose an Upscaler to use.\n" +
                         "\nUse None to completely disable upscaling.\n" +
                         "\nUse DLSS to enable DLSS upscaling."
                     ), upscalerObject.upscalerMode);
-                upscalerObject.qualityMode = (Plugin.QualityMode)EditorGUILayout.EnumPopup(
+                upscalerObject.qualityMode = (Upscaler.QualityMode)EditorGUILayout.EnumPopup(
                     new GUIContent("Quality",
                         "Choose a Quality Mode for the upscaler.\n" +
                         "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
-                        "< 1920 x 1080 -> Disabled\n" +
                         "<= 2560 x 1440 -> Quality\n" +
                         "<= 3840 x 2160 -> Performance\n" +
                         "> 3840 x 2160 -> Ultra Performance\n" +
