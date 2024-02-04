@@ -364,6 +364,7 @@ namespace Upscaler
                     upscalerMode = UpscalerMode.None;
                 }
 
+                Plugin.ResetStatus();
                 var settingsChangeEffect = ValidateAndPushSettings();
                 if (Failure(settingsChangeEffect.Item1))
                 {
@@ -371,9 +372,12 @@ namespace Upscaler
                                    "but failed. New Error:\n" + settingsChangeEffect.Item2);
                     upscalerMode = UpscalerMode.None;
                 }
+                else
+                {
 
-                Debug.LogError("Upscaler encountered an Error, but it was fixed by callback. Original Error:\n" +
-                               message);
+                    Debug.LogError("Upscaler encountered an Error, but it was fixed by callback. Original Error:\n" +
+                                   message);
+                }
             }
         }
 

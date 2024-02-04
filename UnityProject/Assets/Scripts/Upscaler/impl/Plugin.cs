@@ -85,5 +85,8 @@ namespace Upscaler.impl
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
         public static extern void Initialize(IntPtr upscalerObject, InternalErrorCallback errorCallback);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetStatus")]
+        public static extern void ResetStatus();
     }
 }

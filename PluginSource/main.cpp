@@ -126,6 +126,10 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory
     Upscaler::settings.resetHistory = true;
 }
 
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetStatus() {
+    Upscaler::get()->resetStatus();
+}
+
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
 Upscaler_SetDepthBuffer(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return Upscaler::get()->setDepthBuffer(nativeHandle, unityFormat);

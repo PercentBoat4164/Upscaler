@@ -27,5 +27,10 @@ public class SettingsChanger : MonoBehaviour
         {
             _upscaler.qualityMode = (Upscaler.Upscaler.QualityMode)(((int)_upscaler.qualityMode + 1) % 5);
         }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            _upscaler.upscalerMode = (Upscaler.Upscaler.UpscalerMode)6;
+        }
     }
 }
