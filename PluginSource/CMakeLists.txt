@@ -167,6 +167,8 @@ add_library(GfxPluginUpscaler main.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
 )
+
+add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")
 target_include_directories(GfxPluginUpscaler PUBLIC ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
 
 # Link selected graphics APIs

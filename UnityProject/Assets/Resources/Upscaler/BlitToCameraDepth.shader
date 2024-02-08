@@ -34,7 +34,7 @@ Shader "Upscaler/BlitToCameraDepth"
                 }
 
                 float frag(const v2f input) : SV_Depth {
-                    return tex2D(_Depth, input.uv);
+                    return tex2D(_Depth, input.uv).r;
                 }
             ENDHLSL
         }

@@ -756,8 +756,7 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
 }
 
 DLSS *DLSS::get() {
-    static DLSS *dlss{nullptr};
-    if (dlss == nullptr) dlss = new DLSS;
+    static DLSS *dlss{new DLSS};
     return dlss;
 }
 
@@ -815,6 +814,11 @@ Upscaler::Settings DLSS::getOptimalSettings(
 ) {
     if (parameters == nullptr) return settings;
 
+//    if (t_quality == Settings::UltraQuality) {
+//        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra QualityMode mode.");
+//        return settings;
+//    }
+
     if (t_outputResolution.height < 32 || t_outputResolution.width < 32) {
         Upscaler::setStatus(SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, getName() + " does not support output resolutions less than 32x32.");
     }
@@ -871,7 +875,7 @@ Upscaler::Status DLSS::initialize() {
     if (failure(setStatus(
           parameters->Get(NVSDK_NGX_Parameter_SuperSampling_NeedsUpdatedDriver, &needsUpdatedDriver),
           "Failed to query the selected device's driver update needs. This may result from outdated an driver, "
-          "unsupported GPUs, a failure to initialize NGX, or a failure to get the " +
+            "unsupported GPUs, a failure to initialize NGX, or a failure to get the " +
             getName() + " compatibility parameters."
         )))
         return getStatus();
@@ -907,8 +911,7 @@ Upscaler::Status DLSS::initialize() {
           parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported),
           "Failed to query status of " + getName() +
             " support for the selected graphics device. This may result from outdated an driver, unsupported "
-            "GPUs, "
-            "a failure to initialize NGX, or a failure to get the " +
+            "GPUs, a failure to initialize NGX, or a failure to get the " +
             getName() + " compatibility parameters."
         )))
         return getStatus();

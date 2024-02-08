@@ -1,5 +1,4 @@
 #if UPSCALER_USE_URP
-using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;

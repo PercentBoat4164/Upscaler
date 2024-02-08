@@ -1,0 +1,17 @@
+{
+  "name": "UpscalerEditor",
+  "references": [
+    "GUID:58ed9f0751b73475e8851605847b4ea8"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

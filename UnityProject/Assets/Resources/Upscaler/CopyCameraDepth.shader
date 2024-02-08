@@ -29,7 +29,7 @@ Shader "Upscaler/CopyCameraDepth"
                 }
 
                 float frag(const v2f input) : SV_Depth {
-                    return tex2D(_CameraDepthTexture, input.uv);
+                    return tex2D(_CameraDepthTexture, input.uv).r;
                 }
             ENDHLSL
         }

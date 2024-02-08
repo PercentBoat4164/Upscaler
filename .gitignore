@@ -1,2 +1,12 @@
 # IDE project files
 .idea
+.vscode
+
+# Build files
+/BuildResults/
+
+# Documentation
+/Documentation/
+
+# Packages
+/Packages/
