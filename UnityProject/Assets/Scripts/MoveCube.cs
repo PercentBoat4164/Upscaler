@@ -25,13 +25,21 @@ public class MoveCube : MonoBehaviour
 
     private Vector3 MoveCircular(double timing, float scale)
     {
-        if (_shouldMove) _movement += timing * scale;
+        if (_shouldMove)
+        {
+            _movement += timing * scale;
+        }
+
         return new Vector3((float)Math.Sin(_movement), (float)Math.Cos(_movement), 0);
     }
 
     private Quaternion Rotate(double timing, float scale)
     {
-        if (_shouldRotate) _rotation += timing * scale * 360;
+        if (_shouldRotate)
+        {
+            _rotation += timing * scale * 360;
+        }
+
         return Quaternion.Euler(45, 0, (float)_rotation + 45);
     }
 }

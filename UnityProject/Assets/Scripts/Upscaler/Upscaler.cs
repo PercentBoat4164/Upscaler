@@ -82,6 +82,7 @@ namespace Upscaler
         public enum QualityMode
         {
             Auto,
+
             // UltraQuality,
             Quality,
             Balanced,
@@ -205,7 +206,11 @@ namespace Upscaler
             _lastUpscalerMode = _activeUpscalerMode = upscalerMode;
             _lastQualityMode = _activeQualityMode = qualityMode;
             Plugin.SetUpscaler(_activeUpscalerMode);
-            if (upscalerMode == UpscalerMode.None) return;
+            if (upscalerMode == UpscalerMode.None)
+            {
+                return;
+            }
+
             Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, _activeQualityMode,
                 ActiveHDR);
 
@@ -218,7 +223,10 @@ namespace Upscaler
         /// Real OnPreCull Actions from Backend
         protected void OnPreCull()
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying)
+            {
+                return;
+            }
 
             if (ChangeInSettings())
             {
@@ -227,7 +235,9 @@ namespace Upscaler
 
                 // If Settings Change Caused Error, pass to Internal Error Handler
                 if (Failure(settingsChange.Item1))
+                {
                     InternalErrorHandler(settingsChange.Item1, settingsChange.Item2);
+                }
             }
 
             if (DUpscaler)
@@ -246,7 +256,9 @@ namespace Upscaler
             }
 
             if (DRenderingResolution | DUpscalingResolution)
+            {
                 Jitter.Generate((Vector2)UpscalingResolution / RenderingResolution);
+            }
 
             var upscalerOutdated = false;
 
@@ -258,25 +270,36 @@ namespace Upscaler
 
             if (DHDR | DUpscalingResolution | DRenderingResolution |
                 DUpscaler | DQuality)
+            {
                 upscalerOutdated |=
-                    _renderPipeline.ManageInColorTarget(_activeUpscalerMode, _activeQualityMode, RenderingResolution);
+                    _renderPipeline.ManageInColorTarget(_activeUpscalerMode, RenderingResolution);
+            }
 
             if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
+            {
                 upscalerOutdated |= _renderPipeline.ManageOutputTarget(_activeUpscalerMode, UpscalingResolution);
+            }
 
             if (upscalerOutdated)
+            {
                 _renderPipeline.UpdatePostUpscaleCommandBuffer();
+            }
 
             if (DUpscalingResolution | DRenderingResolution | DUpscaler | DQuality)
+            {
                 upscalerOutdated |=
-                    _renderPipeline.ManageMotionVectorTarget(_activeUpscalerMode, _activeQualityMode,
-                        RenderingResolution);
+                    _renderPipeline.ManageMotionVectorTarget(_activeUpscalerMode, RenderingResolution);
+            }
 
             if (upscalerOutdated)
+            {
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
+            }
 
             if (DUpscaler && _activeUpscalerMode == UpscalerMode.None)
+            {
                 Jitter.Reset(_camera);
+            }
 
             _lastHDRActive = ActiveHDR;
             _lastUpscalingResolution = UpscalingResolution;
@@ -285,19 +308,36 @@ namespace Upscaler
             _lastQualityMode = _activeQualityMode;
             _lastSharpness = _sharpness;
 
-            if (_activeUpscalerMode != UpscalerMode.None) Jitter.Apply(_camera, RenderingResolution);
+            if (_activeUpscalerMode != UpscalerMode.None)
+            {
+                Jitter.Apply(_camera, RenderingResolution);
+            }
         }
 
         protected void OnPreRender()
         {
-            if (!Application.isPlaying) return;
-            if (_activeUpscalerMode != UpscalerMode.None) ((Builtin)_renderPipeline).PrepareRendering();
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            if (_activeUpscalerMode != UpscalerMode.None)
+            {
+                ((Builtin)_renderPipeline).PrepareRendering();
+            }
         }
 
         protected void OnPostRender()
         {
-            if (!Application.isPlaying) return;
-            if (_activeUpscalerMode != UpscalerMode.None) ((Builtin)_renderPipeline).Upscale();
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            if (_activeUpscalerMode != UpscalerMode.None)
+            {
+                ((Builtin)_renderPipeline).Upscale();
+            }
         }
 
         /// Shows if settings have changed since last checked
@@ -374,7 +414,6 @@ namespace Upscaler
                 }
                 else
                 {
-
                     Debug.LogError("Upscaler encountered an Error, but it was fixed by callback. Original Error:\n" +
                                    message);
                 }
@@ -385,7 +424,6 @@ namespace Upscaler
         private static void InternalErrorCallbackWrapper(IntPtr upscaler, UpscalerStatus reason, IntPtr message)
         {
             var handle = (GCHandle)upscaler;
-
             (handle.Target as Upscaler)!.InternalErrorHandler(reason,
                 "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
         }
@@ -394,10 +432,14 @@ namespace Upscaler
         {
             _renderPipeline?.Shutdown();
             if (GraphicsSettings.currentRenderPipeline == null)
+            {
                 _renderPipeline = new Builtin(_camera);
+            }
 #if UPSCALER_USE_URP
-        else
-            _renderPipeline = new Universal(Camera, ((Upscaler)this).OnPreCull);
+            else
+            {
+                _renderPipeline = new Universal(_camera, OnPreCull);
+            }
 #endif
         }
 

@@ -31,7 +31,11 @@ namespace Upscaler.impl
          */
         public static void Apply(Camera camera, Vector2 renderingResolution)
         {
-            if (_sequence == null || _sequence.Length == 0) return;
+            if (_sequence == null || _sequence.Length == 0)
+            {
+                return;
+            }
+
             _sequencePosition %= _sequence.Length;
             var pixelSpaceJitter = _sequence[_sequencePosition++];
             var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
@@ -70,7 +74,11 @@ namespace Upscaler.impl
         public static void Generate(Vector2 upscalingFactor)
         {
             // Abort early if the jitter sequence is not out-of-date
-            if (!ShouldRegenerate(upscalingFactor)) return;
+            if (!ShouldRegenerate(upscalingFactor))
+            {
+                return;
+            }
+
             _lastUpscalingFactor = upscalingFactor;
             /*@todo This could be sped up by not regenerating pre-existing samples and only generating the new ones.*/
             _sequence = new Vector2[(uint)Math.Ceiling(SamplesPerPixel * upscalingFactor.x * upscalingFactor.y)];
@@ -91,7 +99,10 @@ namespace Upscaler.impl
                     else
                     {
                         var y = d / seqBase;
-                        while (x <= y) y /= seqBase;
+                        while (x <= y)
+                        {
+                            y /= seqBase;
+                        }
 
                         n = (seqBase + 1) * y - x;
                     }

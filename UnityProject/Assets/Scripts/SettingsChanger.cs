@@ -16,6 +16,7 @@ public class SettingsChanger : MonoBehaviour
         {
             return;
         }
+
         if (Input.GetKeyDown(KeyCode.U))
         {
             _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.Upscaler.UpscalerMode.None

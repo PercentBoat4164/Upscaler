@@ -64,7 +64,7 @@ namespace Upscaler.impl
             BlitLib.BlitToCameraDepth(_postUpscaleValidCameraTarget, _inColorTarget);
         }
 
-        public override bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int upscalingResolution)
+        public override bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
         {
             var dTarget = false;
             var cameraTargetIsOutputTarget = Camera.targetTexture == _outputTarget;
@@ -75,11 +75,14 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None)
+            {
+                return dTarget;
+            }
 
             if (!Camera.targetTexture | cameraTargetIsOutputTarget)
             {
-                _outputTarget = new RenderTexture(upscalingResolution.x, upscalingResolution.y, 0,
+                _outputTarget = new RenderTexture(resolution.x, resolution.y, 0,
                     Plugin.ColorFormat(Camera.allowHDR))
                 {
                     enableRandomWrite = true
@@ -97,8 +100,7 @@ namespace Upscaler.impl
         }
 
         public override bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode,
-            Upscaler.QualityMode qualityMode,
-            Vector2Int maximumDynamicRenderingResolution)
+            Vector2Int resolution)
         {
             var dTarget = false;
             if (_motionVectorTarget && _motionVectorTarget.IsCreated())
@@ -108,10 +110,13 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None)
+            {
+                return dTarget;
+            }
 
-            _motionVectorTarget = new RenderTexture(maximumDynamicRenderingResolution.x,
-                maximumDynamicRenderingResolution.y, 0, Plugin.MotionFormat());
+            _motionVectorTarget = new RenderTexture(resolution.x,
+                resolution.y, 0, Plugin.MotionFormat());
             _motionVectorTarget.Create();
 
             Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
@@ -119,8 +124,8 @@ namespace Upscaler.impl
             return true;
         }
 
-        public override bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Upscaler.QualityMode qualityMode,
-            Vector2Int maximumDynamicRenderingResolution)
+        public override bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode,
+            Vector2Int resolution)
         {
             var dTarget = false;
             if (_inColorTarget && _inColorTarget.IsCreated())
@@ -130,10 +135,13 @@ namespace Upscaler.impl
                 dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None) return dTarget;
+            if (upscalerMode == Upscaler.UpscalerMode.None)
+            {
+                return dTarget;
+            }
 
             _inColorTarget =
-                new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y,
+                new RenderTexture(resolution.x, resolution.y,
                     Plugin.ColorFormat(Camera.allowHDR), Plugin.DepthFormat())
                 {
                     filterMode = FilterMode.Point
@@ -152,13 +160,19 @@ namespace Upscaler.impl
             _postUpscaleValidCameraTarget?.Release();
 
             if (_outputTarget && _outputTarget.IsCreated())
+            {
                 _outputTarget.Release();
+            }
 
             if (_inColorTarget && _inColorTarget.IsCreated())
+            {
                 _inColorTarget.Release();
+            }
 
             if (_motionVectorTarget && _motionVectorTarget.IsCreated())
+            {
                 _motionVectorTarget.Release();
+            }
         }
     }
 }

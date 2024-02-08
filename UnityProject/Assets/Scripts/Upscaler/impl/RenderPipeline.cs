@@ -19,16 +19,17 @@ namespace Upscaler.impl
             Camera = camera;
         }
 
-        public abstract void UpdatePostUpscaleCommandBuffer();
+        public virtual void UpdatePostUpscaleCommandBuffer()
+        {
+        }
 
-        public abstract bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int upscalingResolution);
+        public abstract bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution);
 
         public abstract bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode,
-            Upscaler.QualityMode qualityMode,
-            Vector2Int upscalingResolution);
+            Vector2Int resolution);
 
-        public abstract bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Upscaler.QualityMode qualityMode,
-            Vector2Int maximumDynamicRenderingResolution);
+        public abstract bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode,
+            Vector2Int resolution);
 
         public abstract void Shutdown();
     }

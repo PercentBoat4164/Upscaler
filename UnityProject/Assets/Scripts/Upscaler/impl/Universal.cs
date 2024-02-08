@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-public class Universal : RenderPipeline
+public class Universal : Upscaler.impl.RenderPipeline
 {
     private readonly UpscalerRendererFeature _upscalerRendererFeature;
     private readonly List<ScriptableRendererFeature> _features;
@@ -37,20 +37,27 @@ public class Universal : RenderPipeline
         _initialized = true;
     }
 
-    public override void UpdatePostUpscaleCommandBuffer() {}
+    public override bool ManageOutputTarget(Upscaler.Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+    {
+        return _upscalerRendererFeature.ManageOutputTarget(upscalerMode, resolution);
+    }
 
-    public override bool ManageOutputTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
-        _upscalerRendererFeature.ManageOutputTarget(upscalerMode, resolution);
+    public override bool ManageMotionVectorTarget(Upscaler.Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+    {
+        return _upscalerRendererFeature.ManageMotionVectorTarget(upscalerMode, resolution);
+    }
 
-    public override bool ManageMotionVectorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
-        _upscalerRendererFeature.ManageMotionVectorTarget(upscalerMode, resolution);
-
-    public override bool ManageInColorTarget(Plugin.UpscalerMode upscalerMode, Vector2Int resolution) =>
-        _upscalerRendererFeature.ManageInColorTarget(upscalerMode, resolution);
+    public override bool ManageInColorTarget(Upscaler.Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+    {
+        return _upscalerRendererFeature.ManageInColorTarget(upscalerMode, resolution);
+    }
 
     public override void Shutdown()
     {
-        if (!_initialized) return;
+        if (!_initialized)
+        {
+            return;
+        }
 
         _upscalerRendererFeature.Shutdown();
         _features.RemoveAt(_featureIndex);
