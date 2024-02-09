@@ -1,7 +1,8 @@
 #include "Vulkan.hpp"
 
-#include <cstring>
 #include <Upscaler/Upscaler.hpp>
+
+#include <cstring>
 
 PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr                    Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
@@ -9,6 +10,7 @@ PFN_vkCreateInstance                       Vulkan::m_vkCreateInstance{VK_NULL_HA
 PFN_vkEnumerateInstanceExtensionProperties Vulkan::m_vkEnumerateInstanceExtensionProperties{VK_NULL_HANDLE};
 PFN_vkCreateDevice                         Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
 PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionProperties{VK_NULL_HANDLE};
+PFN_vkGetPhysicalDeviceProperties          Vulkan::m_vkGetPhysicalDeviceProperties{VK_NULL_HANDLE};
 
 PFN_vkCreateImageView        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
 PFN_vkDestroyImageView       Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
@@ -39,7 +41,8 @@ bool Vulkan::loadInstanceFunctionPointers() const {
     m_vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(m_vkGetInstanceProcAddr(_instance, "vkEnumerateDeviceExtensionProperties"));
     m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(_instance, "vkCreateDevice"));
     m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(_instance, "vkGetDeviceProcAddr"));
-    return m_vkEnumerateInstanceExtensionProperties != VK_NULL_HANDLE && m_vkCreateDevice != VK_NULL_HANDLE && m_vkGetDeviceProcAddr != VK_NULL_HANDLE;
+    m_vkGetPhysicalDeviceProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties>(m_vkGetInstanceProcAddr(_instance, "vkGetPhysicalDeviceProperties"));
+    return m_vkEnumerateInstanceExtensionProperties != VK_NULL_HANDLE && m_vkCreateDevice != VK_NULL_HANDLE && m_vkGetDeviceProcAddr != VK_NULL_HANDLE && m_vkGetPhysicalDeviceProperties != VK_NULL_HANDLE;
     // clang-format on
 }
 
@@ -256,7 +259,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
         i              = 0;
         for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
             VkPhysicalDeviceProperties properties;
-            vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+            m_vkGetPhysicalDeviceProperties(physicalDevice, &properties);
             upscaler->setStatusIf(
               upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,

@@ -18,6 +18,7 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkEnumerateInstanceExtensionProperties m_vkEnumerateInstanceExtensionProperties;
     static PFN_vkCreateDevice                         m_vkCreateDevice;
     static PFN_vkEnumerateDeviceExtensionProperties   m_vkEnumerateDeviceExtensionProperties;
+    static PFN_vkGetPhysicalDeviceProperties          m_vkGetPhysicalDeviceProperties;
 
     static PFN_vkCreateImageView        m_vkCreateImageView;
     static PFN_vkDestroyImageView       m_vkDestroyImageView;
