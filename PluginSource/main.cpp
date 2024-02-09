@@ -81,10 +81,10 @@ extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCu
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
-  const unsigned int                t_width,
-  const unsigned int                t_height,
+  const unsigned int                    t_width,
+  const unsigned int                    t_height,
   const Upscaler::Settings::QualityMode t_quality,
-  const bool                        t_HDR
+  const bool                            t_HDR
 ) {
     Upscaler                *upscaler = Upscaler::get();
     const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
@@ -96,7 +96,11 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
     const auto recommendation = Upscaler::settings.recommendedInputResolution.asLong();
-    Upscaler::get()->setStatusIf(recommendation == 0, Upscaler::Status::SETTINGS_ERROR, "Some setting is invalid. Please call reset the framebuffer settings to something valid.");
+    Upscaler::get()->setStatusIf(
+      recommendation == 0,
+      Upscaler::Status::SETTINGS_ERROR,
+      "Some setting is invalid. Please call reset the framebuffer settings to something valid."
+    );
     return recommendation;
 }
 
@@ -157,8 +161,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
 #ifdef ENABLE_DX11
     // Finish all one time submits
-    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
-        GraphicsAPI::get<DX11>()->finishOneTimeSubmits();
+    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11) GraphicsAPI::get<DX11>()->finishOneTimeSubmits();
 #endif
     // Clean up
     for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();

@@ -9,6 +9,6 @@ GraphicsAPI::Type NoGraphicsAPI::getType() {
     return NONE;
 }
 
-bool NoGraphicsAPI::useUnityInterfaces(IUnityInterfaces */* unused */) {
+bool NoGraphicsAPI::useUnityInterfaces(IUnityInterfaces * /* unused */) {
     return false;
 }

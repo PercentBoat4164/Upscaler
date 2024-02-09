@@ -1,8 +1,7 @@
 #include "Vulkan.hpp"
 
-#include <Upscaler/Upscaler.hpp>
-
 #include <cstring>
+#include <Upscaler/Upscaler.hpp>
 
 PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr                    Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
@@ -255,14 +254,18 @@ VkResult Vulkan::Hook_vkCreateDevice(
     if (result == VK_SUCCESS) {
         get()->_device = *pDevice;
         i              = 0;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(physicalDevice, &properties);
             upscaler->setStatusIf(
               upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               Upscaler::SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE,
               "The Vulkan device extensions [" + unsupportedExtensions[i++] + "] required by " +
-                upscaler->getName() + " are not supported. The selected graphics device may not support " +
-                upscaler->getName() + ". If you know that it does, a graphics driver update might help."
+                upscaler->getName() + " are not supported. The selected graphics device (" +
+                std::string(properties.deviceName) + ") may not support " + upscaler->getName() +
+                ". If you know that it does, a graphics driver update might help."
             );
+        }
     } else {
         result = m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
         if (result == VK_SUCCESS) get()->_device = *pDevice;

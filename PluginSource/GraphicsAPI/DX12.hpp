@@ -32,7 +32,7 @@ public:
 
     static DX12 *get();
 
-    Type         getType() override;
+    Type getType() override;
 
     bool                                 useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
     [[nodiscard]] IUnityGraphicsD3D12v7 *getUnityInterface() const;

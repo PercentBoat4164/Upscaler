@@ -71,8 +71,8 @@ class Vulkan final : public GraphicsAPI {
     Vulkan() = default;
 
 public:
-            Vulkan(const Vulkan &)    = delete;
-            Vulkan(Vulkan &&)         = default;
+    Vulkan(const Vulkan &)            = delete;
+    Vulkan(Vulkan &&)                 = default;
     Vulkan &operator=(const Vulkan &) = delete;
     Vulkan &operator=(Vulkan &&)      = default;
 

@@ -39,9 +39,9 @@ class DLSS final : public Upscaler {
     };
 
     struct RAII_NGXVulkanResource {
-        explicit RAII_NGXVulkanResource()                                    = default;
-                 RAII_NGXVulkanResource(const RAII_NGXVulkanResource &other) = default;
-                 RAII_NGXVulkanResource(RAII_NGXVulkanResource &&other)      = default;
+        explicit RAII_NGXVulkanResource()                           = default;
+        RAII_NGXVulkanResource(const RAII_NGXVulkanResource &other) = default;
+        RAII_NGXVulkanResource(RAII_NGXVulkanResource &&other)      = default;
 
         RAII_NGXVulkanResource &operator=(const RAII_NGXVulkanResource &other) = default;
         RAII_NGXVulkanResource &operator=(RAII_NGXVulkanResource &&other)      = default;
@@ -64,8 +64,8 @@ class DLSS final : public Upscaler {
 
     Application applicationInfo;
 
-    NVSDK_NGX_Handle    *featureHandle{};
-    NVSDK_NGX_Parameter *parameters{};
+    NVSDK_NGX_Handle            *featureHandle{};
+    NVSDK_NGX_Parameter         *parameters{};
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams;
 
     Resource inColor{nullptr};
@@ -157,7 +157,8 @@ public:
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
 
     Settings
-    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::QualityMode t_quality, bool t_HDR) override;
+    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::QualityMode t_quality, bool t_HDR)
+      override;
 
     Status initialize() override;
     Status createFeature() override;

@@ -8,7 +8,7 @@ class NoGraphicsAPI final : public GraphicsAPI {
 public:
     static NoGraphicsAPI *get();
 
-    Type                  getType() override;
+    Type getType() override;
 
-    bool                  useUnityInterfaces(IUnityInterfaces */* unused */) override;
+    bool useUnityInterfaces(IUnityInterfaces * /* unused */) override;
 };

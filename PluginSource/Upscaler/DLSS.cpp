@@ -10,8 +10,11 @@
 
 void DLSS::RAII_NGXVulkanResource::ChangeResource(const NVSDK_NGX_ImageViewInfo_VK &info) {
     Destroy();
-    resource =
-      NVSDK_NGX_Resource_VK{.Resource = {info}, .Type = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW, .ReadWrite = true};
+    resource = NVSDK_NGX_Resource_VK{
+      .Resource  = {info},
+      .Type      = NVSDK_NGX_RESOURCE_VK_TYPE_VK_IMAGEVIEW,
+      .ReadWrite = true
+    };
 }
 
 NVSDK_NGX_Resource_VK &DLSS::RAII_NGXVulkanResource::GetResource() {
@@ -808,19 +811,22 @@ DLSS::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice ph
 }
 
 Upscaler::Settings DLSS::getOptimalSettings(
-  const Settings::Resolution t_outputResolution,
+  const Settings::Resolution  t_outputResolution,
   const Settings::QualityMode t_quality,
-  const bool                 t_HDR
+  const bool                  t_HDR
 ) {
     if (parameters == nullptr) return settings;
 
-//    if (t_quality == Settings::UltraQuality) {
-//        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the Ultra QualityMode mode.");
-//        return settings;
-//    }
+    //    if (t_quality == Settings::UltraQuality) {
+    //        Upscaler::setStatus(SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, getName() + " does not support the
+    //        Ultra QualityMode mode."); return settings;
+    //    }
 
     if (t_outputResolution.height < 32 || t_outputResolution.width < 32) {
-        Upscaler::setStatus(SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, getName() + " does not support output resolutions less than 32x32.");
+        Upscaler::setStatus(
+          SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION,
+          getName() + " does not support output resolutions less than 32x32."
+        );
     }
 
     Settings optimalSettings         = settings;
@@ -843,7 +849,8 @@ Upscaler::Settings DLSS::getOptimalSettings(
         &optimalSettings.sharpness
       ),
       "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the"
-      "output resolution, sharpness is between 0F and 1F, and that the QualityMode setting is less than Ultra QualityMode."
+      "output resolution, sharpness is between 0F and 1F, and that the QualityMode setting is less than Ultra "
+      "QualityMode."
     ));
 
     return optimalSettings;
@@ -875,7 +882,7 @@ Upscaler::Status DLSS::initialize() {
     if (failure(setStatus(
           parameters->Get(NVSDK_NGX_Parameter_SuperSampling_NeedsUpdatedDriver, &needsUpdatedDriver),
           "Failed to query the selected device's driver update needs. This may result from outdated an driver, "
-            "unsupported GPUs, a failure to initialize NGX, or a failure to get the " +
+          "unsupported GPUs, a failure to initialize NGX, or a failure to get the " +
             getName() + " compatibility parameters."
         )))
         return getStatus();
@@ -963,55 +970,42 @@ Upscaler::Status DLSS::createFeature() {
     // clang-format on
 
     (this->*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
-    if (success(getStatus()))
-        return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)();
+    if (success(getStatus())) return (this->*graphicsAPIIndependentCreateFeatureFunctionPointer)();
     return getStatus();
 }
 
-Upscaler::Status DLSS::setDepthBuffer(
-  void                          *nativeHandle,
-  const UnityRenderingExtTextureFormat unityFormat
-) {
+Upscaler::Status DLSS::setDepthBuffer(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return (this->*graphicsAPIIndependentSetDepthBufferFunctionPointer)(nativeHandle, unityFormat);
 }
 
-Upscaler::Status DLSS::setInputColor(
-  void                          *nativeHandle,
-  const UnityRenderingExtTextureFormat unityFormat
-) {
+Upscaler::Status DLSS::setInputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return (this->*graphicsAPIIndependentSetInputColorFunctionPointer)(nativeHandle, unityFormat);
 }
 
-Upscaler::Status DLSS::setMotionVectors(
-  void                          *nativeHandle,
-  const UnityRenderingExtTextureFormat unityFormat
-) {
+Upscaler::Status DLSS::setMotionVectors(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return (this->*graphicsAPIIndependentSetMotionVectorsFunctionPointer)(nativeHandle, unityFormat);
 }
 
-Upscaler::Status DLSS::setOutputColor(
-  void                          *nativeHandle,
-  const UnityRenderingExtTextureFormat unityFormat
-) {
+Upscaler::Status DLSS::setOutputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
     return (this->*graphicsAPIIndependentSetOutputColorFunctionPointer)(nativeHandle, unityFormat);
 }
 
-void DLSS::updateImages(){
+void DLSS::updateImages() {
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoInColor = inColor.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoInColor.Width  = settings.recommendedInputResolution.width;
-    imageViewInfoInColor.Height = settings.recommendedInputResolution.height;
+    imageViewInfoInColor.Width                       = settings.recommendedInputResolution.width;
+    imageViewInfoInColor.Height                      = settings.recommendedInputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoOutColor = outColor.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoOutColor.Width  = settings.outputResolution.width;
-    imageViewInfoOutColor.Height = settings.outputResolution.height;
+    imageViewInfoOutColor.Width                       = settings.outputResolution.width;
+    imageViewInfoOutColor.Height                      = settings.outputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoDepth = depth.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoDepth.Width  = settings.recommendedInputResolution.width;
-    imageViewInfoDepth.Height = settings.recommendedInputResolution.height;
+    imageViewInfoDepth.Width                       = settings.recommendedInputResolution.width;
+    imageViewInfoDepth.Height                      = settings.recommendedInputResolution.height;
 
     NVSDK_NGX_ImageViewInfo_VK &imageViewInfoMotion = motion.vulkan->GetResource().Resource.ImageViewInfo;
-    imageViewInfoMotion.Width  = settings.recommendedInputResolution.width;
-    imageViewInfoMotion.Height = settings.recommendedInputResolution.height;
+    imageViewInfoMotion.Width                       = settings.recommendedInputResolution.width;
+    imageViewInfoMotion.Height                      = settings.recommendedInputResolution.height;
 }
 
 Upscaler::Status DLSS::evaluate() {

@@ -86,7 +86,7 @@ Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
-Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_msg) {
+Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string &t_msg) {
     return setStatusIf(true, t_error, t_msg);
 }
 

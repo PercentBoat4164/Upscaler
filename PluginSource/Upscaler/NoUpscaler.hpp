@@ -9,14 +9,14 @@ protected:
     void setFunctionPointers(GraphicsAPI::Type /* unused */) override;
 
 public:
-    static NoUpscaler       *get();
+    static NoUpscaler *get();
 
-    Type                     getType() override;
-    std::string              getName() override;
+    Type        getType() override;
+    std::string getName() override;
 
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
     std::vector<std::string>
-    getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) override;
+      getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) override;
 
     Settings
     getOptimalSettings(Settings::Resolution /* unused */, Settings::QualityMode /* unused */, bool /* unused */)
@@ -24,11 +24,11 @@ public:
 
     Status initialize() override;
     Status createFeature() override;
-    Status setDepthBuffer(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setInputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setMotionVectors(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setOutputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    void updateImages() override;
+    Status setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    void   updateImages() override;
     Status evaluate() override;
     Status releaseFeature() override;
     Status shutdown() override;

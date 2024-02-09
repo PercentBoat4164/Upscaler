@@ -81,7 +81,7 @@ public:
     static struct Settings {
         enum QualityMode {
             Auto,  // Chooses a performance quality mode based on output resolution
-//            UltraQuality,
+                   //            UltraQuality,
             Quality,
             Balanced,
             Performance,
@@ -119,11 +119,13 @@ public:
                     const uint64_t pixelCount{
                       static_cast<uint64_t>(outputResolution.width) * outputResolution.height
                     };
-                    if (pixelCount <= static_cast<uint64_t>(2560) * 1440) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= static_cast<uint64_t>(3840) * 2160) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    if (pixelCount <= static_cast<uint64_t>(2560) * 1440)
+                        return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= static_cast<uint64_t>(3840) * 2160)
+                        return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-//                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
+                    //                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -203,7 +205,7 @@ public:
     [[nodiscard]] Status getStatus() const;
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
-    Status               setStatus(Status, const std::string&);
+    Status               setStatus(Status, const std::string &);
     /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use
     /// resetStatus to clear the current status. Returns the current status
     Status               setStatusIf(bool, Status, std::string);

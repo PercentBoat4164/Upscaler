@@ -42,16 +42,16 @@ Upscaler::Status NoUpscaler::createFeature() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepthBuffer(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
-  return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setInputColor(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
-  return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+    return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setMotionVectors(void */* unused */, UnityRenderingExtTextureFormat /* unused */) {
-  return NO_UPSCALER_SET;
+Upscaler::Status NoUpscaler::setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+    return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
