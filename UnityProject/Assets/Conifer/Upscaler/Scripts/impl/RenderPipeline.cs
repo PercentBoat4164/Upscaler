@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Upscaler.impl
+namespace Conifer.Upscaler.Scripts.impl
 {
     public abstract class RenderPipeline
     {

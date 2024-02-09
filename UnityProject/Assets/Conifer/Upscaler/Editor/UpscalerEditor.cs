@@ -1,9 +1,9 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Upscaler.Editor
+namespace Conifer.Upscaler.Editor
 {
-    [CustomEditor(typeof(Upscaler))]
+    [CustomEditor(typeof(Scripts.Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
         private bool _basicSettingsFoldout = true;
@@ -11,13 +11,13 @@ namespace Upscaler.Editor
 
         public override void OnInspectorGUI()
         {
-            var upscalerObject = (Upscaler)serializedObject.targetObject;
+            var upscalerObject = (Scripts.Upscaler)serializedObject.targetObject;
 
             EditorGUILayout.LabelField("Upscaler Settings");
             var style = new GUIStyle();
             var status = upscalerObject.Status;
             string message;
-            if (Upscaler.Success(status))
+            if (Scripts.Upscaler.Success(status))
             {
                 style.normal.textColor = Color.green;
                 message = "Upscaling successfully running.";
@@ -42,13 +42,13 @@ namespace Upscaler.Editor
             if (_basicSettingsFoldout)
             {
                 EditorGUI.indentLevel += 1;
-                upscalerObject.upscalerMode = (Upscaler.UpscalerMode)EditorGUILayout.EnumPopup(
+                upscalerObject.upscalerMode = (Scripts.Upscaler.UpscalerMode)EditorGUILayout.EnumPopup(
                     new GUIContent("Upscaler",
                         "Choose an Upscaler to use.\n" +
                         "\nUse None to completely disable upscaling.\n" +
                         "\nUse DLSS to enable DLSS upscaling."
                     ), upscalerObject.upscalerMode);
-                upscalerObject.qualityMode = (Upscaler.QualityMode)EditorGUILayout.EnumPopup(
+                upscalerObject.qualityMode = (Scripts.Upscaler.QualityMode)EditorGUILayout.EnumPopup(
                     new GUIContent("Quality",
                         "Choose a Quality Mode for the upscaler.\n" +
                         "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +

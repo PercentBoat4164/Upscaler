@@ -1,12 +1,13 @@
+using Conifer.Upscaler.Scripts;
 using UnityEngine;
 
 public class SettingsChanger : MonoBehaviour
 {
-    private Upscaler.Upscaler _upscaler;
+    private Upscaler _upscaler;
 
     public void OnEnable()
     {
-        _upscaler = Camera.main!.GetComponent<Upscaler.Upscaler>();
+        _upscaler = Camera.main!.GetComponent<Upscaler>();
         _upscaler.ErrorCallback = (status, s) => Debug.Log(s);
     }
 
@@ -19,19 +20,19 @@ public class SettingsChanger : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.U))
         {
-            _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.Upscaler.UpscalerMode.None
-                ? Upscaler.Upscaler.UpscalerMode.DLSS
-                : Upscaler.Upscaler.UpscalerMode.None;
+            _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.UpscalerMode.None
+                ? Upscaler.UpscalerMode.DLSS
+                : Upscaler.UpscalerMode.None;
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            _upscaler.qualityMode = (Upscaler.Upscaler.QualityMode)(((int)_upscaler.qualityMode + 1) % 5);
+            _upscaler.qualityMode = (Upscaler.QualityMode)(((int)_upscaler.qualityMode + 1) % 5);
         }
 
         if (Input.GetKeyDown(KeyCode.E))
         {
-            _upscaler.upscalerMode = (Upscaler.Upscaler.UpscalerMode)6;
+            _upscaler.upscalerMode = (Upscaler.UpscalerMode)6;
         }
     }
 }

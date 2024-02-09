@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Upscaler.impl
+namespace Conifer.Upscaler.Scripts.impl
 {
     /**
      * A static library class that eases jittering the camera and passing the values used to the active upscaler. This class

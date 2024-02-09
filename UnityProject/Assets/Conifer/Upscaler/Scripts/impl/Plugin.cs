@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine.Device;
 using UnityEngine.Experimental.Rendering;
 
-namespace Upscaler.impl
+namespace Conifer.Upscaler.Scripts.impl
 {
     public static class Plugin
     {

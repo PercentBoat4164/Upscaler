@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using AOT;
+using Conifer.Upscaler.Scripts.impl;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Upscaler.impl;
 
-namespace Upscaler
+namespace Conifer.Upscaler.Scripts
 {
     public class Upscaler : MonoBehaviour
     {

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Upscaler.impl
+namespace Conifer.Upscaler.Scripts.impl
 {
     public class Builtin : RenderPipeline
     {
