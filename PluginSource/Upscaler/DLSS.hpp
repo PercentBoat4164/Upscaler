@@ -89,34 +89,22 @@ class DLSS final : public Upscaler {
     Resource depth{nullptr};
     Resource motion{nullptr};
 
-    static Status (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentCreateFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
-      void *,
-      UnityRenderingExtTextureFormat
-    );
-    static Status (DLSS::*graphicsAPIIndependentSetInputColorFunctionPointer)(
-      void *,
-      UnityRenderingExtTextureFormat
-    );
-    static Status (DLSS::*graphicsAPIIndependentSetMotionVectorsFunctionPointer)(
-      void *,
-      UnityRenderingExtTextureFormat
-    );
-    static Status (DLSS::*graphicsAPIIndependentSetOutputColorFunctionPointer)(
-      void *,
-      UnityRenderingExtTextureFormat
-    );
-    static Status (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentReleaseFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
+    static Status (DLSS::*fpInitialize)();
+    static Status (DLSS::*fpGetParameters)();
+    static Status (DLSS::*fpCreate)();
+    static Status (DLSS::*fpSetDepth)(void *, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetInputColor)(void *, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetMotionVectors)(void *, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetOutputColor)(void *, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpEvaluate)();
+    static Status (DLSS::*fpRelease)();
+    static Status (DLSS::*fpShutdown)();
 
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
     Status VulkanGetParameters();
     Status VulkanCreate();
-    Status VulkanSetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanSetDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
@@ -160,7 +148,7 @@ class DLSS final : public Upscaler {
     /// clear the current status.
     Status setStatus(NVSDK_NGX_Result t_error, std::string t_msg);
 
-    static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
+    static void log(const char *message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
 
 public:
     static DLSS *get();
@@ -178,7 +166,7 @@ public:
 
     Status initialize() override;
     Status create() override;
-    Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
+    Status setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;

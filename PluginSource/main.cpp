@@ -142,7 +142,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetStatus(
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
 Upscaler_SetDepthBuffer(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return Upscaler::get()->setDepthBuffer(nativeHandle, unityFormat);
+    return Upscaler::get()->setDepth(nativeHandle, unityFormat);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API

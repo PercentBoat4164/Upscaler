@@ -42,7 +42,7 @@ Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+Upscaler::Status NoUpscaler::setDepth(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
     return NO_UPSCALER_SET;
 }
 
@@ -67,6 +67,5 @@ Upscaler::Status NoUpscaler::release() {
 }
 
 Upscaler::Status NoUpscaler::shutdown() {
-    Upscaler::shutdown();
     return NO_UPSCALER_SET;
 }

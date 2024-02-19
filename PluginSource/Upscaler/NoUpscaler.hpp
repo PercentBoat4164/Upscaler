@@ -24,7 +24,7 @@ public:
 
     Status initialize() override;
     Status create() override;
-    Status setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status setDepth(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;

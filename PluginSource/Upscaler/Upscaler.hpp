@@ -24,6 +24,13 @@
 #include <string>
 #include <vector>
 
+#define RETURN_ON_FAILURE(x)                \
+    {                                       \
+        Upscaler::Status _ = x;             \
+        if (Upscaler::failure(_)) return _; \
+    }                                       \
+    0
+
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
     constexpr static uint8_t ERROR_CODE_OFFSET = 16;
@@ -52,12 +59,13 @@ public:
         SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS                  = SOFTWARE_ERROR | 4U << ERROR_CODE_OFFSET,  // Should be marked as recoverable?
         SOFTWARE_ERROR_FEATURE_DENIED                             = SOFTWARE_ERROR | 5U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
         /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET,
         /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
@@ -106,9 +114,9 @@ public:
 
     private:
         class Halton {
-            constexpr static uint8_t                 SamplesPerPixel = 8;
+            constexpr static uint8_t          SamplesPerPixel = 8;
             std::vector<std::array<float, 2>> sequence;
-            decltype(sequence)::size_type index;
+            decltype(sequence)::size_type     index;
 
         public:
             void generate(
@@ -116,7 +124,13 @@ public:
               Upscaler::Settings::Resolution presentResolution
             ) {
                 if (!sequence.empty()) return;
-                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * static_cast<float>(renderResolution.width) / static_cast<float>(presentResolution.width) * renderResolution.height) / static_cast<float>(presentResolution.height)));
+                sequence.resize(static_cast<decltype(sequence)::size_type>(
+                  std::ceil(
+                    SamplesPerPixel * static_cast<float>(renderResolution.width) /
+                    static_cast<float>(presentResolution.width) * renderResolution.height
+                  ) /
+                  static_cast<float>(presentResolution.height)
+                ));
 
                 for (decltype(sequence)::size_type i = 0; i < 2; ++i) {
                     uint32_t base = i + 2;
@@ -157,6 +171,7 @@ public:
         bool                 HDR{};
         float                frameTime{};
         bool                 resetHistory{};
+
         struct Camera {
             float farPlane;
             float nearPlane;
@@ -225,7 +240,9 @@ protected:
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
 
-    static void (*log)(const char* msg);
+    static void (*log)(const char *msg);
+    bool        initialized = false;
+
 public:
     Upscaler()                 = default;
     Upscaler(const Upscaler &) = delete;
@@ -265,13 +282,13 @@ public:
 
     virtual Status initialize()                                                                     = 0;
     virtual Status create()                                                                         = 0;
-    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual Status setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
     virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
     virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
     virtual Status evaluate()                                                                       = 0;
     virtual Status release()                                                                        = 0;
-    virtual Status shutdown();
+    virtual Status shutdown()                                                                       = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;

@@ -58,7 +58,7 @@ BreakBeforeTernaryOperators: false
 BreakConstructorInitializersBeforeComma: false
 BreakConstructorInitializers: AfterColon
 BreakStringLiterals: true
-ColumnLimit: 115  # Previously 80
+ColumnLimit: 0  # Previously 80
 CommentPragmas: '^ IWYU pragma:'
 QualifierAlignment: Custom
 QualifierOrder:

@@ -32,15 +32,16 @@ namespace Conifer.Upscaler.Scripts
                 SoftwareError | (4U << ErrorCodeOffset), // Should be marked as recoverable?
             SoftwareErrorFeatureDenied = SoftwareError | (5U << ErrorCodeOffset),
             SoftwareErrorOutOfGPUMemory = SoftwareError | (6U << ErrorCodeOffset) | ErrorRecoverable,
+            SoftwareErrorOutOfSystemMemory = SoftwareError | (7U << ErrorCodeOffset) | ErrorRecoverable,
 
             /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-            SoftwareErrorCriticalInternalError = SoftwareError | (7U << ErrorCodeOffset),
+            SoftwareErrorCriticalInternalError = SoftwareError | (8U << ErrorCodeOffset),
 
             /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
-            SoftwareErrorCriticalInternalWarning = SoftwareError | (8U << ErrorCodeOffset),
+            SoftwareErrorCriticalInternalWarning = SoftwareError | (9U << ErrorCodeOffset),
 
             /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-            SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
+            SoftwareErrorRecoverableInternalWarning = SoftwareError | (10U << ErrorCodeOffset) | ErrorRecoverable,
             SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
             SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
             SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
