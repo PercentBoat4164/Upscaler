@@ -240,6 +240,8 @@ namespace Conifer.Upscaler.Scripts
                 }
             }
 
+            Plugin.SetFrameInformation(Time.deltaTime * 1000, new Plugin.CameraInfo(_camera));
+
             if (DUpscaler)
             {
                 System.Threading.Thread.Sleep(50);

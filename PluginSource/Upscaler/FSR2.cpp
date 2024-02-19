@@ -68,8 +68,8 @@ Upscaler::Status FSR2::VulkanSetDepthBuffer(void *nativeHandle, UnityRenderingEx
       &context,
       image,
       view,
-      settings.recommendedInputResolution.width,
-      settings.recommendedInputResolution.height,
+      settings.inputResolution.width,
+      settings.inputResolution.height,
       format,
       L"Depth Buffer",
       FFX_RESOURCE_STATE_COMPUTE_READ
@@ -104,8 +104,8 @@ Upscaler::Status FSR2::VulkanSetInputColor(void *nativeHandle, UnityRenderingExt
       &context,
       image,
       view,
-      settings.recommendedInputResolution.width,
-      settings.recommendedInputResolution.height,
+      settings.inputResolution.width,
+      settings.inputResolution.height,
       format,
       L"Input Color",
       FFX_RESOURCE_STATE_COMPUTE_READ
@@ -140,8 +140,8 @@ Upscaler::Status FSR2::VulkanSetMotionVectors(void *nativeHandle, UnityRendering
       &context,
       image,
       view,
-      settings.recommendedInputResolution.width,
-      settings.recommendedInputResolution.height,
+      settings.inputResolution.width,
+      settings.inputResolution.height,
       format,
       L"Motion Vectors",
       FFX_RESOURCE_STATE_COMPUTE_READ
@@ -204,16 +204,17 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .output        = outColor,
       .jitterOffset  = {settings.jitter[0],                                             settings.jitter[1]                        },
       .motionVectorScale =
-        {-static_cast<float>(settings.recommendedInputResolution.width),
-                        -static_cast<float>(settings.recommendedInputResolution.height)                                           },
-      .renderSize       = {settings.recommendedInputResolution.width,                      settings.recommendedInputResolution.height},
+        {-static_cast<float>(settings.inputResolution.width),
+                        -static_cast<float>(settings.inputResolution.height)                                           },
+      .renderSize       = {settings.inputResolution.width,                      settings.inputResolution.height},
       .enableSharpening = settings.sharpness > 0,
       .sharpness        = settings.sharpness,
       .frameTimeDelta = settings.frameTime,
+      .preExposure = 1.F,
       .reset            = settings.resetHistory,
       .cameraNear       = settings.camera.farPlane,
       .cameraFar = settings.camera.nearPlane,  // Switched because depth is inverted
-      .cameraFovAngleVertical = settings.camera.verticalFOV,
+      .cameraFovAngleVertical = settings.camera.verticalFOV * (FFX_PI / 180),
       .viewSpaceToMetersFactor = 1.F,
     };
 
@@ -297,16 +298,16 @@ void FSR2::setFunctionPointers(const GraphicsAPI::Type graphicsAPI) {
     }
 }
 
-void FSR2::log(FfxFsr2MsgType type, const wchar_t *message) {
-    std::wstring msg(message);
-    std::string fullMessage(msg.length(), 0);
-    std::ranges::transform(fullMessage, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
+void FSR2::log(FfxFsr2MsgType type, const wchar_t *t_msg) {
+    std::wstring message(t_msg);
+    std::string  msg(message.length(), 0);
+    std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
     switch (type) {
-        case FFX_FSR2_MESSAGE_TYPE_ERROR: fullMessage =   "FSR2 Error ---> " + fullMessage; break;
-        case FFX_FSR2_MESSAGE_TYPE_WARNING: fullMessage = "FSR2 Warning -> " + fullMessage; break;
+        case FFX_FSR2_MESSAGE_TYPE_ERROR: msg =   "FSR2 Error ---> " + msg; break;
+        case FFX_FSR2_MESSAGE_TYPE_WARNING: msg = "FSR2 Warning -> " + msg; break;
         case FFX_FSR2_MESSAGE_TYPE_COUNT: break;
     }
-    if (Upscaler::log != nullptr) Upscaler::log(fullMessage.c_str());
+    if (Upscaler::log != nullptr) Upscaler::log(msg.c_str());
 }
 
 Upscaler::Status FSR2::setStatus(FfxErrorCode t_error, const std::string &t_msg) {
@@ -410,8 +411,8 @@ FSR2::getOptimalSettings(const Settings::Resolution resolution, const Settings::
   optimalSettings.quality = mode;
 
   setStatus(ffxFsr2GetRenderResolutionFromQualityMode(
-    &optimalSettings.recommendedInputResolution.width,
-    &optimalSettings.recommendedInputResolution.height,
+    &optimalSettings.inputResolution.width,
+    &optimalSettings.inputResolution.height,
     optimalSettings.outputResolution.width,
     optimalSettings.outputResolution.height,
     optimalSettings.getQuality<Upscaler::FSR2>()

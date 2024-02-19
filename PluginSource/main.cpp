@@ -95,7 +95,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
-    const auto recommendation = Upscaler::settings.recommendedInputResolution.asLong();
+    const auto recommendation = Upscaler::settings.inputResolution.asLong();
     Upscaler::get()->setStatusIf(
       recommendation == 0,
       Upscaler::Status::SETTINGS_ERROR,
@@ -124,6 +124,12 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
 Upscaler_SetJitterInformation(const float x, const float y) {
     Upscaler::settings.jitter[0] = x;
     Upscaler::settings.jitter[1] = y;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
+Upscaler_SetFrameInformation(float frameTime, Upscaler::Settings::Camera camera) {
+    Upscaler::settings.frameTime = frameTime;
+    Upscaler::settings.camera = camera;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory() {

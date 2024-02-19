@@ -49,7 +49,7 @@ class FSR2 final : public Upscaler {
 
     void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
 
-    static void log(FfxFsr2MsgType type, const wchar_t* message);
+    static void log(FfxFsr2MsgType type, const wchar_t*t_msg);
 
     Status setStatus(FfxErrorCode t_error, const std::string &t_msg);
 

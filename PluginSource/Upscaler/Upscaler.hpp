@@ -145,10 +145,10 @@ public:
         };
 
         Halton jitterGenerator;
-    public:
 
+    public:
         QualityMode          quality{Auto};
-        Resolution           recommendedInputResolution{};
+        Resolution           inputResolution{};
         Resolution           dynamicMaximumInputResolution{};
         Resolution           dynamicMinimumInputResolution{};
         Resolution           outputResolution{};
@@ -157,7 +157,6 @@ public:
         bool                 HDR{};
         float                frameTime{};
         bool                 resetHistory{};
-
         struct Camera {
             float farPlane;
             float nearPlane;

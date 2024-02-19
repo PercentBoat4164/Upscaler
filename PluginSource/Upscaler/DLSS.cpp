@@ -137,7 +137,7 @@ Upscaler::Status DLSS::VulkanSetDepthBuffer(void *nativeHandle, const UnityRende
         return getStatus();
     }
 
-    const auto [width, height] = settings.recommendedInputResolution;
+    const auto [width, height] = settings.inputResolution;
 
     // clang-format off
     depth.vulkan->ChangeResource({
@@ -182,7 +182,7 @@ Upscaler::Status DLSS::VulkanSetInputColor(void *nativeHandle, const UnityRender
         return getStatus();
     }
 
-    const auto [width, height] = settings.recommendedInputResolution;
+    const auto [width, height] = settings.inputResolution;
 
     // clang-format off
     inColor.vulkan->ChangeResource({
@@ -228,7 +228,7 @@ DLSS::VulkanSetMotionVectors(void *nativeHandle, const UnityRenderingExtTextureF
         return getStatus();
     }
 
-    const auto [width, height] = settings.recommendedInputResolution;
+    const auto [width, height] = settings.inputResolution;
 
     // clang-format off
     motion.vulkan->ChangeResource({
@@ -318,12 +318,12 @@ Upscaler::Status DLSS::VulkanEvaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.recommendedInputResolution.width,
-        .Height = settings.recommendedInputResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.inputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.inputResolution.height),
 #       ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #       endif
@@ -474,12 +474,12 @@ Upscaler::Status DLSS::DX12Evaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.recommendedInputResolution.width,
-        .Height = settings.recommendedInputResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.inputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.inputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -618,12 +618,12 @@ Upscaler::Status DLSS::DX11Evaluate() {
       .InJitterOffsetX           = settings.jitter[0],
       .InJitterOffsetY           = settings.jitter[1],
       .InRenderSubrectDimensions = {
-        .Width  = settings.recommendedInputResolution.width,
-        .Height = settings.recommendedInputResolution.height,
+        .Width  = settings.inputResolution.width,
+        .Height = settings.inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.recommendedInputResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.recommendedInputResolution.height),
+      .InMVScaleX = -static_cast<float>(settings.inputResolution.width),
+      .InMVScaleY = -static_cast<float>(settings.inputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -871,8 +871,8 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
         optimalSettings.outputResolution.width,
         optimalSettings.outputResolution.height,
         optimalSettings.getQuality<Upscaler::DLSS>(),
-        &optimalSettings.recommendedInputResolution.width,
-        &optimalSettings.recommendedInputResolution.height,
+        &optimalSettings.inputResolution.width,
+        &optimalSettings.inputResolution.height,
         &optimalSettings.dynamicMaximumInputResolution.width,
         &optimalSettings.dynamicMaximumInputResolution.height,
         &optimalSettings.dynamicMinimumInputResolution.width,
@@ -981,8 +981,8 @@ Upscaler::Status DLSS::create() {
     // clang-format off
     DLSSCreateParams = {
       .Feature = {
-        .InWidth            = settings.recommendedInputResolution.width,
-        .InHeight           = settings.recommendedInputResolution.height,
+        .InWidth            = settings.inputResolution.width,
+        .InHeight           = settings.inputResolution.height,
         .InTargetWidth      = settings.outputResolution.width,
         .InTargetHeight     = settings.outputResolution.height,
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
