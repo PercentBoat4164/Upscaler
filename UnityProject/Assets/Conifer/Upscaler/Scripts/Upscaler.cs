@@ -32,15 +32,16 @@ namespace Conifer.Upscaler.Scripts
                 SoftwareError | (4U << ErrorCodeOffset), // Should be marked as recoverable?
             SoftwareErrorFeatureDenied = SoftwareError | (5U << ErrorCodeOffset),
             SoftwareErrorOutOfGPUMemory = SoftwareError | (6U << ErrorCodeOffset) | ErrorRecoverable,
+            SoftwareErrorOutOfSystemMemory = SoftwareError | (7U << ErrorCodeOffset) | ErrorRecoverable,
 
             /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-            SoftwareErrorCriticalInternalError = SoftwareError | (7U << ErrorCodeOffset),
+            SoftwareErrorCriticalInternalError = SoftwareError | (8U << ErrorCodeOffset),
 
             /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
-            SoftwareErrorCriticalInternalWarning = SoftwareError | (8U << ErrorCodeOffset),
+            SoftwareErrorCriticalInternalWarning = SoftwareError | (9U << ErrorCodeOffset),
 
             /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-            SoftwareErrorRecoverableInternalWarning = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
+            SoftwareErrorRecoverableInternalWarning = SoftwareError | (10U << ErrorCodeOffset) | ErrorRecoverable,
             SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
             SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
             SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
@@ -76,7 +77,7 @@ namespace Conifer.Upscaler.Scripts
         public enum UpscalerMode
         {
             None,
-            DLSS
+            DLSS,
         }
 
         public enum QualityMode
@@ -197,12 +198,11 @@ namespace Conifer.Upscaler.Scripts
             // Set up the BlitLib
             BlitLib.Setup();
 
-            // Initialize the plugin.
             // RenderPipelineManager.activeRenderPipelineAssetChanged += (_, _) => SetPipeline();
             SetPipeline();
 
             // Initialize the plugin
-            Plugin.Initialize((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper);
+            Plugin.Initialize((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper, InternalLogCallbackWrapper);
             _lastUpscalerMode = _activeUpscalerMode = upscalerMode;
             _lastQualityMode = _activeQualityMode = qualityMode;
             Plugin.SetUpscaler(_activeUpscalerMode);
@@ -239,6 +239,8 @@ namespace Conifer.Upscaler.Scripts
                     InternalErrorHandler(settingsChange.Item1, settingsChange.Item2);
                 }
             }
+
+            Plugin.SetFrameInformation(Time.deltaTime * 1000, new Plugin.CameraInfo(_camera));
 
             if (DUpscaler)
             {
@@ -426,6 +428,12 @@ namespace Conifer.Upscaler.Scripts
             var handle = (GCHandle)upscaler;
             (handle.Target as Upscaler)!.InternalErrorHandler(reason,
                 "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
+        }
+
+        [MonoPInvokeCallback(typeof(Plugin.InternalLogCallback))]
+        private static void InternalLogCallbackWrapper(IntPtr msg)
+        {
+            Debug.Log(Marshal.PtrToStringAnsi(msg));
         }
 
         private void SetPipeline()

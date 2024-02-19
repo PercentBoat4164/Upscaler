@@ -94,7 +94,5 @@ public:
     [[nodiscard]] VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags) const;
     void                      destroyImageView(VkImageView viewToDestroy) const;
 
-    [[nodiscard]] VkDevice getDevice() const;
-
     ~Vulkan() override = default;
 };

@@ -5,6 +5,8 @@
 
 #include <utility>
 
+void (*Upscaler::log)(const char *msg) = nullptr;
+
 bool Upscaler::success(const Status t_status) {
     return t_status <= NO_UPSCALER_SET;
 }
@@ -73,15 +75,6 @@ Upscaler *Upscaler::get() {
     return upscalerInUse;
 }
 
-Upscaler::Status Upscaler::shutdown() {
-    if (status != HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED && status != SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED) {
-        status               = SUCCESS;
-        detailedErrorMessage = "";
-    }
-    initialized = false;
-    return SUCCESS;
-}
-
 Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
@@ -111,6 +104,10 @@ bool Upscaler::resetStatus() {
 
 std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
+}
+
+void Upscaler::setLogCallback(void (*pFunction)(const char *)) {
+    log = pFunction;
 }
 
 void (*Upscaler::

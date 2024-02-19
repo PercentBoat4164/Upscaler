@@ -16,9 +16,17 @@
 
 // System
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#define RETURN_ON_FAILURE(x)                \
+    {                                       \
+        Upscaler::Status _ = x;             \
+        if (Upscaler::failure(_)) return _; \
+    }                                       \
+    0
 
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
@@ -48,12 +56,13 @@ public:
         SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS                  = SOFTWARE_ERROR | 4U << ERROR_CODE_OFFSET,  // Should be marked as recoverable?
         SOFTWARE_ERROR_FEATURE_DENIED                             = SOFTWARE_ERROR | 5U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
         /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET,
         /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
@@ -75,13 +84,15 @@ public:
 
     enum Type {
         NONE,
+#ifdef ENABLE_DLSS
         DLSS,
+#endif
     };
 
-    static struct Settings {
+    static class Settings {
+    public:
         enum QualityMode {
-            Auto,  // Chooses a performance quality mode based on output resolution
-                   //            UltraQuality,
+            Auto,
             Quality,
             Balanced,
             Performance,
@@ -95,16 +106,76 @@ public:
             [[nodiscard]] uint64_t asLong() const;
         };
 
+    private:
+        class Halton {
+            constexpr static uint8_t          SamplesPerPixel = 8;
+            std::vector<std::array<float, 2>> sequence;
+            decltype(sequence)::size_type     index;
+
+        public:
+            void generate(
+              Upscaler::Settings::Resolution renderResolution,
+              Upscaler::Settings::Resolution presentResolution
+            ) {
+                if (!sequence.empty()) return;
+                sequence.resize(static_cast<decltype(sequence)::size_type>(
+                  std::ceil(
+                    SamplesPerPixel * static_cast<float>(renderResolution.width) /
+                    static_cast<float>(presentResolution.width) * renderResolution.height
+                  ) /
+                  static_cast<float>(presentResolution.height)
+                ));
+
+                for (decltype(sequence)::size_type i = 0; i < 2; ++i) {
+                    uint32_t base = i + 2;
+                    uint32_t n    = 0;
+                    uint32_t d    = 1;
+                    for (std::array<float, 2> &element : sequence) {
+                        uint32_t x = d - n;
+                        if (x == 1) {
+                            n = 1;
+                            d *= base;
+                        } else {
+                            uint32_t y = d / base;
+                            while (x <= y) y /= base;
+                            n = (base + 1) * y - x;
+                        }
+                        element[i] = static_cast<float>(n) / static_cast<float>(d) - .5f;
+                    }
+                }
+            }
+
+            std::array<float, 2> getNextJitter() {
+                if (sequence.empty()) return {0, 0};
+                index %= sequence.size();
+                return sequence[index++];
+            }
+        };
+
+        Halton jitterGenerator;
+
+    public:
         QualityMode          quality{Auto};
-        Resolution           recommendedInputResolution{};
+        Resolution           inputResolution{};
         Resolution           dynamicMaximumInputResolution{};
         Resolution           dynamicMinimumInputResolution{};
         Resolution           outputResolution{};
         std::array<float, 2> jitter{0.F, 0.F};
         float                sharpness{};
         bool                 HDR{};
-        bool                 autoExposure{};
+        float                frameTime{};
         bool                 resetHistory{};
+
+        struct Camera {
+            float farPlane;
+            float nearPlane;
+            float verticalFOV;
+        } camera;
+
+        virtual std::array<float, 2> getNextJitter() {
+            jitter = jitterGenerator.getNextJitter();
+            return jitter;
+        }
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
         [[nodiscard]] QualityMode getQuality() const {
@@ -115,7 +186,7 @@ public:
         template<Type T, typename _ = std::enable_if_t<T == DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
-                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
+                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
                     const uint64_t pixelCount{
                       static_cast<uint64_t>(outputResolution.width) * outputResolution.height
                     };
@@ -125,7 +196,6 @@ public:
                         return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                    //                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -146,12 +216,13 @@ private:
 protected:
     template<typename T, typename... Args>
     constexpr T safeFail(Args... /* unused */) {
-        return UNKNOWN_ERROR;
+        return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
     }
 
     virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
 
-    bool initialized{false};
+    static void (*log)(const char *msg);
+    bool        initialized = false;
 
 public:
     Upscaler()                 = default;
@@ -191,15 +262,14 @@ public:
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
     virtual Status initialize()                                                                     = 0;
-    virtual Status createFeature()                                                                  = 0;
-    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual Status create()                                                                         = 0;
+    virtual Status setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
     virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
     virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
-    virtual void   updateImages()                                                                   = 0;
     virtual Status evaluate()                                                                       = 0;
-    virtual Status releaseFeature()                                                                 = 0;
-    virtual Status shutdown();
+    virtual Status release()                                                                        = 0;
+    virtual Status shutdown()                                                                       = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
@@ -213,6 +283,8 @@ public:
     /// status has been cleared.
     bool                 resetStatus();
     std::string         &getErrorMessage();
+
+    static void setLogCallback(void (*pFunction)(const char *));
     static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
 
     virtual ~Upscaler() = default;

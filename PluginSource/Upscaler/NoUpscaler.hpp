@@ -23,13 +23,12 @@ public:
       override;
 
     Status initialize() override;
-    Status createFeature() override;
-    Status setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
+    Status create() override;
+    Status setDepth(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
     Status setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    void   updateImages() override;
     Status evaluate() override;
-    Status releaseFeature() override;
+    Status release() override;
     Status shutdown() override;
 };
