@@ -117,7 +117,7 @@ IndentExternBlock: Indent
 #IndentRequiresClause: false  # Disabled for old versions.
 IndentWidth: 4
 IndentWrappedFunctionNames: false
-#InsertBraces: false  # Disabled for old versions.
+InsertBraces: true
 KeepEmptyLinesAtTheStartOfBlocks: true
 LambdaBodyIndentation: Signature
 MacroBlockBegin: ''

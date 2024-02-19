@@ -1,5 +1,3 @@
 # Upscaler shared libraries
 *ngx[-_]dlss*
-
-# Plugin shared libraries
-*GfxPluginDLSSPlugin*
+libffx_fsr*

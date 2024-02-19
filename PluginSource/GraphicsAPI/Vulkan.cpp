@@ -1,8 +1,7 @@
 #include "Vulkan.hpp"
 
-#include <Upscaler/Upscaler.hpp>
-
 #include <cstring>
+#include <Upscaler/Upscaler.hpp>
 
 PFN_vkGetInstanceProcAddr                  Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr                    Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
@@ -157,13 +156,14 @@ VkResult Vulkan::Hook_vkCreateInstance(
     if (result == VK_SUCCESS) {
         get()->_instance = *pInstance;
         i                = 0;
-        for (Upscaler *upscaler : Upscaler::getAllUpscalers())
+        for (Upscaler *upscaler : Upscaler::getAllUpscalers()) {
             upscaler->setStatusIf(
               upscaler->getStatus() == Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
               Upscaler::SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED,
               "The Vulkan instance extensions [" + unsupportedExtensions[i++] + "] required by " +
                 upscaler->getName() + " are not supported. A graphics driver update might help."
             );
+        }
     } else {
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
         if (result == VK_SUCCESS) get()->_instance = *pInstance;
@@ -510,8 +510,4 @@ void Vulkan::destroyImageView(VkImageView viewToDestroy) const {
         m_vkDestroyImageView(_device, viewToDestroy, nullptr);
         viewToDestroy = VK_NULL_HANDLE;
     }
-}
-
-VkDevice Vulkan::getDevice() const {
-    return _device;
 }

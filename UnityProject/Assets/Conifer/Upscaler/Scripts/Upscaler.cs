@@ -76,7 +76,8 @@ namespace Conifer.Upscaler.Scripts
         public enum UpscalerMode
         {
             None,
-            DLSS
+            DLSS,
+            FSR2
         }
 
         public enum QualityMode
@@ -197,12 +198,11 @@ namespace Conifer.Upscaler.Scripts
             // Set up the BlitLib
             BlitLib.Setup();
 
-            // Initialize the plugin.
             // RenderPipelineManager.activeRenderPipelineAssetChanged += (_, _) => SetPipeline();
             SetPipeline();
 
             // Initialize the plugin
-            Plugin.Initialize((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper);
+            Plugin.Initialize((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper, InternalLogCallbackWrapper);
             _lastUpscalerMode = _activeUpscalerMode = upscalerMode;
             _lastQualityMode = _activeQualityMode = qualityMode;
             Plugin.SetUpscaler(_activeUpscalerMode);
@@ -426,6 +426,12 @@ namespace Conifer.Upscaler.Scripts
             var handle = (GCHandle)upscaler;
             (handle.Target as Upscaler)!.InternalErrorHandler(reason,
                 "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
+        }
+
+        [MonoPInvokeCallback(typeof(Plugin.InternalLogCallback))]
+        private static void InternalLogCallbackWrapper(IntPtr msg)
+        {
+            Debug.Log(Marshal.PtrToStringAnsi(msg));
         }
 
         private void SetPipeline()

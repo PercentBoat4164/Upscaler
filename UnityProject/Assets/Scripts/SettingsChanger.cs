@@ -20,9 +20,9 @@ public class SettingsChanger : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.U))
         {
-            _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.UpscalerMode.None
+            _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.UpscalerMode.FSR2
                 ? Upscaler.UpscalerMode.DLSS
-                : Upscaler.UpscalerMode.None;
+                : Upscaler.UpscalerMode.FSR2;
         }
 
         if (Input.GetKeyDown(KeyCode.Q))

@@ -31,7 +31,7 @@ void INTERNAL_Upscale() {
 }
 
 void INTERNAL_Prepare() {
-    Upscaler::get()->createFeature();
+    Upscaler::get()->create();
 }
 
 void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(const Event event) {
@@ -46,13 +46,14 @@ extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderin
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_InitializePlugin(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *)) {
+Upscaler_InitializePlugin(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *), void (*t_logCallback)(const char*)=nullptr) {
     GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
 #ifdef ENABLE_DX11
     if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
         GraphicsAPI::get<DX11>()->prepareForOneTimeSubmits();
 #endif
     Upscaler::setErrorCallback(data, t_errorCallback);
+    Upscaler::setLogCallback(t_logCallback);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
@@ -90,7 +91,6 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
     const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
     const Upscaler::Status   status   = upscaler->getStatus();
     if (Upscaler::success(status)) Upscaler::settings = settings;
-    upscaler->updateImages();
     return status;
 }
 
@@ -99,7 +99,7 @@ extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecom
     Upscaler::get()->setStatusIf(
       recommendation == 0,
       Upscaler::Status::SETTINGS_ERROR,
-      "Some setting is invalid. Please call reset the framebuffer settings to something valid."
+      "Some setting is invalid. Please reset the framebuffer settings to something valid."
     );
     return recommendation;
 }

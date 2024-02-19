@@ -38,7 +38,7 @@ Upscaler::Status NoUpscaler::initialize() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::createFeature() {
+Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
@@ -58,14 +58,11 @@ Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingE
     return NO_UPSCALER_SET;
 }
 
-void NoUpscaler::updateImages() {
-}
-
 Upscaler::Status NoUpscaler::evaluate() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::releaseFeature() {
+Upscaler::Status NoUpscaler::release() {
     return NO_UPSCALER_SET;
 }
 

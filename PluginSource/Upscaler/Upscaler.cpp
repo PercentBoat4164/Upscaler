@@ -1,9 +1,12 @@
 #include "Upscaler.hpp"
 
 #include "DLSS.hpp"
+#include "FSR2.hpp"
 #include "NoUpscaler.hpp"
 
 #include <utility>
+
+void (*Upscaler::log)(const char* msg) = nullptr;
 
 bool Upscaler::success(const Status t_status) {
     return t_status <= NO_UPSCALER_SET;
@@ -49,6 +52,9 @@ std::vector<Upscaler *> Upscaler::getAllUpscalers() {
 #ifdef ENABLE_DLSS
       get<::DLSS>(),
 #endif
+#ifdef ENABLE_FSR2
+      get<::FSR2>(),
+#endif
     };
 }
 
@@ -65,6 +71,9 @@ Upscaler *Upscaler::get(const Type upscaler) {
 #ifdef ENABLE_DLSS
         case DLSS: return get<::DLSS>();
 #endif
+#ifdef ENABLE_FSR2
+        case FSR2: return get<::FSR2>();
+#endif
     }
     return get<NoUpscaler>();
 }
@@ -78,7 +87,6 @@ Upscaler::Status Upscaler::shutdown() {
         status               = SUCCESS;
         detailedErrorMessage = "";
     }
-    initialized = false;
     return SUCCESS;
 }
 
@@ -111,6 +119,10 @@ bool Upscaler::resetStatus() {
 
 std::string &Upscaler::getErrorMessage() {
     return detailedErrorMessage;
+}
+
+void Upscaler::setLogCallback(void (*pFunction)(const char *)) {
+    log = pFunction;
 }
 
 void (*Upscaler::

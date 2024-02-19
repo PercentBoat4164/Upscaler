@@ -5,7 +5,9 @@
 
 // Upscaler
 #    include <nvsdk_ngx_helpers.h>
-#    include <nvsdk_ngx_helpers_vk.h>
+#    ifdef ENABLE_VULKAN
+#        include <nvsdk_ngx_helpers_vk.h>
+#    endif
 
 class DLSS final : public Upscaler {
     struct Application {
@@ -13,7 +15,7 @@ class DLSS final : public Upscaler {
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
-            .ApplicationId = 231313132,
+            .ApplicationId = 0xDC98EEC,
           }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
@@ -23,9 +25,15 @@ class DLSS final : public Upscaler {
           },
           .InternalData = nullptr,
           .LoggingInfo {
-            .LoggingCallback = nullptr,
-            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
-            .DisableOtherLoggingSinks = false,
+#   ifndef NDEBUG
+          .LoggingCallback = &DLSS::log,
+          .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+          .DisableOtherLoggingSinks = false,
+#   else
+          .LoggingCallback = nullptr,
+          .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
+          .DisableOtherLoggingSinks = true,
+#   endif
           }
         };
         NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo {
@@ -38,6 +46,7 @@ class DLSS final : public Upscaler {
         // clang-format on
     };
 
+#    ifdef ENABLE_VULKAN
     struct RAII_NGXVulkanResource {
         explicit RAII_NGXVulkanResource()                           = default;
         RAII_NGXVulkanResource(const RAII_NGXVulkanResource &other) = default;
@@ -55,11 +64,18 @@ class DLSS final : public Upscaler {
     private:
         NVSDK_NGX_Resource_VK resource{};
     };
+#    endif
 
     union Resource {
+#    ifdef ENABLE_VULKAN
         RAII_NGXVulkanResource *vulkan;
-        ID3D12Resource         *dx12;
-        ID3D11Resource         *dx11;
+#    endif
+#    ifdef ENABLE_DX12
+        ID3D12Resource *dx12;
+#    endif
+#    ifdef ENABLE_DX11
+        ID3D11Resource *dx11;
+#    endif
     };
 
     Application applicationInfo;
@@ -75,7 +91,7 @@ class DLSS final : public Upscaler {
 
     static Status (DLSS::*graphicsAPIIndependentInitializeFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentGetParametersFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentCreateFeatureFunctionPointer)();
+    static Status (DLSS::*graphicsAPIIndependentCreateFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentSetDepthBufferFunctionPointer)(
       void *,
       UnityRenderingExtTextureFormat
@@ -93,21 +109,19 @@ class DLSS final : public Upscaler {
       UnityRenderingExtTextureFormat
     );
     static Status (DLSS::*graphicsAPIIndependentEvaluateFunctionPointer)();
-    static Status (DLSS::*graphicsAPIIndependentReleaseFeatureFunctionPointer)();
+    static Status (DLSS::*graphicsAPIIndependentReleaseFunctionPointer)();
     static Status (DLSS::*graphicsAPIIndependentShutdownFunctionPointer)();
-
-    DLSS() = default;
 
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
     Status VulkanGetParameters();
-    Status VulkanCreateFeature();
+    Status VulkanCreate();
     Status VulkanSetDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanSetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanEvaluate();
-    Status VulkanReleaseFeature();
+    Status VulkanRelease();
     Status VulkanDestroyParameters();
     Status VulkanShutdown();
 #    endif
@@ -146,29 +160,30 @@ class DLSS final : public Upscaler {
     /// clear the current status.
     Status setStatus(NVSDK_NGX_Result t_error, std::string t_msg);
 
+    static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
+
 public:
     static DLSS *get();
 
     Type        getType() override;
     std::string getName() override;
 
+#    ifdef ENABLE_VULKAN
     std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
     std::vector<std::string>
     getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
+#    endif
 
-    Settings
-    getOptimalSettings(Settings::Resolution t_outputResolution, Settings::QualityMode t_quality, bool t_HDR)
-      override;
+    Settings getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) override;
 
     Status initialize() override;
-    Status createFeature() override;
+    Status create() override;
     Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
     Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    void   updateImages() override;
     Status evaluate() override;
-    Status releaseFeature() override;
+    Status release() override;
     Status shutdown() override;
 };
 #endif

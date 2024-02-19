@@ -30,6 +30,8 @@ namespace Conifer.Upscaler.Scripts.impl
 
         public delegate void InternalErrorCallback(IntPtr data, Upscaler.UpscalerStatus er, IntPtr p);
 
+        public delegate void InternalLogCallback(IntPtr msg);
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetError")]
         public static extern Upscaler.UpscalerStatus GetError(Upscaler.UpscalerMode upscalerMode);
 
@@ -84,7 +86,8 @@ namespace Conifer.Upscaler.Scripts.impl
         public static extern void SetJitterInformation(float x, float y);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_InitializePlugin")]
-        public static extern void Initialize(IntPtr upscalerObject, InternalErrorCallback errorCallback);
+        public static extern void Initialize(IntPtr upscalerObject, InternalErrorCallback errorCallback,
+            InternalLogCallback logCallback=null);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetStatus")]
         public static extern void ResetStatus();
