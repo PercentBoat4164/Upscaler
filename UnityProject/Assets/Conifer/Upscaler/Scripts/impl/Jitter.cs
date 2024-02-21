@@ -26,10 +26,10 @@ namespace Conifer.Upscaler.Scripts.impl
          *  Apply selects the next jitter stage, then resets the camera's projection matrix, then shifts the camera by the
          * jitter amount on its x and y axes in clip space. The pixel space equivalent of that transformation is then sent
          * to the internal upscaler.
-         * <param name="camera">The Camera to apply the jitter to.</param>
+         * <param name="plugin">The Plugin that registered the camera to apply the jitter to.</param>
          * <param name="renderingResolution">The resolution that Unity renders at.</param>
          */
-        public static void Apply(Camera camera, Vector2 renderingResolution)
+        public static void Apply(Plugin plugin, Vector2 renderingResolution)
         {
             if (_sequence == null || _sequence.Length == 0)
             {
@@ -39,12 +39,12 @@ namespace Conifer.Upscaler.Scripts.impl
             _sequencePosition %= _sequence.Length;
             var pixelSpaceJitter = _sequence[_sequencePosition++];
             var clipSpaceJitter = -pixelSpaceJitter / renderingResolution * 2;
-            camera.ResetProjectionMatrix();
-            var tempProj = camera.projectionMatrix;
+            plugin.Camera.ResetProjectionMatrix();
+            var tempProj = plugin.Camera.projectionMatrix;
             tempProj.m02 += clipSpaceJitter.x;
             tempProj.m12 += clipSpaceJitter.y;
-            camera.projectionMatrix = tempProj;
-            Plugin.SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
+            plugin.Camera.projectionMatrix = tempProj;
+            plugin.SetJitterInformation(pixelSpaceJitter.x, pixelSpaceJitter.y);
         }
 
         /**
@@ -60,10 +60,10 @@ namespace Conifer.Upscaler.Scripts.impl
         /**
          *  Moves the camera back to the center of the pixel. Only provided for completeness. Should only be used when the None upscaler is active.
          */
-        public static void Reset(Camera camera)
+        public static void Reset(Plugin plugin)
         {
-            camera.ResetProjectionMatrix();
-            Plugin.SetJitterInformation(0, 0);
+            plugin.Camera.ResetProjectionMatrix();
+            plugin.SetJitterInformation(0, 0);
         }
 
         /**

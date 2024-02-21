@@ -89,7 +89,13 @@ public:
 #endif
     };
 
-    static class Settings {
+    enum SupportState {
+        UNTESTED,
+        UNSUPPORTED,
+        SUPPORTED
+    };
+
+    class Settings {
     public:
         enum QualityMode {
             Auto,
@@ -103,7 +109,7 @@ public:
             uint32_t width;
             uint32_t height;
 
-            [[nodiscard]] uint64_t asLong() const;
+            [[nodiscard]] uint64_t asUint64_t() const;
         };
 
     private:
@@ -118,19 +124,13 @@ public:
               Upscaler::Settings::Resolution presentResolution
             ) {
                 if (!sequence.empty()) return;
-                sequence.resize(static_cast<decltype(sequence)::size_type>(
-                  std::ceil(
-                    SamplesPerPixel * static_cast<float>(renderResolution.width) /
-                    static_cast<float>(presentResolution.width) * renderResolution.height
-                  ) /
-                  static_cast<float>(presentResolution.height)
-                ));
+                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * static_cast<float>(renderResolution.width) / static_cast<float>(presentResolution.width) * static_cast<float>(renderResolution.height) / static_cast<float>(presentResolution.height))));
 
                 for (decltype(sequence)::size_type i = 0; i < 2; ++i) {
                     uint32_t base = i + 2;
                     uint32_t n    = 0;
                     uint32_t d    = 1;
-                    for (std::array<float, 2> &element : sequence) {
+                    for (std::array<float, 2>& element : sequence) {
                         uint32_t x = d - n;
                         if (x == 1) {
                             n = 1;
@@ -207,66 +207,45 @@ public:
     } settings;
 
 private:
-    static void      (*errorCallback)(void *, Status, const char *);
-    static void     *userData;
-    static Upscaler *upscalerInUse;
-    Status           status{SUCCESS};
-    std::string      detailedErrorMessage{};
+    void        (*errorCallback)(const void*, Status, const char*) = nullptr;
+    void*       userData                                           = nullptr;
+    Status      status{SUCCESS};
+    std::string detailedErrorMessage{};
 
 protected:
     template<typename T, typename... Args>
-    constexpr T safeFail(Args... /* unused */) {
+    constexpr T safeFail(Args... /*unused*/) {
         return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
     }
 
-    virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
-
-    static void (*log)(const char *msg);
+    static void (*log)(const char* msg);
     bool        initialized = false;
 
 public:
-    Upscaler()                 = default;
-    Upscaler(const Upscaler &) = delete;
-    Upscaler(Upscaler &&)      = default;
+#ifdef ENABLE_VULKAN
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
+#endif
 
-    Upscaler &operator=(const Upscaler &) = delete;
-    Upscaler &operator=(Upscaler &&)      = default;
+    Upscaler()                           = default;
+    Upscaler(const Upscaler&)            = delete;
+    Upscaler(Upscaler&&)                 = delete;
+    Upscaler& operator=(const Upscaler&) = delete;
+    Upscaler& operator=(Upscaler&&)      = delete;
 
-    template<typename T>
-        requires std::derived_from<T, Upscaler>
-    constexpr static void set() {
-        set(T::get());
-    }
-
-    static void set(Type upscaler);
-    static void set(Upscaler *upscaler);
-    static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-
-    template<typename T>
-        requires std::derived_from<T, Upscaler>
-    constexpr static T *get() {
-        return T::get();
-    }
-
-    static std::vector<Upscaler *> getAllUpscalers();
-    static std::vector<Upscaler *> getUpscalersWithoutErrors();
-    static Upscaler               *get(Type upscaler);
-    static Upscaler               *get();
+    [[nodiscard]] Upscaler* set(Type upscaler) const;
 
     virtual Type        getType() = 0;
     virtual std::string getName() = 0;
-
-    virtual std::vector<std::string> getRequiredVulkanInstanceExtensions()                           = 0;
-    virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
-
+    virtual bool isSupported() = 0;
     virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
     virtual Status initialize()                                                                     = 0;
     virtual Status create()                                                                         = 0;
-    virtual Status setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
-    virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
-    virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
+    virtual Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
+    virtual Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
+    virtual Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
     virtual Status evaluate()                                                                       = 0;
     virtual Status release()                                                                        = 0;
     virtual Status shutdown()                                                                       = 0;
@@ -275,17 +254,17 @@ public:
     [[nodiscard]] Status getStatus() const;
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
-    Status               setStatus(Status, const std::string &);
+    Status               setStatus(Status, const std::string&);
     /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use
     /// resetStatus to clear the current status. Returns the current status
     Status               setStatusIf(bool, Status, std::string);
     /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
     /// status has been cleared.
     bool                 resetStatus();
-    std::string         &getErrorMessage();
+    std::string&         getErrorMessage();
 
-    static void setLogCallback(void (*pFunction)(const char *));
-    static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
+    static void setLogCallback(void (*pFunction)(const char*));
+    void        setErrorCallback(const void* data, void (*t_errorCallback)(const void*, Status, const char*));
 
     virtual ~Upscaler() = default;
 };

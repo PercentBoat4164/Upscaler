@@ -1,15 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using AOT;
 using Conifer.Upscaler.Scripts.impl;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if UPSCALER_USE_URP
+using UnityEngine.Rendering.Universal;
+#endif
 
 namespace Conifer.Upscaler.Scripts
 {
+    [RequireComponent(typeof(Camera))]
     public class Upscaler : MonoBehaviour
     {
         private const byte ErrorTypeOffset = 29;
@@ -117,7 +122,9 @@ namespace Conifer.Upscaler.Scripts
         private float _lastSharpness;
 
         // Internal Render Pipeline abstraction
-        private impl.RenderPipeline _renderPipeline;
+        public UpscalingData UpscalingData;
+        internal Plugin Plugin;
+        private Builtin _brp;
 
         // Upscaler preparer command buffer
         private CommandBuffer _upscalerPrepare;
@@ -170,10 +177,7 @@ namespace Conifer.Upscaler.Scripts
 
         /// Removes history so that artifacts from previous frames are not left over in DLSS
         /// Should be called every time the scene sees a complete scene change
-        public void ResetHistoryBuffer()
-        {
-            Plugin.ResetHistory();
-        }
+        public void ResetHistoryBuffer() => Plugin.ResetHistory();
 
         /// Returns true if the device and operating system support the given upscaling mode
         /// Returns false if device and OS do not support Upscaling Mode
@@ -187,22 +191,54 @@ namespace Conifer.Upscaler.Scripts
         // Calls base class method to initialize Upscaler and then uses Plugin functions to gather information about device supported options
         public void OnEnable()
         {
+            // Check for badness causing mistakes in configuration
+#if UPSCALER_USE_URP
+            var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
+                .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(UniversalRenderPipeline.asset))[(int)typeof(UniversalRenderPipelineAsset)
+                .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(UniversalRenderPipeline.asset)].rendererFeatures;
+            var upscalerFeatures = features.Where(feature => feature is UpscalerRendererFeature).ToArray();
+            switch (upscalerFeatures.Count())
+            {
+                case > 1:
+                    Debug.LogError("There can only be one UpscalerRendererFeature per Renderer.", GetComponent<Camera>());
+                    break;
+                case 0:
+                    Debug.LogError("There must be at least one UpscalerRendererFeature in this camera's Renderer.",
+                        GetComponent<Camera>());
+                    break;
+            }
+#endif
+
+            if (GetComponents<Upscaler>().Length > 1)
+                Debug.LogError("Only one Upscaler script may be attached to a camera at a time.", GetComponent<Camera>());
+
+
             // Set up camera
             _camera = GetComponent<Camera>();
             _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
+            Plugin = new Plugin(_camera);
+
             _upscalerPrepare = new CommandBuffer();
             _upscalerPrepare.name = "Prepare upscaler";
-            _upscalerPrepare.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Prepare);
+            Plugin.Prepare(_upscalerPrepare);
+
+            _brp = new Builtin(Plugin);
 
             // Set up the BlitLib
             BlitLib.Setup();
 
-            // RenderPipelineManager.activeRenderPipelineAssetChanged += (_, _) => SetPipeline();
-            SetPipeline();
+            // Prepare the Upscaling data
+            UpscalingData?.Release();
+            UpscalingData = new UpscalingData(Plugin);
 
             // Initialize the plugin
-            Plugin.Initialize((IntPtr)GCHandle.Alloc(this), InternalErrorCallbackWrapper, InternalLogCallbackWrapper);
+            SupportedUpscalerModes = Enum.GetValues(typeof(UpscalerMode)).Cast<UpscalerMode>().Where(Plugin.IsSupported).ToList().AsReadOnly();
+            if (!DeviceSupportsUpscalerMode(upscalerMode))
+                upscalerMode = UpscalerMode.None;
+
             _lastUpscalerMode = _activeUpscalerMode = upscalerMode;
             _lastQualityMode = _activeQualityMode = qualityMode;
             Plugin.SetUpscaler(_activeUpscalerMode);
@@ -213,15 +249,11 @@ namespace Conifer.Upscaler.Scripts
 
             Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y, _activeQualityMode,
                 ActiveHDR);
-
-            SupportedUpscalerModes = Enum.GetValues(typeof(UpscalerMode)).Cast<UpscalerMode>().Where(
-                tempUpscaler => Success(Plugin.GetError(tempUpscaler))
-            ).ToList().AsReadOnly();
         }
 
         /// Runs Before Culling; Validates Settings and Checks for Errors from Previous Frame Before Calling
         /// Real OnPreCull Actions from Backend
-        protected void OnPreCull()
+        protected internal void OnPreCull()
         {
             if (!Application.isPlaying)
             {
@@ -240,11 +272,10 @@ namespace Conifer.Upscaler.Scripts
                 }
             }
 
-            Plugin.SetFrameInformation(Time.deltaTime * 1000, new Plugin.CameraInfo(_camera));
+            Plugin.SetFrameInformation(Time.deltaTime * 1000, new CameraInfo(_camera));
 
             if (DUpscaler)
             {
-                System.Threading.Thread.Sleep(50);
                 Plugin.SetUpscaler(_activeUpscalerMode);
             }
 
@@ -253,7 +284,7 @@ namespace Conifer.Upscaler.Scripts
                 Plugin.SetFramebufferSettings((uint)UpscalingResolution.x, (uint)UpscalingResolution.y,
                     _activeQualityMode,
                     ActiveHDR);
-                var size = Plugin.GetRecommendedInputResolution();
+                var size = Plugin.GetRecommendedResolution();
                 RenderingResolution = new Vector2Int((int)(size >> 32), (int)(size & 0xFFFFFFFF));
             }
 
@@ -274,23 +305,18 @@ namespace Conifer.Upscaler.Scripts
                 DUpscaler | DQuality)
             {
                 upscalerOutdated |=
-                    _renderPipeline.ManageInColorTarget(_activeUpscalerMode, RenderingResolution);
+                    UpscalingData.ManageInColorTarget(_activeUpscalerMode, RenderingResolution);
             }
 
             if (DHDR | DUpscalingResolution | DUpscaler | DQuality)
             {
-                upscalerOutdated |= _renderPipeline.ManageOutputTarget(_activeUpscalerMode, UpscalingResolution);
-            }
-
-            if (upscalerOutdated)
-            {
-                _renderPipeline.UpdatePostUpscaleCommandBuffer();
+                upscalerOutdated |= UpscalingData.ManageOutputTarget(_activeUpscalerMode, UpscalingResolution);
             }
 
             if (DUpscalingResolution | DRenderingResolution | DUpscaler | DQuality)
             {
                 upscalerOutdated |=
-                    _renderPipeline.ManageMotionVectorTarget(_activeUpscalerMode, RenderingResolution);
+                    UpscalingData.ManageMotionVectorTarget(_activeUpscalerMode, RenderingResolution);
             }
 
             if (upscalerOutdated)
@@ -300,7 +326,7 @@ namespace Conifer.Upscaler.Scripts
 
             if (DUpscaler && _activeUpscalerMode == UpscalerMode.None)
             {
-                Jitter.Reset(_camera);
+                Jitter.Reset(Plugin);
             }
 
             _lastHDRActive = ActiveHDR;
@@ -312,34 +338,18 @@ namespace Conifer.Upscaler.Scripts
 
             if (_activeUpscalerMode != UpscalerMode.None)
             {
-                Jitter.Apply(_camera, RenderingResolution);
+                Jitter.Apply(Plugin, RenderingResolution);
             }
         }
 
         protected void OnPreRender()
         {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            if (_activeUpscalerMode != UpscalerMode.None)
-            {
-                ((Builtin)_renderPipeline).PrepareRendering();
-            }
+            if (Application.isPlaying && _activeUpscalerMode != UpscalerMode.None) _brp.PrepareRendering(UpscalingData);
         }
 
         protected void OnPostRender()
         {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            if (_activeUpscalerMode != UpscalerMode.None)
-            {
-                ((Builtin)_renderPipeline).Upscale();
-            }
+            if (Application.isPlaying && _activeUpscalerMode != UpscalerMode.None) _brp.Upscale(UpscalingData);
         }
 
         /// Shows if settings have changed since last checked
@@ -357,11 +367,11 @@ namespace Conifer.Upscaler.Scripts
         private Tuple<UpscalerStatus, string> ValidateAndPushSettings()
         {
             // Check for lack of support for currently selected upscaler.
-            var settingsError = Plugin.GetError(upscalerMode);
+            var settingsError = Plugin.GetStatus();
             if (Failure(settingsError))
             {
                 var errorMsg = "There was an Error in Changing Upscaler Settings. Details:\n";
-                errorMsg += "Invalid Upscaler: " + Marshal.PtrToStringAnsi(Plugin.GetErrorMessage(upscalerMode)) + "\n";
+                errorMsg += "Invalid Upscaler: " + Plugin.GetStatusMessage() + "\n";
                 Status = settingsError;
                 return new Tuple<UpscalerStatus, string>(settingsError, errorMsg);
             }
@@ -422,42 +432,19 @@ namespace Conifer.Upscaler.Scripts
             }
         }
 
-        [MonoPInvokeCallback(typeof(Plugin.InternalErrorCallback))]
-        private static void InternalErrorCallbackWrapper(IntPtr upscaler, UpscalerStatus reason, IntPtr message)
+        [MonoPInvokeCallback(typeof(InternalErrorCallback))]
+        internal static void InternalErrorCallbackWrapper(IntPtr upscaler, UpscalerStatus reason, IntPtr message)
         {
             var handle = (GCHandle)upscaler;
             (handle.Target as Upscaler)!.InternalErrorHandler(reason,
                 "Error was encountered while upscaling. Details: " + Marshal.PtrToStringAnsi(message) + "\n");
         }
 
-        [MonoPInvokeCallback(typeof(Plugin.InternalLogCallback))]
-        private static void InternalLogCallbackWrapper(IntPtr msg)
-        {
-            Debug.Log(Marshal.PtrToStringAnsi(msg));
-        }
-
-        private void SetPipeline()
-        {
-            _renderPipeline?.Shutdown();
-            if (GraphicsSettings.currentRenderPipeline == null)
-            {
-                _renderPipeline = new Builtin(_camera);
-            }
-#if UPSCALER_USE_URP
-            else
-            {
-                _renderPipeline = new Universal(_camera, OnPreCull);
-            }
-#endif
-        }
-
         protected void OnDisable()
         {
-            // Shutdown internal plugin
-            Plugin.ShutdownPlugin();
-
             // Shutdown the active render pipeline
-            _renderPipeline.Shutdown();
+            _brp.Shutdown();
+            UpscalingData?.Release();
         }
     }
 }
