@@ -88,7 +88,7 @@ ForEachMacros:
   - FOREACH
 IfMacros:
   - IF
-IncludeBlocks: Regroup
+IncludeBlocks: Preserve
 IncludeCategories:
   - Regex: '^"(llvm|llvm-c|clang|clang-c)/'
     Priority: 2
@@ -141,7 +141,7 @@ ReflowComments: true
 RemoveBracesLLVM: true  # This could be a problem later.
 SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 0
-SortIncludes: CaseInsensitive
+SortIncludes: Never
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false

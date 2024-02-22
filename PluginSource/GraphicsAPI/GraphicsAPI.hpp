@@ -1,6 +1,5 @@
 #pragma once
 
-// Unity
 #include <IUnityGraphics.h>
 
 class GraphicsAPI {
@@ -16,14 +15,16 @@ protected:
     static Type type;
 
 public:
-    GraphicsAPI()                              = default;
+    GraphicsAPI()                              = delete;
     GraphicsAPI(const GraphicsAPI&)            = delete;
     GraphicsAPI(GraphicsAPI&&)                 = delete;
     GraphicsAPI& operator=(const GraphicsAPI&) = delete;
     GraphicsAPI& operator=(GraphicsAPI&&)      = delete;
+    ~GraphicsAPI()                             = delete;
 
     static void set(UnityGfxRenderer);
     static Type getType();
 
-    virtual ~GraphicsAPI() = default;
+    static bool registerUnityInterfaces(IUnityInterfaces* interfaces);
+    static bool unregisterUnityInterfaces();
 };

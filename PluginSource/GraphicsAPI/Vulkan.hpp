@@ -1,15 +1,15 @@
 #pragma once
+#ifdef ENABLE_VULKAN
+#    include "GraphicsAPI.hpp"
 
-// Project
-#include "GraphicsAPI.hpp"
+#    include <vulkan/vulkan.h>
 
-// Unity
-#include <IUnityGraphicsVulkan.h>
-#include <IUnityRenderingExtensions.h>
+#    include <IUnityRenderingExtensions.h>
 
-// Standard library
-#include <sstream>
-#include <vector>
+#    include <sstream>
+#    include <vector>
+
+struct IUnityGraphicsVulkanV2;
 
 class Vulkan final : public GraphicsAPI {
     static VkInstance temporaryInstance;
@@ -24,7 +24,7 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkCreateImageView  m_vkCreateImageView;
     static PFN_vkDestroyImageView m_vkDestroyImageView;
 
-    static IUnityGraphicsVulkanV2* interface;
+    static IUnityGraphicsVulkanV2* graphicsInterface;
 
     static void loadEarlyFunctionPointers();
     static void loadInstanceFunctionPointers(VkInstance instance);
@@ -53,14 +53,14 @@ class Vulkan final : public GraphicsAPI {
 
 public:
     Vulkan() = delete;
+    ~Vulkan() = delete;
 
-    static bool                    registerUnityInterface(IUnityInterfaces* t_unityInterfaces);
-    static IUnityGraphicsVulkanV2* getUnityInterface();
-    static bool                    unregisterUnityInterface();
+    static bool                    registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);
+    static IUnityGraphicsVulkanV2* getGraphicsInterface();
+    static bool                    unregisterUnityInterfaces();
 
     static VkFormat    getFormat(UnityRenderingExtTextureFormat format);
     static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void        destroyImageView(VkImageView viewToDestroy);
-
-    ~Vulkan() override = default;
 };
+#endif

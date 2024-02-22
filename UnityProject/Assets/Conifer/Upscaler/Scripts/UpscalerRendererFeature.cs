@@ -62,6 +62,7 @@ namespace Conifer.Upscaler.Scripts
             }
             upscaler.OnPreCull();
 
+            if (upscaler.upscalerMode == Upscaler.UpscalerMode.None) return;
             upscaler.UpscalingData.CameraTarget = camera.targetTexture;
             camera.targetTexture = upscaler.UpscalingData.InColorTarget;
             RenderTexture.active = upscaler.UpscalingData.InColorTarget;

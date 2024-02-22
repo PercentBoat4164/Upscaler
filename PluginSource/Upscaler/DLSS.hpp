@@ -124,12 +124,12 @@ class DLSS final : public Upscaler {
     Status DX12Initialize();
     Status DX12GetParameters();
     Status DX12CreateFeature();
-    Status DX12SetDepthBuffer(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
+    Status DX12SetDepth(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX12SetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX12SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX12SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX12Evaluate();
-    Status DX12ReleaseFeature();
+    Status DX12Release();
     Status DX12DestroyParameters();
     Status DX12Shutdown();
 #    endif
@@ -143,7 +143,7 @@ class DLSS final : public Upscaler {
     Status DX11SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX11SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
     Status DX11Evaluate();
-    Status DX11ReleaseFeature();
+    Status DX11Release();
     Status DX11DestroyParameters();
     Status DX11Shutdown();
 #    endif
@@ -155,7 +155,7 @@ class DLSS final : public Upscaler {
     static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
 
 public:
-    DLSS(GraphicsAPI::Type);
+    explicit DLSS(GraphicsAPI::Type);
 
 #    ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);

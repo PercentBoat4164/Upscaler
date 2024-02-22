@@ -1,8 +1,13 @@
-#include "Vulkan.hpp"
+#ifdef ENABLE_VULKAN
+#    include "Vulkan.hpp"
 
-#include <algorithm>
-#include <cstring>
-#include <Upscaler/Upscaler.hpp>
+#    include <Upscaler/Upscaler.hpp>
+
+#    include <IUnityGraphicsVulkan.h>
+#    include <IUnityRenderingExtensions.h>
+
+#    include <algorithm>
+#    include <cstring>
 
 VkInstance Vulkan::temporaryInstance{VK_NULL_HANDLE};
 
@@ -16,7 +21,7 @@ PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionP
 PFN_vkCreateImageView  Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
 PFN_vkDestroyImageView Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
 
-IUnityGraphicsVulkanV2* Vulkan::interface{nullptr};
+IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 
 void Vulkan::loadEarlyFunctionPointers() {
     m_vkCreateInstance                       = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
@@ -54,7 +59,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     VkInstanceCreateInfo createInfo = *pCreateInfo;
 
     // Find out which extensions are supported
-    const std::vector<std::string> supportedExtensions = getSupportedInstanceExtensions();
+    const std::vector<std::string>  supportedExtensions = getSupportedInstanceExtensions();
     const std::vector<std::string>& requestedExtensions = Upscaler::requestVulkanInstanceExtensions(supportedExtensions);
 
     // Vectorize the enabled extensions
@@ -104,7 +109,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     // Find out which extensions are supported
     const std::vector<std::string>  supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
     const std::vector<std::string>& requestedExtensions = Upscaler::requestVulkanDeviceExtensions(temporaryInstance, physicalDevice, supportedExtensions);
-    temporaryInstance = VK_NULL_HANDLE;
+    temporaryInstance                                   = VK_NULL_HANDLE;
 
     // Vectorize the enabled extensions
     std::vector<const char*> enabledExtensions{};
@@ -143,18 +148,18 @@ Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr,
     return Hook_vkGetInstanceProcAddr;
 }
 
-bool Vulkan::registerUnityInterface(IUnityInterfaces* t_unityInterfaces) {
-    interface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
-    return interface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
+bool Vulkan::registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces) {
+    graphicsInterface = t_unityInterfaces->Get<IUnityGraphicsVulkanV2>();
+    return graphicsInterface->AddInterceptInitialization(interceptInitialization, nullptr, 0);
 }
 
-IUnityGraphicsVulkanV2* Vulkan::getUnityInterface() {
-    return interface;
+IUnityGraphicsVulkanV2* Vulkan::getGraphicsInterface() {
+    return graphicsInterface;
 }
 
-bool Vulkan::unregisterUnityInterface() {
-    const bool result = interface->RemoveInterceptInitialization(interceptInitialization);
-    interface         = nullptr;
+bool Vulkan::unregisterUnityInterfaces() {
+    const bool result = graphicsInterface->RemoveInterceptInitialization(interceptInitialization);
+    graphicsInterface = nullptr;
     return result;
 }
 
@@ -335,13 +340,14 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
     // clang-format on
 
     VkImageView view{VK_NULL_HANDLE};
-    m_vkCreateImageView(interface->Instance().device, &createInfo, nullptr, &view);
+    m_vkCreateImageView(graphicsInterface->Instance().device, &createInfo, nullptr, &view);
     return view;
 }
 
 void Vulkan::destroyImageView(VkImageView viewToDestroy) {
     if (viewToDestroy != VK_NULL_HANDLE) {
-        m_vkDestroyImageView(interface->Instance().device, viewToDestroy, nullptr);
+        m_vkDestroyImageView(graphicsInterface->Instance().device, viewToDestroy, nullptr);
         viewToDestroy = VK_NULL_HANDLE;
     }
 }
+#endif

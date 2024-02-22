@@ -1,4 +1,3 @@
-// Project
 #include "Upscaler/NoUpscaler.hpp"
 #include "Upscaler/Upscaler.hpp"
 
@@ -9,10 +8,6 @@
 #ifdef ENABLE_VULKAN
 #    include "GraphicsAPI/Vulkan.hpp"
 #endif
-
-// Unity
-#include <IUnityInterface.h>
-#include <IUnityRenderingExtensions.h>
 
 #include <memory>
 #include <unordered_map>
@@ -161,8 +156,8 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEve
         case kUnityGfxDeviceEventInitialize:
             GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
 #ifdef ENABLE_DX11
-            if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
-                GraphicsAPI::get<DX11>()->prepareForOneTimeSubmits();
+            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11)
+                DX11::createOneTimeSubmitContext();
 #endif
             break;
         case kUnityGfxDeviceEventShutdown:
@@ -170,7 +165,7 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEve
             for (auto& u : cameraToUpscaler)
                 u.second->shutdown();
 #ifdef ENABLE_DX11
-            if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11) GraphicsAPI::get<DX11>()->finishOneTimeSubmits();
+            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11) DX11::destroyOneTimeSubmitContext();
 #endif
             break;
         default: break;
@@ -179,7 +174,7 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEve
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {
     // Enabled plugin's interception of Vulkan initialization calls.
-    Vulkan::registerUnityInterface(unityInterfaces);
+    GraphicsAPI::registerUnityInterfaces(unityInterfaces);
     // Record graphics interface for future use.
     Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
     Unity::graphicsInterface->RegisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
@@ -187,6 +182,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     // Remove vulkan initialization interception
-    Vulkan::unregisterUnityInterface();
+    GraphicsAPI::unregisterUnityInterfaces();
     Unity::graphicsInterface->UnregisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
 }

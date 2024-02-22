@@ -220,6 +220,7 @@ namespace Conifer.Upscaler.Scripts
             _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
             Plugin = new Plugin(_camera);
+            Plugin.RegisterErrorCallback(this, InternalErrorCallbackWrapper);
 
             _upscalerPrepare = new CommandBuffer();
             _upscalerPrepare.name = "Prepare upscaler";

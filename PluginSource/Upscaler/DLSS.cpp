@@ -1,20 +1,29 @@
-#include "DLSS.hpp"
 #ifdef ENABLE_DLSS
-// Project
+#   include "DLSS.hpp"
 #    ifdef ENABLE_DX11
 #        include "GraphicsAPI/DX11.hpp"
+
+#        include <d3d11.h>
+
+#        include <IUnityGraphicsD3D11.h>
 #    endif
 #    ifdef ENABLE_DX12
 #        include "GraphicsAPI/DX12.hpp"
+
+#        include <d3d12compatibility.h>
+
+#        include <IUnityGraphicsD3D12.h>
 #    endif
 #    ifdef ENABLE_VULKAN
 #        include "GraphicsAPI/Vulkan.hpp"
+
+#        include <IUnityGraphicsVulkan.h>
+
+#        include <IUnityRenderingExtensions.h>
 #    endif
 
-// System
 #    include <algorithm>
 #    include <cstring>
-#    include <limits>
 
 #    ifdef ENABLE_VULKAN
 void DLSS::RAII_NGXVulkanResource::ChangeResource(const NVSDK_NGX_ImageViewInfo_VK& info) {
@@ -73,7 +82,7 @@ Upscaler::SupportState DLSS::deviceExtensionsSupported   = UNTESTED;
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status DLSS::VulkanInitialize() {
-    const UnityVulkanInstance vulkanInstance = Vulkan::getUnityInterface()->Instance();
+    const UnityVulkanInstance vulkanInstance = Vulkan::getGraphicsInterface()->Instance();
 
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], vulkanInstance.instance, vulkanInstance.physicalDevice, vulkanInstance.device), "Failed to initialize the NGX instance."));
     return SUCCESS;
@@ -91,16 +100,16 @@ Upscaler::Status DLSS::VulkanCreate() {
     RETURN_ON_FAILURE(setStatusIf(featureHandle != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature already exists!"));
 
     UnityVulkanRecordingState state{};
-    Vulkan::getUnityInterface()->EnsureInsideRenderPass();
-    Vulkan::getUnityInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
 
-    RETURN_ON_FAILURE(setStatus(NGX_VULKAN_CREATE_DLSS_EXT(state.commandBuffer, 1, 1, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
+    RETURN_ON_FAILURE(setStatus(NGX_VULKAN_CREATE_DLSS_EXT(state.commandBuffer, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
     RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle returned from `NGX_VULKAN_CREATE_DLSS_EXT()` was `nullptr`."));
     return SUCCESS;
 }
 
 Upscaler::Status DLSS::VulkanSetDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given depth image being `VK_NULL_HANDLE`."));
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given depth image being `VK_NULL_HANDLE`."));
 
     VkImage        image  = *static_cast<VkImage*>(nativeHandle);
     const VkFormat format = Vulkan::getFormat(unityFormat);
@@ -129,7 +138,7 @@ Upscaler::Status DLSS::VulkanSetDepth(void* nativeHandle, UnityRenderingExtTextu
 }
 
 Upscaler::Status DLSS::VulkanSetInputColor(void* nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given input color image being `VK_NULL_HANDLE`."));
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given input color image being `VK_NULL_HANDLE`."));
 
     VkImage        image  = *static_cast<VkImage*>(nativeHandle);
     const VkFormat format = Vulkan::getFormat(unityFormat);
@@ -159,7 +168,7 @@ Upscaler::Status DLSS::VulkanSetInputColor(void* nativeHandle, const UnityRender
 
 Upscaler::Status
 DLSS::VulkanSetMotionVectors(void* nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given motion vector image being `VK_NULL_HANDLE`."));
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given motion vector image being `VK_NULL_HANDLE`."));
 
     VkImage        image  = *static_cast<VkImage*>(nativeHandle);
     const VkFormat format = Vulkan::getFormat(unityFormat);
@@ -188,7 +197,7 @@ DLSS::VulkanSetMotionVectors(void* nativeHandle, const UnityRenderingExtTextureF
 }
 
 Upscaler::Status DLSS::VulkanSetOutputColor(void* nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."));
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."));
 
     VkImage        image  = *static_cast<VkImage*>(nativeHandle);
     const VkFormat format = Vulkan::getFormat(unityFormat);
@@ -221,8 +230,8 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
 
     UnityVulkanRecordingState state{};
-    Vulkan::getUnityInterface()->EnsureInsideRenderPass();
-    Vulkan::getUnityInterface()->CommandRecordingState(
+    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->CommandRecordingState(
       &state,
       kUnityVulkanGraphicsQueueAccess_DontCare
     );
@@ -282,7 +291,7 @@ Upscaler::Status DLSS::VulkanShutdown() {
     depth.vulkan->Destroy();
     motion.vulkan->Destroy();
 
-    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Shutdown1(Vulkan::getUnityInterface()->Instance().device), "Failed to shutdown the NGX instance."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Shutdown1(Vulkan::getGraphicsInterface()->Instance().device), "Failed to shutdown the NGX instance."));
 
     return SUCCESS;
 }
@@ -290,92 +299,63 @@ Upscaler::Status DLSS::VulkanShutdown() {
 
 #    ifdef ENABLE_DX12
 Upscaler::Status DLSS::DX12Initialize() {
-    return setStatus(
-      NVSDK_NGX_D3D12_Init(
-        applicationInfo.ngxIdentifier.v.ApplicationId,
-        applicationInfo.featureCommonInfo.PathListInfo.Path[0],
-        GraphicsAPI::get<DX12>()->getUnityInterface()->GetDevice()
-      ),
-      "Failed to initialize the NGX instance."
-    );
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX12::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12GetParameters() {
-    if (parameters != nullptr) return getStatus();
-    return setStatus(
-      NVSDK_NGX_D3D12_GetCapabilityParameters(&parameters),
-      "Failed to get the " + getName() + " compatibility parameters"
-    );
+    RETURN_ON_FAILURE(setStatusIf(parameters != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters already exist!"));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_GetCapabilityParameters(&parameters), "Failed to get the " + getName() + " compatibility parameters"));
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Parameters are invalid after attempting to build them."));
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12CreateFeature() {
-    if (parameters == nullptr) DX12GetParameters();
-    if (featureHandle != nullptr) DX12ReleaseFeature();
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature already exists!"));
 
     UnityGraphicsD3D12RecordingState state{};
-    GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
+    DX12::getGraphicsInterface()->CommandRecordingState(&state);
 
-    if (failure(setStatus(
-          NGX_D3D12_CREATE_DLSS_EXT(state.commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams),
-          "Failed to create the " + getName() + " feature."
-        )))
-        return getStatus();
-    return setStatusIf(
-      featureHandle == nullptr,
-      SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-      "Failed to create the " + getName() +
-        " feature. The handle returned from `NGX_DX12_CREATE_DLSS_EXT()` was "
-        "`nullptr`."
-    );
+    RETURN_ON_FAILURE(setStatus(NGX_D3D12_CREATE_DLSS_EXT(state.commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle returned from `NGX_DX12_CREATE_DLSS_EXT()` was `nullptr`."));
+    return SUCCESS;
 }
 
-Upscaler::Status DLSS::DX12SetDepthBuffer(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given depth image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+Upscaler::Status DLSS::DX12SetDepth(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given depth image being `nullptr`."));
+
     depth.dx12 = static_cast<ID3D12Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12SetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given input color image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given input color image being `nullptr`."));
+
     inColor.dx12 = static_cast<ID3D12Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given motion vector image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given motion vector image being `nullptr`."));
+
     motion.dx12 = static_cast<ID3D12Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `nullptr`."));
+
     outColor.dx12 = static_cast<ID3D12Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12Evaluate() {
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
+
     UnityGraphicsD3D12RecordingState state{};
-    GraphicsAPI::get<DX12>()->getUnityInterface()->CommandRecordingState(&state);
+    DX12::getGraphicsInterface()->CommandRecordingState(&state);
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters = {
@@ -401,122 +381,91 @@ Upscaler::Status DLSS::DX12Evaluate() {
     };
     // clang-format on
 
-    return setStatus(
-      NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &DLSSEvalParameters),
-      "Failed to evaluate the " + getName() + " feature."
-    );
+    RETURN_ON_FAILURE(setStatus(NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &DLSSEvalParameters), "Failed to evaluate the " + getName() + " feature."));
+    return SUCCESS;
 }
 
-Upscaler::Status DLSS::DX12ReleaseFeature() {
-    if (featureHandle == nullptr) return getStatus();
-    setStatus(NVSDK_NGX_D3D12_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature.");
+Upscaler::Status DLSS::DX12Release() {
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature has already been released."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature."));
     featureHandle = nullptr;
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12DestroyParameters() {
-    if (parameters == nullptr) return getStatus();
-    setStatus(
-      NVSDK_NGX_D3D12_DestroyParameters(parameters),
-      "Failed to release the " + getName() + " compatibility parameters."
-    );
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_DestroyParameters(parameters), "Failed to release the " + getName() + " compatibility parameters."));
     parameters = nullptr;
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX12Shutdown() {
-    if (!initialized) return getStatus();
-    DX12DestroyParameters();
-    DX12ReleaseFeature();
-    return setStatus(NVSDK_NGX_D3D12_Shutdown1(nullptr), "Failed to shutdown the NGX instance.");
+    if (featureHandle != nullptr)
+        RETURN_ON_FAILURE(DX12Release());
+    if (parameters != nullptr)
+        RETURN_ON_FAILURE(DX12DestroyParameters());
+
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Shutdown1(DX12::getGraphicsInterface()->GetDevice()), "Failed to shutdown the NGX instance."));
+    return SUCCESS;
 }
 #    endif
 
 #    ifdef ENABLE_DX11
 Upscaler::Status DLSS::DX11Initialize() {
-    return setStatus(
-      NVSDK_NGX_D3D11_Init(
-        applicationInfo.ngxIdentifier.v.ApplicationId,
-        applicationInfo.featureCommonInfo.PathListInfo.Path[0],
-        GraphicsAPI::get<DX11>()->getUnityInterface()->GetDevice()
-      ),
-      "Failed to initialize the NGX instance."
-    );
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX11::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11GetParameters() {
-    if (parameters != nullptr) return getStatus();
-    return setStatus(
-      NVSDK_NGX_D3D11_GetCapabilityParameters(&parameters),
-      "Failed to get the " + getName() + " compatibility parameters."
-    );
+    RETURN_ON_FAILURE(setStatusIf(parameters != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters already exist!"));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_GetCapabilityParameters(&parameters), "Failed to get the " + getName() + " compatibility parameters"));
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Parameters are invalid after attempting to build them."));
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11CreateFeature() {
-    if (featureHandle != nullptr) return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature already exists!"));
 
-    if (ID3D11DeviceContext* context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording(); failure(setStatus(
-          NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams),
-          "Failed to create the " + getName() + " feature."
-        ))) {
-        GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
-        return getStatus();
-    }
-    GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
-    return setStatusIf(
-      featureHandle == nullptr,
-      SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-      "Failed to create the " + getName() +
-        " feature. The handle returned from `NGX_DX11_CREATE_DLSS_EXT()` was "
-        "`nullptr`."
-    );
+    ID3D11DeviceContext* context = DX11::getOneTimeSubmitContext();
+
+    RETURN_ON_FAILURE(setStatus(NGX_D3D11_CREATE_DLSS_EXT(context, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle returned from `NGX_DX11_CREATE_DLSS_EXT()` was `nullptr`."));
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11SetDepthBuffer(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given depth image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given depth image being `nullptr`."));
+
     depth.dx11 = static_cast<ID3D11Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11SetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given input color image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given input color image being `nullptr`."));
+
     inColor.dx11 = static_cast<ID3D11Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given motion vector image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given motion vector image being `nullptr`."));
+
     motion.dx11 = static_cast<ID3D11Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/) {
-    if (failure(setStatusIf(
-          nativeHandle == nullptr,
-          SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING,
-          "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."
-        )))
-        return getStatus();
+    RETURN_ON_FAILURE(setStatusIf(nativeHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `nullptr`."));
+
     outColor.dx11 = static_cast<ID3D11Resource*>(nativeHandle);
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11Evaluate() {
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
+
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams = {
       .Feature = {
@@ -541,39 +490,34 @@ Upscaler::Status DLSS::DX11Evaluate() {
     };
     // clang-format on
 
-    if (ID3D11DeviceContext* context = GraphicsAPI::get<DX11>()->beginOneTimeSubmitRecording(); failure(setStatus(
-          NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams),
-          "Failed to evaluate the " + getName() + " feature."
-        ))) {
-        GraphicsAPI::get<DX11>()->cancelOneTimeSubmitRecording();
-        return getStatus();
-    }
-    GraphicsAPI::get<DX11>()->endOneTimeSubmitRecording();
-    return getStatus();
+    ID3D11DeviceContext* context = DX11::getOneTimeSubmitContext();
+
+    RETURN_ON_FAILURE(setStatus(NGX_D3D11_EVALUATE_DLSS_EXT(context, featureHandle, parameters, &DLSSEvalParams), "Failed to evaluate the " + getName() + " feature."));
+    return SUCCESS;
 }
 
-Upscaler::Status DLSS::DX11ReleaseFeature() {
-    if (featureHandle == nullptr) return getStatus();
-    setStatus(NVSDK_NGX_D3D11_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature.");
+Upscaler::Status DLSS::DX11Release() {
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature has already been released."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature."));
     featureHandle = nullptr;
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11DestroyParameters() {
-    if (parameters == nullptr) return getStatus();
-    setStatus(
-      NVSDK_NGX_D3D11_DestroyParameters(parameters),
-      "Failed to release the " + getName() + " compatibility parameters."
-    );
+    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_DestroyParameters(parameters), "Failed to release the " + getName() + " compatibility parameters."));
     parameters = nullptr;
-    return getStatus();
+    return SUCCESS;
 }
 
 Upscaler::Status DLSS::DX11Shutdown() {
-    if (!initialized) return getStatus();
-    DX11DestroyParameters();
-    DX11ReleaseFeature();
-    return setStatus(NVSDK_NGX_D3D11_Shutdown1(nullptr), "Failed to shutdown the NGX instance.");
+    if (featureHandle != nullptr)
+        RETURN_ON_FAILURE(DX11Release());
+    if (parameters != nullptr)
+        RETURN_ON_FAILURE(DX11DestroyParameters());
+
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Shutdown1(nullptr), "Failed to shutdown the NGX instance."));
+    return SUCCESS;
 }
 #    endif
 
@@ -659,12 +603,12 @@ DLSS::DLSS(const GraphicsAPI::Type graphicsAPI) {
             fpInitialize       = &DLSS::DX12Initialize;
             fpGetParameters    = &DLSS::DX12GetParameters;
             fpCreate           = &DLSS::DX12CreateFeature;
-            fpSetDepth         = &DLSS::DX12SetDepthBuffer;
+            fpSetDepth         = &DLSS::DX12SetDepth;
             fpSetInputColor    = &DLSS::DX12SetInputColor;
             fpSetMotionVectors = &DLSS::DX12SetMotionVectors;
             fpSetOutputColor   = &DLSS::DX12SetOutputColor;
             fpEvaluate         = &DLSS::DX12Evaluate;
-            fpRelease          = &DLSS::DX12ReleaseFeature;
+            fpRelease          = &DLSS::DX12Release;
             fpShutdown         = &DLSS::DX12Shutdown;
             break;
         }
@@ -679,7 +623,7 @@ DLSS::DLSS(const GraphicsAPI::Type graphicsAPI) {
             fpSetMotionVectors = &DLSS::DX11SetMotionVectors;
             fpSetOutputColor   = &DLSS::DX11SetOutputColor;
             fpEvaluate         = &DLSS::DX11Evaluate;
-            fpRelease          = &DLSS::DX11ReleaseFeature;
+            fpRelease          = &DLSS::DX11Release;
             fpShutdown         = &DLSS::DX11Shutdown;
             break;
         }
@@ -751,7 +695,7 @@ std::string DLSS::getName() {
 bool DLSS::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
-    if (instanceExtensionsSupported != SUPPORTED || deviceExtensionsSupported != SUPPORTED)
+    if (instanceExtensionsSupported == UNSUPPORTED || deviceExtensionsSupported == UNSUPPORTED)
         return (supported = UNSUPPORTED) == SUPPORTED;
     if (!initialized) {
         initialize();
