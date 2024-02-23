@@ -1,179 +1,46 @@
 #if UPSCALER_USE_URP
+using Conifer.Upscaler.Scripts.impl;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Conifer.Upscaler.Scripts.impl
+namespace Conifer.Upscaler.Scripts
 {
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         private class UpscalerRenderPass : ScriptableRenderPass
         {
-            // RenderTextures
-            private RenderTexture _outputTarget;
-            private RenderTexture _inColorTarget;
-            private RenderTexture _motionVectorTarget;
-            private RenderTexture _cameraTarget;
-
-            // CommandBuffers
-            private readonly CommandBuffer _upscale = CommandBufferPool.Get("Upscale");
-
-            // Camera
-            private readonly Camera _camera;
-
-            public UpscalerRenderPass(Camera camera)
-            {
-                _camera = camera;
-            }
-
-            private void UpdateUpscaleCommandBuffer()
-            {
-                _upscale.Clear();
-                _upscale.SetRenderTarget(_inColorTarget.colorBuffer, _inColorTarget.depthBuffer);
-                BlitLib.CopyCameraDepth(_upscale);
-                BlitLib.BlitToMotionTexture(_upscale, _motionVectorTarget);
-                _upscale.IssuePluginEvent(Plugin.GetRenderingEventCallback(), (int)Plugin.Event.Upscale);
-                _upscale.Blit(_outputTarget, _cameraTarget);
-            }
-
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
+                if (!Application.isPlaying || !_registered) return;
+                var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
+                if (upscaler == null || upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return; 
+
                 // Execute the upscale
-                context.ExecuteCommandBuffer(_upscale);
-                _camera.targetTexture = _cameraTarget;
-                RenderTexture.active = _cameraTarget;
-            }
+                var commandBuffer = CommandBufferPool.Get("Upscale");
+                commandBuffer.SetRenderTarget(upscaler.UpscalingData.InColorTarget.colorBuffer, upscaler.UpscalingData.InColorTarget.depthBuffer);
+                BlitLib.CopyCameraDepth(commandBuffer);
+                BlitLib.BlitToMotionTexture(commandBuffer, upscaler.UpscalingData.MotionVectorTarget);
+                upscaler.Plugin.Upscale(commandBuffer);
+                commandBuffer.Blit(upscaler.UpscalingData.OutputTarget, upscaler.UpscalingData.CameraTarget);
+                context.ExecuteCommandBuffer(commandBuffer);
 
-            public void PreUpscale()
-            {
-                if (!_inColorTarget)
-                {
-                    return;
-                }
-
-                _cameraTarget = _camera.targetTexture;
-                _camera.targetTexture = _inColorTarget;
-                RenderTexture.active = _inColorTarget;
-            }
-
-            public bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
-            {
-                var dTarget = false;
-                var cameraTargetIsOutputTarget = _camera.targetTexture == _outputTarget;
-                if (_outputTarget && _outputTarget.IsCreated())
-                {
-                    _outputTarget.Release();
-                    _outputTarget = null;
-                    dTarget = true;
-                }
-
-                if (upscalerMode == Upscaler.UpscalerMode.None)
-                {
-                    return dTarget;
-                }
-
-                if (!_camera.targetTexture | cameraTargetIsOutputTarget)
-                {
-                    _outputTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.ColorFormat(_camera.allowHDR))
-                    {
-                        enableRandomWrite = true
-                    };
-                    _outputTarget.Create();
-                }
-                else
-                {
-                    _outputTarget = _cameraTarget;
-                    /*todo Throw an error if enableRandomWrite is false on _cameraTarget. */
-                }
-
-                Plugin.SetOutputColor(_outputTarget.GetNativeTexturePtr(), _outputTarget.graphicsFormat);
-                return true;
-            }
-
-            public bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
-            {
-                var dTarget = false;
-                if (_motionVectorTarget && _motionVectorTarget.IsCreated())
-                {
-                    _motionVectorTarget.Release();
-                    _motionVectorTarget = null;
-                    dTarget = true;
-                }
-
-                if (upscalerMode == Upscaler.UpscalerMode.None)
-                {
-                    return dTarget;
-                }
-
-                _motionVectorTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.MotionFormat());
-                _motionVectorTarget.Create();
-
-                Plugin.SetMotionVectors(_motionVectorTarget.GetNativeTexturePtr(), _motionVectorTarget.graphicsFormat);
-                UpdateUpscaleCommandBuffer();
-                return true;
-            }
-
-            public bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode,
-                Vector2Int maximumDynamicRenderingResolution)
-            {
-                var dTarget = false;
-                if (_inColorTarget && _inColorTarget.IsCreated())
-                {
-                    _inColorTarget.Release();
-                    _inColorTarget = null;
-                    dTarget = true;
-                }
-
-                if (upscalerMode == Upscaler.UpscalerMode.None)
-                {
-                    return dTarget;
-                }
-
-                _inColorTarget =
-                    new RenderTexture(maximumDynamicRenderingResolution.x, maximumDynamicRenderingResolution.y,
-                        Plugin.ColorFormat(_camera.allowHDR), Plugin.DepthFormat())
-                    {
-                        filterMode = FilterMode.Point
-                    };
-                _inColorTarget.Create();
-
-                Plugin.SetDepthBuffer(_inColorTarget.GetNativeDepthBufferPtr(), _inColorTarget.depthStencilFormat);
-                Plugin.SetInputColor(_inColorTarget.GetNativeTexturePtr(), _inColorTarget.graphicsFormat);
-                return true;
-            }
-
-            public void Shutdown()
-            {
-                // Release command buffers
-                CommandBufferPool.Release(_upscale);
-
-                if (_outputTarget && _outputTarget.IsCreated())
-                {
-                    _outputTarget.Release();
-                }
-
-                if (_inColorTarget && _inColorTarget.IsCreated())
-                {
-                    _inColorTarget.Release();
-                }
-
-                if (_motionVectorTarget && _motionVectorTarget.IsCreated())
-                {
-                    _motionVectorTarget.Release();
-                }
+                upscaler.Plugin.Camera.targetTexture = upscaler.UpscalingData.CameraTarget;
+                RenderTexture.active = upscaler.UpscalingData.CameraTarget;
             }
         }
 
-        // Camera
-        [HideInInspector] public Camera camera;
-
         // Render passes
         private UpscalerRenderPass _upscalerRenderPass;
+        private static bool _registered;
 
         public override void Create()
         {
-            _upscalerRenderPass = new UpscalerRenderPass(camera);
+            _upscalerRenderPass = new UpscalerRenderPass();
             name = "Upscaler";
+
+            if (!_registered) RenderPipelineManager.beginCameraRendering += PreUpscale;
+            _registered = true;
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -183,29 +50,29 @@ namespace Conifer.Upscaler.Scripts.impl
             renderer.EnqueuePass(_upscalerRenderPass);
         }
 
-        public void PreUpscale()
+        private static void PreUpscale(ScriptableRenderContext context, Camera camera)
         {
-            _upscalerRenderPass.PreUpscale();
+            if (!Application.isPlaying) return;
+            var upscaler = camera.GetComponent<Upscaler>();
+            if (upscaler == null)
+            {
+                Debug.LogError(
+                    "All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
+                return;
+            }
+            upscaler.OnPreCull();
+
+            if (upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return;
+            upscaler.UpscalingData.CameraTarget = camera.targetTexture;
+            camera.targetTexture = upscaler.UpscalingData.InColorTarget;
+            RenderTexture.active = upscaler.UpscalingData.InColorTarget;
         }
 
-        public bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+        protected override void Dispose(bool dispose)
         {
-            return _upscalerRenderPass.ManageOutputTarget(upscalerMode, resolution);
-        }
-
-        public bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
-        {
-            return _upscalerRenderPass.ManageMotionVectorTarget(upscalerMode, resolution);
-        }
-
-        public bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
-        {
-            return _upscalerRenderPass.ManageInColorTarget(upscalerMode, resolution);
-        }
-
-        public void Shutdown()
-        {
-            _upscalerRenderPass.Shutdown();
+            if (!dispose) return;
+            if (_registered) RenderPipelineManager.beginCameraRendering -= PreUpscale;
+            _registered = false;
         }
     }
 }

@@ -1,24 +1,29 @@
 #pragma once
 
-// Project
 #include "GraphicsAPI/GraphicsAPI.hpp"
 
-// Graphics API
-#include <vulkan/vulkan.h>
+#ifdef ENABLE_VULKAN
+#    include <vulkan/vulkan.h>
+#    include <IUnityRenderingExtensions.h>
+#endif
 
-// Upscaler
 #ifdef ENABLE_DLSS
 #    include <nvsdk_ngx_defs.h>
 #endif
 
-// Unity
-#include <IUnityRenderingExtensions.h>
-
-// System
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
+
+#define RETURN_ON_FAILURE(x)                \
+    {                                       \
+        Upscaler::Status _ = x;             \
+        if (Upscaler::failure(_)) return _; \
+    }                                       \
+    0
 
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
@@ -48,12 +53,13 @@ public:
         SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS                  = SOFTWARE_ERROR | 4U << ERROR_CODE_OFFSET,  // Should be marked as recoverable?
         SOFTWARE_ERROR_FEATURE_DENIED                             = SOFTWARE_ERROR | 5U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
         /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
+        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET,
         /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
@@ -75,13 +81,21 @@ public:
 
     enum Type {
         NONE,
+#ifdef ENABLE_DLSS
         DLSS,
+#endif
     };
 
-    static struct Settings {
+    enum SupportState {
+        UNTESTED,
+        UNSUPPORTED,
+        SUPPORTED
+    };
+
+    class Settings {
+    public:
         enum QualityMode {
-            Auto,  // Chooses a performance quality mode based on output resolution
-                   //            UltraQuality,
+            Auto,
             Quality,
             Balanced,
             Performance,
@@ -91,20 +105,77 @@ public:
         struct Resolution {
             uint32_t width;
             uint32_t height;
-
-            [[nodiscard]] uint64_t asLong() const;
         };
 
-        QualityMode          quality{Auto};
-        Resolution           recommendedInputResolution{};
-        Resolution           dynamicMaximumInputResolution{};
-        Resolution           dynamicMinimumInputResolution{};
-        Resolution           outputResolution{};
-        std::array<float, 2> jitter{0.F, 0.F};
-        float                sharpness{};
-        bool                 HDR{};
-        bool                 autoExposure{};
-        bool                 resetHistory{};
+        struct Jitter {
+            float x;
+            float y;
+        };
+
+    private:
+        class Halton {
+            constexpr static uint8_t      SamplesPerPixel = 8;
+            std::vector<Jitter>           sequence;
+            decltype(sequence)::size_type index;
+
+        public:
+            void generate(
+              Upscaler::Settings::Resolution renderResolution,
+              Upscaler::Settings::Resolution presentResolution
+            ) {
+                float scalingFactor = static_cast<float>(presentResolution.width) / static_cast<float>(renderResolution.width);
+                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * scalingFactor * scalingFactor)));
+
+                for (uint8_t i = 0; i < 2; ++i) {
+                    uint32_t base = i + 2;
+                    uint32_t n    = 0;
+                    uint32_t d    = 1;
+                    for (Jitter& element : sequence) {
+                        uint32_t x = d - n;
+                        if (x == 1) {
+                            n = 1;
+                            d *= base;
+                        } else {
+                            uint32_t y = d / base;
+                            while (x <= y) y /= base;
+                            n = (base + 1) * y - x;
+                        }
+                        float* subElement = i == 0 ? &element.x : &element.y;
+                        *subElement       = static_cast<float>(n) / static_cast<float>(d) - .5f;
+                    }
+                }
+            }
+
+            Jitter getNextJitter() {
+                if (sequence.empty()) return {0, 0};
+                index %= sequence.size();
+                return sequence[index++];
+            }
+        };
+
+    public:
+        QualityMode quality{Auto};
+        Resolution  inputResolution{};
+        Resolution  dynamicMaximumInputResolution{};
+        Resolution  dynamicMinimumInputResolution{};
+        Resolution  outputResolution{};
+        Halton      jitterGenerator;
+        Jitter      jitter{0.F, 0.F};
+        float       sharpness{};
+        bool        HDR{};
+        float       frameTime{};
+        bool        resetHistory{};
+
+        struct Camera {
+            float farPlane;
+            float nearPlane;
+            float verticalFOV;
+        } camera;
+
+        virtual Jitter getNextJitter() {
+            jitter = jitterGenerator.getNextJitter();
+            return jitter;
+        }
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
         [[nodiscard]] QualityMode getQuality() const {
@@ -115,7 +186,7 @@ public:
         template<Type T, typename _ = std::enable_if_t<T == DLSS>>
         NVSDK_NGX_PerfQuality_Value getQuality() {
             switch (quality) {
-                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines .pdf'
+                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
                     const uint64_t pixelCount{
                       static_cast<uint64_t>(outputResolution.width) * outputResolution.height
                     };
@@ -125,7 +196,6 @@ public:
                         return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                    //                case UltraQuality: return NVSDK_NGX_PerfQuality_Value_UltraQuality;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -137,83 +207,62 @@ public:
     } settings;
 
 private:
-    static void      (*errorCallback)(void *, Status, const char *);
-    static void     *userData;
-    static Upscaler *upscalerInUse;
-    Status           status{SUCCESS};
-    std::string      detailedErrorMessage{};
+    void*       userData{nullptr};
+    Status      status{SUCCESS};
+    std::string statusMessage;
 
 protected:
     template<typename T, typename... Args>
-    constexpr T safeFail(Args... /* unused */) {
-        return UNKNOWN_ERROR;
+    constexpr T safeFail(Args... /*unused*/) {
+        return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
     }
 
-    virtual void setFunctionPointers(GraphicsAPI::Type graphicsAPI) = 0;
+    static void (*logCallback)(const char* msg);
 
     bool initialized{false};
 
 public:
-    Upscaler()                 = default;
-    Upscaler(const Upscaler &) = delete;
-    Upscaler(Upscaler &&)      = default;
+#ifdef ENABLE_VULKAN
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
+#endif
 
-    Upscaler &operator=(const Upscaler &) = delete;
-    Upscaler &operator=(Upscaler &&)      = default;
+    Upscaler()                           = default;
+    Upscaler(const Upscaler&)            = delete;
+    Upscaler(Upscaler&&)                 = delete;
+    Upscaler& operator=(const Upscaler&) = delete;
+    Upscaler& operator=(Upscaler&&)      = delete;
+    virtual ~Upscaler()                  = default;
 
-    template<typename T>
-        requires std::derived_from<T, Upscaler>
-    constexpr static void set() {
-        set(T::get());
-    }
-
-    static void set(Type upscaler);
-    static void set(Upscaler *upscaler);
-    static void setGraphicsAPI(GraphicsAPI::Type graphicsAPI);
-
-    template<typename T>
-        requires std::derived_from<T, Upscaler>
-    constexpr static T *get() {
-        return T::get();
-    }
-
-    static std::vector<Upscaler *> getAllUpscalers();
-    static std::vector<Upscaler *> getUpscalersWithoutErrors();
-    static Upscaler               *get(Type upscaler);
-    static Upscaler               *get();
-
-    virtual Type        getType() = 0;
-    virtual std::string getName() = 0;
-
-    virtual std::vector<std::string> getRequiredVulkanInstanceExtensions()                           = 0;
-    virtual std::vector<std::string> getRequiredVulkanDeviceExtensions(VkInstance, VkPhysicalDevice) = 0;
-
-    virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
+    virtual Type        getType()                                                             = 0;
+    virtual std::string getName()                                                             = 0;
+    virtual bool        isSupported()                                                         = 0;
+    virtual Status      getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
     virtual Status initialize()                                                                     = 0;
-    virtual Status createFeature()                                                                  = 0;
-    virtual Status setDepthBuffer(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
-    virtual Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
-    virtual Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
-    virtual void   updateImages()                                                                   = 0;
+    virtual Status create()                                                                         = 0;
+    virtual Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
+    virtual Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
+    virtual Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
+    virtual Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
     virtual Status evaluate()                                                                       = 0;
-    virtual Status releaseFeature()                                                                 = 0;
-    virtual Status shutdown();
+    virtual Status shutdown()                                                                       = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
+    std::string&         getErrorMessage();
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
-    Status               setStatus(Status, const std::string &);
+    Status               setStatus(Status, const std::string&);
     /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use
     /// resetStatus to clear the current status. Returns the current status
     Status               setStatusIf(bool, Status, std::string);
     /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
     /// status has been cleared.
     bool                 resetStatus();
-    std::string         &getErrorMessage();
-    static void (*setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *);
 
-    virtual ~Upscaler() = default;
+    std::unique_ptr<Upscaler>        fromType(Type type);
+    static std::unique_ptr<Upscaler> FromType(Type type);
+
+    static void setLogCallback(void (*pFunction)(const char*));
 };

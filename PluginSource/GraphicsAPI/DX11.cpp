@@ -1,51 +1,36 @@
-#include "DX11.hpp"
+#ifdef ENABLE_DX11
+#    include "DX11.hpp"
 
-// Graphics API
-#include <d3d11.h>
+#    include <d3d11.h>
 
-// Unity
-#include <IUnityGraphicsD3D11.h>
+#    include <IUnityGraphicsD3D11.h>
 
-DX11 *DX11::get() {
-    static DX11 *dx11{new DX11};
-    return dx11;
+ID3D11DeviceContext* DX11::_oneTimeSubmitContext{nullptr};
+IUnityGraphicsD3D11* DX11::graphicsInterface{nullptr};
+
+void DX11::createOneTimeSubmitContext() {
+    graphicsInterface->GetDevice()->GetImmediateContext(&_oneTimeSubmitContext);
 }
 
-GraphicsAPI::Type DX11::getType() {
-    return GraphicsAPI::DX11;
-}
-
-void DX11::prepareForOneTimeSubmits() {
-    device = DX11Interface->GetDevice();
-    device->GetImmediateContext(&_oneTimeSubmitContext);
-}
-
-ID3D11DeviceContext *DX11::beginOneTimeSubmitRecording() {
-    _oneTimeSubmitRecording = true;
+ID3D11DeviceContext* DX11::getOneTimeSubmitContext() {
     return _oneTimeSubmitContext;
 }
 
-void DX11::endOneTimeSubmitRecording() {
-    if (!_oneTimeSubmitRecording) return;
-    _oneTimeSubmitRecording = false;
-}
-
-void DX11::cancelOneTimeSubmitRecording() {
-    if (!_oneTimeSubmitRecording) return;
-    _oneTimeSubmitContext->ClearState();
-    _oneTimeSubmitRecording = false;
-}
-
-void DX11::finishOneTimeSubmits() {
-    cancelOneTimeSubmitRecording();
+void DX11::destroyOneTimeSubmitContext() {
     _oneTimeSubmitContext->Release();
 }
 
-bool DX11::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
-    DX11Interface = t_unityInterfaces->Get<IUnityGraphicsD3D11>();
+bool DX11::registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces) {
+    graphicsInterface = t_unityInterfaces->Get<IUnityGraphicsD3D11>();
     return true;
 }
 
-IUnityGraphicsD3D11 *DX11::getUnityInterface() const {
-    return DX11Interface;
+IUnityGraphicsD3D11* DX11::getGraphicsInterface() {
+    return graphicsInterface;
 }
+
+bool DX11::unregisterUnityInterfaces() {
+    graphicsInterface = nullptr;
+    return true;
+}
+#endif

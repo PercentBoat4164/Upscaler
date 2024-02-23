@@ -1,75 +1,57 @@
 #include "NoUpscaler.hpp"
 
-void NoUpscaler::setFunctionPointers(GraphicsAPI::Type /* unused */) {
+std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/) {
+    return {};
 }
 
-NoUpscaler *NoUpscaler::get() {
-    NoUpscaler *noUpscaler{new NoUpscaler};
-    noUpscaler->setStatus(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
-    return noUpscaler;
+std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/) {
+    return {};
 }
 
 Upscaler::Type NoUpscaler::getType() {
-    return NONE;
+    return Upscaler::NONE;
 }
 
 std::string NoUpscaler::getName() {
-    return "Dummy Upscaler";
+    return "Dummy upscaler";
 }
 
-std::vector<std::string> NoUpscaler::getRequiredVulkanInstanceExtensions() {
-    return {};
+bool NoUpscaler::isSupported() {
+    return true;
 }
 
-std::vector<std::string>
-NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) {
-    return {};
-}
-
-Upscaler::Settings NoUpscaler::getOptimalSettings(
-  Settings::Resolution /* unused */,
-  Settings::QualityMode /* unused */,
-  bool /* unused */
-) {
-    return settings;
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) {
+    return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::initialize() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::createFeature() {
+Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+Upscaler::Status NoUpscaler::setDepth(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+Upscaler::Status NoUpscaler::setInputColor(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+Upscaler::Status NoUpscaler::setMotionVectors(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
+Upscaler::Status NoUpscaler::setOutputColor(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
-}
-
-void NoUpscaler::updateImages() {
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::releaseFeature() {
-    return NO_UPSCALER_SET;
-}
-
 Upscaler::Status NoUpscaler::shutdown() {
-    Upscaler::shutdown();
     return NO_UPSCALER_SET;
 }

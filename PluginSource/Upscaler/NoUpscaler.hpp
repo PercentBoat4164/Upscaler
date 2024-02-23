@@ -3,33 +3,23 @@
 #include "Upscaler.hpp"
 
 class NoUpscaler final : public Upscaler {
-    NoUpscaler() = default;
-
-protected:
-    void setFunctionPointers(GraphicsAPI::Type /* unused */) override;
-
 public:
-    static NoUpscaler *get();
+#ifdef ENABLE_VULKAN
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
+    static std::vector<std::string> requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/);
+#endif
 
-    Type        getType() override;
-    std::string getName() override;
+    Type        getType() final;
+    std::string getName() final;
+    bool        isSupported() final;
+    Status      getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) final;
 
-    std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
-    std::vector<std::string>
-      getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) override;
-
-    Settings
-    getOptimalSettings(Settings::Resolution /* unused */, Settings::QualityMode /* unused */, bool /* unused */)
-      override;
-
-    Status initialize() override;
-    Status createFeature() override;
-    Status setDepthBuffer(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    Status setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) override;
-    void   updateImages() override;
-    Status evaluate() override;
-    Status releaseFeature() override;
-    Status shutdown() override;
+    Status initialize() final;
+    Status create() final;
+    Status setDepth(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setInputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setMotionVectors(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setOutputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status evaluate() final;
+    Status shutdown() final;
 };

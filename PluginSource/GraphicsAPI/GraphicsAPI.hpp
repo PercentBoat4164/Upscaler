@@ -1,15 +1,8 @@
 #pragma once
 
-// Unity
 #include <IUnityGraphics.h>
 
-// System
-#include <concepts>
-#include <vector>
-
 class GraphicsAPI {
-    static GraphicsAPI *graphicsAPIInUse;
-
 public:
     enum Type {
         NONE,
@@ -18,36 +11,20 @@ public:
         DX11,
     };
 
-    GraphicsAPI()                    = default;
-    GraphicsAPI(const GraphicsAPI &) = delete;
-    GraphicsAPI(GraphicsAPI &&)      = default;
+protected:
+    static Type type;
 
-    GraphicsAPI &operator=(const GraphicsAPI &) = delete;
-    GraphicsAPI &operator=(GraphicsAPI &&)      = default;
-
-    template<typename T>
-        requires std::derived_from<T, GraphicsAPI>
-    constexpr static void set() {
-        set(T::get());
-    }
+public:
+    GraphicsAPI()                              = delete;
+    GraphicsAPI(const GraphicsAPI&)            = delete;
+    GraphicsAPI(GraphicsAPI&&)                 = delete;
+    GraphicsAPI& operator=(const GraphicsAPI&) = delete;
+    GraphicsAPI& operator=(GraphicsAPI&&)      = delete;
+    ~GraphicsAPI()                             = delete;
 
     static void set(UnityGfxRenderer);
-    static void set(Type graphicsAPI);
-    static void set(GraphicsAPI *graphicsAPI);
+    static Type getType();
 
-    template<typename T>
-        requires std::derived_from<T, GraphicsAPI>
-    static T *get() {
-        return T::get();
-    }
-
-    static GraphicsAPI               *get(Type graphicsAPI);
-    static GraphicsAPI               *get();
-    static std::vector<GraphicsAPI *> getAllGraphicsAPIs();
-
-    virtual Type getType() = 0;
-
-    virtual bool useUnityInterfaces(IUnityInterfaces *) = 0;
-
-    virtual ~GraphicsAPI() = default;
+    static bool registerUnityInterfaces(IUnityInterfaces* interfaces);
+    static bool unregisterUnityInterfaces();
 };

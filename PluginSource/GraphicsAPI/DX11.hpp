@@ -1,45 +1,25 @@
 #pragma once
-
 #ifdef ENABLE_DX11
-
 #    include "GraphicsAPI.hpp"
 
-// Graphics API
-#    include <d3d11.h>
+class ID3D11DeviceContext;
 
-// Unity
-#    include "IUnityGraphicsD3D11.h"
+struct IUnityGraphicsD3D11;
 
 class DX11 final : public GraphicsAPI {
-    ID3D11DeviceContext *_oneTimeSubmitContext{nullptr};
-    bool                 _oneTimeSubmitRecording{false};
-
-    DX11() = default;
-
-    IUnityGraphicsD3D11 *DX11Interface{};
-    ID3D11Device        *device{};
+    static ID3D11DeviceContext* _oneTimeSubmitContext;
+    static IUnityGraphicsD3D11* graphicsInterface;
 
 public:
-    DX11(const DX11 &) = delete;
-    DX11(DX11 &&)      = default;
+    DX11()  = delete;
+    ~DX11() = delete;
 
-    DX11 &operator=(const DX11 &) = delete;
-    DX11 &operator=(DX11 &&)      = default;
+    static bool                 registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);
+    static IUnityGraphicsD3D11* getGraphicsInterface();
+    static bool                 unregisterUnityInterfaces();
 
-    static DX11 *get();
-
-    Type getType() override;
-
-    void                 prepareForOneTimeSubmits();
-    ID3D11DeviceContext *beginOneTimeSubmitRecording();
-    void                 endOneTimeSubmitRecording();
-    void                 cancelOneTimeSubmitRecording();
-    void                 finishOneTimeSubmits();
-
-    bool                               useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) override;
-    [[nodiscard]] IUnityGraphicsD3D11 *getUnityInterface() const;
-
-    ~DX11() override = default;
+    static void                 createOneTimeSubmitContext();
+    static ID3D11DeviceContext* getOneTimeSubmitContext();
+    static void                 destroyOneTimeSubmitContext();
 };
-
 #endif
