@@ -9,7 +9,7 @@ std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(const std::ve
 }
 
 Upscaler::Type NoUpscaler::getType() {
-    return NONE;
+    return Upscaler::NONE;
 }
 
 std::string NoUpscaler::getName() {
@@ -20,8 +20,8 @@ bool NoUpscaler::isSupported() {
     return true;
 }
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) {
-    return settings;
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) {
+    return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::initialize() {
@@ -32,27 +32,23 @@ Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepth(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
+Upscaler::Status NoUpscaler::setDepth(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setInputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
+Upscaler::Status NoUpscaler::setInputColor(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setMotionVectors(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
+Upscaler::Status NoUpscaler::setMotionVectors(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setOutputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
+Upscaler::Status NoUpscaler::setOutputColor(void* const /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
     return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
-    return NO_UPSCALER_SET;
-}
-
-Upscaler::Status NoUpscaler::release() {
     return NO_UPSCALER_SET;
 }
 

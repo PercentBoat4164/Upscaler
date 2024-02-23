@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Conifer.Upscaler.Scripts.impl
 {
-    public class UpscalingData
+    internal class UpscalingData
     {
         internal RenderTexture OutputTarget;
         internal RenderTexture InColorTarget;
@@ -11,26 +11,22 @@ namespace Conifer.Upscaler.Scripts.impl
 
         private readonly Plugin _plugin;
 
-        public UpscalingData(Plugin plugin)
+        internal UpscalingData(Plugin plugin)
         {
             _plugin = plugin;
         }
 
-        public bool ManageOutputTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+        internal Upscaler.Status ManageOutputTarget(Settings.Upscaler upscaler, Vector2Int resolution)
         {
-            var dTarget = false;
             var cameraTargetIsOutputTarget = _plugin.Camera.targetTexture == OutputTarget;
             if (OutputTarget && OutputTarget.IsCreated())
             {
                 OutputTarget.Release();
                 OutputTarget = null;
-                dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None)
-            {
-                return dTarget;
-            }
+            if (upscaler == Settings.Upscaler.None)
+                return Upscaler.Status.Success;
 
             if (!_plugin.Camera.targetTexture | cameraTargetIsOutputTarget)
             {
@@ -46,46 +42,36 @@ namespace Conifer.Upscaler.Scripts.impl
                 /*todo Throw an error if enableRandomWrite is false on _cameraTarget. */
             }
 
-            _plugin.SetOutputColor(OutputTarget);
-            return true;
+            return _plugin.SetOutputColor(OutputTarget);
         }
 
-        public bool ManageMotionVectorTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+        internal Upscaler.Status ManageMotionVectorTarget(Settings.Upscaler upscaler, Vector2Int resolution)
         {
-            var dTarget = false;
             if (MotionVectorTarget && MotionVectorTarget.IsCreated())
             {
                 MotionVectorTarget.Release();
                 MotionVectorTarget = null;
-                dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None)
-            {
-                return dTarget;
-            }
+            if (upscaler == Settings.Upscaler.None)
+                return Upscaler.Status.Success;
 
             MotionVectorTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.MotionFormat());
             MotionVectorTarget.Create();
 
-            _plugin.SetMotionVectors(MotionVectorTarget);
-            return true;
+            return _plugin.SetMotionVectors(MotionVectorTarget);
         }
 
-        public bool ManageInColorTarget(Upscaler.UpscalerMode upscalerMode, Vector2Int resolution)
+        internal Upscaler.Status ManageInColorTarget(Settings.Upscaler upscaler, Vector2Int resolution)
         {
-            var dTarget = false;
             if (InColorTarget && InColorTarget.IsCreated())
             {
                 InColorTarget.Release();
                 InColorTarget = null;
-                dTarget = true;
             }
 
-            if (upscalerMode == Upscaler.UpscalerMode.None)
-            {
-                return dTarget;
-            }
+            if (upscaler == Settings.Upscaler.None)
+                return Upscaler.Status.Success;
 
             InColorTarget =
                 new RenderTexture(resolution.x, resolution.y, _plugin.ColorFormat(), Plugin.DepthFormat())
@@ -94,12 +80,14 @@ namespace Conifer.Upscaler.Scripts.impl
                 };
             InColorTarget.Create();
 
-            _plugin.SetDepth(InColorTarget);
-            _plugin.SetInputColor(InColorTarget);
-            return true;
+            var status = _plugin.SetDepth(InColorTarget);
+            if (Upscaler.Failure(status))
+                return status;
+            status = _plugin.SetInputColor(InColorTarget);
+            return status;
         }
 
-        public void Release()
+        internal void Release()
         {
             if (OutputTarget && OutputTarget.IsCreated())
                 OutputTarget.Release();

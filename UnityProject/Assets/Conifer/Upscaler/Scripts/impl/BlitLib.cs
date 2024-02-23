@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler.Scripts.impl
 {
-    public static class BlitLib
+    internal static class BlitLib
     {
         private static Mesh _quad;
         private static Material _copyCameraDepthMaterial;
@@ -11,7 +11,7 @@ namespace Conifer.Upscaler.Scripts.impl
         private static Material _blitToCameraDepthMaterial;
         private static readonly int Depth = Shader.PropertyToID("_Depth");
 
-        public static void Setup()
+        internal static void Setup()
         {
             // Set up quad for depth blits
             _quad = new Mesh();
@@ -37,7 +37,7 @@ namespace Conifer.Upscaler.Scripts.impl
             _blitToCameraDepthMaterial = new Material(Shader.Find("Upscaler/BlitToCameraDepth"));
         }
 
-        public static void BlitToMotionTexture(CommandBuffer cb, RenderTexture dest)
+        internal static void BlitToMotionTexture(CommandBuffer cb, RenderTexture dest)
         {
             // Record command buffer
             cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
@@ -50,7 +50,7 @@ namespace Conifer.Upscaler.Scripts.impl
         /// Blits `_CameraDepthTexture` into the currently active RenderTexture's depth buffer.
         /// </summary>
         /// <param name="cb">Command buffer to record the blit into.</param>
-        public static void CopyCameraDepth(CommandBuffer cb)
+        internal static void CopyCameraDepth(CommandBuffer cb)
         {
             // Record command buffer
             cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
@@ -58,7 +58,7 @@ namespace Conifer.Upscaler.Scripts.impl
             cb.DrawMesh(_quad, Matrix4x4.identity, _copyCameraDepthMaterial);
         }
 
-        public static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src)
+        internal static void BlitToCameraDepth(CommandBuffer cb, RenderTexture src)
         {
             _blitToCameraDepthMaterial.SetTexture(Depth, src, RenderTextureSubElement.Depth);
 

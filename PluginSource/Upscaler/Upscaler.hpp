@@ -1,25 +1,22 @@
 #pragma once
 
-// Project
 #include "GraphicsAPI/GraphicsAPI.hpp"
 
-// Graphics API
-#include <vulkan/vulkan.h>
+#ifdef ENABLE_VULKAN
+#    include <vulkan/vulkan.h>
+#    include <IUnityRenderingExtensions.h>
+#endif
 
-// Upscaler
 #ifdef ENABLE_DLSS
 #    include <nvsdk_ngx_defs.h>
 #endif
 
-// Unity
-#include <IUnityRenderingExtensions.h>
-
-// System
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
 
 #define RETURN_ON_FAILURE(x)                \
     {                                       \
@@ -108,29 +105,32 @@ public:
         struct Resolution {
             uint32_t width;
             uint32_t height;
+        };
 
-            [[nodiscard]] uint64_t asUint64_t() const;
+        struct Jitter {
+            float x;
+            float y;
         };
 
     private:
         class Halton {
-            constexpr static uint8_t          SamplesPerPixel = 8;
-            std::vector<std::array<float, 2>> sequence;
-            decltype(sequence)::size_type     index;
+            constexpr static uint8_t      SamplesPerPixel = 8;
+            std::vector<Jitter>           sequence;
+            decltype(sequence)::size_type index;
 
         public:
             void generate(
               Upscaler::Settings::Resolution renderResolution,
               Upscaler::Settings::Resolution presentResolution
             ) {
-                if (!sequence.empty()) return;
-                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * static_cast<float>(renderResolution.width) / static_cast<float>(presentResolution.width) * static_cast<float>(renderResolution.height) / static_cast<float>(presentResolution.height))));
+                float scalingFactor = static_cast<float>(presentResolution.width) / static_cast<float>(renderResolution.width);
+                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * scalingFactor * scalingFactor)));
 
-                for (decltype(sequence)::size_type i = 0; i < 2; ++i) {
+                for (uint8_t i = 0; i < 2; ++i) {
                     uint32_t base = i + 2;
                     uint32_t n    = 0;
                     uint32_t d    = 1;
-                    for (std::array<float, 2>& element : sequence) {
+                    for (Jitter& element : sequence) {
                         uint32_t x = d - n;
                         if (x == 1) {
                             n = 1;
@@ -140,31 +140,31 @@ public:
                             while (x <= y) y /= base;
                             n = (base + 1) * y - x;
                         }
-                        element[i] = static_cast<float>(n) / static_cast<float>(d) - .5f;
+                        float* subElement = i == 0 ? &element.x : &element.y;
+                        *subElement       = static_cast<float>(n) / static_cast<float>(d) - .5f;
                     }
                 }
             }
 
-            std::array<float, 2> getNextJitter() {
+            Jitter getNextJitter() {
                 if (sequence.empty()) return {0, 0};
                 index %= sequence.size();
                 return sequence[index++];
             }
         };
 
-        Halton jitterGenerator;
-
     public:
-        QualityMode          quality{Auto};
-        Resolution           inputResolution{};
-        Resolution           dynamicMaximumInputResolution{};
-        Resolution           dynamicMinimumInputResolution{};
-        Resolution           outputResolution{};
-        std::array<float, 2> jitter{0.F, 0.F};
-        float                sharpness{};
-        bool                 HDR{};
-        float                frameTime{};
-        bool                 resetHistory{};
+        QualityMode quality{Auto};
+        Resolution  inputResolution{};
+        Resolution  dynamicMaximumInputResolution{};
+        Resolution  dynamicMinimumInputResolution{};
+        Resolution  outputResolution{};
+        Halton      jitterGenerator;
+        Jitter      jitter{0.F, 0.F};
+        float       sharpness{};
+        bool        HDR{};
+        float       frameTime{};
+        bool        resetHistory{};
 
         struct Camera {
             float farPlane;
@@ -172,7 +172,7 @@ public:
             float verticalFOV;
         } camera;
 
-        virtual std::array<float, 2> getNextJitter() {
+        virtual Jitter getNextJitter() {
             jitter = jitterGenerator.getNextJitter();
             return jitter;
         }
@@ -207,10 +207,9 @@ public:
     } settings;
 
 private:
-    void        (*errorCallback)(const void*, Status, const char*) = nullptr;
-    void*       userData                                           = nullptr;
+    void*       userData{nullptr};
     Status      status{SUCCESS};
-    std::string detailedErrorMessage{};
+    std::string statusMessage;
 
 protected:
     template<typename T, typename... Args>
@@ -218,8 +217,9 @@ protected:
         return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
     }
 
-    static void (*log)(const char* msg);
-    bool        initialized = false;
+    static void (*logCallback)(const char* msg);
+
+    bool initialized{false};
 
 public:
 #ifdef ENABLE_VULKAN
@@ -232,13 +232,12 @@ public:
     Upscaler(Upscaler&&)                 = delete;
     Upscaler& operator=(const Upscaler&) = delete;
     Upscaler& operator=(Upscaler&&)      = delete;
+    virtual ~Upscaler()                  = default;
 
-    [[nodiscard]] Upscaler* set(Type upscaler) const;
-
-    virtual Type        getType() = 0;
-    virtual std::string getName() = 0;
-    virtual bool isSupported() = 0;
-    virtual Settings getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
+    virtual Type        getType()                                                             = 0;
+    virtual std::string getName()                                                             = 0;
+    virtual bool        isSupported()                                                         = 0;
+    virtual Status      getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
     virtual Status initialize()                                                                     = 0;
     virtual Status create()                                                                         = 0;
@@ -247,11 +246,11 @@ public:
     virtual Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
     virtual Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
     virtual Status evaluate()                                                                       = 0;
-    virtual Status release()                                                                        = 0;
     virtual Status shutdown()                                                                       = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
+    std::string&         getErrorMessage();
     /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
     /// Returns the current status.
     Status               setStatus(Status, const std::string&);
@@ -261,10 +260,9 @@ public:
     /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
     /// status has been cleared.
     bool                 resetStatus();
-    std::string&         getErrorMessage();
+
+    std::unique_ptr<Upscaler>        fromType(Type type);
+    static std::unique_ptr<Upscaler> FromType(Type type);
 
     static void setLogCallback(void (*pFunction)(const char*));
-    void        setErrorCallback(const void* data, void (*t_errorCallback)(const void*, Status, const char*));
-
-    virtual ~Upscaler() = default;
 };

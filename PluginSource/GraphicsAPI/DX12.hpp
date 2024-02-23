@@ -8,7 +8,7 @@ class DX12 final : public GraphicsAPI {
     static IUnityGraphicsD3D12v7* graphicsInterface;
 
 public:
-    DX12() = delete;
+    DX12()  = delete;
     ~DX12() = delete;
 
     static bool                   registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);

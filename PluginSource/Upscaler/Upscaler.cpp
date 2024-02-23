@@ -5,8 +5,9 @@
 
 #include <algorithm>
 #include <utility>
+#include <memory>
 
-void (*Upscaler::log)(const char* msg) = nullptr;
+void (*Upscaler::logCallback)(const char* msg){nullptr};
 
 bool Upscaler::success(const Status t_status) {
     return t_status <= NO_UPSCALER_SET;
@@ -22,20 +23,6 @@ bool Upscaler::recoverable(const Status t_status) {
 
 bool Upscaler::nonrecoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == 0;
-}
-
-uint64_t Upscaler::Settings::Resolution::asUint64_t() const {
-    return static_cast<uint64_t>(width) << 32U | height;
-}
-
-Upscaler* Upscaler::set(const Type upscaler) const {
-    switch (upscaler) {
-        case NONE: return new NoUpscaler();
-#ifdef ENABLE_DLSS
-        case DLSS: return new class DLSS(GraphicsAPI::getType());
-#endif
-    }
-    return new NoUpscaler();
 }
 
 #ifdef ENABLE_VULKAN
@@ -58,6 +45,10 @@ Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
+std::string& Upscaler::getErrorMessage() {
+    return statusMessage;
+}
+
 Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_msg) {
     return setStatusIf(true, t_error, t_msg);
 }
@@ -65,31 +56,38 @@ Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_
 Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
     bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
     if (shouldApplyError) {
-        status               = t_error;
-        detailedErrorMessage = std::move(t_msg);
+        status        = t_error;
+        statusMessage = std::move(t_msg);
     }
-    if (shouldApplyError && failure(status) && errorCallback != nullptr)
-        errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }
 
 bool Upscaler::resetStatus() {
     if (recoverable(status)) {
         status = SUCCESS;
-        detailedErrorMessage.clear();
+        statusMessage.clear();
     }
     return status == SUCCESS;
 }
 
-std::string& Upscaler::getErrorMessage() {
-    return detailedErrorMessage;
+std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler = FromType(type);
+    newUpscaler->userData                 = userData;
+    return newUpscaler;
+}
+
+std::unique_ptr<Upscaler> Upscaler::FromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler;
+    switch (type) {
+        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
+#ifdef ENABLE_DLSS
+        case DLSS: newUpscaler = std::make_unique<::DLSS>(GraphicsAPI::getType()); break;
+#endif
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+    }
+    return newUpscaler;
 }
 
 void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
-    log = pFunction;
-}
-
-void Upscaler::setErrorCallback(const void* data, void (*t_errorCallback)(const void*, Status, const char*)) {
-    errorCallback = t_errorCallback;
-    if (data != nullptr) userData = const_cast<void*>(data);
+    logCallback = pFunction;
 }

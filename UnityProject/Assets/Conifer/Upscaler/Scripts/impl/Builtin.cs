@@ -3,14 +3,14 @@ using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler.Scripts.impl
 {
-    public class Builtin
+    internal class Builtin
     {
         // CommandBuffers
         private readonly CommandBuffer _upscale;
         private readonly CommandBuffer _postUpscale;
         private readonly Plugin _plugin;
 
-        public Builtin(Plugin plugin)
+        internal Builtin(Plugin plugin)
         {
             _plugin = plugin;
             // Set up command buffers
@@ -20,7 +20,7 @@ namespace Conifer.Upscaler.Scripts.impl
             _postUpscale.name = "Post Upscale";
         }
 
-        public void PrepareRendering(UpscalingData data)
+        internal void PrepareRendering(UpscalingData data)
         {
             if (!Application.isPlaying) return;
             data.CameraTarget = _plugin.Camera.targetTexture;
@@ -28,7 +28,7 @@ namespace Conifer.Upscaler.Scripts.impl
             RenderTexture.active = data.InColorTarget;
         }
 
-        public void Upscale(UpscalingData data)
+        internal void Upscale(UpscalingData data)
         {
             if (!Application.isPlaying) return;
 
@@ -46,7 +46,7 @@ namespace Conifer.Upscaler.Scripts.impl
             Graphics.ExecuteCommandBuffer(_postUpscale);
         }
         
-        public void Shutdown()
+        internal void Shutdown()
         {
             _upscale?.Release();
             _postUpscale?.Release();

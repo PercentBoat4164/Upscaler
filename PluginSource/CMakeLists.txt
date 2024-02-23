@@ -180,7 +180,6 @@ add_library(GfxPluginUpscaler main.cpp
         ${VULKAN_SOURCES}
 
         GraphicsAPI/GraphicsAPI.cpp
-        GraphicsAPI/NoGraphicsAPI.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
 )

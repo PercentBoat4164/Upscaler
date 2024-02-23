@@ -9,18 +9,17 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/);
 #endif
 
-    Type        getType() override;
-    std::string getName() override;
-    bool isSupported() override;
-    Settings getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) override;
+    Type        getType() final;
+    std::string getName() final;
+    bool        isSupported() final;
+    Status      getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) final;
 
-    Status initialize() override;
-    Status create() override;
-    Status setDepth(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) override;
-    Status setInputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) override;
-    Status setMotionVectors(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) override;
-    Status setOutputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) override;
-    Status evaluate() override;
-    Status release() override;
-    Status shutdown() override;
+    Status initialize() final;
+    Status create() final;
+    Status setDepth(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setInputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setMotionVectors(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status setOutputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
+    Status evaluate() final;
+    Status shutdown() final;
 };

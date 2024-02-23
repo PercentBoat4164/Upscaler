@@ -15,7 +15,7 @@ namespace Conifer.Upscaler.Editor
 
             EditorGUILayout.LabelField("Upscaler Settings");
             var style = new GUIStyle();
-            var status = upscalerObject.Status;
+            var status = upscalerObject.status;
             string message;
             if (Scripts.Upscaler.Success(status))
             {
@@ -37,18 +37,19 @@ namespace Conifer.Upscaler.Editor
                 "\nNote: Both 'NoUpscalerSet' and 'Success' indicate that the plugin is working as expected."
             ), new GUIContent(status.ToString()), style);
 
-
+            var newSettings = upscalerObject.QuerySettings();
+            
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
             if (_basicSettingsFoldout)
             {
                 EditorGUI.indentLevel += 1;
-                upscalerObject.upscalerMode = (Scripts.Upscaler.UpscalerMode)EditorGUILayout.EnumPopup(
+                newSettings.FeatureSettings.upscaler = (Scripts.Settings.Upscaler)EditorGUILayout.EnumPopup(
                     new GUIContent("Upscaler",
                         "Choose an Upscaler to use.\n" +
                         "\nUse None to completely disable upscaling.\n" +
                         "\nUse DLSS to enable DLSS upscaling."
-                    ), upscalerObject.upscalerMode);
-                upscalerObject.qualityMode = (Scripts.Upscaler.QualityMode)EditorGUILayout.EnumPopup(
+                    ), newSettings.FeatureSettings.upscaler);
+                newSettings.FeatureSettings.quality = (Scripts.Settings.Quality)EditorGUILayout.EnumPopup(
                     new GUIContent("Quality",
                         "Choose a Quality Mode for the upscaler.\n" +
                         "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
@@ -59,7 +60,7 @@ namespace Conifer.Upscaler.Editor
                         "\nUse Balanced to upscale by 42% on each axis.\n" +
                         "\nUse Performance to upscale by 50% on each axis.\n" +
                         "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
-                    ), upscalerObject.qualityMode);
+                    ), newSettings.FeatureSettings.quality);
                 EditorGUI.indentLevel -= 1;
             }
 
@@ -67,14 +68,16 @@ namespace Conifer.Upscaler.Editor
             if (_advancedSettingsFoldout)
             {
                 EditorGUI.indentLevel += 1;
-                upscalerObject.sharpness = EditorGUILayout.Slider(
+                newSettings.Sharpness = EditorGUILayout.Slider(
                     new GUIContent("Sharpness (Deprecated)",
                         "The amount of sharpening that DLSS should apply to the image.\n" +
                         "\nNote: This only works if DLSS is the the active Upscaler.\n" +
                         "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
-                    ), upscalerObject.sharpness, 0f, 1f);
+                    ), newSettings.Sharpness, 0f, 1f);
                 EditorGUI.indentLevel -= 1;
             }
+            
+            upscalerObject.ApplySettings(newSettings);
         }
     }
 }

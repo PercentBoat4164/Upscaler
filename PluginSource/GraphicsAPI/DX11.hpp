@@ -11,7 +11,7 @@ class DX11 final : public GraphicsAPI {
     static IUnityGraphicsD3D11* graphicsInterface;
 
 public:
-    DX11() = delete;
+    DX11()  = delete;
     ~DX11() = delete;
 
     static bool                 registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);

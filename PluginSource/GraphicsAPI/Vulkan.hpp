@@ -52,7 +52,7 @@ class Vulkan final : public GraphicsAPI {
     interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/);
 
 public:
-    Vulkan() = delete;
+    Vulkan()  = delete;
     ~Vulkan() = delete;
 
     static bool                    registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);

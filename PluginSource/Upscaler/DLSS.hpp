@@ -10,7 +10,7 @@
 #    endif
 
 class DLSS final : public Upscaler {
-    struct Application {
+    static struct Application {
         // clang-format off
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
@@ -44,7 +44,7 @@ class DLSS final : public Upscaler {
           .FeatureInfo         = &featureCommonInfo,
         };
         // clang-format on
-    };
+    } applicationInfo;
 
 #    ifdef ENABLE_VULKAN
     struct RAII_NGXVulkanResource {
@@ -78,11 +78,9 @@ class DLSS final : public Upscaler {
 #    endif
     };
 
-    static Application applicationInfo;
-
     NVSDK_NGX_Handle*            featureHandle{};
     NVSDK_NGX_Parameter*         parameters{};
-    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams;
+    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{};
 
     Resource inColor{nullptr};
     Resource outColor{nullptr};
@@ -92,10 +90,10 @@ class DLSS final : public Upscaler {
     static Status (DLSS::*fpInitialize)();
     static Status (DLSS::*fpGetParameters)();
     static Status (DLSS::*fpCreate)();
-    static Status (DLSS::*fpSetDepth)(void*, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetInputColor)(void*, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetMotionVectors)(void*, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetOutputColor)(void*, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetDepth)(void* const, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetInputColor)(void* const, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetMotionVectors)(void* const, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpSetOutputColor)(void* const, UnityRenderingExtTextureFormat);
     static Status (DLSS::*fpEvaluate)();
     static Status (DLSS::*fpRelease)();
     static Status (DLSS::*fpShutdown)();
@@ -106,14 +104,16 @@ class DLSS final : public Upscaler {
     static SupportState deviceExtensionsSupported;
 #    endif
 
+    static uint32_t users;
+
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
     Status VulkanGetParameters();
     Status VulkanCreate();
-    Status VulkanSetDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanSetDepth(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanSetInputColor(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanSetMotionVectors(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanSetOutputColor(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
     Status VulkanEvaluate();
     Status VulkanRelease();
     Status VulkanDestroyParameters();
@@ -156,25 +156,25 @@ class DLSS final : public Upscaler {
 
 public:
     explicit DLSS(GraphicsAPI::Type);
+    ~DLSS() final;
 
 #    ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #    endif
 
-    Type getType() override;
-    std::string getName() override;
-    bool isSupported() override;
-    Settings getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) override;
+    Type        getType() final;
+    std::string getName() final;
+    bool        isSupported() final;
+    Status      getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) final;
 
-    Status initialize() override;
-    Status create() override;
-    Status setDepth(void*, UnityRenderingExtTextureFormat) override;
-    Status setInputColor(void*, UnityRenderingExtTextureFormat) override;
-    Status setMotionVectors(void*, UnityRenderingExtTextureFormat) override;
-    Status setOutputColor(void*, UnityRenderingExtTextureFormat) override;
-    Status evaluate() override;
-    Status release() override;
-    Status shutdown() override;
+    Status initialize() final;
+    Status create() final;
+    Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
+    Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
+    Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
+    Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
+    Status evaluate() final;
+    Status shutdown() final;
 };
 #endif

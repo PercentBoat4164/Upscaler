@@ -14,7 +14,7 @@ namespace Conifer.Upscaler.Scripts
             {
                 if (!Application.isPlaying || !_registered) return;
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-                if (upscaler == null || upscaler.upscalerMode == Upscaler.UpscalerMode.None) return;
+                if (upscaler == null || upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return; 
 
                 // Execute the upscale
                 var commandBuffer = CommandBufferPool.Get("Upscale");
@@ -62,7 +62,7 @@ namespace Conifer.Upscaler.Scripts
             }
             upscaler.OnPreCull();
 
-            if (upscaler.upscalerMode == Upscaler.UpscalerMode.None) return;
+            if (upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return;
             upscaler.UpscalingData.CameraTarget = camera.targetTexture;
             camera.targetTexture = upscaler.UpscalingData.InColorTarget;
             RenderTexture.active = upscaler.UpscalingData.InColorTarget;
@@ -70,11 +70,9 @@ namespace Conifer.Upscaler.Scripts
 
         protected override void Dispose(bool dispose)
         {
-            if (dispose)
-            {
-                if (_registered) RenderPipelineManager.beginCameraRendering -= PreUpscale;
-                _registered = false;
-            }
+            if (!dispose) return;
+            if (_registered) RenderPipelineManager.beginCameraRendering -= PreUpscale;
+            _registered = false;
         }
     }
 }
