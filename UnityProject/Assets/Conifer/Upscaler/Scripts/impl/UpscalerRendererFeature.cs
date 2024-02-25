@@ -1,5 +1,4 @@
 #if UPSCALER_USE_URP
-using Conifer.Upscaler.Scripts.impl;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,8 +7,6 @@ namespace Conifer.Upscaler.Scripts
 {
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
-        private static readonly int ColorID = Shader.PropertyToID("_CameraColorTexture");
-        private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
         private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
         private static readonly int OutputID = Shader.PropertyToID("Upscaler_OutputTexture");
         
@@ -19,18 +16,15 @@ namespace Conifer.Upscaler.Scripts
             {
                 if (!Application.isPlaying || !_registered) return;
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-                if (upscaler == null || upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return; 
+                if (upscaler is null || upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return; 
 
-                // Execute the upscale
                 var commandBuffer = CommandBufferPool.Get("Upscale");
                 commandBuffer.GetTemporaryRT(OutputID, upscaler.OutputResolution.x, upscaler.OutputResolution.y, 0,
                     FilterMode.Point, upscaler.Plugin.ColorFormat(), 1, true, RenderTextureMemoryless.None, false);
-                var color = Shader.GetGlobalTexture(ColorID);
-                var depth = Shader.GetGlobalTexture(DepthID);
                 var motion = Shader.GetGlobalTexture(MotionID);
                 var output = Shader.GetGlobalTexture(OutputID);
-                if (color is not null && depth is not null && motion is not null && output is not null)
-                    upscaler.Plugin.Upscale(commandBuffer, color, depth, motion, output);
+                if (motion is not null && output is not null)
+                    upscaler.Plugin.Upscale(commandBuffer, renderingData.cameraData.targetTexture, motion, output);
                 context.ExecuteCommandBuffer(commandBuffer);
 
                 upscaler.Plugin.Camera.targetTexture = upscaler.UpscalingData.CameraTarget;
@@ -66,7 +60,7 @@ namespace Conifer.Upscaler.Scripts
         {
             if (!Application.isPlaying || !camera.enabled) return;
             var upscaler = camera.GetComponent<Upscaler>();
-            if (upscaler == null)
+            if (upscaler is null)
             {
                 Debug.LogError(
                     "All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);

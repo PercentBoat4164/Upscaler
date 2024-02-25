@@ -6,7 +6,6 @@ using Conifer.Upscaler.Scripts.impl;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 #if UPSCALER_USE_URP
 using UnityEngine.Rendering.Universal;
 #endif
@@ -119,40 +118,35 @@ namespace Conifer.Upscaler.Scripts
 
         public enum Status : uint
         {
-            Success = 0U,
-            NoUpscalerSet = 2U,
-            HardwareError = 1U << ErrorTypeOffset,
-            HardwareErrorDeviceExtensionsNotSupported = HardwareError | (1U << ErrorCodeOffset),
-            HardwareErrorDeviceNotSupported = HardwareError | (2U << ErrorCodeOffset),
-            SoftwareError = 2U << ErrorTypeOffset,
-            SoftwareErrorInstanceExtensionsNotSupported = SoftwareError | (1U << ErrorCodeOffset),
-            SoftwareErrorDeviceDriversOutOfDate = SoftwareError | (2U << ErrorCodeOffset),
-            SoftwareErrorOperatingSystemNotSupported = SoftwareError | (3U << ErrorCodeOffset),
-
-            SoftwareErrorInvalidWritePermissions =
-                SoftwareError | (4U << ErrorCodeOffset), // Should be marked as recoverable?
-            SoftwareErrorFeatureDenied = SoftwareError | (5U << ErrorCodeOffset),
-            SoftwareErrorOutOfGPUMemory = SoftwareError | (6U << ErrorCodeOffset) | ErrorRecoverable,
-            SoftwareErrorOutOfSystemMemory = SoftwareError | (7U << ErrorCodeOffset) | ErrorRecoverable,
-
+            Success                                            =                  0U,
+            NoUpscalerSet                                      =                  2U,
+            HardwareError                                      =                  1U << ErrorTypeOffset,
+            HardwareErrorDeviceExtensionsNotSupported          = HardwareError | (1U << ErrorCodeOffset),
+            HardwareErrorDeviceNotSupported                    = HardwareError | (2U << ErrorCodeOffset),
+            SoftwareError                                      =                  2U << ErrorTypeOffset,
+            SoftwareErrorInstanceExtensionsNotSupported        = SoftwareError | (1U << ErrorCodeOffset),
+            SoftwareErrorDeviceDriversOutOfDate                = SoftwareError | (2U << ErrorCodeOffset),
+            SoftwareErrorOperatingSystemNotSupported           = SoftwareError | (3U << ErrorCodeOffset),
+            SoftwareErrorInvalidWritePermissions               = SoftwareError | (4U << ErrorCodeOffset),
+            SoftwareErrorFeatureDenied                         = SoftwareError | (5U << ErrorCodeOffset),
+            SoftwareErrorOutOfGPUMemory                        = SoftwareError | (6U << ErrorCodeOffset)  | ErrorRecoverable,
+            SoftwareErrorOutOfSystemMemory                     = SoftwareError | (7U << ErrorCodeOffset)  | ErrorRecoverable,
             /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
-            SoftwareErrorCriticalInternalError = SoftwareError | (8U << ErrorCodeOffset),
-
+            SoftwareErrorCriticalInternalError                 = SoftwareError | (8U << ErrorCodeOffset),
             /// The safest solution to handling this error is to stop using the upscaler. It may still work, but all guarantees are void.
-            SoftwareErrorCriticalInternalWarning = SoftwareError | (9U << ErrorCodeOffset),
-
+            SoftwareErrorCriticalInternalWarning               = SoftwareError | (9U << ErrorCodeOffset),
             /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-            SoftwareErrorRecoverableInternalWarning = SoftwareError | (10U << ErrorCodeOffset) | ErrorRecoverable,
-            SettingsError = (3U << ErrorTypeOffset) | ErrorRecoverable,
-            SettingsErrorInvalidInputResolution = SettingsError | (1U << ErrorCodeOffset),
-            SettingsErrorInvalidSharpnessValue = SettingsError | (2U << ErrorCodeOffset),
-            SettingsErrorUpscalerNotAvailable = SettingsError | (3U << ErrorCodeOffset),
-            SettingsErrorQualityModeNotAvailable = SettingsError | (4U << ErrorCodeOffset),
-
+            SoftwareErrorRecoverableInternalWarning            = SoftwareError | (10U << ErrorCodeOffset) | ErrorRecoverable,
+            SettingsError                                      =                 (3U << ErrorTypeOffset)  | ErrorRecoverable,
+            SettingsErrorInvalidInputResolution                = SettingsError | (1U << ErrorCodeOffset),
+            SettingsErrorInvalidOutputResolution               = SettingsError | (2U << ErrorCodeOffset),
+            SettingsErrorInvalidSharpnessValue                 = SettingsError | (3U << ErrorCodeOffset),
+            SettingsErrorUpscalerNotAvailable                  = SettingsError | (4U << ErrorCodeOffset),
+            SettingsErrorQualityModeNotAvailable               = SettingsError | (5U << ErrorCodeOffset),
             /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
-            GenericError = 4U << ErrorTypeOffset,
-            GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError | (1U << ErrorCodeOffset),
-            UnknownError = 0xFFFFFFFE
+            GenericError                                       =                  4U << ErrorTypeOffset,
+            GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError  | (1U << ErrorCodeOffset),
+            UnknownError                                       =                  0xFFFFFFFF              & ~ErrorRecoverable
         }
 
         public static bool Success(Status status) => status <= Status.NoUpscalerSet;
@@ -261,7 +255,7 @@ namespace Conifer.Upscaler.Scripts
         {
             // Check for badness causing mistakes in configuration
 #if UPSCALER_USE_URP
-            if (GraphicsSettings.renderPipelineAsset != null)
+            if (GraphicsSettings.renderPipelineAsset is not null)
             {
                 var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
                     .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -298,7 +292,7 @@ namespace Conifer.Upscaler.Scripts
             _upscalerPrepare.name = "Prepare upscaler";
             Plugin.Prepare(_upscalerPrepare);
 
-            _brp = new Builtin(Plugin);
+            _brp = new Builtin();
 
             // Prepare the Upscaling data
             UpscalingData = new UpscalingData();
@@ -316,7 +310,7 @@ namespace Conifer.Upscaler.Scripts
             status = Plugin.GetStatus();
             if (Failure(status))
             {
-                if (ErrorCallback == null) HandleError(status, Plugin.GetStatusMessage());
+                if (ErrorCallback is null) HandleError(status, Plugin.GetStatusMessage());
                 else
                 {
                     ErrorCallback(status, Plugin.GetStatusMessage());

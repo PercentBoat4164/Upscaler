@@ -94,13 +94,13 @@ namespace Conifer.Upscaler.Scripts.impl
             _cameraHandle.Free();
         }
 
-        internal void Upscale(CommandBuffer cb, Texture color, Texture depth, Texture motion, Texture output)
+        internal void Upscale(CommandBuffer cb, RenderTexture rt, Texture motion, Texture output)
         {
             Marshal.StructureToPtr(new UpscaleInfo
             {
                 _camera = GCHandle.ToIntPtr(_cameraHandle),
-                _color = color.GetNativeTexturePtr(), _colorFormat = color.graphicsFormat,
-                _depth = depth.GetNativeTexturePtr(), _depthFormat = depth.graphicsFormat,
+                _color = rt.GetNativeTexturePtr(), _colorFormat = rt.graphicsFormat,
+                _depth = rt.GetNativeDepthBufferPtr(), _depthFormat = rt.depthStencilFormat,
                 _motion = motion.GetNativeTexturePtr(), _motionFormat = motion.graphicsFormat,
                 _output = output.GetNativeTexturePtr(), _outputFormat = output.graphicsFormat
             }, _upscaleInfoMemory, false);
