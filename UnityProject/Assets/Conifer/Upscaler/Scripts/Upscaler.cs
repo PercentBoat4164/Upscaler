@@ -6,6 +6,7 @@ using Conifer.Upscaler.Scripts.impl;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 #if UPSCALER_USE_URP
 using UnityEngine.Rendering.Universal;
 #endif
@@ -89,7 +90,7 @@ namespace Conifer.Upscaler.Scripts
         }
 
         [NonSerialized] public PerFeatureSettings FeatureSettings = new();
-        [NonSerialized] public float Sharpness = 0F;
+        [NonSerialized] public float Sharpness;
         internal static float FrameTime => Time.deltaTime * 1000;
         
         public Settings Copy() => new() { FeatureSettings = FeatureSettings.Copy(), Sharpness = Sharpness };
@@ -164,7 +165,7 @@ namespace Conifer.Upscaler.Scripts
         private bool _hdr;
 
         // Resolutions
-        private Vector2Int _upscalingResolution;
+        public Vector2Int OutputResolution { get; private set; }
         public Vector2Int RenderingResolution { get; private set; }
 
         internal UpscalingData UpscalingData;
@@ -213,26 +214,34 @@ namespace Conifer.Upscaler.Scripts
             if (Application.isPlaying)
             {
                 _hdr = _camera.allowHDR;
-                _upscalingResolution = GetResolution();
-                status = Plugin.SetPerFeatureSettings(new Settings.Resolution(_upscalingResolution.x, _upscalingResolution.y),
+                OutputResolution = GetResolution();
+                status = Plugin.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y),
                     newSettings.FeatureSettings.upscaler, newSettings.FeatureSettings.quality, _hdr);
                 if (Failure(status)) return status;
 
                 RenderingResolution = Plugin.GetRecommendedResolution().ToVector2Int();
-
-                status = UpscalingData.ManageInColorTarget(newSettings.FeatureSettings.upscaler, RenderingResolution);
-                if (Failure(status)) return status;
-                status = UpscalingData.ManageOutputTarget(newSettings.FeatureSettings.upscaler, _upscalingResolution);
-                if (Failure(status)) return status;
-                status = UpscalingData.ManageMotionVectorTarget(newSettings.FeatureSettings.upscaler, RenderingResolution);
-                if (Failure(status)) return status;
+                if (newSettings.FeatureSettings.upscaler != Settings.Upscaler.None && RenderingResolution == new Vector2Int(0, 0)) return status;
+                
+                UpscalingData.ManageColorTarget(Plugin, newSettings.FeatureSettings.upscaler, RenderingResolution);
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
                 status = Plugin.GetStatus();
                 if (Failure(status)) return status;
 
+                var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
                 if (newSettings.FeatureSettings.upscaler == Settings.Upscaler.None)
+                {
+                    mipBias = 0;
                     _camera.ResetProjectionMatrix();
+                }
+                
+                foreach (var renderer in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var mat in renderer.materials)
+                foreach (var texID in mat.GetTexturePropertyNameIDs())
+                {
+                    var tex = mat.GetTexture(texID);
+                    if (tex is not null) tex.mipMapBias = mipBias;
+                }
             }
 
             settings = newSettings;
@@ -252,22 +261,25 @@ namespace Conifer.Upscaler.Scripts
         {
             // Check for badness causing mistakes in configuration
 #if UPSCALER_USE_URP
-            var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
-                .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset))[(int)typeof(UniversalRenderPipelineAsset)
-                .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset)].rendererFeatures;
-            var upscalerFeatures = features.Where(feature => feature is UpscalerRendererFeature).ToArray();
-            switch (upscalerFeatures.Count())
+            if (GraphicsSettings.renderPipelineAsset != null)
             {
-                case > 1:
-                    Debug.LogError("There can only be one UpscalerRendererFeature per Renderer.",
-                        GetComponent<Camera>());
-                    break;
-                case 0:
-                    Debug.LogError("There must be at least one UpscalerRendererFeature in this camera's Renderer.",
-                        GetComponent<Camera>());
-                    break;
+                var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
+                    .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .GetValue(UniversalRenderPipeline.asset))[(int)typeof(UniversalRenderPipelineAsset)
+                    .GetField("m_DefaultRendererIndex", BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .GetValue(UniversalRenderPipeline.asset)].rendererFeatures;
+                var upscalerFeatures = features.Where(feature => feature is UpscalerRendererFeature).ToArray();
+                switch (upscalerFeatures.Length)
+                {
+                    case > 1:
+                        Debug.LogError("There can only be one UpscalerRendererFeature per Renderer.",
+                            GetComponent<Camera>());
+                        break;
+                    case 0:
+                        Debug.LogError("There must be at least one UpscalerRendererFeature in this camera's Renderer.",
+                            GetComponent<Camera>());
+                        break;
+                }
             }
 #endif
 
@@ -288,12 +300,8 @@ namespace Conifer.Upscaler.Scripts
 
             _brp = new Builtin(Plugin);
 
-            // Set up the BlitLib
-            BlitLib.Setup();
-
             // Prepare the Upscaling data
-            UpscalingData?.Release();
-            UpscalingData = new UpscalingData(Plugin);
+            UpscalingData = new UpscalingData();
 
             SupportedUpscalerModes = Enum.GetValues(typeof(Settings.Upscaler)).Cast<Settings.Upscaler>()
                 .Where(Plugin.IsSupported).ToList().AsReadOnly();
@@ -322,7 +330,7 @@ namespace Conifer.Upscaler.Scripts
             }
 
             // Ensure images are up-to-date
-            if (_upscalingResolution != GetResolution() || _camera.allowHDR != _hdr)
+            if (OutputResolution != GetResolution() || _camera.allowHDR != _hdr)
             {
                 status = ApplySettings(settings, true);
                 if (Failure(status)) return;
@@ -345,12 +353,14 @@ namespace Conifer.Upscaler.Scripts
 
         protected void OnPreRender()
         {
-            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None) _brp.PrepareRendering(UpscalingData);
+            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None)
+                _brp.PrepareRendering(this);
         }
 
         protected void OnPostRender()
         {
-            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None) _brp.Upscale(UpscalingData);
+            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None)
+                _brp?.Upscale(this);
         }
 
         protected void OnDisable()

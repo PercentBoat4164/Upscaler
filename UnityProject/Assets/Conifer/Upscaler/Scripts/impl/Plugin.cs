@@ -22,10 +22,8 @@ namespace Conifer.Upscaler.Scripts.impl
         public static extern bool IsSupported(Settings.Upscaler mode);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
-        public static extern void RegisterCamera(IntPtr camera);
+        public static extern IntPtr RegisterCamera(IntPtr camera);
         
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraUpscaler")]
-        public static extern Upscaler.Status SetUpscaler(IntPtr camera, Settings.Upscaler mode);
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatus")]
         public static extern Upscaler.Status GetStatus(IntPtr camera);
 
@@ -48,26 +46,29 @@ namespace Conifer.Upscaler.Scripts.impl
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
         public static extern void ResetHistory(IntPtr camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraDepth")]
-        public static extern Upscaler.Status SetDepth(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraInputColor")]
-        public static extern Upscaler.Status SetInputColor(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraMotionVectors")]
-        public static extern Upscaler.Status SetMotionVectors(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraOutputColor")]
-        public static extern Upscaler.Status SetOutputColor(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
-        public static extern void UnregisterCamera(IntPtr camera);
+        public static extern void UnregisterCamera(IntPtr camera, IntPtr upscaleInfoMemory);
     }
 
+    internal struct UpscaleInfo
+    {
+        internal IntPtr _camera;
+        internal IntPtr _color;
+        internal GraphicsFormat _colorFormat;
+        internal IntPtr _depth;
+        internal GraphicsFormat _depthFormat;
+        internal IntPtr _motion;
+        internal GraphicsFormat _motionFormat;
+        internal IntPtr _output;
+        internal GraphicsFormat _outputFormat;
+    }
+    
     internal class Plugin
     {
         public readonly Camera Camera;
         private GCHandle _cameraHandle;
+        private readonly IntPtr _upscaleInfoMemory;
+        
 
         private enum Event
         {
@@ -84,26 +85,34 @@ namespace Conifer.Upscaler.Scripts.impl
         {
             Camera = camera;
             _cameraHandle = GCHandle.Alloc(camera);
-            Native.RegisterCamera(GCHandle.ToIntPtr(_cameraHandle));
+            _upscaleInfoMemory = Native.RegisterCamera(GCHandle.ToIntPtr(_cameraHandle));
         }
 
         ~Plugin()
         {
-            Native.UnregisterCamera(GCHandle.ToIntPtr(_cameraHandle));
+            Native.UnregisterCamera(GCHandle.ToIntPtr(_cameraHandle), _upscaleInfoMemory);
             _cameraHandle.Free();
         }
 
-        internal void Upscale(CommandBuffer cb) =>
-            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Upscale, GCHandle.ToIntPtr(_cameraHandle));
+        internal void Upscale(CommandBuffer cb, Texture color, Texture depth, Texture motion, Texture output)
+        {
+            Marshal.StructureToPtr(new UpscaleInfo
+            {
+                _camera = GCHandle.ToIntPtr(_cameraHandle),
+                _color = color.GetNativeTexturePtr(), _colorFormat = color.graphicsFormat,
+                _depth = depth.GetNativeTexturePtr(), _depthFormat = depth.graphicsFormat,
+                _motion = motion.GetNativeTexturePtr(), _motionFormat = motion.graphicsFormat,
+                _output = output.GetNativeTexturePtr(), _outputFormat = output.graphicsFormat
+            }, _upscaleInfoMemory, false);
+            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Upscale, _upscaleInfoMemory);
+            Marshal.DestroyStructure<UpscaleInfo>(_upscaleInfoMemory);
+        }
 
         internal void Prepare(CommandBuffer cb) =>
             cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Prepare, GCHandle.ToIntPtr(_cameraHandle));
 
         internal static bool IsSupported(Settings.Upscaler mode) =>
             Native.IsSupported(mode);
-
-        internal Upscaler.Status SetUpscaler(Settings.Upscaler mode) =>
-            Native.SetUpscaler(GCHandle.ToIntPtr(_cameraHandle), mode);
         
         internal Upscaler.Status GetStatus() =>
             Native.GetStatus(GCHandle.ToIntPtr(_cameraHandle));
@@ -125,26 +134,6 @@ namespace Conifer.Upscaler.Scripts.impl
 
         internal void ResetHistory() =>
             Native.ResetHistory(GCHandle.ToIntPtr(_cameraHandle));
-
-        internal Upscaler.Status SetDepth(RenderTexture texture) =>
-            Native.SetDepth(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeDepthBufferPtr(), texture.depthStencilFormat);
-
-        internal Upscaler.Status SetInputColor(RenderTexture texture) =>
-            Native.SetInputColor(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal Upscaler.Status SetMotionVectors(RenderTexture texture) =>
-            Native.SetMotionVectors(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal Upscaler.Status SetOutputColor(RenderTexture texture) =>
-            Native.SetOutputColor(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal void UnregisterCamera() =>
-            Native.UnregisterCamera(GCHandle.ToIntPtr(_cameraHandle));
-
-        internal static GraphicsFormat MotionFormat()
-        {
-            return GraphicsFormat.R16G16_SFloat;
-        }
 
         internal GraphicsFormat ColorFormat()
         {

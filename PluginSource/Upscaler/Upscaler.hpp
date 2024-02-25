@@ -100,6 +100,7 @@ public:
             Balanced,
             Performance,
             UltraPerformance,
+            QUALITY_MODE_MAX_ENUM
         };
 
         struct Resolution {
@@ -200,8 +201,8 @@ public:
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                 case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                default: return NVSDK_NGX_PerfQuality_Value_Balanced;
             }
-            return NVSDK_NGX_PerfQuality_Value_Balanced;
         }
 #endif
     } settings;
@@ -241,11 +242,12 @@ public:
 
     virtual Status initialize()                                                                     = 0;
     virtual Status create()                                                                         = 0;
-    virtual Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
-    virtual Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
-    virtual Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
-    virtual Status evaluate()                                                                       = 0;
+    virtual Status evaluate(
+      void* colorHandle, UnityRenderingExtTextureFormat colorFormat,
+      void* depthHandle, UnityRenderingExtTextureFormat depthFormat,
+      void* motionHandle, UnityRenderingExtTextureFormat motionFormat,
+      void* outputHandle, UnityRenderingExtTextureFormat outputFormat
+      ) = 0;
     virtual Status shutdown()                                                                       = 0;
 
     /// Returns the current status.

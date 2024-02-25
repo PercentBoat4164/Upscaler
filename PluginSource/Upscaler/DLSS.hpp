@@ -55,7 +55,7 @@ class DLSS final : public Upscaler {
         RAII_NGXVulkanResource& operator=(const RAII_NGXVulkanResource& other) = default;
         RAII_NGXVulkanResource& operator=(RAII_NGXVulkanResource&& other)      = default;
 
-        void                   ChangeResource(const NVSDK_NGX_ImageViewInfo_VK& info);
+        void                   ChangeResource(VkImageView view, VkImage image, VkImageAspectFlags aspect, VkFormat format, Settings::Resolution resolution);
         NVSDK_NGX_Resource_VK& GetResource();
         void                   Destroy();
 
@@ -63,38 +63,16 @@ class DLSS final : public Upscaler {
 
     private:
         NVSDK_NGX_Resource_VK resource{};
-    };
+    }* color,* depth,* motion,* output{nullptr};
 #    endif
-
-    union Resource {
-#    ifdef ENABLE_VULKAN
-        RAII_NGXVulkanResource* vulkan;
-#    endif
-#    ifdef ENABLE_DX12
-        ID3D12Resource* dx12;
-#    endif
-#    ifdef ENABLE_DX11
-        ID3D11Resource* dx11;
-#    endif
-    };
 
     NVSDK_NGX_Handle*            featureHandle{};
     NVSDK_NGX_Parameter*         parameters{};
     NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{};
 
-    Resource inColor{nullptr};
-    Resource outColor{nullptr};
-    Resource depth{nullptr};
-    Resource motion{nullptr};
-
     static Status (DLSS::*fpInitialize)();
-    static Status (DLSS::*fpGetParameters)();
     static Status (DLSS::*fpCreate)();
-    static Status (DLSS::*fpSetDepth)(void* const, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetInputColor)(void* const, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetMotionVectors)(void* const, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpSetOutputColor)(void* const, UnityRenderingExtTextureFormat);
-    static Status (DLSS::*fpEvaluate)();
+    static Status (DLSS::*fpEvaluate)(void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat);
     static Status (DLSS::*fpRelease)();
     static Status (DLSS::*fpShutdown)();
 
@@ -108,43 +86,26 @@ class DLSS final : public Upscaler {
 
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
-    Status VulkanGetParameters();
     Status VulkanCreate();
-    Status VulkanSetDepth(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetInputColor(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetMotionVectors(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetOutputColor(void* const nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanEvaluate();
+    Status VulkanUpdateResource(RAII_NGXVulkanResource* resource, void* handle, VkFormat format, VkImageAspectFlags aspect, Settings::Resolution resolution);
+    Status VulkanEvaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
     Status VulkanRelease();
-    Status VulkanDestroyParameters();
     Status VulkanShutdown();
 #    endif
 
 #    ifdef ENABLE_DX12
     Status DX12Initialize();
-    Status DX12GetParameters();
-    Status DX12CreateFeature();
-    Status DX12SetDepth(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX12SetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX12SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX12SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX12Evaluate();
+    Status DX12Create();
+    Status DX12Evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
     Status DX12Release();
-    Status DX12DestroyParameters();
     Status DX12Shutdown();
 #    endif
 
 #    ifdef ENABLE_DX11
     Status DX11Initialize();
-    Status DX11GetParameters();
-    Status DX11CreateFeature();
-    Status DX11SetDepthBuffer(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX11SetInputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX11SetMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX11SetOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat /*unused*/);
-    Status DX11Evaluate();
+    Status DX11Create();
+    Status DX11Evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
     Status DX11Release();
-    Status DX11DestroyParameters();
     Status DX11Shutdown();
 #    endif
 
@@ -170,11 +131,7 @@ public:
 
     Status initialize() final;
     Status create() final;
-    Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
-    Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
-    Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
-    Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) final;
-    Status evaluate() final;
+    Status evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat) final;
     Status shutdown() final;
 };
 #endif

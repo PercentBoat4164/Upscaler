@@ -16,10 +16,11 @@ public:
 
     Status initialize() final;
     Status create() final;
-    Status setDepth(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
-    Status setInputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
-    Status setMotionVectors(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
-    Status setOutputColor(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) final;
-    Status evaluate() final;
+    Status evaluate(
+      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
+      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
+      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
+      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/
+      ) final;
     Status shutdown() final;
 };

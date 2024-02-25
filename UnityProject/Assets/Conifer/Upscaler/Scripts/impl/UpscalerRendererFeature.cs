@@ -8,6 +8,11 @@ namespace Conifer.Upscaler.Scripts
 {
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
+        private static readonly int ColorID = Shader.PropertyToID("_CameraColorTexture");
+        private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
+        private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
+        private static readonly int OutputID = Shader.PropertyToID("Upscaler_OutputTexture");
+        
         private class UpscalerRenderPass : ScriptableRenderPass
         {
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -18,15 +23,22 @@ namespace Conifer.Upscaler.Scripts
 
                 // Execute the upscale
                 var commandBuffer = CommandBufferPool.Get("Upscale");
-                commandBuffer.SetRenderTarget(upscaler.UpscalingData.InColorTarget.colorBuffer, upscaler.UpscalingData.InColorTarget.depthBuffer);
-                BlitLib.CopyCameraDepth(commandBuffer);
-                BlitLib.BlitToMotionTexture(commandBuffer, upscaler.UpscalingData.MotionVectorTarget);
-                upscaler.Plugin.Upscale(commandBuffer);
-                commandBuffer.Blit(upscaler.UpscalingData.OutputTarget, upscaler.UpscalingData.CameraTarget);
+                commandBuffer.GetTemporaryRT(OutputID, upscaler.OutputResolution.x, upscaler.OutputResolution.y, 0,
+                    FilterMode.Point, upscaler.Plugin.ColorFormat(), 1, true, RenderTextureMemoryless.None, false);
+                var color = Shader.GetGlobalTexture(ColorID);
+                var depth = Shader.GetGlobalTexture(DepthID);
+                var motion = Shader.GetGlobalTexture(MotionID);
+                var output = Shader.GetGlobalTexture(OutputID);
+                if (color is not null && depth is not null && motion is not null && output is not null)
+                    upscaler.Plugin.Upscale(commandBuffer, color, depth, motion, output);
                 context.ExecuteCommandBuffer(commandBuffer);
 
                 upscaler.Plugin.Camera.targetTexture = upscaler.UpscalingData.CameraTarget;
-                RenderTexture.active = upscaler.UpscalingData.CameraTarget;
+                
+                commandBuffer.Clear();
+                commandBuffer.Blit(output, upscaler.UpscalingData.CameraTarget);
+                commandBuffer.ReleaseTemporaryRT(OutputID);
+                context.ExecuteCommandBuffer(commandBuffer);
             }
         }
 
@@ -45,14 +57,14 @@ namespace Conifer.Upscaler.Scripts
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _upscalerRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion);
-            _upscalerRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 1;
+            _upscalerRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion | ScriptableRenderPassInput.Depth);
+            _upscalerRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 25;
             renderer.EnqueuePass(_upscalerRenderPass);
         }
 
         private static void PreUpscale(ScriptableRenderContext context, Camera camera)
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || !camera.enabled) return;
             var upscaler = camera.GetComponent<Upscaler>();
             if (upscaler == null)
             {
@@ -64,8 +76,7 @@ namespace Conifer.Upscaler.Scripts
 
             if (upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return;
             upscaler.UpscalingData.CameraTarget = camera.targetTexture;
-            camera.targetTexture = upscaler.UpscalingData.InColorTarget;
-            RenderTexture.active = upscaler.UpscalingData.InColorTarget;
+            camera.targetTexture = upscaler.UpscalingData.ColorTarget;
         }
 
         protected override void Dispose(bool dispose)

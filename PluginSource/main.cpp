@@ -23,10 +23,27 @@ enum Event {
     PREPARE,
 };
 
+struct UpscaleInfo {
+    const void* const camera = nullptr;
+    void* color;
+    UnityRenderingExtTextureFormat colorFormat;
+    void* depth;
+    UnityRenderingExtTextureFormat depthFormat;
+    void* motion;
+    UnityRenderingExtTextureFormat motionFormat;
+    void* output;
+    UnityRenderingExtTextureFormat outputFormat;
+};
+
 static std::unordered_map<const void*, std::unique_ptr<Upscaler>> cameraToUpscaler = {};
 
-void INTERNAL_Upscale(const void* const camera) {
-    cameraToUpscaler.at(camera)->evaluate();
+void INTERNAL_Upscale(const UpscaleInfo* const upscaleInfo) {
+
+    cameraToUpscaler.at(upscaleInfo->camera)->evaluate(
+      upscaleInfo->color, upscaleInfo->colorFormat,
+      upscaleInfo->depth, upscaleInfo->depthFormat,
+      upscaleInfo->motion, upscaleInfo->motionFormat,
+      upscaleInfo->output, upscaleInfo->outputFormat);
 }
 
 void INTERNAL_Prepare(const void* const camera) {
@@ -35,10 +52,10 @@ void INTERNAL_Prepare(const void* const camera) {
     upscaler->create();
 }
 
-void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const Event event, const void* const camera) {
+void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const Event event, const void* const data) {
     switch (event) {
-        case UPSCALE: INTERNAL_Upscale(camera); break;
-        case PREPARE: INTERNAL_Prepare(camera); break;
+        case UPSCALE: INTERNAL_Upscale(static_cast<const UpscaleInfo* const>(data)); break;
+        case PREPARE: INTERNAL_Prepare(data); break;
     }
 }
 
@@ -54,8 +71,9 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSu
     return Upscaler::FromType(type)->isSupported();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RegisterCamera(const void* const camera) {
-    std::unique_ptr<Upscaler>& upscaler = cameraToUpscaler[camera] = Upscaler::FromType(Upscaler::NONE);
+extern "C" UNITY_INTERFACE_EXPORT UpscaleInfo* UNITY_INTERFACE_API Upscaler_RegisterCamera(const void* const camera) {
+     cameraToUpscaler[camera] = Upscaler::FromType(Upscaler::NONE);
+    return new UpscaleInfo;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetCameraUpscalerStatus(const void* const camera) {
@@ -107,24 +125,9 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraH
     cameraToUpscaler.at(camera)->settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraDepth(const void* const camera, void* const nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return cameraToUpscaler.at(camera)->setDepth(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraInputColor(const void* const camera, void* const nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return cameraToUpscaler.at(camera)->setInputColor(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraMotionVectors(const void* const camera, void* const nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return cameraToUpscaler.at(camera)->setMotionVectors(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraOutputColor(const void* const camera, void* const nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return cameraToUpscaler.at(camera)->setOutputColor(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const void* const camera) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const void* const camera, UpscaleInfo* upscaleInfoMemory) {
     cameraToUpscaler.erase(camera);
+    delete upscaleInfoMemory;
 }
 
 static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
