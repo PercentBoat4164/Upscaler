@@ -41,6 +41,12 @@ std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance inst
 }
 #endif
 
+Upscaler::Status Upscaler::useImage(Plugin::ImageID imageID, UnityTextureID unityID) {
+    RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
+    textureIDs[imageID] = unityID;
+    return SUCCESS;
+}
+
 Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
@@ -70,20 +76,20 @@ bool Upscaler::resetStatus() {
     return status == SUCCESS;
 }
 
-std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
-    std::unique_ptr<Upscaler> newUpscaler = FromType(type);
+std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler = fromType(type);
     newUpscaler->userData                 = userData;
     return newUpscaler;
 }
 
-std::unique_ptr<Upscaler> Upscaler::FromType(const Type type) {
+std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     std::unique_ptr<Upscaler> newUpscaler;
     switch (type) {
         case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
 #ifdef ENABLE_DLSS
-        case DLSS: newUpscaler = std::make_unique<::DLSS>(GraphicsAPI::getType()); break;
+        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
 #endif
-        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;  /**@todo Make absent upscalers appear as unsupported.*/
     }
     return newUpscaler;
 }

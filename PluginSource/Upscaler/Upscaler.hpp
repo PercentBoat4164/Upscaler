@@ -1,15 +1,17 @@
 #pragma once
 
 #include "GraphicsAPI/GraphicsAPI.hpp"
+#include "Plugin.hpp"
 
 #ifdef ENABLE_VULKAN
 #    include <vulkan/vulkan.h>
-#    include <IUnityRenderingExtensions.h>
 #endif
 
 #ifdef ENABLE_DLSS
 #    include <nvsdk_ngx_defs.h>
 #endif
+
+#include <IUnityRenderingExtensions.h>
 
 #include <array>
 #include <cmath>
@@ -18,12 +20,16 @@
 #include <vector>
 #include <memory>
 
+#ifndef NDEBUG
 #define RETURN_ON_FAILURE(x)                \
     {                                       \
         Upscaler::Status _ = x;             \
         if (Upscaler::failure(_)) return _; \
     }                                       \
     0
+#else
+#define RETURN_ON_FAILURE(x) x
+#endif
 
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
@@ -96,6 +102,7 @@ public:
     public:
         enum QualityMode {
             Auto,
+            DLAA,
             Quality,
             Balanced,
             Performance,
@@ -156,7 +163,7 @@ public:
 
     public:
         QualityMode quality{Auto};
-        Resolution  inputResolution{};
+        Resolution  renderingResolution{};
         Resolution  dynamicMaximumInputResolution{};
         Resolution  dynamicMinimumInputResolution{};
         Resolution  outputResolution{};
@@ -197,6 +204,7 @@ public:
                         return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
+                case DLAA: return NVSDK_NGX_PerfQuality_Value_DLAA;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -221,6 +229,7 @@ protected:
     static void (*logCallback)(const char* msg);
 
     bool initialized{false};
+    std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
 
 public:
 #ifdef ENABLE_VULKAN
@@ -235,20 +244,16 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    virtual Type        getType()                                                             = 0;
-    virtual std::string getName()                                                             = 0;
+    constexpr virtual Type        getType()                                                   = 0;
+    constexpr virtual std::string getName()                                                   = 0;
     virtual bool        isSupported()                                                         = 0;
     virtual Status      getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
 
-    virtual Status initialize()                                                                     = 0;
-    virtual Status create()                                                                         = 0;
-    virtual Status evaluate(
-      void* colorHandle, UnityRenderingExtTextureFormat colorFormat,
-      void* depthHandle, UnityRenderingExtTextureFormat depthFormat,
-      void* motionHandle, UnityRenderingExtTextureFormat motionFormat,
-      void* outputHandle, UnityRenderingExtTextureFormat outputFormat
-      ) = 0;
-    virtual Status shutdown()                                                                       = 0;
+    virtual Status initialize() = 0;
+    virtual Status create()     = 0;
+    Status useImage(Plugin::ImageID imageID, UnityTextureID unityID);
+    virtual Status evaluate() = 0;
+    virtual Status shutdown() = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
@@ -263,8 +268,8 @@ public:
     /// status has been cleared.
     bool                 resetStatus();
 
-    std::unique_ptr<Upscaler>        fromType(Type type);
-    static std::unique_ptr<Upscaler> FromType(Type type);
+    std::unique_ptr<Upscaler>        copyFromType(Type type);
+    static std::unique_ptr<Upscaler> fromType(Type type);
 
     static void setLogCallback(void (*pFunction)(const char*));
 };

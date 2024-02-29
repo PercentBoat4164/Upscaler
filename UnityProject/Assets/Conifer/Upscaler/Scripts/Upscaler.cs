@@ -5,6 +5,7 @@ using System.Reflection;
 using Conifer.Upscaler.Scripts.impl;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 #if UPSCALER_USE_URP
 using UnityEngine.Rendering.Universal;
@@ -23,6 +24,7 @@ namespace Conifer.Upscaler.Scripts
         public enum Quality
         {
             Auto,
+            DLAA,
             Quality,
             Balanced,
             Performance,
@@ -50,7 +52,7 @@ namespace Conifer.Upscaler.Scripts
 
             public Vector2 ToVector2() => new() { x = X, y = Y };
         }
-        
+
         public struct CameraInfo
         {
             public CameraInfo(Camera camera)
@@ -64,49 +66,21 @@ namespace Conifer.Upscaler.Scripts
             private float _nearPlane;
             private float _verticalFOV;
         }
-        
-        public class PerFeatureSettings
-        {
-            // Require new feature
-            [NonSerialized] public Quality quality = Quality.Auto;
-            [NonSerialized] public Upscaler upscaler = Upscaler.DLSS;
 
-            public PerFeatureSettings Copy() => new() { quality = quality, upscaler = upscaler };
-            
-            public static bool operator ==(PerFeatureSettings self, PerFeatureSettings other)
-            {
-                return self.quality == other.quality && self.upscaler == other.upscaler;
-            }
-
-            public static bool operator !=(PerFeatureSettings self, PerFeatureSettings other) => !(self == other);
-
-            public override bool Equals(object obj) => (PerFeatureSettings)obj == this;
-
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(quality, upscaler);
-            }
-        }
-
-        [NonSerialized] public PerFeatureSettings FeatureSettings = new();
+        [NonSerialized] public Quality quality = Quality.Auto;
+        [NonSerialized] public Upscaler upscaler = Upscaler.DLSS;
         [NonSerialized] public float Sharpness;
         internal static float FrameTime => Time.deltaTime * 1000;
-        
-        public Settings Copy() => new() { FeatureSettings = FeatureSettings.Copy(), Sharpness = Sharpness };
 
-        public static bool operator ==(Settings self, Settings other)
-        {
-            return self.Sharpness == other.Sharpness && self.FeatureSettings == other.FeatureSettings;
-        }
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, Sharpness = Sharpness };
+
+        public static bool operator ==(Settings self, Settings other) => self.quality == other.quality && self.upscaler == other.upscaler && self.Sharpness == other.Sharpness;
 
         public static bool operator !=(Settings self, Settings other) => !(self == other);
 
         public override bool Equals(object obj) => (Settings)obj == this;
-        
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(FeatureSettings, Sharpness);
-        }
+
+        public override int GetHashCode() => HashCode.Combine(quality, upscaler, Sharpness);
     }
 
     [RequireComponent(typeof(Camera))]
@@ -153,9 +127,12 @@ namespace Conifer.Upscaler.Scripts
         public static bool Failure(Status status) => status > Status.NoUpscalerSet;
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
         public static bool NonRecoverable(Status status) => ((uint)status & ErrorRecoverable) != ErrorRecoverable;
+        
+        private static readonly int MotionID = Shader.PropertyToID("_CameraMotionVectorsTexture");
+        private static readonly int OutputID = Shader.PropertyToID("Upscaler_OutputTexture");
 
         // Camera
-        private Camera _camera;
+        internal Camera Camera;
         private bool _hdr;
 
         // Resolutions
@@ -164,7 +141,6 @@ namespace Conifer.Upscaler.Scripts
 
         internal UpscalingData UpscalingData;
         internal Plugin Plugin;
-        private Builtin _brp;
 
         // Upscaler preparer command buffer
         private CommandBuffer _upscalerPrepare;
@@ -194,11 +170,6 @@ namespace Conifer.Upscaler.Scripts
         /// Returns true if the device and operating system support the given upscaling mode
         /// Returns false if device and OS do not support Upscaling Mode
         public bool DeviceSupportsUpscalerMode(Settings.Upscaler mode) => SupportedUpscalerModes.Contains(mode);
-
-        private Vector2Int GetResolution()
-        {
-            return new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
-        }
         
         public Settings QuerySettings() => settings.Copy();
 
@@ -207,26 +178,27 @@ namespace Conifer.Upscaler.Scripts
             if (!force && settings == newSettings) return status;
             if (Application.isPlaying)
             {
-                _hdr = _camera.allowHDR;
-                OutputResolution = GetResolution();
+                _hdr = Camera.allowHDR;
+                OutputResolution = new Vector2Int(Camera.pixelWidth, Camera.pixelHeight);
                 status = Plugin.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y),
-                    newSettings.FeatureSettings.upscaler, newSettings.FeatureSettings.quality, _hdr);
+                    newSettings.upscaler, newSettings.quality, _hdr);
                 if (Failure(status)) return status;
 
                 RenderingResolution = Plugin.GetRecommendedResolution().ToVector2Int();
-                if (newSettings.FeatureSettings.upscaler != Settings.Upscaler.None && RenderingResolution == new Vector2Int(0, 0)) return status;
-                
-                UpscalingData.ManageColorTarget(Plugin, newSettings.FeatureSettings.upscaler, RenderingResolution);
+                if (newSettings.upscaler != Settings.Upscaler.None && RenderingResolution == new Vector2Int(0, 0)) return status;
+
+                UpscalingData.ManageOutputColorTarget(SystemInfo.GetGraphicsFormat(Camera.allowHDR ? DefaultFormat.HDR : DefaultFormat.LDR), newSettings.upscaler, OutputResolution);
+                UpscalingData.ManageSourceDepthTarget(newSettings.upscaler, RenderingResolution);
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
                 status = Plugin.GetStatus();
                 if (Failure(status)) return status;
 
                 var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
-                if (newSettings.FeatureSettings.upscaler == Settings.Upscaler.None)
+                if (newSettings.upscaler == Settings.Upscaler.None)
                 {
-                    mipBias = 0;
-                    _camera.ResetProjectionMatrix();
+                    mipBias = -.5f;
+                    Camera.ResetProjectionMatrix();
                 }
                 
                 foreach (var renderer in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -245,15 +217,14 @@ namespace Conifer.Upscaler.Scripts
         
         private void HandleError(Status reason, string message)
         {
-            Debug.LogError(reason + " | " + message);
+            Debug.LogWarning(reason + " | " + message);
             Debug.Log("The default Upscaler error handler reset the current Upscaler to None.");
-            settings.FeatureSettings.upscaler = Settings.Upscaler.None;
+            settings.upscaler = Settings.Upscaler.None;
             ApplySettings(settings, true);
         }
         
         public void OnEnable()
         {
-            // Check for badness causing mistakes in configuration
 #if UPSCALER_USE_URP
             if (GraphicsSettings.renderPipelineAsset is not null)
             {
@@ -282,31 +253,26 @@ namespace Conifer.Upscaler.Scripts
                     GetComponent<Camera>());
 
 
-            // Set up camera
-            _camera = GetComponent<Camera>();
-            _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+            Camera = GetComponent<Camera>();
+            Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
-            Plugin = new Plugin(_camera);
+            Plugin = new Plugin(Camera);
 
             _upscalerPrepare = new CommandBuffer();
             _upscalerPrepare.name = "Prepare upscaler";
             Plugin.Prepare(_upscalerPrepare);
-
-            _brp = new Builtin();
-
-            // Prepare the Upscaling data
+            
             UpscalingData = new UpscalingData();
 
             SupportedUpscalerModes = Enum.GetValues(typeof(Settings.Upscaler)).Cast<Settings.Upscaler>()
                 .Where(Plugin.IsSupported).ToList().AsReadOnly();
-            if (!DeviceSupportsUpscalerMode(settings.FeatureSettings.upscaler))
-                settings.FeatureSettings.upscaler = Settings.Upscaler.None;
+            if (!DeviceSupportsUpscalerMode(settings.upscaler))
+                settings.upscaler = Settings.Upscaler.None;
         }
 
-        protected internal void OnPreCull()
+        protected void Update()
         {
             if (!Application.isPlaying) return;
-            // Handle Errors
             status = Plugin.GetStatus();
             if (Failure(status))
             {
@@ -323,44 +289,60 @@ namespace Conifer.Upscaler.Scripts
                 }
             }
 
-            // Ensure images are up-to-date
-            if (OutputResolution != GetResolution() || _camera.allowHDR != _hdr)
-            {
-                status = ApplySettings(settings, true);
-                if (Failure(status)) return;
-            }
+            if (OutputResolution.x == Camera.pixelWidth && OutputResolution.y == Camera.pixelHeight &&
+                Camera.allowHDR == _hdr) return;
             
-            // Render
-            status = Plugin.SetPerFrameData(Settings.FrameTime, settings.Sharpness, new Settings.CameraInfo(_camera));
+            status = ApplySettings(settings, true);
+        }
+
+        protected internal void OnPreCull()
+        {
+            if (!Application.isPlaying) return;
+            
+            status = Plugin.SetPerFrameData(Settings.FrameTime, settings.Sharpness, new Settings.CameraInfo(Camera));
             if (Failure(status)) return;
 
-            if (settings.FeatureSettings.upscaler == Settings.Upscaler.None) return;
+            if (settings.upscaler == Settings.Upscaler.None) return;
+
+            Camera.rect = new Rect(0, 0, (float)RenderingResolution.x / OutputResolution.x,
+                (float)RenderingResolution.y / OutputResolution.y);
+            // Camera.rect = new Rect(0, 0, OutputResolution.x * ScalableBufferManager.widthScaleFactor,
+            //     OutputResolution.y * ScalableBufferManager.heightScaleFactor);
             
-            var pixelSpaceJitter = Plugin.GetJitter().ToVector2();
+            var pixelSpaceJitter = Plugin.GetJitter(true).ToVector2();
             var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
-            _camera.ResetProjectionMatrix();
-            var tempProj = _camera.projectionMatrix;
+            Camera.ResetProjectionMatrix();
+            var tempProj = Camera.projectionMatrix;
             tempProj.m02 += clipSpaceJitter.x;
             tempProj.m12 += clipSpaceJitter.y;
-            _camera.projectionMatrix = tempProj;
+            Camera.projectionMatrix = tempProj;
         }
 
-        protected void OnPreRender()
+        /**@todo Find out more about*/
+        /// [ImageEffectAfterScale]
+        protected void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None)
-                _brp.PrepareRendering(this);
+            if (!Application.isPlaying || settings.upscaler == Settings.Upscaler.None)
+            {
+                Graphics.Blit(source, destination);
+                return;
+            }
+
+            Camera.rect = new Rect(0, 0, OutputResolution.x, OutputResolution.y);
+            var outputColor = destination ? destination : UpscalingData.OutputColorTarget;
+            var sourceDepth = UpscalingData.SourceDepthTarget;
+            var upscale = new CommandBuffer();
+            upscale.name = "Upscale";
+            var motion = Shader.GetGlobalTexture(MotionID);
+            upscale.Blit(source.depthBuffer, sourceDepth.rt.depthBuffer);  // Using CopyTexture here freezes the Editor UI.
+            Plugin.Upscale(upscale, source, sourceDepth, motion, outputColor);
+            if (!destination)
+                upscale.Blit(outputColor.colorBuffer, destination);
+            
+            Graphics.ExecuteCommandBuffer(upscale);
+            Graphics.SetRenderTarget(destination);
         }
 
-        protected void OnPostRender()
-        {
-            if (Application.isPlaying && settings.FeatureSettings.upscaler != Settings.Upscaler.None)
-                _brp?.Upscale(this);
-        }
-
-        protected void OnDisable()
-        {
-            _brp.Shutdown();
-            UpscalingData?.Release();
-        }
+        protected void OnDisable() => UpscalingData?.Release();
     }
 }

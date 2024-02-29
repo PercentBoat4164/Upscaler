@@ -43,13 +43,13 @@ namespace Conifer.Upscaler.Editor
             if (_basicSettingsFoldout)
             {
                 EditorGUI.indentLevel += 1;
-                newSettings.FeatureSettings.upscaler = (Scripts.Settings.Upscaler)EditorGUILayout.EnumPopup(
+                newSettings.upscaler = (Scripts.Settings.Upscaler)EditorGUILayout.EnumPopup(
                     new GUIContent("Upscaler",
                         "Choose an Upscaler to use.\n" +
                         "\nUse None to completely disable upscaling.\n" +
                         "\nUse DLSS to enable DLSS upscaling."
-                    ), newSettings.FeatureSettings.upscaler);
-                newSettings.FeatureSettings.quality = (Scripts.Settings.Quality)EditorGUILayout.EnumPopup(
+                    ), newSettings.upscaler);
+                newSettings.quality = (Scripts.Settings.Quality)EditorGUILayout.EnumPopup(
                     new GUIContent("Quality",
                         "Choose a Quality Mode for the upscaler.\n" +
                         "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
@@ -60,7 +60,7 @@ namespace Conifer.Upscaler.Editor
                         "\nUse Balanced to upscale by 42% on each axis.\n" +
                         "\nUse Performance to upscale by 50% on each axis.\n" +
                         "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
-                    ), newSettings.FeatureSettings.quality);
+                    ), newSettings.quality);
                 EditorGUI.indentLevel -= 1;
             }
 

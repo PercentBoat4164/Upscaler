@@ -1,4 +1,6 @@
 #if UPSCALER_USE_URP
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,75 +10,68 @@ namespace Conifer.Upscaler.Scripts
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
-        private static readonly int OutputID = Shader.PropertyToID("Upscaler_OutputTexture");
+        private static readonly int SourceColorID = Shader.PropertyToID("_CameraColorTexture");
+        private static readonly int SourceDepthID = Shader.PropertyToID("_CameraDepthTexture");
+        private static Upscaler _upscaler;
         
-        private class UpscalerRenderPass : ScriptableRenderPass
+        private class UpscalePhaseOne : ScriptableRenderPass
         {
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                if (!Application.isPlaying || !_registered) return;
-                var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-                if (upscaler is null || upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return; 
-
-                var commandBuffer = CommandBufferPool.Get("Upscale");
-                commandBuffer.GetTemporaryRT(OutputID, upscaler.OutputResolution.x, upscaler.OutputResolution.y, 0,
-                    FilterMode.Point, upscaler.Plugin.ColorFormat(), 1, true, RenderTextureMemoryless.None, false);
+                var upscale = CommandBufferPool.Get("Upscale");
+                var outputColor = _upscaler.Camera.targetTexture ? _upscaler.Camera.targetTexture : _upscaler.UpscalingData.OutputColorTarget;
                 var motion = Shader.GetGlobalTexture(MotionID);
-                var output = Shader.GetGlobalTexture(OutputID);
-                if (motion is not null && output is not null)
-                    upscaler.Plugin.Upscale(commandBuffer, renderingData.cameraData.targetTexture, motion, output);
-                context.ExecuteCommandBuffer(commandBuffer);
+                var sourceColor = Shader.GetGlobalTexture(SourceColorID);
+                var originalDepth = Shader.GetGlobalTexture(SourceDepthID);
+                if (sourceColor is not null)
+                {
+                    _upscaler.Plugin.Upscale(upscale, sourceColor, originalDepth, motion,
+                        outputColor);
+                    if (!_upscaler.Camera.targetTexture)
+                        upscale.Blit(outputColor.colorBuffer, _upscaler.Camera.targetTexture);
+                }
 
-                upscaler.Plugin.Camera.targetTexture = upscaler.UpscalingData.CameraTarget;
-                
-                commandBuffer.Clear();
-                commandBuffer.Blit(output, upscaler.UpscalingData.CameraTarget);
-                commandBuffer.ReleaseTemporaryRT(OutputID);
-                context.ExecuteCommandBuffer(commandBuffer);
+                context.ExecuteCommandBuffer(upscale);
+                upscale.Release();
             }
         }
 
         // Render passes
-        private UpscalerRenderPass _upscalerRenderPass;
+        private readonly UpscalePhaseOne _upscalePhaseOne = new();
         private static bool _registered;
 
         public override void Create()
         {
-            _upscalerRenderPass = new UpscalerRenderPass();
             name = "Upscaler";
-
-            if (!_registered) RenderPipelineManager.beginCameraRendering += PreUpscale;
+            if (!_registered) RenderPipelineManager.beginContextRendering += PreUpscale;
             _registered = true;
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _upscalerRenderPass.ConfigureInput(ScriptableRenderPassInput.Motion | ScriptableRenderPassInput.Depth);
-            _upscalerRenderPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 25;
-            renderer.EnqueuePass(_upscalerRenderPass);
+            if (!Application.isPlaying || !_registered || _upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
+            _upscaler.Camera.rect = new Rect(0, 0, _upscaler.OutputResolution.x, _upscaler.OutputResolution.y);
+            _upscalePhaseOne.ConfigureInput(ScriptableRenderPassInput.Motion);
+            _upscalePhaseOne.ConfigureTarget(_upscaler.UpscalingData.OutputColorTarget);
+            _upscalePhaseOne.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 25;
+            renderer.EnqueuePass(_upscalePhaseOne);
         }
 
-        private static void PreUpscale(ScriptableRenderContext context, Camera camera)
+        private static void PreUpscale(ScriptableRenderContext context, List<Camera> cameras)
         {
-            if (!Application.isPlaying || !camera.enabled) return;
-            var upscaler = camera.GetComponent<Upscaler>();
-            if (upscaler is null)
+            if (!Application.isPlaying) return;
+            foreach (var camera in cameras.Where(camera => camera.enabled))
             {
-                Debug.LogError(
-                    "All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
-                return;
+                _upscaler = camera.GetComponent<Upscaler>();
+                if (_upscaler is null) Debug.LogError("All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
+                else _upscaler.OnPreCull();
             }
-            upscaler.OnPreCull();
-
-            if (upscaler.settings.FeatureSettings.upscaler == Settings.Upscaler.None) return;
-            upscaler.UpscalingData.CameraTarget = camera.targetTexture;
-            camera.targetTexture = upscaler.UpscalingData.ColorTarget;
         }
 
         protected override void Dispose(bool dispose)
         {
             if (!dispose) return;
-            if (_registered) RenderPipelineManager.beginCameraRendering -= PreUpscale;
+            if (_registered) RenderPipelineManager.beginContextRendering -= PreUpscale;
             _registered = false;
         }
     }

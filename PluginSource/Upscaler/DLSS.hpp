@@ -1,9 +1,8 @@
 #pragma once
 #ifdef ENABLE_DLSS
-// Project
+#    include "Plugin.hpp"
 #    include "Upscaler.hpp"
 
-// Upscaler
 #    include <nvsdk_ngx_helpers.h>
 #    ifdef ENABLE_VULKAN
 #        include <nvsdk_ngx_helpers_vk.h>
@@ -72,7 +71,7 @@ class DLSS final : public Upscaler {
 
     static Status (DLSS::*fpInitialize)();
     static Status (DLSS::*fpCreate)();
-    static Status (DLSS::*fpEvaluate)(void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat, void*, UnityRenderingExtTextureFormat);
+    static Status (DLSS::*fpEvaluate)();
     static Status (DLSS::*fpRelease)();
     static Status (DLSS::*fpShutdown)();
 
@@ -87,8 +86,8 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
     Status VulkanCreate();
-    Status VulkanUpdateResource(RAII_NGXVulkanResource* resource, void* handle, VkFormat format, VkImageAspectFlags aspect, Settings::Resolution resolution);
-    Status VulkanEvaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
+    Status VulkanUpdateResource(RAII_NGXVulkanResource* resource, Plugin::ImageID imageID);
+    Status VulkanEvaluate();
     Status VulkanRelease();
     Status VulkanShutdown();
 #    endif
@@ -96,7 +95,7 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_DX12
     Status DX12Initialize();
     Status DX12Create();
-    Status DX12Evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
+    Status DX12Evaluate();
     Status DX12Release();
     Status DX12Shutdown();
 #    endif
@@ -104,7 +103,7 @@ class DLSS final : public Upscaler {
 #    ifdef ENABLE_DX11
     Status DX11Initialize();
     Status DX11Create();
-    Status DX11Evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat);
+    Status DX11Evaluate();
     Status DX11Release();
     Status DX11Shutdown();
 #    endif
@@ -124,14 +123,20 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #    endif
 
-    Type        getType() final;
-    std::string getName() final;
+    constexpr Type        getType() final {
+        return Upscaler::DLSS;
+    };
+
+    constexpr std::string getName() final {
+        return "NVIDIA DLSS";
+    };
+
     bool        isSupported() final;
     Status      getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) final;
 
     Status initialize() final;
     Status create() final;
-    Status evaluate(void* colorHandle, UnityRenderingExtTextureFormat colorFormat, void* depthHandle, UnityRenderingExtTextureFormat depthFormat, void* motionHandle, UnityRenderingExtTextureFormat motionFormat, void* outputHandle, UnityRenderingExtTextureFormat outputFormat) final;
+    Status evaluate() final;
     Status shutdown() final;
 };
 #endif

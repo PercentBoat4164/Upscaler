@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Plugin.hpp"
 #include "Upscaler.hpp"
 
 class NoUpscaler final : public Upscaler {
@@ -9,18 +10,18 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/);
 #endif
 
-    Type        getType() final;
-    std::string getName() final;
+    constexpr Upscaler::Type getType() final {
+        return Upscaler::NONE;
+    }
+
+    constexpr std::string getName() final {
+        return "Dummy upscaler";
+    }
     bool        isSupported() final;
     Status      getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) final;
 
     Status initialize() final;
     Status create() final;
-    Status evaluate(
-      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
-      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
-      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/,
-      void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/
-      ) final;
+    Status evaluate() final;
     Status shutdown() final;
 };

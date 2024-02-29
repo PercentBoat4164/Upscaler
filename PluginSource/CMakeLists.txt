@@ -16,12 +16,14 @@ option(ENABLE_DX12 "Compiles with DX12 support. Value is only respected on Windo
 option(ENABLE_DX11 "Compiles with DX11 support. Value is only respected on Windows operating systems." ON)
 
 # At least one upscaler must be selected.
-option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on MacOS operating systems." ON)
+option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON)
 
 ######################
 # Paths and Warnings #
 ######################
-find_package(Vulkan)
+if (ENABLE_VULKAN)
+    find_package(Vulkan)
+endif ()
 
 # Ensure system supports compilation definitions
 if (NOT Vulkan_FOUND)
@@ -111,11 +113,6 @@ endif ()
 if (ENABLE_DLSS)
     add_library(dlss IMPORTED STATIC GLOBAL)
     target_include_directories(dlss INTERFACE "${DLSS_DIR}/include")
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_property(TARGET dlss APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-    elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set_property(TARGET dlss APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    endif ()
 
     cmake_path(SET DLSS_SHARED_LIB_DIR "${DLSS_DIR}/lib")
     cmake_path(SET DLSS_STATIC_LIB_DIR "${DLSS_DIR}/lib")
@@ -131,12 +128,12 @@ if (ENABLE_DLSS)
     else ()
         set(GLOBBING_EXPRESSION "*s")
     endif ()
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        cmake_path(APPEND DLSS_SHARED_LIB_DIR "rel")
-        string(APPEND GLOBBING_EXPRESSION ".lib")
-    elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         cmake_path(APPEND DLSS_SHARED_LIB_DIR "dev")
         string(APPEND GLOBBING_EXPRESSION "_dbg.lib")
+    else ()
+        cmake_path(APPEND DLSS_SHARED_LIB_DIR "rel")
+        string(APPEND GLOBBING_EXPRESSION ".lib")
     endif ()
     if (UNIX AND NOT APPLE)
         set(GLOBBING_EXPRESSION "*")
@@ -167,7 +164,8 @@ endif ()
 
 # Add source files for selected upscalers
 if (ENABLE_DLSS)
-    set(DLSS_SOURCES Upscaler/DLSS.cpp)
+    set(DLSS_SOURCES Upscaler/DLSS.cpp
+            Plugin.hpp)
 endif ()
 
 # Add library and link Unity files
@@ -182,6 +180,7 @@ add_library(GfxPluginUpscaler main.cpp
         GraphicsAPI/GraphicsAPI.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
+        Plugin.hpp
 )
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")

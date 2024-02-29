@@ -1,5 +1,5 @@
 #include "NoUpscaler.hpp"
-
+#ifdef ENABLE_VULKAN
 std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/) {
     return {};
 }
@@ -7,14 +7,7 @@ std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::
 std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/) {
     return {};
 }
-
-Upscaler::Type NoUpscaler::getType() {
-    return Upscaler::NONE;
-}
-
-std::string NoUpscaler::getName() {
-    return "Dummy upscaler";
-}
+#endif
 
 bool NoUpscaler::isSupported() {
     return true;
@@ -32,7 +25,7 @@ Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::evaluate(void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/, void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/, void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/, void* /*unused*/, UnityRenderingExtTextureFormat /*unused*/) {
+Upscaler::Status NoUpscaler::evaluate() {
     return NO_UPSCALER_SET;
 }
 
