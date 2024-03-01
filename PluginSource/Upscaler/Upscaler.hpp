@@ -21,14 +21,14 @@
 #include <memory>
 
 #ifndef NDEBUG
-#define RETURN_ON_FAILURE(x)                \
-    {                                       \
-        Upscaler::Status _ = x;             \
-        if (Upscaler::failure(_)) return _; \
-    }                                       \
-    0
+#    define RETURN_ON_FAILURE(x)                \
+        {                                       \
+            Upscaler::Status _ = x;             \
+            if (Upscaler::failure(_)) return _; \
+        }                                       \
+        0
 #else
-#define RETURN_ON_FAILURE(x) x
+#    define RETURN_ON_FAILURE(x) x
 #endif
 
 class Upscaler {
@@ -70,8 +70,8 @@ public:
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_PRESET_NOT_AVAILABLE                       = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
         GENERIC_ERROR                                             = 4U << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -90,6 +90,7 @@ public:
 #ifdef ENABLE_DLSS
         DLSS,
 #endif
+        TYPE_MAX_ENUM
     };
 
     enum SupportState {
@@ -100,7 +101,7 @@ public:
 
     class Settings {
     public:
-        enum QualityMode {
+        enum Quality {
             Auto,
             DLAA,
             Quality,
@@ -108,6 +109,14 @@ public:
             Performance,
             UltraPerformance,
             QUALITY_MODE_MAX_ENUM
+        };
+
+        enum Preset {
+            Default,
+            Stable,
+            FastPaced,
+            AnitGhosting,
+            PRESET_MAX_ENUM
         };
 
         struct Resolution {
@@ -162,17 +171,22 @@ public:
         };
 
     public:
-        QualityMode quality{Auto};
-        Resolution  renderingResolution{};
-        Resolution  dynamicMaximumInputResolution{};
-        Resolution  dynamicMinimumInputResolution{};
-        Resolution  outputResolution{};
-        Halton      jitterGenerator;
-        Jitter      jitter{0.F, 0.F};
-        float       sharpness{};
-        bool        HDR{};
-        float       frameTime{};
-        bool        resetHistory{};
+        Preset preset{Default};
+
+        enum Quality quality {
+            Auto
+        };
+
+        Resolution renderingResolution{};
+        Resolution dynamicMaximumInputResolution{};
+        Resolution dynamicMinimumInputResolution{};
+        Resolution outputResolution{};
+        Halton     jitterGenerator;
+        Jitter     jitter{0.F, 0.F};
+        float      sharpness{};
+        bool       HDR{};
+        float      frameTime{};
+        bool       resetHistory{};
 
         struct Camera {
             float farPlane;
@@ -186,7 +200,7 @@ public:
         }
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] QualityMode getQuality() const {
+        [[nodiscard]] enum Quality getQuality() const {
             return quality;
         }
 
@@ -228,7 +242,7 @@ protected:
 
     static void (*logCallback)(const char* msg);
 
-    bool initialized{false};
+    bool                                                  initialized{false};
     std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
 
 public:
@@ -244,14 +258,14 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    constexpr virtual Type        getType()                                                   = 0;
-    constexpr virtual std::string getName()                                                   = 0;
-    virtual bool        isSupported()                                                         = 0;
-    virtual Status      getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
+    constexpr virtual Type        getType()                                                                                = 0;
+    constexpr virtual std::string getName()                                                                                = 0;
+    virtual bool                  isSupported()                                                                            = 0;
+    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
     virtual Status create()     = 0;
-    Status useImage(Plugin::ImageID imageID, UnityTextureID unityID);
+    Status         useImage(Plugin::ImageID imageID, UnityTextureID unityID);
     virtual Status evaluate() = 0;
     virtual Status shutdown() = 0;
 

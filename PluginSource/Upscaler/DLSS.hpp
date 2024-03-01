@@ -62,7 +62,7 @@ class DLSS final : public Upscaler {
 
     private:
         NVSDK_NGX_Resource_VK resource{};
-    }* color,* depth,* motion,* output{nullptr};
+    } *color, *depth, *motion, *output{nullptr};
 #    endif
 
     NVSDK_NGX_Handle*            featureHandle{};
@@ -123,7 +123,7 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #    endif
 
-    constexpr Type        getType() final {
+    constexpr Type getType() final {
         return Upscaler::DLSS;
     };
 
@@ -131,8 +131,8 @@ public:
         return "NVIDIA DLSS";
     };
 
-    bool        isSupported() final;
-    Status      getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) final;
+    bool   isSupported() final;
+    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode, bool hdr) final;
 
     Status initialize() final;
     Status create() final;

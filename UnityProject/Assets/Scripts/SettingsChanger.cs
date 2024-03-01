@@ -27,6 +27,7 @@ public class SettingsChanger : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.E))
             settings.upscaler = (Settings.Upscaler)6;
 
+        // Does nothing if settings have not changed.
         _upscaler.ApplySettings(settings);  // Be sure to handle errors here or have an error handler registered.
     }
 }

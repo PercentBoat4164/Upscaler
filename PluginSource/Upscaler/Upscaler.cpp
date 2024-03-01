@@ -89,7 +89,7 @@ std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
 #ifdef ENABLE_DLSS
         case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
 #endif
-        default: newUpscaler = std::make_unique<NoUpscaler>(); break;  /**@todo Make absent upscalers appear as unsupported.*/
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
     }
     return newUpscaler;
 }

@@ -17,8 +17,9 @@ public:
     constexpr std::string getName() final {
         return "Dummy upscaler";
     }
-    bool        isSupported() final;
-    Status      getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) final;
+
+    bool   isSupported() final;
+    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) final;
 
     Status initialize() final;
     Status create() final;

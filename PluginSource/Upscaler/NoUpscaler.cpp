@@ -13,7 +13,7 @@ bool NoUpscaler::isSupported() {
     return true;
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::QualityMode /*unused*/, bool /*unused*/) {
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) {
     return NO_UPSCALER_SET;
 }
 

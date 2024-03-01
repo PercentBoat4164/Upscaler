@@ -49,8 +49,8 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSu
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
-    auto iter = std::find_if(upscalers.begin(), upscalers.end(), [](std::unique_ptr<Upscaler>& upscaler){ return !upscaler; });
-    uint16_t id = iter - upscalers.begin();
+    auto     iter = std::find_if(upscalers.begin(), upscalers.end(), [](std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
+    uint16_t id   = iter - upscalers.begin();
     if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
     else *iter = Upscaler::fromType(Upscaler::NONE);
     return id;
@@ -69,31 +69,50 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_ResetCameraU
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFeatureSettings(
-  uint16_t                              camera,
-  const Upscaler::Settings::Resolution  resolution,
-  const Upscaler::Type                  type,
-  const Upscaler::Settings::QualityMode quality,
-  const bool                            hdr
+  uint16_t                               camera,
+  const Upscaler::Settings::Resolution   resolution,
+  const Upscaler::Type                   type,
+  const Upscaler::Settings::Preset       preset,
+  const enum Upscaler::Settings::Quality quality,
+  const bool                             hdr
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    if (upscaler->getType() != type)
-        upscaler = upscaler->copyFromType(type);
-    return upscaler->getOptimalSettings(resolution, quality, hdr);
+    if (upscaler->getType() != type) upscaler = upscaler->copyFromType(type);
+    return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(uint16_t camera) {
     return upscalers[camera]->settings.renderingResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(uint16_t camera, float frameTime, float sharpness, Upscaler::Settings::Camera cameraInfo) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMaximumCameraResolution(uint16_t camera) {
+    return upscalers[camera]->settings.dynamicMaximumInputResolution;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(uint16_t camera) {
+    return upscalers[camera]->settings.dynamicMinimumInputResolution;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(
+  uint16_t                       camera,
+  float                          frameTime,
+  float                          sharpness,
+  Upscaler::Settings::Resolution inputResolution,
+  Upscaler::Settings::Camera     cameraInfo
+) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    Upscaler::Status           status   = upscaler->setStatusIf(sharpness < 0.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too small. Expected a value between 0 and 1 inclusive.");
+    upscaler->setStatusIf(sharpness < 0.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too small. Expected a value between 0 and 1 inclusive.");
+    upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
+    upscaler->setStatusIf(inputResolution.width < upscaler->settings.dynamicMinimumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution width (" + std::to_string(inputResolution.width) + ") is too small. It must be greater than or equal to " + std::to_string(upscaler->settings.dynamicMinimumInputResolution.width) + ".");
+    upscaler->setStatusIf(inputResolution.width > upscaler->settings.dynamicMaximumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution width (" + std::to_string(inputResolution.width) + ") is too big. It must be less than or equal to " + std::to_string(upscaler->settings.dynamicMaximumInputResolution.width) + ".");
+    upscaler->setStatusIf(inputResolution.height < upscaler->settings.dynamicMinimumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution height (" + std::to_string(inputResolution.height) + ") is too small. It must be greater than or equal to " + std::to_string(upscaler->settings.dynamicMinimumInputResolution.height) + ".");
+    Upscaler::Status status = upscaler->setStatusIf(inputResolution.height > upscaler->settings.dynamicMaximumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution height (" + std::to_string(inputResolution.height) + ") is too big. It must be less than or equal to " + std::to_string(upscaler->settings.dynamicMaximumInputResolution.height) + ".");
     if (Upscaler::failure(status)) return status;
-    status = upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
-    if (Upscaler::failure(status)) return status;
-    upscaler->settings.frameTime = frameTime;
-    upscaler->settings.sharpness = sharpness;
-    upscaler->settings.camera    = cameraInfo;
+
+    upscaler->settings.frameTime           = frameTime;
+    upscaler->settings.sharpness           = sharpness;
+    upscaler->settings.renderingResolution = inputResolution;
+    upscaler->settings.camera              = cameraInfo;
     return Upscaler::SUCCESS;
 }
 

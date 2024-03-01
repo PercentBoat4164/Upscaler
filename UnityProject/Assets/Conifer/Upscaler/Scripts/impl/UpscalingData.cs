@@ -11,33 +11,37 @@ namespace Conifer.Upscaler.Scripts.impl
             SourceColor,
             SourceDepth,
             Motion,
-            OutputColor,
+            OutputColor
         }
-        
-        internal RTHandle OutputColorTarget = null;
-        internal RTHandle SourceDepthTarget = null;
 
-        internal void ManageOutputColorTarget(GraphicsFormat format, Settings.Upscaler upscaler, Vector2Int resolution) 
+        internal RTHandle OutputColorTarget;
+        internal RTHandle SourceDepthTarget;
+
+        internal void ManageOutputColorTarget(GraphicsFormat format, Settings.Upscaler upscaler, Vector2Int resolution)
         {
             if (OutputColorTarget is not null)
             {
                 OutputColorTarget.Release();
                 OutputColorTarget = null;
             }
+
             if (upscaler == Settings.Upscaler.None) return;
-            OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
+            OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point,
+                TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
         }
 
-        internal void ManageSourceDepthTarget(Settings.Upscaler upscaler, Vector2Int resolution)
+        internal void ManageSourceDepthTarget(bool dynamicResolution, Settings.Upscaler upscaler, Vector2Int resolution)
         {
             if (SourceDepthTarget is not null)
             {
                 SourceDepthTarget.Release();
                 SourceDepthTarget = null;
             }
-            
+
             if (upscaler == Settings.Upscaler.None) return;
-            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32, SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil));
+            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32,
+                SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat,
+                TextureDimension.Tex2D, false, false, false, false, 1, 0f, MSAASamples.None, false, dynamicResolution);
         }
 
         public void Release()

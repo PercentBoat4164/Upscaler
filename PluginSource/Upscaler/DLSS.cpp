@@ -108,7 +108,7 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, flags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
-    VkImageView view  = Vulkan::createImageView(image.image, image.format, image.aspect);
+    VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
     RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create a valid `VkImageView`."));
     resource->ChangeResource(view, image.image, image.aspect, image.format, {image.extent.width, image.extent.height});
     return SUCCESS;
@@ -472,31 +472,54 @@ std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance
 bool DLSS::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
-#   ifdef ENABLE_VULKAN
+#    ifdef ENABLE_VULKAN
     if (instanceExtensionsSupported == UNSUPPORTED || deviceExtensionsSupported == UNSUPPORTED) {
         supported = UNSUPPORTED;
         return false;
     }
-#   endif
+#    endif
     return (supported = success(getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
 Upscaler::Status
-DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::QualityMode mode, const bool hdr) {
+DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
     RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
     RETURN_ON_FAILURE(setStatusIf(mode >= Upscaler::Settings::QUALITY_MODE_MAX_ENUM, SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, "The selected quality mode is unavailable or invalid."));
+    RETURN_ON_FAILURE(setStatusIf(preset >= Upscaler::Settings::PRESET_MAX_ENUM, SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected DLSS preset is unavailable or invalid."));
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.HDR              = hdr;
     optimalSettings.quality          = mode;
+    optimalSettings.preset           = preset;
 
     RETURN_ON_FAILURE(setStatus(NGX_DLSS_GET_OPTIMAL_SETTINGS(parameters, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::DLSS>(), &optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, &optimalSettings.dynamicMaximumInputResolution.width, &optimalSettings.dynamicMaximumInputResolution.height, &optimalSettings.dynamicMinimumInputResolution.width, &optimalSettings.dynamicMinimumInputResolution.height, &optimalSettings.sharpness), "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the output resolution, sharpness is between 0.0 and 1.0, and that the Quality setting is a valid enum value."));
 
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
+
+    NVSDK_NGX_DLSS_Hint_Render_Preset NGXPreset{NVSDK_NGX_DLSS_Hint_Render_Preset_Default};
+    switch (preset) {
+        case Settings::Default: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_Default; break;
+        case Settings::Stable: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_D; break;
+        case Settings::FastPaced: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_C; break;
+        case Settings::AnitGhosting: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_A; break;
+    }
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, NGXPreset);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, NGXPreset);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, NGXPreset);
+
+    switch (preset) {
+        case Settings::Default: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_Default; break;
+        case Settings::Stable: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_F; break;
+        case Settings::FastPaced: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_C; break;
+        case Settings::AnitGhosting: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_B; break;
+    }
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NGXPreset);
+    NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NGXPreset);
+
     settings = optimalSettings;
     settings.jitterGenerator.generate(settings.renderingResolution, settings.outputResolution);
     return SUCCESS;
