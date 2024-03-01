@@ -7,8 +7,8 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Scripts.Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
-        private bool _advancedSettingsFoldout;
         private bool _basicSettingsFoldout = true;
+        private bool _advancedSettingsFoldout;
 
         public override void OnInspectorGUI()
         {
@@ -39,7 +39,7 @@ namespace Conifer.Upscaler.Editor
             ), new GUIContent(status.ToString()), style);
 
             var newSettings = upscalerObject.QuerySettings();
-
+            
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
             if (_basicSettingsFoldout)
             {
@@ -51,6 +51,7 @@ namespace Conifer.Upscaler.Editor
                         "\nUse DLSS to enable NVIDIA's Deep Learning Super Sampling upscaling."
                     ), newSettings.upscaler);
                 if (newSettings.upscaler != Settings.Upscaler.None)
+                {
                     newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
                         new GUIContent("Quality",
                             "Choose a Quality Mode for the upscaler.\n" +
@@ -63,13 +64,13 @@ namespace Conifer.Upscaler.Editor
                             "\nUse Performance to upscale by 50% on each axis.\n" +
                             "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
                         ), newSettings.quality);
+                }
                 EditorGUI.indentLevel -= 1;
             }
 
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
-                _advancedSettingsFoldout =
-                    EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Upscaler Settings");
+                _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Upscaler Settings");
                 if (_advancedSettingsFoldout)
                 {
                     EditorGUI.indentLevel += 1;
@@ -80,6 +81,7 @@ namespace Conifer.Upscaler.Editor
                             "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
                         ), newSettings.sharpness, 0f, 1f);
                     if (newSettings.upscaler == Settings.Upscaler.DLSS)
+                    {
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
                             new GUIContent("DLSS Preset",
                                 "For most applications this can be left at Default.\n" +
@@ -88,7 +90,8 @@ namespace Conifer.Upscaler.Editor
                                 "\nUse Stable if your application tends to move the contents of the screen slowly. It prefers to keep information from previous frames.\n" +
                                 "\nUse Fast Paced if your application tends to move the contents of the screen quickly. It prefers to use information from the current frame.\n" +
                                 "\nUse Anti Ghosting if your application fails to provide all of the necessary motion vectors to DLSS."
-                            ), newSettings.DLSSpreset);
+                    ), newSettings.DLSSpreset);
+                    }
                     EditorGUI.indentLevel -= 1;
                 }
             }

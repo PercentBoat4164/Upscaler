@@ -11,23 +11,21 @@ namespace Conifer.Upscaler.Scripts.impl
             SourceColor,
             SourceDepth,
             Motion,
-            OutputColor
+            OutputColor,
         }
-
+        
         internal RTHandle OutputColorTarget;
         internal RTHandle SourceDepthTarget;
 
-        internal void ManageOutputColorTarget(GraphicsFormat format, Settings.Upscaler upscaler, Vector2Int resolution)
+        internal void ManageOutputColorTarget(GraphicsFormat format, Settings.Upscaler upscaler, Vector2Int resolution) 
         {
             if (OutputColorTarget is not null)
             {
                 OutputColorTarget.Release();
                 OutputColorTarget = null;
             }
-
             if (upscaler == Settings.Upscaler.None) return;
-            OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point,
-                TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
+            OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
         }
 
         internal void ManageSourceDepthTarget(bool dynamicResolution, Settings.Upscaler upscaler, Vector2Int resolution)
@@ -37,7 +35,6 @@ namespace Conifer.Upscaler.Scripts.impl
                 SourceDepthTarget.Release();
                 SourceDepthTarget = null;
             }
-
             if (upscaler == Settings.Upscaler.None) return;
             SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32,
                 SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat,
