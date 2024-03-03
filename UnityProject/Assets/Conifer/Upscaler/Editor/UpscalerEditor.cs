@@ -97,13 +97,6 @@ namespace Conifer.Upscaler.Editor
                 }
             }
 
-            if (upscalerObject.GetComponent<Camera>().allowDynamicResolution)
-            {
-                drs = EditorGUILayout.Slider(new GUIContent("DRS Scale"), ScalableBufferManager.widthScaleFactor,
-                    upscalerObject.MinRenderScale, upscalerObject.MaxRenderScale);
-                ScalableBufferManager.ResizeBuffers(drs, drs);
-            }
-
             upscalerObject.ApplySettings(newSettings);
         }
     }
