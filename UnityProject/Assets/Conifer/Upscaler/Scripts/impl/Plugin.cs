@@ -45,7 +45,7 @@ namespace Conifer.Upscaler.Scripts.impl
         public static extern Settings.Resolution GetMinimumResolution(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        public static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.Resolution resolution, Settings.CameraInfo cameraInfo);
+        public static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
         public static extern Settings.Jitter GetJitter(uint camera, bool advance);
@@ -79,7 +79,11 @@ namespace Conifer.Upscaler.Scripts.impl
         internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture sourceDepth, Texture motion, Texture outputColor)
         {
             if (sourceColor is null || sourceDepth is null || motion is null || outputColor is null)
+            {
                 Debug.LogError("Upscaler received a null Texture object. Skipping the 'Upscale' step for this frame.");
+                return;
+            }
+
             cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), sourceColor, _cameraID | (int)UpscalingData.ImageID.SourceColor << 16);
             cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), sourceDepth, _cameraID | (int)UpscalingData.ImageID.SourceDepth << 16);
             cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), motion,      _cameraID | (int)UpscalingData.ImageID.Motion      << 16);
@@ -106,8 +110,8 @@ namespace Conifer.Upscaler.Scripts.impl
 
         internal Settings.Resolution GetMinimumResolution() => Native.GetMinimumResolution(_cameraID);
 
-        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.Resolution resolution, Settings.CameraInfo cameraInfo) =>
-            Native.SetPerFrameData(_cameraID, frameTime, sharpness, resolution, cameraInfo);
+        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo) =>
+            Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo);
 
         internal Settings.Jitter GetJitter(bool advance) => Native.GetJitter(_cameraID, advance);
 

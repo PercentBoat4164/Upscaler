@@ -1,6 +1,7 @@
 #if UPSCALER_USE_URP
 using System.Collections.Generic;
 using System.Linq;
+using Conifer.Upscaler.Scripts.impl;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -14,22 +15,24 @@ namespace Conifer.Upscaler.Scripts
         private static readonly int SourceDepthID = Shader.PropertyToID("_CameraDepthTexture");
         private static Upscaler _upscaler;
         
-        private class UpscalePhaseOne : ScriptableRenderPass
+        private class Upscale : ScriptableRenderPass
         {
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var sourceDepth = Shader.GetGlobalTexture(SourceDepthID);
                 if (sourceDepth is null) return;
-                var upscale = CommandBufferPool.Get("Upscale");
                 var outputColor = _upscaler.Camera.targetTexture ? _upscaler.Camera.targetTexture : _upscaler.UpscalingData.OutputColorTarget;
-                upscale.Blit(sourceDepth, _upscaler.UpscalingData.SourceDepthTarget);
-                _upscaler.Plugin.Upscale(upscale, Shader.GetGlobalTexture(SourceColorID), _upscaler.UpscalingData.SourceDepthTarget, Shader.GetGlobalTexture(MotionID), outputColor);
+                var motion = Shader.GetGlobalTexture(MotionID);
+                if (motion is null) return;
+                
+                var upscale = CommandBufferPool.Get("Upscale");
+                _upscaler.UpscalingData.BlitToSourceDepth(upscale, sourceDepth);
+                _upscaler.Plugin.Upscale(upscale, Shader.GetGlobalTexture(SourceColorID),
+                    _upscaler.UpscalingData.SourceDepthTarget, motion, outputColor);
                 if (_upscaler.Camera.targetTexture is null)
-                {
                     upscale.Blit(outputColor.colorBuffer, _upscaler.Camera.targetTexture);
-                } else {
+                else
                     upscale.Blit(_upscaler.UpscalingData.SourceDepthTarget, _upscaler.Camera.targetTexture.depthBuffer);
-                }
 
                 context.ExecuteCommandBuffer(upscale);
                 upscale.Release();
@@ -37,7 +40,7 @@ namespace Conifer.Upscaler.Scripts
         }
 
         // Render passes
-        private readonly UpscalePhaseOne _upscalePhaseOne = new();
+        private readonly Upscale _upscale = new();
         private static bool _registered;
 
         public override void Create()
@@ -51,10 +54,10 @@ namespace Conifer.Upscaler.Scripts
         {
             if (!Application.isPlaying || !_registered || _upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
             _upscaler.Camera.rect = new Rect(0, 0, _upscaler.OutputResolution.x, _upscaler.OutputResolution.y);
-            _upscalePhaseOne.ConfigureInput(ScriptableRenderPassInput.Motion);
-            _upscalePhaseOne.ConfigureTarget(_upscaler.UpscalingData.OutputColorTarget);
-            _upscalePhaseOne.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 25;
-            renderer.EnqueuePass(_upscalePhaseOne);
+            _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
+            _upscale.ConfigureTarget(_upscaler.UpscalingData.OutputColorTarget);
+            _upscale.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing + 25;
+            renderer.EnqueuePass(_upscale);
         }
 
         private static void PreUpscale(ScriptableRenderContext context, List<Camera> cameras)

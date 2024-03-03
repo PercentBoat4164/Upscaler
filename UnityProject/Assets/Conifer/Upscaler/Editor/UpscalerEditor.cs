@@ -9,6 +9,7 @@ namespace Conifer.Upscaler.Editor
     {
         private bool _basicSettingsFoldout = true;
         private bool _advancedSettingsFoldout;
+        private float drs = 1f;
 
         public override void OnInspectorGUI()
         {
@@ -94,6 +95,13 @@ namespace Conifer.Upscaler.Editor
                     }
                     EditorGUI.indentLevel -= 1;
                 }
+            }
+
+            if (upscalerObject.GetComponent<Camera>().allowDynamicResolution)
+            {
+                drs = EditorGUILayout.Slider(new GUIContent("DRS Scale"), ScalableBufferManager.widthScaleFactor,
+                    upscalerObject.MinRenderScale, upscalerObject.MaxRenderScale);
+                ScalableBufferManager.ResizeBuffers(drs, drs);
             }
 
             upscalerObject.ApplySettings(newSettings);

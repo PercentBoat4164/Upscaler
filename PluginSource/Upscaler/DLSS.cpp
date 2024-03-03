@@ -103,10 +103,12 @@ Upscaler::Status DLSS::VulkanCreate() {
 Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Plugin::ImageID imageID) {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
 
-    VkAccessFlags flags{VK_ACCESS_MEMORY_READ_BIT};
-    if (imageID == Plugin::ImageID::OutputColor) flags = VK_ACCESS_MEMORY_WRITE_BIT;
+    VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
+    if (imageID == Plugin::ImageID::OutputColor) accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
+    VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    if (imageID == Plugin::ImageID::SourceDepth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     UnityVulkanImage image{};
-    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, flags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
     RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create a valid `VkImageView`."));
@@ -120,10 +122,16 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanUpdateResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanUpdateResource(output, Plugin::ImageID::OutputColor));
 
+    NVSDK_NGX_Resource_VK& inColor = color->GetResource();
+    Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
+
+    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters = {
       .Feature = {
-        .pInColor = &color->GetResource(),
+        .pInColor = &inColor,
         .pInOutput = &output->GetResource(),
         .InSharpness = settings.sharpness,
       },
@@ -132,12 +140,12 @@ Upscaler::Status DLSS::VulkanEvaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderingResolution.width,
-        .Height = settings.renderingResolution.height,
+        .Width  = inputResolution.width,
+        .Height = inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.renderingResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.renderingResolution.height),
+      .InMVScaleX = -static_cast<float>(inputResolution.width),
+      .InMVScaleY = -static_cast<float>(inputResolution.height),
 #       ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #       endif
@@ -204,10 +212,17 @@ Upscaler::Status DLSS::DX12Create() {
 }
 
 Upscaler::Status DLSS::DX12Evaluate() {
+    ID3D12Resource* inColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
+    Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), static_cast<uint32_t>(inColorDescription.Height)};
+
+    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
       .Feature = {
-        .pInColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]),
+        .pInColor = inColor,
         .pInOutput = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
         .InSharpness = settings.sharpness,
       },
@@ -216,12 +231,12 @@ Upscaler::Status DLSS::DX12Evaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderingResolution.width,
-        .Height = settings.renderingResolution.height,
+        .Width  = inputResolution.width,
+        .Height = inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.renderingResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.renderingResolution.height),
+      .InMVScaleX = -static_cast<float>(inputResolution.width),
+      .InMVScaleY = -static_cast<float>(inputResolution.height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -274,10 +289,24 @@ Upscaler::Status DLSS::DX11Create() {
 }
 
 Upscaler::Status DLSS::DX11Evaluate() {
+    static bool errorLastFrame;
+
+    ID3D11Resource* inColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    ID3D11Texture2D* tex = nullptr;
+    HRESULT hr = inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(hr) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
+    D3D11_TEXTURE2D_DESC inColorDescription;
+    tex->GetDesc(&inColorDescription);
+
+    Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
+
+    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
       .Feature = {
-        .pInColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]),
+        .pInColor = inColor,
         .pInOutput = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
         .InSharpness = settings.sharpness,
       },
@@ -286,12 +315,12 @@ Upscaler::Status DLSS::DX11Evaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = settings.renderingResolution.width,
-        .Height = settings.renderingResolution.height,
+        .Width  = inputResolution.width,
+        .Height = inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(settings.renderingResolution.width),
-      .InMVScaleY = -static_cast<float>(settings.renderingResolution.height),
+      .InMVScaleX = -static_cast<float>(inColorDescription.Width),
+      .InMVScaleY = -static_cast<float>(inColorDescription.Height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -506,6 +535,7 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
         case Settings::Stable: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_D; break;
         case Settings::FastPaced: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_C; break;
         case Settings::AnitGhosting: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_A; break;
+        case Settings::PRESET_MAX_ENUM: RETURN_ON_FAILURE(Upscaler::setStatus(SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected preset does not exist."));
     }
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, NGXPreset);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, NGXPreset);
@@ -516,6 +546,7 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
         case Settings::Stable: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_F; break;
         case Settings::FastPaced: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_C; break;
         case Settings::AnitGhosting: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_B; break;
+        case Settings::PRESET_MAX_ENUM: RETURN_ON_FAILURE(Upscaler::setStatus(SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected preset does not exist."));
     }
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NGXPreset);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NGXPreset);

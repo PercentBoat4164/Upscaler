@@ -204,7 +204,7 @@ namespace Conifer.Upscaler.Scripts
                     MinRenderScale = (float)Math.Ceiling(Math.Max((float)resolution.x / OutputResolution.x, (float)resolution.y / OutputResolution.y) * 20) / 20;
                     if (Equals(MaxRenderScale, MinRenderScale))
                     {
-                        Debug.LogWarning("The selected quality mode does not support dynamic resolution. Dynamic resolution has been disabled.");
+                        Debug.Log("The selected quality mode does not support dynamic resolution. Dynamic resolution has been disabled.");
                         _dynamicResolution = false;
                         Camera.allowDynamicResolution = false;
                     }
@@ -332,7 +332,7 @@ namespace Conifer.Upscaler.Scripts
                     (int)(OutputResolution.y * ScalableBufferManager.heightScaleFactor));
             }
 
-            status = Plugin.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.Resolution(RenderingResolution.x, RenderingResolution.y), new Settings.CameraInfo(Camera));
+            status = Plugin.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(Camera));
             if (Failure(status)) return;
 
             if (!_dynamicResolution)
@@ -363,14 +363,12 @@ namespace Conifer.Upscaler.Scripts
             var sourceDepth = UpscalingData.SourceDepthTarget;
             var upscale = new CommandBuffer();
             upscale.name = "Upscale";
-            upscale.Blit(source.depthBuffer, UpscalingData.SourceDepthTarget.rt.colorBuffer);
+            UpscalingData.BlitToSourceDepth(upscale, source);
             Plugin.Upscale(upscale, source, sourceDepth, Shader.GetGlobalTexture(MotionID), outputColor);
             if (!destination)
-            {
                 upscale.Blit(outputColor.colorBuffer, destination);
-            } else {
+            else
                 upscale.Blit(UpscalingData.SourceDepthTarget, destination.depthBuffer);
-            }
 
             Graphics.ExecuteCommandBuffer(upscale);
             Graphics.SetRenderTarget(destination);

@@ -97,21 +97,15 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   uint16_t                       camera,
   float                          frameTime,
   float                          sharpness,
-  Upscaler::Settings::Resolution inputResolution,
   Upscaler::Settings::Camera     cameraInfo
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
     upscaler->setStatusIf(sharpness < 0.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too small. Expected a value between 0 and 1 inclusive.");
-    upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
-    upscaler->setStatusIf(inputResolution.width < upscaler->settings.dynamicMinimumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution width (" + std::to_string(inputResolution.width) + ") is too small. It must be greater than or equal to " + std::to_string(upscaler->settings.dynamicMinimumInputResolution.width) + ".");
-    upscaler->setStatusIf(inputResolution.width > upscaler->settings.dynamicMaximumInputResolution.width, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution width (" + std::to_string(inputResolution.width) + ") is too big. It must be less than or equal to " + std::to_string(upscaler->settings.dynamicMaximumInputResolution.width) + ".");
-    upscaler->setStatusIf(inputResolution.height < upscaler->settings.dynamicMinimumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution height (" + std::to_string(inputResolution.height) + ") is too small. It must be greater than or equal to " + std::to_string(upscaler->settings.dynamicMinimumInputResolution.height) + ".");
-    Upscaler::Status status = upscaler->setStatusIf(inputResolution.height > upscaler->settings.dynamicMaximumInputResolution.height, Upscaler::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The given input resolution height (" + std::to_string(inputResolution.height) + ") is too big. It must be less than or equal to " + std::to_string(upscaler->settings.dynamicMaximumInputResolution.height) + ".");
+    Upscaler::Status status = upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
     if (Upscaler::failure(status)) return status;
 
     upscaler->settings.frameTime           = frameTime;
     upscaler->settings.sharpness           = sharpness;
-    upscaler->settings.renderingResolution = inputResolution;
     upscaler->settings.camera              = cameraInfo;
     return Upscaler::SUCCESS;
 }
