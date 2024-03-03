@@ -11,6 +11,7 @@
 #    include "GraphicsAPI/Vulkan.hpp"
 #endif
 
+#include <algorithm>
 #include <memory>
 #include <unordered_map>
 
