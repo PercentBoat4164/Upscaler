@@ -1,102 +1,93 @@
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler.Scripts.impl
 {
     internal class UpscalingData
     {
-        internal RenderTexture OutputTarget;
-        internal RenderTexture InColorTarget;
-        internal RenderTexture MotionVectorTarget;
-        internal RenderTexture CameraTarget;
-
-        private readonly Plugin _plugin;
-
-        internal UpscalingData(Plugin plugin)
+        public enum ImageID
         {
-            _plugin = plugin;
+            SourceColor,
+            SourceDepth,
+            Motion,
+            OutputColor,
+        }
+        
+        internal RTHandle OutputColorTarget;
+        internal RTHandle SourceDepthTarget;
+        private static readonly Mesh Quad;
+        private readonly Material _depthCopyMaterial = new(Shader.Find("Hidden/DepthCopy"));
+        private readonly int _depthTex = Shader.PropertyToID("_Depth");
+
+        static UpscalingData()
+        {
+            Quad = new Mesh();
+            Quad.SetVertices(new Vector3[]
+            {
+                new(-1, -1, 0),
+                new(1, -1, 0),
+                new(-1, 1, 0),
+                new(1, 1, 0)
+            });
+            Quad.SetUVs(0, new Vector2[]
+            {
+                new(0, 0),
+                new(1, 0),
+                new(0, 1),
+                new(1, 1)
+            });
+            Quad.SetTriangles(new[] { 1, 0, 2, 1, 2, 3 }, 0);
         }
 
-        internal Upscaler.Status ManageOutputTarget(Settings.Upscaler upscaler, Vector2Int resolution)
+        internal void ManageOutputColorTarget(GraphicsFormat format, Settings.Upscaler upscaler, Vector2Int resolution) 
         {
-            var cameraTargetIsOutputTarget = _plugin.Camera.targetTexture == OutputTarget;
-            if (OutputTarget && OutputTarget.IsCreated())
+            if (OutputColorTarget is not null)
             {
-                OutputTarget.Release();
-                OutputTarget = null;
+                OutputColorTarget.Release();
+                OutputColorTarget = null;
             }
-
-            if (upscaler == Settings.Upscaler.None)
-                return Upscaler.Status.Success;
-
-            if (!_plugin.Camera.targetTexture | cameraTargetIsOutputTarget)
-            {
-                OutputTarget = new RenderTexture(resolution.x, resolution.y, 0, _plugin.ColorFormat())
-                {
-                    enableRandomWrite = true
-                };
-                OutputTarget.Create();
-            }
-            else
-            {
-                OutputTarget = _plugin.Camera.targetTexture;
-                /*todo Throw an error if enableRandomWrite is false on _cameraTarget. */
-            }
-
-            return _plugin.SetOutputColor(OutputTarget);
+            if (upscaler == Settings.Upscaler.None) return;
+            OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
         }
 
-        internal Upscaler.Status ManageMotionVectorTarget(Settings.Upscaler upscaler, Vector2Int resolution)
+        internal void ManageSourceDepthTarget(bool dynamicResolution, Settings.Upscaler upscaler, Vector2Int resolution)
         {
-            if (MotionVectorTarget && MotionVectorTarget.IsCreated())
+            if (SourceDepthTarget is not null)
             {
-                MotionVectorTarget.Release();
-                MotionVectorTarget = null;
+                SourceDepthTarget.Release();
+                SourceDepthTarget = null;
             }
-
-            if (upscaler == Settings.Upscaler.None)
-                return Upscaler.Status.Success;
-
-            MotionVectorTarget = new RenderTexture(resolution.x, resolution.y, 0, Plugin.MotionFormat());
-            MotionVectorTarget.Create();
-
-            return _plugin.SetMotionVectors(MotionVectorTarget);
+            if (upscaler == Settings.Upscaler.None) return;
+            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32,
+                SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat,
+                TextureDimension.Tex2D, false, false, false, false, 1, 0f, MSAASamples.None, false, dynamicResolution);
         }
 
-        internal Upscaler.Status ManageInColorTarget(Settings.Upscaler upscaler, Vector2Int resolution)
+        internal void BlitToSourceDepth(CommandBuffer cb, RenderTexture source)
         {
-            if (InColorTarget && InColorTarget.IsCreated())
-            {
-                InColorTarget.Release();
-                InColorTarget = null;
-            }
-
-            if (upscaler == Settings.Upscaler.None)
-                return Upscaler.Status.Success;
-
-            InColorTarget =
-                new RenderTexture(resolution.x, resolution.y, _plugin.ColorFormat(), Plugin.DepthFormat())
-                {
-                    filterMode = FilterMode.Point
-                };
-            InColorTarget.Create();
-
-            var status = _plugin.SetDepth(InColorTarget);
-            if (Upscaler.Failure(status))
-                return status;
-            status = _plugin.SetInputColor(InColorTarget);
-            return status;
+            _depthCopyMaterial.SetTexture(_depthTex, source, RenderTextureSubElement.Depth);
+            BlitToSourceDepth(cb);
+        }
+        
+        internal void BlitToSourceDepth(CommandBuffer cb, Texture source)
+        {
+            _depthCopyMaterial.SetTexture(_depthTex, source);
+            BlitToSourceDepth(cb);
         }
 
-        internal void Release()
+        private void BlitToSourceDepth(CommandBuffer cb)
         {
-            if (OutputTarget && OutputTarget.IsCreated())
-                OutputTarget.Release();
-
-            if (InColorTarget && InColorTarget.IsCreated())
-                InColorTarget.Release();
-
-            if (MotionVectorTarget && MotionVectorTarget.IsCreated())
-                MotionVectorTarget.Release();
+            cb.SetRenderTarget(SourceDepthTarget);
+            cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
+            cb.SetViewMatrix(Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up));
+            cb.DrawMesh(Quad, Matrix4x4.identity, _depthCopyMaterial);
+        }
+        
+        public void Release()
+        {
+            OutputColorTarget?.Release();
+            SourceDepthTarget?.Release();
         }
     }
 }

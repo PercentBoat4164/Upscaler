@@ -2,9 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using AOT;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using SystemInfo = UnityEngine.Device.SystemInfo;
 
 namespace Conifer.Upscaler.Scripts.impl
 {
@@ -12,6 +10,9 @@ namespace Conifer.Upscaler.Scripts.impl
 
     internal struct Native
     {
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
+        public static extern int GetEventIDBase();
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRenderingEventCallback")]
         public static extern IntPtr GetRenderingEventCallback();
 
@@ -22,57 +23,50 @@ namespace Conifer.Upscaler.Scripts.impl
         public static extern bool IsSupported(Settings.Upscaler mode);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
-        public static extern void RegisterCamera(IntPtr camera);
-        
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraUpscaler")]
-        public static extern Upscaler.Status SetUpscaler(IntPtr camera, Settings.Upscaler mode);
+        public static extern uint RegisterCamera();
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatus")]
-        public static extern Upscaler.Status GetStatus(IntPtr camera);
+        public static extern Upscaler.Status GetStatus(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatusMessage")]
-        public static extern IntPtr GetStatusMessage(IntPtr camera);
+        public static extern IntPtr GetStatusMessage(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFeatureSettings")]
-        public static extern Upscaler.Status SetPerFeatureSettings(IntPtr camera, Settings.Resolution resolution,
-            Settings.Upscaler upscaler, Settings.Quality quality, bool hdr);
+        public static extern Upscaler.Status SetPerFeatureSettings(uint camera, Settings.Resolution resolution,
+            Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, bool hdr);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedCameraResolution")]
-        public static extern Settings.Resolution GetRecommendedResolution(IntPtr camera);
+        public static extern Settings.Resolution GetRecommendedResolution(uint camera);
+        
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumCameraResolution")]
+        public static extern Settings.Resolution GetMaximumResolution(uint camera);
+        
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
+        public static extern Settings.Resolution GetMinimumResolution(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        public static extern Upscaler.Status SetPerFrameData(IntPtr camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
+        public static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
-        public static extern Settings.Jitter GetJitter(IntPtr camera);
+        public static extern Settings.Jitter GetJitter(uint camera, bool advance);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
-        public static extern void ResetHistory(IntPtr camera);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraDepth")]
-        public static extern Upscaler.Status SetDepth(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraInputColor")]
-        public static extern Upscaler.Status SetInputColor(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraMotionVectors")]
-        public static extern Upscaler.Status SetMotionVectors(IntPtr camera, IntPtr handle, GraphicsFormat format);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraOutputColor")]
-        public static extern Upscaler.Status SetOutputColor(IntPtr camera, IntPtr handle, GraphicsFormat format);
+        public static extern void ResetHistory(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
-        public static extern void UnregisterCamera(IntPtr camera);
+        public static extern void UnregisterCamera(uint camera);
     }
-
+    
     internal class Plugin
     {
         public readonly Camera Camera;
-        private GCHandle _cameraHandle;
+        private readonly uint _cameraID = Native.RegisterCamera();
+        private static readonly int EventIDBase = Native.GetEventIDBase();
 
         private enum Event
         {
+            Prepare,
             Upscale,
-            Prepare
         }
 
         [MonoPInvokeCallback(typeof(LogCallbackDelegate))]
@@ -80,80 +74,47 @@ namespace Conifer.Upscaler.Scripts.impl
 
         static Plugin() => Native.RegisterLogCallback(InternalLogCallback);
 
-        public Plugin(Camera camera)
-        {
-            Camera = camera;
-            _cameraHandle = GCHandle.Alloc(camera);
-            Native.RegisterCamera(GCHandle.ToIntPtr(_cameraHandle));
-        }
+        ~Plugin() => Native.UnregisterCamera(_cameraID);
 
-        ~Plugin()
+        internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture sourceDepth, Texture motion, Texture outputColor)
         {
-            Native.UnregisterCamera(GCHandle.ToIntPtr(_cameraHandle));
-            _cameraHandle.Free();
-        }
+            if (sourceColor is null || sourceDepth is null || motion is null || outputColor is null)
+            {
+                Debug.LogError("Upscaler received a null Texture object. Skipping the 'Upscale' step for this frame.");
+                return;
+            }
 
-        internal void Upscale(CommandBuffer cb) =>
-            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Upscale, GCHandle.ToIntPtr(_cameraHandle));
+            cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), sourceColor, _cameraID | (int)UpscalingData.ImageID.SourceColor << 16);
+            cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), sourceDepth, _cameraID | (int)UpscalingData.ImageID.SourceDepth << 16);
+            cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), motion,      _cameraID | (int)UpscalingData.ImageID.Motion      << 16);
+            cb.IssuePluginCustomTextureUpdateV2(Native.GetRenderingEventCallback(), outputColor, _cameraID | (int)UpscalingData.ImageID.OutputColor << 16);
+            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
+        }
 
         internal void Prepare(CommandBuffer cb) =>
-            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Prepare, GCHandle.ToIntPtr(_cameraHandle));
+            cb.IssuePluginEventAndData(Native.GetRenderingEventCallback(), (int)Event.Prepare + EventIDBase, new IntPtr(_cameraID));
 
-        internal static bool IsSupported(Settings.Upscaler mode) =>
-            Native.IsSupported(mode);
-
-        internal Upscaler.Status SetUpscaler(Settings.Upscaler mode) =>
-            Native.SetUpscaler(GCHandle.ToIntPtr(_cameraHandle), mode);
+        internal static bool IsSupported(Settings.Upscaler mode) => Native.IsSupported(mode);
         
-        internal Upscaler.Status GetStatus() =>
-            Native.GetStatus(GCHandle.ToIntPtr(_cameraHandle));
+        internal Upscaler.Status GetStatus() => Native.GetStatus(_cameraID);
 
-        internal string GetStatusMessage() =>
-            Marshal.PtrToStringAnsi(Native.GetStatusMessage(GCHandle.ToIntPtr(_cameraHandle)));
+        internal string GetStatusMessage() => Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID));
 
-        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.Quality quality, bool hdr) =>
-            Native.SetPerFeatureSettings(GCHandle.ToIntPtr(_cameraHandle), resolution, upscaler, quality, hdr);
+        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, bool hdr) =>
+            Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, hdr);
 
         internal Settings.Resolution GetRecommendedResolution() =>
-            Native.GetRecommendedResolution(GCHandle.ToIntPtr(_cameraHandle));
+            Native.GetRecommendedResolution(_cameraID);
+
+        internal Settings.Resolution GetMaximumResolution() => Native.GetMaximumResolution(_cameraID);
+
+        internal Settings.Resolution GetMinimumResolution() => Native.GetMinimumResolution(_cameraID);
 
         internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo) =>
-            Native.SetPerFrameData(GCHandle.ToIntPtr(_cameraHandle), frameTime, sharpness, cameraInfo);
+            Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo);
 
-        internal Settings.Jitter GetJitter() =>
-            Native.GetJitter(GCHandle.ToIntPtr(_cameraHandle));
+        internal Settings.Jitter GetJitter(bool advance) => Native.GetJitter(_cameraID, advance);
 
-        internal void ResetHistory() =>
-            Native.ResetHistory(GCHandle.ToIntPtr(_cameraHandle));
-
-        internal Upscaler.Status SetDepth(RenderTexture texture) =>
-            Native.SetDepth(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeDepthBufferPtr(), texture.depthStencilFormat);
-
-        internal Upscaler.Status SetInputColor(RenderTexture texture) =>
-            Native.SetInputColor(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal Upscaler.Status SetMotionVectors(RenderTexture texture) =>
-            Native.SetMotionVectors(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal Upscaler.Status SetOutputColor(RenderTexture texture) =>
-            Native.SetOutputColor(GCHandle.ToIntPtr(_cameraHandle), texture.GetNativeTexturePtr(), texture.graphicsFormat);
-
-        internal void UnregisterCamera() =>
-            Native.UnregisterCamera(GCHandle.ToIntPtr(_cameraHandle));
-
-        internal static GraphicsFormat MotionFormat()
-        {
-            return GraphicsFormat.R16G16_SFloat;
-        }
-
-        internal GraphicsFormat ColorFormat()
-        {
-            return SystemInfo.GetGraphicsFormat(Camera.allowHDR ? DefaultFormat.HDR : DefaultFormat.LDR);
-        }
-
-        internal static GraphicsFormat DepthFormat()
-        {
-            return SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
-        }
+        internal void ResetHistory() => Native.ResetHistory(_cameraID);
     }
 }

@@ -1,15 +1,17 @@
 #pragma once
 
 #include "GraphicsAPI/GraphicsAPI.hpp"
+#include "Plugin.hpp"
 
 #ifdef ENABLE_VULKAN
 #    include <vulkan/vulkan.h>
-#    include <IUnityRenderingExtensions.h>
 #endif
 
 #ifdef ENABLE_DLSS
 #    include <nvsdk_ngx_defs.h>
 #endif
+
+#include <IUnityRenderingExtensions.h>
 
 #include <array>
 #include <cmath>
@@ -18,12 +20,16 @@
 #include <vector>
 #include <memory>
 
-#define RETURN_ON_FAILURE(x)                \
-    {                                       \
-        Upscaler::Status _ = x;             \
-        if (Upscaler::failure(_)) return _; \
-    }                                       \
-    0
+#ifndef NDEBUG
+#    define RETURN_ON_FAILURE(x)                \
+        {                                       \
+            Upscaler::Status _ = x;             \
+            if (Upscaler::failure(_)) return _; \
+        }                                       \
+        0
+#else
+#    define RETURN_ON_FAILURE(x) x
+#endif
 
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
@@ -64,8 +70,8 @@ public:
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_PRESET_NOT_AVAILABLE                       = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
         /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
         GENERIC_ERROR                                             = 4U << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -84,6 +90,7 @@ public:
 #ifdef ENABLE_DLSS
         DLSS,
 #endif
+        TYPE_MAX_ENUM
     };
 
     enum SupportState {
@@ -94,12 +101,22 @@ public:
 
     class Settings {
     public:
-        enum QualityMode {
+        enum Quality {
             Auto,
+            DLAA,
             Quality,
             Balanced,
             Performance,
             UltraPerformance,
+            QUALITY_MODE_MAX_ENUM
+        };
+
+        enum Preset {
+            Default,
+            Stable,
+            FastPaced,
+            AnitGhosting,
+            PRESET_MAX_ENUM
         };
 
         struct Resolution {
@@ -154,17 +171,22 @@ public:
         };
 
     public:
-        QualityMode quality{Auto};
-        Resolution  inputResolution{};
-        Resolution  dynamicMaximumInputResolution{};
-        Resolution  dynamicMinimumInputResolution{};
-        Resolution  outputResolution{};
-        Halton      jitterGenerator;
-        Jitter      jitter{0.F, 0.F};
-        float       sharpness{};
-        bool        HDR{};
-        float       frameTime{};
-        bool        resetHistory{};
+        Preset preset{Default};
+
+        enum Quality quality {
+            Auto
+        };
+
+        Resolution renderingResolution{};
+        Resolution dynamicMaximumInputResolution{};
+        Resolution dynamicMinimumInputResolution{};
+        Resolution outputResolution{};
+        Halton     jitterGenerator;
+        Jitter     jitter{0.F, 0.F};
+        float      sharpness{};
+        bool       HDR{};
+        float      frameTime{};
+        bool       resetHistory{};
 
         struct Camera {
             float farPlane;
@@ -178,7 +200,7 @@ public:
         }
 
         template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] QualityMode getQuality() const {
+        [[nodiscard]] enum Quality getQuality() const {
             return quality;
         }
 
@@ -196,12 +218,13 @@ public:
                         return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
+                case DLAA: return NVSDK_NGX_PerfQuality_Value_DLAA;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                 case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                default: return NVSDK_NGX_PerfQuality_Value_Balanced;
             }
-            return NVSDK_NGX_PerfQuality_Value_Balanced;
         }
 #endif
     } settings;
@@ -219,7 +242,8 @@ protected:
 
     static void (*logCallback)(const char* msg);
 
-    bool initialized{false};
+    bool                                                  initialized{false};
+    std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
 
 public:
 #ifdef ENABLE_VULKAN
@@ -234,19 +258,16 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    virtual Type        getType()                                                             = 0;
-    virtual std::string getName()                                                             = 0;
-    virtual bool        isSupported()                                                         = 0;
-    virtual Status      getOptimalSettings(Settings::Resolution, Settings::QualityMode, bool) = 0;
+    constexpr virtual Type        getType()                                                                                = 0;
+    constexpr virtual std::string getName()                                                                                = 0;
+    virtual bool                  isSupported()                                                                            = 0;
+    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
-    virtual Status initialize()                                                                     = 0;
-    virtual Status create()                                                                         = 0;
-    virtual Status setDepth(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)         = 0;
-    virtual Status setInputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)    = 0;
-    virtual Status setMotionVectors(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat) = 0;
-    virtual Status setOutputColor(void* nativeHandle, UnityRenderingExtTextureFormat unityFormat)   = 0;
-    virtual Status evaluate()                                                                       = 0;
-    virtual Status shutdown()                                                                       = 0;
+    virtual Status initialize() = 0;
+    virtual Status create()     = 0;
+    Status         useImage(Plugin::ImageID imageID, UnityTextureID unityID);
+    virtual Status evaluate() = 0;
+    virtual Status shutdown() = 0;
 
     /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
@@ -261,8 +282,8 @@ public:
     /// status has been cleared.
     bool                 resetStatus();
 
-    std::unique_ptr<Upscaler>        fromType(Type type);
-    static std::unique_ptr<Upscaler> FromType(Type type);
+    std::unique_ptr<Upscaler>        copyFromType(Type type);
+    static std::unique_ptr<Upscaler> fromType(Type type);
 
     static void setLogCallback(void (*pFunction)(const char*));
 };

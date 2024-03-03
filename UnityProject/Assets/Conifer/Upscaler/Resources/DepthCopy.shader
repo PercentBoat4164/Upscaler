@@ -1,16 +1,21 @@
-Shader "Upscaler/BlitToMotionTexture"
+﻿Shader "Hidden/DepthCopy"
 {
+    Properties
+    {
+        [HideInInspector] _Depth("", 2D) = ""
+    }
+
     SubShader
     {
-        ZTest Off ZWrite Off Cull Off
+        ZTest Off ZWrite On Cull Off
         Pass
         {
-            Name "Copy Motion Vectors"
+            Name "Copy Depth Texture"
             HLSLPROGRAM
-                sampler2D _MotionVectorTexture;
+                sampler2D _Depth;
 
                 struct Attr {
-                    float3 vertex : POSITION;
+                    float4 vertex : POSITION;
                 };
 
                 struct v2f {
@@ -28,8 +33,8 @@ Shader "Upscaler/BlitToMotionTexture"
                     return output;
                 }
 
-                float2 frag(const v2f input) : SV_Target {
-                    return tex2D(_MotionVectorTexture, input.uv).xy;
+                float frag(const v2f input) : SV_Depth {
+                    return tex2D(_Depth, input.uv).r;
                 }
             ENDHLSL
         }
