@@ -6,19 +6,24 @@ namespace Conifer.Upscaler.Scripts.impl
 {
     internal class UpscalingData
     {
-        public enum ImageID
+        internal enum ImageID
         {
             SourceColor,
             SourceDepth,
             Motion,
             OutputColor,
         }
-        
+
+#if UPSCALER_USE_URP
         internal RTHandle OutputColorTarget;
         internal RTHandle SourceDepthTarget;
+#else
+        internal RenderTexture OutputColorTarget;
+        internal RenderTexture SourceDepthTarget;
+#endif
         private static readonly Mesh Quad;
-        private readonly Material _depthCopyMaterial = new(Shader.Find("Hidden/DepthCopy"));
-        private readonly int _depthTex = Shader.PropertyToID("_Depth");
+        private static readonly Material DepthCopyMaterial = new(Shader.Find("Hidden/DepthCopy"));
+        private static readonly int DepthTex = Shader.PropertyToID("_Depth");
 
         static UpscalingData()
         {
@@ -48,7 +53,12 @@ namespace Conifer.Upscaler.Scripts.impl
                 OutputColorTarget = null;
             }
             if (upscaler == Settings.Upscaler.None) return;
+#if UPSCALER_USE_URP
             OutputColorTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.None, format, FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, true);
+#else
+            OutputColorTarget = new RenderTexture(resolution.x, resolution.y, format, GraphicsFormat.None) {enableRandomWrite = true};
+            OutputColorTarget.Create();
+#endif
         }
 
         internal void ManageSourceDepthTarget(bool dynamicResolution, Settings.Upscaler upscaler, Vector2Int resolution)
@@ -59,32 +69,35 @@ namespace Conifer.Upscaler.Scripts.impl
                 SourceDepthTarget = null;
             }
             if (upscaler == Settings.Upscaler.None) return;
-            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32,
-                SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat,
-                TextureDimension.Tex2D, false, false, false, false, 1, 0f, MSAASamples.None, false, dynamicResolution);
+#if UPSCALER_USE_URP
+            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32, SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, false, false, false, false, 1, 0f, MSAASamples.None, false, dynamicResolution);
+#else
+            SourceDepthTarget = new RenderTexture(resolution.x, resolution.y, GraphicsFormat.None, SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil)) {useDynamicScale = dynamicResolution};
+            SourceDepthTarget.Create();
+#endif
         }
 
-        internal void BlitToSourceDepth(CommandBuffer cb, RenderTexture source)
+        internal static void BlitDepth(CommandBuffer cb, RenderTexture source, RenderTargetIdentifier destination)
         {
-            _depthCopyMaterial.SetTexture(_depthTex, source, RenderTextureSubElement.Depth);
-            BlitToSourceDepth(cb);
+            DepthCopyMaterial.SetTexture(DepthTex, source, RenderTextureSubElement.Depth);
+            BlitDepth(cb, destination);
         }
         
-        internal void BlitToSourceDepth(CommandBuffer cb, Texture source)
+        internal static void BlitDepth(CommandBuffer cb, Texture source, RenderTargetIdentifier destination)
         {
-            _depthCopyMaterial.SetTexture(_depthTex, source);
-            BlitToSourceDepth(cb);
+            DepthCopyMaterial.SetTexture(DepthTex, source);
+            BlitDepth(cb, destination);
         }
 
-        private void BlitToSourceDepth(CommandBuffer cb)
+        private static void BlitDepth(CommandBuffer cb, RenderTargetIdentifier destination)
         {
-            cb.SetRenderTarget(SourceDepthTarget);
+            cb.SetRenderTarget(destination);
             cb.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, -1, 1, 1, -1));
             cb.SetViewMatrix(Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up));
-            cb.DrawMesh(Quad, Matrix4x4.identity, _depthCopyMaterial);
+            cb.DrawMesh(Quad, Matrix4x4.identity, DepthCopyMaterial);
         }
         
-        public void Release()
+        internal void Release()
         {
             OutputColorTarget?.Release();
             SourceDepthTarget?.Release();
