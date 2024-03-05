@@ -18,11 +18,7 @@ bool Upscaler::failure(const Status t_status) {
 }
 
 bool Upscaler::recoverable(const Status t_status) {
-    return (t_status & ERROR_RECOVERABLE) == 1;
-}
-
-bool Upscaler::nonrecoverable(const Status t_status) {
-    return (t_status & ERROR_RECOVERABLE) == 0;
+    return (t_status & ERROR_RECOVERABLE) == ERROR_RECOVERABLE;
 }
 
 #ifdef ENABLE_VULKAN

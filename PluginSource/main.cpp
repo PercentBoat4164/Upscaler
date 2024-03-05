@@ -9,6 +9,7 @@
 
 #ifdef ENABLE_VULKAN
 #    include "GraphicsAPI/Vulkan.hpp"
+#    include "GraphicsAPI/Vulkan.hpp"
 #endif
 
 #include <algorithm>

@@ -60,11 +60,8 @@ public:
         SOFTWARE_ERROR_FEATURE_DENIED                             = SOFTWARE_ERROR | 5U << ERROR_CODE_OFFSET,
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
-        /// This likely indicates that a segfault has happened or is about to happen. Abort and avoid the crash if at all possible.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U << ERROR_CODE_OFFSET,
-        /// The safest solution to handling this status is to stop using the upscaler. It may still work, but all guarantees are void.
         SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 9U << ERROR_CODE_OFFSET,
-        /// This is an internal status that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
         SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR                                            = 3U << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U << ERROR_CODE_OFFSET,
@@ -72,7 +69,6 @@ public:
         SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_PRESET_NOT_AVAILABLE                       = SETTINGS_ERROR | 5U << ERROR_CODE_OFFSET,
-        /// A GENERIC_ERROR_* is thrown when a most likely cause has been found but it is not certain. A plain GENERIC_ERROR is thrown when there are many possible known errors.
         GENERIC_ERROR                                             = 4U << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR | 1U << ERROR_CODE_OFFSET,
         UNKNOWN_ERROR = 0xFFFFFFFE,
@@ -83,7 +79,6 @@ public:
     static bool success(Status);
     static bool failure(Status);
     static bool recoverable(Status);
-    static bool nonrecoverable(Status);
 
     enum Type {
         NONE,

@@ -11,55 +11,55 @@ namespace Conifer.Upscaler.Scripts.impl
     internal struct Native
     {
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
-        public static extern int GetEventIDBase();
+        internal static extern int GetEventIDBase();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRenderingEventCallback")]
-        public static extern IntPtr GetRenderingEventCallback();
+        internal static extern IntPtr GetRenderingEventCallback();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterGlobalLogCallback")]
-        public static extern void RegisterLogCallback(LogCallbackDelegate logCallback);
+        internal static extern void RegisterLogCallback(LogCallbackDelegate logCallback);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsUpscalerSupported")]
-        public static extern bool IsSupported(Settings.Upscaler mode);
+        internal static extern bool IsSupported(Settings.Upscaler mode);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
-        public static extern uint RegisterCamera();
+        internal static extern uint RegisterCamera();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatus")]
-        public static extern Upscaler.Status GetStatus(uint camera);
+        internal static extern Upscaler.Status GetStatus(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatusMessage")]
-        public static extern IntPtr GetStatusMessage(uint camera);
+        internal static extern IntPtr GetStatusMessage(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFeatureSettings")]
-        public static extern Upscaler.Status SetPerFeatureSettings(uint camera, Settings.Resolution resolution,
+        internal static extern Upscaler.Status SetPerFeatureSettings(uint camera, Settings.Resolution resolution,
             Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, bool hdr);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedCameraResolution")]
-        public static extern Settings.Resolution GetRecommendedResolution(uint camera);
+        internal static extern Settings.Resolution GetRecommendedResolution(uint camera);
         
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumCameraResolution")]
-        public static extern Settings.Resolution GetMaximumResolution(uint camera);
+        internal static extern Settings.Resolution GetMaximumResolution(uint camera);
         
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
-        public static extern Settings.Resolution GetMinimumResolution(uint camera);
+        internal static extern Settings.Resolution GetMinimumResolution(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        public static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
+        internal static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
-        public static extern Settings.Jitter GetJitter(uint camera, bool advance);
+        internal static extern Settings.Jitter GetJitter(uint camera, bool advance);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
-        public static extern void ResetHistory(uint camera);
+        internal static extern void ResetHistory(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
-        public static extern void UnregisterCamera(uint camera);
+        internal static extern void UnregisterCamera(uint camera);
     }
     
     internal class Plugin
     {
-        public readonly Camera Camera;
+        internal readonly Camera Camera;
         private readonly uint _cameraID = Native.RegisterCamera();
         private static readonly int EventIDBase = Native.GetEventIDBase();
 

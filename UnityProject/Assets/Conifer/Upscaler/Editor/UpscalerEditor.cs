@@ -9,7 +9,6 @@ namespace Conifer.Upscaler.Editor
     {
         private bool _basicSettingsFoldout = true;
         private bool _advancedSettingsFoldout;
-        private float drs = 1f;
 
         public override void OnInspectorGUI()
         {
