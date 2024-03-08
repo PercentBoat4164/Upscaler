@@ -1,29 +1,24 @@
-#include "DX12.hpp"
+#ifdef ENABLE_DX12
+#    include "DX12.hpp"
 
-// Upscaler
-#include <Upscaler/Upscaler.hpp>
+#    include <d3d12.h>
+#    include <d3d12compatibility.h>
 
-// Graphics API
-#include <d3d12.h>
-#include <d3d12compatibility.h>
+#    include <IUnityGraphicsD3D12.h>
 
-// Unity
-#include <IUnityGraphicsD3D12.h>
+IUnityGraphicsD3D12v7* DX12::graphicsInterface{nullptr};
 
-DX12 *DX12::get() {
-    static DX12 *dx12{new DX12};
-    return dx12;
-}
-
-GraphicsAPI::Type DX12::getType() {
-    return GraphicsAPI::DX12;
-}
-
-bool DX12::useUnityInterfaces(IUnityInterfaces *t_unityInterfaces) {
-    DX12Interface = t_unityInterfaces->Get<IUnityGraphicsD3D12v7>();
+bool DX12::registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces) {
+    graphicsInterface = t_unityInterfaces->Get<IUnityGraphicsD3D12v7>();
     return true;
 }
 
-IUnityGraphicsD3D12v7 *DX12::getUnityInterface() const {
-    return DX12Interface;
+IUnityGraphicsD3D12v7* DX12::getGraphicsInterface() {
+    return graphicsInterface;
 }
+
+bool DX12::unregisterUnityInterfaces() {
+    graphicsInterface = nullptr;
+    return true;
+}
+#endif

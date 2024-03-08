@@ -2,208 +2,213 @@
 #ifdef ENABLE_FSR2
 #    ifdef ENABLE_VULKAN
 #        include "GraphicsAPI/Vulkan.hpp"
-#    endif
 
+#        include <IUnityGraphicsVulkan.h>
+
+#        include <ffx_vk.h>
+#    endif
+#    ifdef ENABLE_DX12
+#        include "GraphicsAPI/DX12.hpp"
+
+#        include <d3d12compatibility.h>
+
+#        include <IUnityGraphicsD3D12.h>
+
+#        include <ffx_dx12.h>
+#    endif
 #    include <algorithm>
-#    include <ffx_fsr2_vk.h>
 
 Upscaler::Status (FSR2::*FSR2::fpInitialize)(){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpSetDepth)(void *, UnityRenderingExtTextureFormat){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpSetInputColor)(void *, UnityRenderingExtTextureFormat){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpSetMotionVectors)(void *, UnityRenderingExtTextureFormat){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpSetOutputColor)(void *, UnityRenderingExtTextureFormat){&FSR2::safeFail};
 Upscaler::Status (FSR2::*FSR2::fpEvaluate)(){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpRelease)(){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpShutdown)(){&FSR2::safeFail};
+
+Upscaler::SupportState FSR2::supported{UNTESTED};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR2::VulkanInitialize() {
-    VkPhysicalDevice physicalDevice = GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance().physicalDevice;
-    size_t           bufferSize     = ffxFsr2GetScratchMemorySizeVK(physicalDevice);
+    UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
+    VkDeviceContext deviceContext{
+          .vkDevice=instance.device,
+          .vkPhysicalDevice=instance.physicalDevice,
+          .vkDeviceProcAddr=Vulkan::getDeviceProcAddr()
+    };
+    device = ffxGetDeviceVK(&deviceContext);
+    size_t           bufferSize     = ffxGetScratchMemorySizeVK(instance.physicalDevice, 1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
     void *buffer = calloc(bufferSize, 1);
     RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    RETURN_ON_FAILURE(setStatus(ffxFsr2GetInterfaceVK(&interface, buffer, bufferSize, physicalDevice, Vulkan::getVkGetDeviceProcAddr()), "Upscaler is unable to get the FSR2 interface."));
+    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(&ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::VulkanSetDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."));
+Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, Plugin::ImageID imageID) {
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
 
-    VkImage        image  = *static_cast<VkImage *>(nativeHandle);
-    const VkFormat format = Vulkan::getFormat(unityFormat);
-    VkImageView    view   = GraphicsAPI::get<Vulkan>()->createImageView(image, format, VK_IMAGE_ASPECT_DEPTH_BIT);
+    VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
+    FfxResourceStates resourceStates{FFX_RESOURCE_STATE_COMPUTE_READ};
+    FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
+    if (imageID == Plugin::ImageID::OutputColor) {
+        accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
+        resourceStates = FFX_RESOURCE_STATE_RENDER_TARGET;
+        resourceUsage = FFX_RESOURCE_USAGE_RENDERTARGET;
+    }
+    VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    if (imageID == Plugin::ImageID::SourceDepth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+    UnityVulkanImage image{};
+    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
-    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, "Refused to set image resources due to an attempt to create the output color image view resulting in a `VK_NULL_HANDLE` view handle."));
-
-    depth = ffxGetTextureResourceVK(&context, image, view, settings.inputResolution.width, settings.inputResolution.height, format, L"Depth Buffer", FFX_RESOURCE_STATE_COMPUTE_READ);
-    return SUCCESS;
-}
-
-Upscaler::Status FSR2::VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given input color image being `VK_NULL_HANDLE`."));
-
-    VkImage        image  = *static_cast<VkImage *>(nativeHandle);
-    const VkFormat format = Vulkan::getFormat(unityFormat);
-    VkImageView    view   = GraphicsAPI::get<Vulkan>()->createImageView(image, format, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, "Refused to set image resources due to an attempt to create the input color image view resulting in a `VK_NULL_HANDLE` view handle."));
-
-    inColor = ffxGetTextureResourceVK(&context, image, view, settings.inputResolution.width, settings.inputResolution.height, format, L"Input Color", FFX_RESOURCE_STATE_COMPUTE_READ);
-    return SUCCESS;
-}
-
-Upscaler::Status FSR2::VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given motion vector image being `VK_NULL_HANDLE`."));
-
-    VkImage        image  = *static_cast<VkImage *>(nativeHandle);
-    const VkFormat format = Vulkan::getFormat(unityFormat);
-    VkImageView    view   = GraphicsAPI::get<Vulkan>()->createImageView(image, format, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, "Refused to set image resources due to an attempt to create the motion vector image view resulting in a `VK_NULL_HANDLE` view handle."));
-
-    motionVectors = ffxGetTextureResourceVK(&context, image, view, settings.inputResolution.width, settings.inputResolution.height, format, L"Motion Vectors", FFX_RESOURCE_STATE_COMPUTE_READ);
-    return SUCCESS;
-}
-
-Upscaler::Status FSR2::VulkanSetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    RETURN_ON_FAILURE(setStatusIf(nativeHandle == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Refused to set image resources due to the given output color image being `VK_NULL_HANDLE`."));
-
-    VkImage        image  = *static_cast<VkImage *>(nativeHandle);
-    const VkFormat format = Vulkan::getFormat(unityFormat);
-    VkImageView    view   = GraphicsAPI::get<Vulkan>()->createImageView(image, format, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, "Refused to set image resources due to an attempt to create the output color image view resulting in a `VK_NULL_HANDLE` view handle."));
-
-    outColor = ffxGetTextureResourceVK(&context, image, view, settings.outputResolution.width, settings.outputResolution.height, format, L"Output Color", FFX_RESOURCE_STATE_COMPUTE_READ);
+    FfxResourceDescription description {
+      .type=FFX_RESOURCE_TYPE_TEXTURE2D,
+      .format=(FfxSurfaceFormat)image.format,  /**@todo fixme.*/
+      .width=image.extent.width,
+      .height=image.extent.height,
+      .depth=image.extent.depth,
+      .mipCount=1,
+      .flags=FFX_RESOURCE_FLAGS_NONE,
+      .usage=resourceUsage,
+    };
+    resource = ffxGetResourceVK(image.image, description, const_cast<wchar_t*>(std::wstring(L"").c_str()), resourceStates);
     return SUCCESS;
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
-    UnityVulkanRecordingState state{};
-    GraphicsAPI::get<Vulkan>()->getUnityInterface()->EnsureInsideRenderPass();
-    GraphicsAPI::get<Vulkan>()->getUnityInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+    FfxResource color, depth, motion, output;
+    RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
+    RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::SourceDepth));
+    RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
+    RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
 
+    UnityVulkanRecordingState state{};
+    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+
+    // clang-format off
     FfxFsr2DispatchDescription dispatchDescription{
       .commandList                = ffxGetCommandListVK(state.commandBuffer),
-      .color                      = inColor,
+      .color                      = color,
       .depth                      = depth,
-      .motionVectors              = motionVectors,
-      .exposure                   = ffxGetTextureResourceVK(&context, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_FORMAT_UNDEFINED, nullptr, FFX_RESOURCE_STATE_COMPUTE_READ),
-      .reactive                   = ffxGetTextureResourceVK(&context, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_FORMAT_UNDEFINED, nullptr, FFX_RESOURCE_STATE_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetTextureResourceVK(&context, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_FORMAT_UNDEFINED, nullptr, FFX_RESOURCE_STATE_COMPUTE_READ),
-      .output                     = outColor,
+      .motionVectors              = motion,
+      .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Exposure").c_str())),
+      .reactive                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Reactive Mask").c_str())),
+      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Transparency/Composition Mask").c_str())),
+      .output                     = output,
       .jitterOffset               = {
-                                     settings.jitter[0],
-                                     settings.jitter[1]
+            settings.jitter.x,
+            settings.jitter.y
       },
-      .motionVectorScale       = {-static_cast<float>(settings.inputResolution.width), -static_cast<float>(settings.inputResolution.height)},
-      .renderSize              = {settings.inputResolution.width,                      settings.inputResolution.height                     },
+      .motionVectorScale = {
+            -static_cast<float>(color.description.width),
+            -static_cast<float>(color.description.height)
+      },
+      .renderSize = {
+            color.description.width,
+            color.description.height
+      },
       .enableSharpening        = settings.sharpness > 0,
       .sharpness               = settings.sharpness,
       .frameTimeDelta          = settings.frameTime,
       .preExposure             = 1.F,
       .reset                   = settings.resetHistory,
       .cameraNear              = settings.camera.farPlane,
-      .cameraFar               = settings.camera.nearPlane, // Switched because depth is inverted
+      .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180),
       .viewSpaceToMetersFactor = 1.F,
     };
+    // clang-format on
 
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(&context, &dispatchDescription), "Failed to dispatch FSR2."));
     return SUCCESS;
 }
-
-Upscaler::Status FSR2::VulkanRelease() {
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(&context), "Failed to destroy the " + getName() + " context."));
-    return SUCCESS;
-}
-
-Upscaler::Status FSR2::VulkanShutdown() {
-    RETURN_ON_FAILURE(VulkanRelease());
-    return SUCCESS;
-}
 #    endif
 
-void FSR2::setFunctionPointers(const GraphicsAPI::Type graphicsAPI) {
-    switch (graphicsAPI) {
-        case GraphicsAPI::NONE: {
-            fpInitialize       = &FSR2::safeFail;
-            fpSetDepth         = &FSR2::safeFail;
-            fpSetInputColor    = &FSR2::safeFail;
-            fpSetMotionVectors = &FSR2::safeFail;
-            fpSetOutputColor   = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
-            fpRelease          = &FSR2::safeFail;
-            fpShutdown         = &FSR2::safeFail;
-            break;
-        }
-#    ifdef ENABLE_VULKAN
-        case GraphicsAPI::VULKAN: {
-            fpInitialize       = &FSR2::VulkanInitialize;
-            fpSetDepth         = &FSR2::VulkanSetDepth;
-            fpSetInputColor    = &FSR2::VulkanSetInputColor;
-            fpSetMotionVectors = &FSR2::VulkanSetMotionVectors;
-            fpSetOutputColor   = &FSR2::VulkanSetOutputColor;
-            fpEvaluate         = &FSR2::VulkanEvaluate;
-            fpRelease          = &FSR2::VulkanRelease;
-            fpShutdown         = &FSR2::VulkanShutdown;
-            break;
-        }
-#    endif
 #    ifdef ENABLE_DX12
-        case GraphicsAPI::DX12: {
-            fpInitialize       = &FSR2::DX12Initialize;
-            fpCreate           = &FSR2::DX12CreateFeature;
-            fpSetDepth         = &FSR2::DX12SetDepthBuffer;
-            fpSetInputColor    = &FSR2::DX12SetInputColor;
-            fpSetMotionVectors = &FSR2::DX12SetMotionVectors;
-            fpSetOutputColor   = &FSR2::DX12SetOutputColor;
-            fpEvaluate         = &FSR2::DX12Evaluate;
-            fpRelease          = &FSR2::DX12ReleaseFeature;
-            fpShutdown         = &FSR2::DX12Shutdown;
-            break;
-        }
-#    endif
-#    ifdef ENABLE_DX11
-        case GraphicsAPI::DX11: {
-            fpInitialize       = &FSR2::DX11Initialize;
-            fpCreate           = &FSR2::DX11CreateFeature;
-            fpSetDepth         = &FSR2::DX11SetDepthBuffer;
-            fpSetInputColor    = &FSR2::DX11SetInputColor;
-            fpSetMotionVectors = &FSR2::DX11SetMotionVectors;
-            fpSetOutputColor   = &FSR2::DX11SetOutputColor;
-            fpEvaluate         = &FSR2::DX11Evaluate;
-            fpRelease          = &FSR2::DX11ReleaseFeature;
-            fpShutdown         = &FSR2::DX11Shutdown;
-            break;
-        }
-#    endif
-        default: {
-            fpInitialize       = &FSR2::safeFail;
-            fpSetDepth         = &FSR2::safeFail;
-            fpSetInputColor    = &FSR2::safeFail;
-            fpSetMotionVectors = &FSR2::safeFail;
-            fpSetOutputColor   = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
-            fpRelease          = &FSR2::safeFail;
-            fpShutdown         = &FSR2::safeFail;
-            break;
-        }
-    }
+Upscaler::Status FSR2::DX12Initialize() {
+    device = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
+    size_t           bufferSize     = ffxGetScratchMemorySizeDX12(1);
+    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
+    void *buffer = calloc(bufferSize, 1);
+    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(&ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
+    return SUCCESS;
 }
 
-void FSR2::log(FfxFsr2MsgType type, const wchar_t *t_msg) {
-    std::wstring message(t_msg);
-    std::string  msg(message.length(), 0);
-    std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
-    switch (type) {
-        case FFX_FSR2_MESSAGE_TYPE_ERROR: msg = "FSR2 Error ---> " + msg; break;
-        case FFX_FSR2_MESSAGE_TYPE_WARNING: msg = "FSR2 Warning -> " + msg; break;
-        case FFX_FSR2_MESSAGE_TYPE_COUNT: break;
+Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, Plugin::ImageID imageID) {
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
+
+    FfxResourceStates resourceStates{FFX_RESOURCE_STATE_COMPUTE_READ};
+    FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
+    if (imageID == Plugin::ImageID::OutputColor) {
+        resourceStates = FFX_RESOURCE_STATE_RENDER_TARGET;
+        resourceUsage = FFX_RESOURCE_USAGE_RENDERTARGET;
     }
-    if (Upscaler::log != nullptr) Upscaler::log(msg.c_str());
+    ID3D12Resource* image = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[imageID]);
+    D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
+
+    FfxResourceDescription description {
+      .type=FFX_RESOURCE_TYPE_TEXTURE2D,
+      .format= ffxGetSurfaceFormatDX12(imageDescription.Format),  /**@todo fixme.*/
+      .width=static_cast<uint32_t>(imageDescription.Width),
+      .height=static_cast<uint32_t>(imageDescription.Height),
+      .alignment=static_cast<uint32_t>(imageDescription.Alignment),
+      .mipCount=1,
+      .flags=FFX_RESOURCE_FLAGS_NONE,
+      .usage=resourceUsage,
+    };
+    resource = ffxGetResourceVK(image, description, const_cast<wchar_t*>(std::wstring(L"").c_str()), resourceStates);
+    return SUCCESS;
 }
+
+Upscaler::Status FSR2::DX12Evaluate() {
+    FfxResource color, depth, motion, output;
+    RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
+    RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::SourceDepth));
+    RETURN_ON_FAILURE(DX12GetResource(motion, Plugin::ImageID::Motion));
+    RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::OutputColor));
+
+    if (color.description.width < settings.dynamicMinimumInputResolution.width || color.description.width > settings.dynamicMaximumInputResolution.width || color.description.height < settings.dynamicMinimumInputResolution.height || color.description.height > settings.dynamicMaximumInputResolution.height)
+        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+
+    UnityVulkanRecordingState state{};
+    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+
+    // clang-format off
+    FfxFsr2DispatchDescription dispatchDescription{
+      .commandList                = ffxGetCommandListVK(state.commandBuffer),
+      .color                      = color,
+      .depth                      = depth,
+      .motionVectors              = motion,
+      .exposure                   = ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Exposure").c_str())),
+      .reactive                   = ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Reactive Mask").c_str())),
+      .transparencyAndComposition = ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Transparency/Composition Mask").c_str())),
+      .output                     = output,
+      .jitterOffset               = {
+           settings.jitter.x,
+           settings.jitter.y
+      },
+      .motionVectorScale = {
+          -static_cast<float>(color.description.width),
+          -static_cast<float>(color.description.height)
+      },
+      .renderSize = {
+          color.description.width,
+          color.description.height
+      },
+      .enableSharpening        = settings.sharpness > 0,
+      .sharpness               = settings.sharpness,
+      .frameTimeDelta          = settings.frameTime,
+      .preExposure             = 1.F,
+      .reset                   = settings.resetHistory,
+      .cameraNear              = settings.camera.farPlane,
+      .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
+      .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180),
+      .viewSpaceToMetersFactor = 1.F,
+    };
+    // clang-format on
+
+    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(&context, &dispatchDescription), "Failed to dispatch FSR2."));
+    return SUCCESS;
+}
+#    endif
 
 Upscaler::Status FSR2::setStatus(FfxErrorCode t_error, const std::string &t_msg) {
     switch (t_error) {
@@ -244,50 +249,93 @@ Upscaler::Status FSR2::setStatus(FfxErrorCode t_error, const std::string &t_msg)
     }
 }
 
-FSR2 *FSR2::get() {
-    static FSR2 *fsr2{new FSR2};
-    return fsr2;
+void FSR2::log(FfxMsgType type, const wchar_t *t_msg) {
+    std::wstring message(t_msg);
+    std::string  msg(message.length(), 0);
+    std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
+    switch (type) {
+        case FFX_MESSAGE_TYPE_ERROR: msg = "FSR2 Error ---> " + msg; break;
+        case FFX_MESSAGE_TYPE_WARNING: msg = "FSR2 Warning -> " + msg; break;
+        case FFX_MESSAGE_TYPE_COUNT: break;
+    }
+    if (Upscaler::logCallback != nullptr) Upscaler::logCallback(msg.c_str());
 }
 
-Upscaler::Type FSR2::getType() {
-    return Upscaler::FSR2;
+FSR2::FSR2(const GraphicsAPI::Type graphicsAPI) {
+    switch (graphicsAPI) {
+        case GraphicsAPI::NONE: {
+            fpInitialize       = &FSR2::safeFail;
+            fpEvaluate         = &FSR2::safeFail;
+            break;
+        }
+#    ifdef ENABLE_VULKAN
+        case GraphicsAPI::VULKAN: {
+            fpInitialize       = &FSR2::VulkanInitialize;
+            fpEvaluate         = &FSR2::VulkanEvaluate;
+            break;
+        }
+#    endif
+#    ifdef ENABLE_DX12
+        case GraphicsAPI::DX12: {
+            fpInitialize       = &FSR2::DX12Initialize;
+            fpEvaluate         = &FSR2::DX12Evaluate;
+            break;
+        }
+#    endif
+#    ifdef ENABLE_DX11
+        case GraphicsAPI::DX11: {
+            fpInitialize       = &FSR2::safeFail;
+            fpEvaluate         = &FSR2::safeFail;
+            break;
+        }
+#    endif
+        default: {
+            fpInitialize       = &FSR2::safeFail;
+            fpEvaluate         = &FSR2::safeFail;
+            break;
+        }
+    }
+    initialize();
 }
 
-std::string FSR2::getName() {
-    return "AMD FidelityFX FSR";
+FSR2::~FSR2() {
+    shutdown();
 }
 
 #    ifdef ENABLE_VULKAN
-std::vector<std::string> FSR2::getRequiredVulkanInstanceExtensions() {
+std::vector<std::string> FSR2::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
     return {};
 }
-
-std::vector<std::string>
-FSR2::getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) {
+std::vector<std::string> FSR2::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
     return {};
 }
 #    endif
 
-Upscaler::Settings
-FSR2::getOptimalSettings(const Settings::Resolution resolution, const Settings::QualityMode mode, const bool hdr) {
+/**@todo cache me.*/
+bool FSR2::isSupported() {
+    if (supported != UNTESTED)
+        return supported == SUPPORTED;
+    return (supported = success(getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+}
+
+Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+    RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
+    RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
+    RETURN_ON_FAILURE(setStatusIf(mode >= Upscaler::Settings::QUALITY_MODE_MAX_ENUM, SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, "The selected quality mode is unavailable or invalid."));
+
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.HDR              = hdr;
     optimalSettings.quality          = mode;
 
-    setStatus(
-      ffxFsr2GetRenderResolutionFromQualityMode(
-        &optimalSettings.inputResolution.width,
-        &optimalSettings.inputResolution.height,
-        optimalSettings.outputResolution.width,
-        optimalSettings.outputResolution.height,
-        optimalSettings.getQuality<Upscaler::FSR2>()
-      ),
-      "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode "
-      "setting is a valid enum value."
-    );
+    RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
 
-    return optimalSettings;
+    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
+    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
+
+    settings = optimalSettings;
+    settings.jitterGenerator.generate(settings.renderingResolution, settings.outputResolution);
+    return SUCCESS;
 }
 
 Upscaler::Status FSR2::initialize() {
@@ -303,11 +351,11 @@ Upscaler::Status FSR2::create() {
         static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) |
+        static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |  /**@todo Make me a switch.*/
         (settings.HDR ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
-      .callbacks     = interface,
-      .device        = ffxGetDeviceVK(GraphicsAPI::get<Vulkan>()->getUnityInterface()->Instance().device),
+      .backendInterface = ffxInterface,
 #    ifndef NDEBUG
       .fpMessage = &FSR2::log
 #    endif
@@ -316,33 +364,13 @@ Upscaler::Status FSR2::create() {
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    return (this->*fpSetDepth)(nativeHandle, unityFormat);
-}
-
-Upscaler::Status FSR2::setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    return (this->*fpSetInputColor)(nativeHandle, unityFormat);
-}
-
-Upscaler::Status FSR2::setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    return (this->*fpSetMotionVectors)(nativeHandle, unityFormat);
-}
-
-Upscaler::Status FSR2::setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) {
-    return (this->*fpSetOutputColor)(nativeHandle, unityFormat);
-}
-
 Upscaler::Status FSR2::evaluate() {
     return (this->*fpEvaluate)();
 }
 
-Upscaler::Status FSR2::release() {
-    return (this->*fpRelease)();
-}
-
 Upscaler::Status FSR2::shutdown() {
     if (initialized)
-        RETURN_ON_FAILURE((this->*fpShutdown)());
+        RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(&context), "Failed to destroy the " + getName() + " context."));
     initialized = false;
     return SUCCESS;
 }

@@ -1,188 +1,157 @@
-// Project
-#include "Upscaler/NoUpscaler.hpp"
+#include "Plugin.hpp"
+#include "Upscaler/Upscaler.hpp"
+
+#include <IUnityRenderingExtensions.h>
+
+#ifdef ENABLE_DX11
+#    include "GraphicsAPI/DX11.hpp"
+#endif
 
 #ifdef ENABLE_VULKAN
-#    include "GraphicsAPI/DX11.hpp"
+#    include "GraphicsAPI/Vulkan.hpp"
 #    include "GraphicsAPI/Vulkan.hpp"
 #endif
 
-// Unity
-#include <IUnityInterface.h>
-#include <IUnityRenderingExtensions.h>
+#include <algorithm>
+#include <memory>
+#include <unordered_map>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GCC on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
-namespace Unity {
-IUnityGraphics *graphicsInterface;
-}  // namespace Unity
+static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
 
-enum Event {
-    UPSCALE,
-    PREPARE,
-};
-
-void INTERNAL_Upscale() {
-    // Disable the callback so that errors are not thrown mid-render. Errors can instead be handled during the next
-    // frame.
-    void (*cb)(void *, Upscaler::Status, const char *) = Upscaler::setErrorCallback(nullptr, nullptr);
-    Upscaler::get()->evaluate();
-    Upscaler::setErrorCallback(nullptr, cb);
-}
-
-void INTERNAL_Prepare() {
-    Upscaler::get()->create();
-}
-
-void UNITY_INTERFACE_API Upscaler_RenderingEventCallback(const Event event) {
-    switch (event) {
-        case UPSCALE: INTERNAL_Upscale(); break;
-        case PREPARE: INTERNAL_Prepare(); break;
+void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(int eventID, void* data) {
+    if (eventID == kUnityRenderingExtEventUpdateTextureBeginV2) {
+        auto* params = static_cast<UnityRenderingExtTextureUpdateParamsV2*>(data);
+        upscalers[params->userData & 0x0000FFFFU]->useImage((Plugin::ImageID)(params->userData >> 16U), params->textureID);
+    } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Prepare) {
+        std::unique_ptr<Upscaler>& upscaler = upscalers[reinterpret_cast<uint64_t>(data)];
+        upscaler->resetStatus();
+        upscaler->create();
+    } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) {
+        upscalers[reinterpret_cast<uint64_t>(data)]->evaluate();
     }
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void *UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
-    return reinterpret_cast<void *>(&Upscaler_RenderingEventCallback);
+extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
+    return Plugin::Unity::eventIDBase;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_InitializePlugin(void *data, void (*t_errorCallback)(void *, Upscaler::Status, const char *), void (*t_logCallback)(const char*)=nullptr) {
-    GraphicsAPI::set(Unity::graphicsInterface->GetRenderer());
-#ifdef ENABLE_DX11
-    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11)
-        GraphicsAPI::get<DX11>()->prepareForOneTimeSubmits();
-#endif
-    Upscaler::setErrorCallback(data, t_errorCallback);
-    Upscaler::setLogCallback(t_logCallback);
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
+    return INTERNAL_RenderingEventCallback;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-                                  Upscaler_SetUpscaler(const Upscaler::Type type) {
-    Upscaler::get()->shutdown();
-    Upscaler::set(type);
-    return Upscaler::get()->initialize();
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RegisterGlobalLogCallback(void(logCallback)(const char*)) {
+    Upscaler::setLogCallback(logCallback);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetError(const Upscaler::Type type
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSupported(Upscaler::Type type) {
+    return Upscaler::fromType(type)->isSupported();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
+    auto     iter = std::find_if(upscalers.begin(), upscalers.end(), [](std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
+    uint16_t id   = iter - upscalers.begin();
+    if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
+    else *iter = Upscaler::fromType(Upscaler::NONE);
+    return id;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetCameraUpscalerStatus(uint16_t camera) {
+    return upscalers[camera]->getStatus();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT const char* UNITY_INTERFACE_API Upscaler_GetCameraUpscalerStatusMessage(uint16_t camera) {
+    return upscalers[camera]->getErrorMessage().c_str();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_ResetCameraUpscalerStatus(uint16_t camera) {
+    return upscalers[camera]->resetStatus();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFeatureSettings(
+  uint16_t                               camera,
+  const Upscaler::Settings::Resolution   resolution,
+  const Upscaler::Type                   type,
+  const Upscaler::Settings::Preset       preset,
+  const enum Upscaler::Settings::Quality quality,
+  const bool                             hdr
 ) {
-    return Upscaler::get(type)->getStatus();
+    std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
+    if (upscaler->getType() != type) upscaler = upscaler->copyFromType(type);
+    return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API
-Upscaler_GetErrorMessage(const Upscaler::Type type) {
-    return Upscaler::get(type)->getErrorMessage().c_str();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(uint16_t camera) {
+    return upscalers[camera]->settings.renderingResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetCurrentError() {
-    return Upscaler::get()->getStatus();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMaximumCameraResolution(uint16_t camera) {
+    return upscalers[camera]->settings.dynamicMaximumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char *UNITY_INTERFACE_API Upscaler_GetCurrentErrorMessage() {
-    return Upscaler::get()->getErrorMessage().c_str();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(uint16_t camera) {
+    return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetFramebufferSettings(
-  const unsigned int                    t_width,
-  const unsigned int                    t_height,
-  const Upscaler::Settings::QualityMode t_quality,
-  const bool                            t_HDR
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(
+  uint16_t                       camera,
+  float                          frameTime,
+  float                          sharpness,
+  Upscaler::Settings::Camera     cameraInfo
 ) {
-    Upscaler                *upscaler = Upscaler::get();
-    const Upscaler::Settings settings = upscaler->getOptimalSettings({t_width, t_height}, t_quality, t_HDR);
-    const Upscaler::Status   status   = upscaler->getStatus();
-    if (Upscaler::success(status)) Upscaler::settings = settings;
-    return status;
+    std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
+    upscaler->setStatusIf(sharpness < 0.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too small. Expected a value between 0 and 1 inclusive.");
+    Upscaler::Status status = upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
+    if (Upscaler::failure(status)) return status;
+
+    upscaler->settings.frameTime           = frameTime;
+    upscaler->settings.sharpness           = sharpness;
+    upscaler->settings.camera              = cameraInfo;
+    return Upscaler::SUCCESS;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint64_t UNITY_INTERFACE_API Upscaler_GetRecommendedInputResolution() {
-    const auto recommendation = Upscaler::settings.inputResolution.asLong();
-    Upscaler::get()->setStatusIf(
-      recommendation == 0,
-      Upscaler::Status::SETTINGS_ERROR,
-      "Some setting is invalid. Please reset the framebuffer settings to something valid."
-    );
-    return recommendation;
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(uint16_t camera, bool advance) {
+    if (advance) return upscalers[camera]->settings.getNextJitter();
+    return upscalers[camera]->settings.jitter;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-                                  Upscaler_SetSharpnessValue(const float t_sharpness) {
-    const bool tooSmall = t_sharpness < 0.0;
-    if (const bool tooBig = t_sharpness > 1.0; Upscaler::success(Upscaler::get()->setStatusIf(
-          tooSmall || tooBig,
-          Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE,
-          std::string(
-            tooBig ? "The selected sharpness value is too big." : "The selected sharpness value is too small."
-          ) +
-            " The given sharpness value (" + std::to_string(t_sharpness) +
-            ") must be greater than 0 but less than 1."
-        )))
-        Upscaler::settings.sharpness = t_sharpness;
-    return Upscaler::get()->getStatus();
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(uint16_t camera) {
+    upscalers[camera]->settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_SetJitterInformation(const float x, const float y) {
-    Upscaler::settings.jitter[0] = x;
-    Upscaler::settings.jitter[1] = y;
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(uint16_t camera) {
+    if (upscalers.size() > camera) upscalers[camera].reset();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API
-Upscaler_SetFrameInformation(float frameTime, Upscaler::Settings::Camera camera) {
-    Upscaler::settings.frameTime = frameTime;
-    Upscaler::settings.camera = camera;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetHistory() {
-    Upscaler::settings.resetHistory = true;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetStatus() {
-    Upscaler::get()->resetStatus();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-Upscaler_SetDepthBuffer(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return Upscaler::get()->setDepth(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-Upscaler_SetInputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return Upscaler::get()->setInputColor(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-Upscaler_SetMotionVectors(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return Upscaler::get()->setMotionVectors(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API
-Upscaler_SetOutputColor(void *nativeHandle, const UnityRenderingExtTextureFormat unityFormat) {
-    return Upscaler::get()->setOutputColor(nativeHandle, unityFormat);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_Shutdown() {
-    Upscaler::get()->shutdown();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ShutdownPlugin() {
+static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType) {
+    switch (eventType) {
+        case kUnityGfxDeviceEventInitialize:
+            GraphicsAPI::set(Plugin::Unity::graphicsInterface->GetRenderer());
 #ifdef ENABLE_DX11
-    // Finish all one time submits
-    if (GraphicsAPI::get()->getType() == GraphicsAPI::Type::DX11) GraphicsAPI::get<DX11>()->finishOneTimeSubmits();
+            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11)
+                DX11::createOneTimeSubmitContext();
 #endif
-    // Clean up
-    for (Upscaler *upscaler : Upscaler::getAllUpscalers()) upscaler->shutdown();
+            break;
+        case kUnityGfxDeviceEventShutdown:
+            upscalers.clear();
+#ifdef ENABLE_DX11
+            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11) DX11::destroyOneTimeSubmitContext();
+#endif
+            break;
+        default: break;
+    };
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces *unityInterfaces) {
-    // Enabled plugin's interception of Vulkan initialization calls.
-    for (GraphicsAPI *graphicsAPI : GraphicsAPI::getAllGraphicsAPIs())
-        graphicsAPI->useUnityInterfaces(unityInterfaces);
-    // Record graphics interface for future use.
-    Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {
+    GraphicsAPI::registerUnityInterfaces(unityInterfaces);
+    Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
+    Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
+    Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(2);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
-    Upscaler_ShutdownPlugin();
-    // Remove vulkan initialization interception
-    Vulkan::RemoveInterceptInitialization();
+    GraphicsAPI::unregisterUnityInterfaces();
+    Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
 }

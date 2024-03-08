@@ -13,26 +13,21 @@ public class SettingsChanger : MonoBehaviour
 
     public void Update()
     {
-        if (!_upscaler)
-        {
-            return;
-        }
+        if (!_upscaler) return;
 
+        var settings = _upscaler.QuerySettings();
         if (Input.GetKeyDown(KeyCode.U))
-        {
-            _upscaler.upscalerMode = _upscaler.upscalerMode == Upscaler.UpscalerMode.FSR2
-                ? Upscaler.UpscalerMode.DLSS
-                : Upscaler.UpscalerMode.FSR2;
-        }
+            settings.upscaler = settings.upscaler == Settings.Upscaler.None
+                ? Settings.Upscaler.DLSS
+                : Settings.Upscaler.None;
 
         if (Input.GetKeyDown(KeyCode.Q))
-        {
-            _upscaler.qualityMode = (Upscaler.QualityMode)(((int)_upscaler.qualityMode + 1) % 5);
-        }
+            settings.quality = (Settings.Quality)(((int)settings.quality + 1) % 5);
 
         if (Input.GetKeyDown(KeyCode.E))
-        {
-            _upscaler.upscalerMode = (Upscaler.UpscalerMode)6;
-        }
+            settings.upscaler = (Settings.Upscaler)6;
+
+        // Does nothing if settings have not changed.
+        _upscaler.ApplySettings(settings);  // Be sure to handle errors here or have an error handler registered.
     }
 }

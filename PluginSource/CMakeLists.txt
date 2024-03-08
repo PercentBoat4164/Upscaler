@@ -16,13 +16,15 @@ option(ENABLE_DX12 "Compiles with DX12 support. Value is only respected on Windo
 option(ENABLE_DX11 "Compiles with DX11 support. Value is only respected on Windows operating systems." ON)
 
 # At least one upscaler must be selected.
-option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on MacOS operating systems." ON)
-option(ENABLE_FSR2 "Compiles with FSR2 support. Value is ignored on MacOS operating systems." ON)
+option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON)
+option(ENABLE_FSR2 "Compiles with FSR2 support. Value is ignored on macOS operating systems." ON)
 
 ######################
 # Paths and Warnings #
 ######################
-find_package(Vulkan)
+if (ENABLE_VULKAN)
+    find_package(Vulkan)
+endif ()
 
 # Ensure system supports compilation definitions
 if (NOT Vulkan_FOUND)
@@ -54,7 +56,7 @@ endif ()
 
 # If FSR2 was enabled ensure that its SDK exists
 if (ENABLE_FSR2)
-    cmake_path(SET FSR2_DIR "${CMAKE_SOURCE_DIR}/fsr2_sdk")
+    cmake_path(SET FSR2_DIR "${CMAKE_SOURCE_DIR}/fsr_sdk")
 endif ()
 
 # Add the plugin path the list of shared libraries to copy
@@ -118,11 +120,6 @@ endif ()
 if (ENABLE_DLSS)
     add_library(dlss IMPORTED STATIC GLOBAL)
     target_include_directories(dlss INTERFACE "${DLSS_DIR}/include")
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_property(TARGET dlss APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-    elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set_property(TARGET dlss APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    endif ()
 
     cmake_path(SET DLSS_SHARED_LIB_DIR "${DLSS_DIR}/lib")
     cmake_path(SET DLSS_STATIC_LIB_DIR "${DLSS_DIR}/lib")
@@ -138,12 +135,12 @@ if (ENABLE_DLSS)
     else ()
         set(GLOBBING_EXPRESSION "*s")
     endif ()
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        cmake_path(APPEND DLSS_SHARED_LIB_DIR "rel")
-        string(APPEND GLOBBING_EXPRESSION ".lib")
-    elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         cmake_path(APPEND DLSS_SHARED_LIB_DIR "dev")
         string(APPEND GLOBBING_EXPRESSION "_dbg.lib")
+    else ()
+        cmake_path(APPEND DLSS_SHARED_LIB_DIR "rel")
+        string(APPEND GLOBBING_EXPRESSION ".lib")
     endif ()
     if (UNIX AND NOT APPLE)
         set(GLOBBING_EXPRESSION "*")
@@ -160,34 +157,61 @@ endif ()
 # Set up the FSR2 library
 if (ENABLE_FSR2)
     add_library(fsr2_core IMPORTED SHARED)
-    target_include_directories(fsr2_core INTERFACE "${FSR2_DIR}")
+    target_include_directories(fsr2_core INTERFACE "${FSR2_DIR}" "${FSR2_DIR}/FidelityFX/host")
 
     cmake_path(SET FSR2_SHARED_LIB_DIR "${FSR2_DIR}/lib")
     if (WIN32)
         cmake_path(APPEND FSR2_SHARED_LIB_DIR "Windows_x86_64")
+        set(FSR2_SHARED_LIB "${FSR2_SHARED_LIB_DIR}/ffx_fsr2_x86_64.dll")
+        set(FSR2_IMPLIB "${FSR2_SHARED_LIB_DIR}/ffx_fsr2_x86_64.lib")
     elseif (UNIX AND NOT APPLE)
         cmake_path(APPEND FSR2_SHARED_LIB_DIR "Linux_x86_64")
+        set(FSR2_SHARED_LIB "${FSR2_SHARED_LIB_DIR}/ffx_fsr2_x86_64.so")
     endif ()
-    set(GLOBBING_EXPRESSION "*api_x86_64*")
 
-    file(GLOB FSR2_SHARED_LIB LIST_DIRECTORIES FALSE "${FSR2_SHARED_LIB_DIR}/${GLOBBING_EXPRESSION}")
     list(APPEND SHARED_LIBRARIES ${FSR2_SHARED_LIB})
     set_target_properties(fsr2_core PROPERTIES IMPORTED_LOCATION "${FSR2_SHARED_LIB}")
+    if (FSR2_IMPLIB)
+        set_target_properties(fsr2_core PROPERTIES IMPORTED_IMPLIB "${FSR2_IMPLIB}")
+    endif ()
 
     set(fsr2 "fsr2_core")
 
     if (ENABLE_VULKAN)
         add_library(fsr2_vk IMPORTED SHARED)
-        cmake_path(SET FSR2_DIR_VK "${FSR2_DIR}/vk")
-        target_include_directories(fsr2_vk INTERFACE "${FSR2_DIR_VK}")
+        target_include_directories(fsr2_vk INTERFACE "${FSR2_DIR}/FidelityFX/host/backends/vk")
+
+        if (WIN32)
+            set(FSR2_VK_SHARED_LIB "${FSR2_SHARED_LIB_DIR}/ffx_backend_vk_x86_64.dll")
+            set(FSR2_VK_IMPLIB "${FSR2_SHARED_LIB_DIR}/ffx_backend_vk_x86_64.lib")
+        elseif (UNIX AND NOT APPLE)
+            set(FSR2_VK_SHARED_LIB "${FSR2_SHARED_LIB_DIR}/ffx_backend_vk_x86_64.so")
+        endif ()
 
         set(GLOBBING_EXPRESSION "*vk*")
         file(GLOB FSR2_VK_SHARED_LIB LIST_DIRECTORIES FALSE "${FSR2_SHARED_LIB_DIR}/${GLOBBING_EXPRESSION}")
         list(APPEND SHARED_LIBRARIES ${FSR2_VK_SHARED_LIB})
         set_target_properties(fsr2_vk PROPERTIES IMPORTED_LOCATION "${FSR2_VK_SHARED_LIB}")
-        target_link_options(fsr2_vk INTERFACE "-fPIC")
-
+        if (FSR2_VK_IMPLIB)
+            set_target_properties(fsr2_vk PROPERTIES IMPORTED_IMPLIB "${FSR2_VK_IMPLIB}")
+        endif ()
+        if (NOT WIN32)
+            target_link_options(fsr2_vk INTERFACE "-fPIC")
+        endif ()
         list(APPEND fsr2 "fsr2_vk")
+    endif ()
+
+    if (ENABLE_DX12)
+        add_library(fsr2_dx12 IMPORTED SHARED)
+        target_include_directories(fsr2_dx12 INTERFACE "${FSR2_DIR}/FidelityFX/host/backends/dx12")
+
+        set(FSR2_DX12_SHARED_LIB "${FSR2_SHARED_LIB_DIR}/ffx_backend_dx12_x86_64.dll")
+        set(FSR2_DX12_IMPLIB "${FSR2_SHARED_LIB_DIR}/ffx_backend_dx12_x86_64.lib")
+
+        list(APPEND SHARED_LIBRARIES ${FSR2_DX12_SHARED_LIB})
+        set_target_properties(fsr2_dx12 PROPERTIES IMPORTED_LOCATION "${FSR2_DX12_SHARED_LIB}")
+        set_target_properties(fsr2_dx12 PROPERTIES IMPORTED_IMPLIB "${FSR2_DX12_IMPLIB}")
+        list(APPEND fsr2 "fsr2_dx12")
     endif ()
 endif ()
 
@@ -225,9 +249,9 @@ add_library(GfxPluginUpscaler main.cpp
         ${VULKAN_SOURCES}
 
         GraphicsAPI/GraphicsAPI.cpp
-        GraphicsAPI/NoGraphicsAPI.cpp
         Upscaler/NoUpscaler.cpp
         Upscaler/Upscaler.cpp
+        Plugin.hpp
 )
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")

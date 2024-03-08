@@ -1,70 +1,59 @@
 #include "GraphicsAPI.hpp"
+#ifdef ENABLE_VULKAN
+#    include "Vulkan.hpp"
+#endif
+#ifdef ENABLE_DX12
+#    include "DX12.hpp"
+#endif
+#ifdef ENABLE_DX11
+#    include "DX11.hpp"
+#endif
 
-// Project
-#include "DX11.hpp"
-#include "DX12.hpp"
-#include "NoGraphicsAPI.hpp"
-#include "Upscaler/Upscaler.hpp"
-#include "Vulkan.hpp"
-
-GraphicsAPI *GraphicsAPI::graphicsAPIInUse{get<NoGraphicsAPI>()};
+GraphicsAPI::Type GraphicsAPI::type = NONE;
 
 void GraphicsAPI::set(const UnityGfxRenderer renderer) {
     switch (renderer) {
 #ifdef ENABLE_VULKAN
-        case kUnityGfxRendererVulkan: set<Vulkan>(); break;
+        case kUnityGfxRendererVulkan: type = VULKAN; break;
 #endif
 #ifdef ENABLE_DX12
-        case kUnityGfxRendererD3D12: set<::DX12>(); break;
+        case kUnityGfxRendererD3D12: type = DX12; break;
 #endif
 #ifdef ENABLE_DX11
-        case kUnityGfxRendererD3D11: set<::DX11>(); break;
+        case kUnityGfxRendererD3D11: type = DX11; break;
 #endif
-        default: set<NoGraphicsAPI>(); break;
+        default: type = NONE; break;
     }
 }
 
-void GraphicsAPI::set(const Type graphicsAPI) {
-    set(get(graphicsAPI));
+GraphicsAPI::Type GraphicsAPI::getType() {
+    return type;
 }
 
-void GraphicsAPI::set(GraphicsAPI *graphicsAPI) {
-    graphicsAPIInUse = graphicsAPI;
-    if (graphicsAPI == get<NoGraphicsAPI>()) Upscaler::setGraphicsAPI(NONE);
-    else Upscaler::setGraphicsAPI(graphicsAPI->getType());
-}
-
-GraphicsAPI *GraphicsAPI::get(const Type graphicsAPI) {
-    switch (graphicsAPI) {
-        case NONE: return get<NoGraphicsAPI>();
+bool GraphicsAPI::registerUnityInterfaces(IUnityInterfaces* interfaces) {
+    bool result = true;
 #ifdef ENABLE_VULKAN
-        case VULKAN: return get<Vulkan>();
+    result &= Vulkan::registerUnityInterfaces(interfaces);
 #endif
 #ifdef ENABLE_DX12
-        case DX12: return get<::DX12>();
+    result &= DX12::registerUnityInterfaces(interfaces);
 #endif
 #ifdef ENABLE_DX11
-        case DX11: return get<::DX11>();
+    result &= DX11::registerUnityInterfaces(interfaces);
 #endif
-        default: return get<NoGraphicsAPI>();
-    }
+    return result;
 }
 
-GraphicsAPI *GraphicsAPI::get() {
-    return graphicsAPIInUse;
-}
-
-std::vector<GraphicsAPI *> GraphicsAPI::getAllGraphicsAPIs() {
-    return {
-      get<NoGraphicsAPI>(),
+bool GraphicsAPI::unregisterUnityInterfaces() {
+    bool result = true;
 #ifdef ENABLE_VULKAN
-      get<Vulkan>(),
+    result &= Vulkan::unregisterUnityInterfaces();
 #endif
 #ifdef ENABLE_DX12
-      get<::DX12>(),
+    result &= DX12::unregisterUnityInterfaces();
 #endif
 #ifdef ENABLE_DX11
-      get<::DX11>(),
+    result &= DX11::unregisterUnityInterfaces();
 #endif
-    };
+    return result;
 }

@@ -1,37 +1,20 @@
 #include "NoUpscaler.hpp"
-
-void NoUpscaler::setFunctionPointers(GraphicsAPI::Type /* unused */) {
-}
-
-NoUpscaler *NoUpscaler::get() {
-    NoUpscaler *noUpscaler{new NoUpscaler};
-    noUpscaler->setStatus(NO_UPSCALER_SET, "'" + noUpscaler->getName() + "' is selected");
-    return noUpscaler;
-}
-
-Upscaler::Type NoUpscaler::getType() {
-    return NONE;
-}
-
-std::string NoUpscaler::getName() {
-    return "Dummy Upscaler";
-}
-
-std::vector<std::string> NoUpscaler::getRequiredVulkanInstanceExtensions() {
+#ifdef ENABLE_VULKAN
+std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/) {
     return {};
 }
 
-std::vector<std::string>
-NoUpscaler::getRequiredVulkanDeviceExtensions(VkInstance /* unused */, VkPhysicalDevice /* unused */) {
+std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/) {
     return {};
 }
+#endif
 
-Upscaler::Settings NoUpscaler::getOptimalSettings(
-  Settings::Resolution /* unused */,
-  Settings::QualityMode /* unused */,
-  bool /* unused */
-) {
-    return settings;
+bool NoUpscaler::isSupported() {
+    return true;
+}
+
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) {
+    return NO_UPSCALER_SET;
 }
 
 Upscaler::Status NoUpscaler::initialize() {
@@ -42,27 +25,7 @@ Upscaler::Status NoUpscaler::create() {
     return NO_UPSCALER_SET;
 }
 
-Upscaler::Status NoUpscaler::setDepth(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
-    return NO_UPSCALER_SET;
-}
-
-Upscaler::Status NoUpscaler::setInputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
-    return NO_UPSCALER_SET;
-}
-
-Upscaler::Status NoUpscaler::setMotionVectors(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
-    return NO_UPSCALER_SET;
-}
-
-Upscaler::Status NoUpscaler::setOutputColor(void * /* unused */, UnityRenderingExtTextureFormat /* unused */) {
-    return NO_UPSCALER_SET;
-}
-
 Upscaler::Status NoUpscaler::evaluate() {
-    return NO_UPSCALER_SET;
-}
-
-Upscaler::Status NoUpscaler::release() {
     return NO_UPSCALER_SET;
 }
 

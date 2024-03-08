@@ -4,9 +4,11 @@
 #include "FSR2.hpp"
 #include "NoUpscaler.hpp"
 
+#include <algorithm>
 #include <utility>
+#include <memory>
 
-void (*Upscaler::log)(const char *msg) = nullptr;
+void (*Upscaler::logCallback)(const char* msg){nullptr};
 
 bool Upscaler::success(const Status t_status) {
     return t_status <= NO_UPSCALER_SET;
@@ -17,110 +19,81 @@ bool Upscaler::failure(const Status t_status) {
 }
 
 bool Upscaler::recoverable(const Status t_status) {
-    return (t_status & ERROR_RECOVERABLE) == 1;
+    return (t_status & ERROR_RECOVERABLE) == ERROR_RECOVERABLE;
 }
 
-bool Upscaler::nonrecoverable(const Status t_status) {
-    return (t_status & ERROR_RECOVERABLE) == 0;
+#ifdef ENABLE_VULKAN
+std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
+    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanInstanceExtensions(supportedExtensions);
+    for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
+        requestedExtensions.push_back(extension);
+    return requestedExtensions;
 }
 
-uint64_t Upscaler::Settings::Resolution::asLong() const {
-    return static_cast<uint64_t>(width) << 32U | height;
+std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
+    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(supportedExtensions);
+    for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
+        requestedExtensions.push_back(extension);
+    return requestedExtensions;
 }
-
-Upscaler::Settings Upscaler::settings{};
-
-void      (*Upscaler::errorCallback)(void *, Status, const char *){nullptr};
-void     *Upscaler::userData{nullptr};
-Upscaler *Upscaler::upscalerInUse{get<NoUpscaler>()};
-
-void Upscaler::set(const Type upscaler) {
-    set(get(upscaler));
-}
-
-void Upscaler::set(Upscaler *upscaler) {
-    upscalerInUse = upscaler;
-}
-
-void Upscaler::setGraphicsAPI(const GraphicsAPI::Type graphicsAPI) {
-    for (Upscaler *upscaler : getAllUpscalers()) upscaler->setFunctionPointers(graphicsAPI);
-}
-
-std::vector<Upscaler *> Upscaler::getAllUpscalers() {
-    return {
-      get<NoUpscaler>(),
-#ifdef ENABLE_DLSS
-      get<::DLSS>(),
 #endif
-#ifdef ENABLE_FSR2
-      get<::FSR2>(),
-#endif
-    };
-}
 
-std::vector<Upscaler *> Upscaler::getUpscalersWithoutErrors() {
-    std::vector<Upscaler *> upscalers;
-    for (Upscaler *upscaler : getAllUpscalers())
-        if (success(upscaler->getStatus())) upscalers.push_back(upscaler);
-    return upscalers;
-}
-
-Upscaler *Upscaler::get(const Type upscaler) {
-    switch (upscaler) {
-        case NONE: return get<NoUpscaler>();
-#ifdef ENABLE_DLSS
-        case DLSS: return get<::DLSS>();
-#endif
-#ifdef ENABLE_FSR2
-        case FSR2: return get<::FSR2>();
-#endif
-    }
-    return get<NoUpscaler>();
-}
-
-Upscaler *Upscaler::get() {
-    return upscalerInUse;
+Upscaler::Status Upscaler::useImage(Plugin::ImageID imageID, UnityTextureID unityID) {
+    RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
+    textureIDs[imageID] = unityID;
+    return SUCCESS;
 }
 
 Upscaler::Status Upscaler::getStatus() const {
     return status;
 }
 
-Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string &t_msg) {
+std::string& Upscaler::getErrorMessage() {
+    return statusMessage;
+}
+
+Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_msg) {
     return setStatusIf(true, t_error, t_msg);
 }
 
 Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
     bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
     if (shouldApplyError) {
-        status               = t_error;
-        detailedErrorMessage = std::move(t_msg);
+        status        = t_error;
+        statusMessage = std::move(t_msg);
     }
-    if (shouldApplyError && failure(status) && errorCallback != nullptr)
-        errorCallback(userData, status, detailedErrorMessage.c_str());
     return status;
 }
 
 bool Upscaler::resetStatus() {
-    if ((status & ERROR_RECOVERABLE) != 0U) {
+    if (recoverable(status)) {
         status = SUCCESS;
-        detailedErrorMessage.clear();
+        statusMessage.clear();
     }
     return status == SUCCESS;
 }
 
-std::string &Upscaler::getErrorMessage() {
-    return detailedErrorMessage;
+std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler = fromType(type);
+    newUpscaler->userData                 = userData;
+    return newUpscaler;
 }
 
-void Upscaler::setLogCallback(void (*pFunction)(const char *)) {
-    log = pFunction;
+std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler;
+    switch (type) {
+        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
+#ifdef ENABLE_DLSS
+        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
+#endif
+#ifdef ENABLE_FSR2
+        case FSR2: newUpscaler = std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
+#endif
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+    }
+    return newUpscaler;
 }
 
-void (*Upscaler::
-        setErrorCallback(void *data, void (*t_errorCallback)(void *, Status, const char *)))(void *, Status, const char *) {
-    void (*oldCallback)(void *, Status, const char *) = errorCallback;
-    errorCallback                                     = t_errorCallback;
-    if (data != nullptr) userData = data;
-    return oldCallback;
+void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
+    logCallback = pFunction;
 }

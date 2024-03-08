@@ -7,60 +7,54 @@
 #    include <ffx_fsr2.h>
 
 class FSR2 final : public Upscaler {
-    FfxFsr2Interface interface;
+    FfxInterface     ffxInterface;
     FfxFsr2Context   context;
-    FfxResource      depth;
-    FfxResource      inColor;
-    FfxResource      motionVectors;
-    FfxResource      outColor;
+    FfxDevice        device;
 
     static Status (FSR2::*fpInitialize)();
-    static Status (FSR2::*fpSetDepth)(void *, UnityRenderingExtTextureFormat);
-    static Status (FSR2::*fpSetInputColor)(void *, UnityRenderingExtTextureFormat);
-    static Status (FSR2::*fpSetMotionVectors)(void *, UnityRenderingExtTextureFormat);
-    static Status (FSR2::*fpSetOutputColor)(void *, UnityRenderingExtTextureFormat);
     static Status (FSR2::*fpEvaluate)();
-    static Status (FSR2::*fpRelease)();
-    static Status (FSR2::*fpShutdown)();
+
+    static SupportState supported;
 
 #    ifdef ENABLE_VULKAN
     Status VulkanInitialize();
-    Status VulkanSetDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
-    Status VulkanSetOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat);
+    Status VulkanGetResource(FfxResource& resource, Plugin::ImageID imageID);
     Status VulkanEvaluate();
-    Status VulkanRelease();
-    Status VulkanShutdown();
 #    endif
 
-    void setFunctionPointers(GraphicsAPI::Type graphicsAPI) override;
-
-    static void log(FfxFsr2MsgType type, const wchar_t *t_msg);
+#    ifdef ENABLE_DX12
+    Status DX12Initialize();
+    Status DX12GetResource(FfxResource& resource, Plugin::ImageID imageID);
+    Status DX12Evaluate();
+#    endif
 
     Status setStatus(FfxErrorCode t_error, const std::string &t_msg);
 
+    static void log(FfxMsgType type, const wchar_t *t_msg);
+
 public:
-    static FSR2 *get();
-    Type         getType() override;
-    std::string  getName() override;
+    explicit FSR2(GraphicsAPI::Type);
+    ~FSR2() final;
 
 #    ifdef ENABLE_VULKAN
-    std::vector<std::string> getRequiredVulkanInstanceExtensions() override;
-    std::vector<std::string>
-    getRequiredVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice) override;
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>&);
 #    endif
 
-    Settings getOptimalSettings(Settings::Resolution resolution, Settings::QualityMode mode, bool hdr) override;
+    constexpr Type getType() final {
+        return Upscaler::FSR2;
+    };
 
-    Status initialize() override;
-    Status create() override;
-    Status setDepth(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setInputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setMotionVectors(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status setOutputColor(void *nativeHandle, UnityRenderingExtTextureFormat unityFormat) override;
-    Status evaluate() override;
-    Status release() override;
-    Status shutdown() override;
+    constexpr std::string getName() final {
+        return "AMD FidelityFX Super Resolution";
+    };
+
+    bool   isSupported() final;
+    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset /*unused*/, enum Settings::Quality mode, bool hdr) override;
+
+    Status initialize() final;
+    Status create() final;
+    Status evaluate() final;
+    Status shutdown() final;
 };
 #endif
