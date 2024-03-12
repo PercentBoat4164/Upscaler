@@ -27,12 +27,16 @@ std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::ve
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanInstanceExtensions(supportedExtensions);
     for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
         requestedExtensions.push_back(extension);
+    for (auto& extension : FSR2::requestVulkanInstanceExtensions(supportedExtensions))
+        requestedExtensions.push_back(extension);
     return requestedExtensions;
 }
 
 std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(supportedExtensions);
     for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
+        requestedExtensions.push_back(extension);
+    for (auto& extension : FSR2::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
     return requestedExtensions;
 }

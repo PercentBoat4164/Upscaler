@@ -1,3 +1,4 @@
 # Upscaler shared libraries
-*ngx[-_]dlss*
-libffx_fsr*
+*
+!GfxPluginUpscaler.dll
+!libGfxPluginUpscaler.so

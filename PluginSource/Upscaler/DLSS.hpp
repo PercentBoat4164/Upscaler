@@ -119,8 +119,8 @@ public:
     ~DLSS() final;
 
 #    ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
 #    endif
 
     constexpr Type getType() final {

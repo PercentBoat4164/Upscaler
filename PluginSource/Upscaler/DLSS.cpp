@@ -94,7 +94,7 @@ Upscaler::Status DLSS::VulkanInitialize() {
 Upscaler::Status DLSS::VulkanCreate() {
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
-    Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     RETURN_ON_FAILURE(setStatus(NGX_VULKAN_CREATE_DLSS_EXT1(Vulkan::getGraphicsInterface()->Instance().device, state.commandBuffer, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
     return SUCCESS;
@@ -104,8 +104,11 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
 
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
-    if (imageID == Plugin::ImageID::OutputColor) accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
     VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    if (imageID == Plugin::ImageID::OutputColor) {
+        accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
+        layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    }
     if (imageID == Plugin::ImageID::SourceDepth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
@@ -157,7 +160,7 @@ Upscaler::Status DLSS::VulkanEvaluate() {
 
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
-    Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     RETURN_ON_FAILURE(setStatus(NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &DLSSEvalParameters), "Failed to evaluate the " + getName() + " feature."));
     return SUCCESS;

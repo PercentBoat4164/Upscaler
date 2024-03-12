@@ -37,8 +37,8 @@ public:
     ~FSR2() final;
 
 #    ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/);
 #    endif
 
     constexpr Type getType() final {

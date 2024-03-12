@@ -25,11 +25,13 @@ namespace Conifer.Upscaler.Scripts
      * upscaler.ApplySettings(settings);
      * </code></example>
      */
+    [Serializable]
     public class Settings
     {
         /**
          * The upscalers that Upscaler supports.
          */
+        [Serializable]
         public enum Upscaler
         {
             /// The dummy upscaler.
@@ -43,6 +45,7 @@ namespace Conifer.Upscaler.Scripts
         /**
          * The quality modes that the upscalers support.
          */
+        [Serializable]
         public enum Quality
         {
             /// Automatically choose based on output resolution.
@@ -62,6 +65,7 @@ namespace Conifer.Upscaler.Scripts
         /**
          * Passes special instructions to DLSS telling how to deal with your application's idiosyncrasies.
          */
+        [Serializable]
         public enum DLSSPreset
         {
             /// Default DLSS behavior. Recommended in most scenarios.
@@ -77,8 +81,8 @@ namespace Conifer.Upscaler.Scripts
 
         internal readonly struct Resolution
         {
-            [NonSerialized] private readonly int _x;
-            [NonSerialized] private readonly int _y;
+            private readonly int _x;
+            private readonly int _y;
 
             public Vector2Int ToVector2Int() => new() { x = _x, y = _y };
 
@@ -91,8 +95,8 @@ namespace Conifer.Upscaler.Scripts
 
         internal readonly struct Jitter
         {
-            [NonSerialized] private readonly float _x;
-            [NonSerialized] private readonly float _y;
+            private readonly float _x;
+            private readonly float _y;
 
             public Vector2 ToVector2() => new() { x = _x, y = _y };
         }
@@ -112,13 +116,13 @@ namespace Conifer.Upscaler.Scripts
         }
 
         /// The current quality mode. Defaults to <see cref="Settings.Quality.Auto"/>.
-        [NonSerialized] public Quality quality;
+        public Quality quality;
         /// The current upscaler. Defaults to <see cref="Settings.Upscaler.None"/>.
-        [NonSerialized] public Upscaler upscaler;
+        public Upscaler upscaler;
         /// The current DLSS preset. Defaults to <see cref="Settings.DLSSPreset.Default"/>.
-        [NonSerialized] public DLSSPreset DLSSpreset;
+        public DLSSPreset DLSSpreset;
         /// The current sharpness value. This should always be in the range of 0 to 1. Defaults to 0.
-        [NonSerialized] public float sharpness;
+        public float sharpness;
         internal static float FrameTime => Time.deltaTime * 1000;
 
         /**
@@ -128,7 +132,12 @@ namespace Conifer.Upscaler.Scripts
          */
         public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness };
 
-        public static bool operator ==(Settings self, Settings other) => self.quality == other.quality && self.upscaler == other.upscaler && self.DLSSpreset == other.DLSSpreset && Equals(self.sharpness, other.sharpness);
+        public static bool operator ==(Settings self, Settings other)
+        {
+            if (self is not null && other is not null)
+                return self.quality == other.quality && self.upscaler == other.upscaler && self.DLSSpreset == other.DLSSpreset && Equals(self.sharpness, other.sharpness);
+            return false;
+        }
 
         public static bool operator !=(Settings self, Settings other) => !(self == other);
 
@@ -255,7 +264,7 @@ namespace Conifer.Upscaler.Scripts
 
         internal UpscalingData UpscalingData;
         internal Plugin Plugin;
-        internal Settings Settings = new();
+        [SerializeField] internal Settings settings;
 
         private CommandBuffer _upscalerPrepare;
 
@@ -337,7 +346,7 @@ namespace Conifer.Upscaler.Scripts
          *
          * <example><code>Upscaler.Settings currentSettings = upscaler.QuerySettings();</code></example>
          */
-        public Settings QuerySettings() => Settings.Copy();
+        public Settings QuerySettings() => settings is null ? new Settings() : settings.Copy();
 
         /**
          * <summary>Push the new settings to the upscaler.</summary>
@@ -358,7 +367,7 @@ namespace Conifer.Upscaler.Scripts
          */
         public Status ApplySettings(Settings newSettings, bool force = false)
         {
-            if (!force && Settings == newSettings) return status;
+            if (!force && settings == newSettings) return status;
             if (Application.isPlaying)
             {
                 _hdr = Camera.allowHDR;
@@ -411,15 +420,15 @@ namespace Conifer.Upscaler.Scripts
                 }
             }
 
-            Settings = newSettings.Copy();
+            settings = newSettings.Copy();
             return status;
         }
         
         private void HandleError(Status reason, string message)
         {
             Debug.LogWarning(reason + " | " + message);
-            Settings.upscaler = Settings.Upscaler.None;
-            ApplySettings(Settings, true);
+            settings.upscaler = Settings.Upscaler.None;
+            ApplySettings(settings, true);
         }
         
         protected void OnEnable()
@@ -445,7 +454,8 @@ namespace Conifer.Upscaler.Scripts
 
             if (GetComponents<Upscaler>().Length > 1) Debug.LogError("Only one Upscaler script may be attached to a camera at a time.", GetComponent<Camera>());
 
-
+            settings ??= new Settings();
+            
             Camera = GetComponent<Camera>();
             Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
@@ -457,7 +467,7 @@ namespace Conifer.Upscaler.Scripts
             
             UpscalingData = new UpscalingData();
             
-            if (!Supported(Settings.upscaler)) Settings.upscaler = Settings.Upscaler.None;
+            if (!Supported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
         }
 
         protected void Update()
@@ -482,12 +492,12 @@ namespace Conifer.Upscaler.Scripts
             if (OutputResolution.x == Camera.pixelWidth && OutputResolution.y == Camera.pixelHeight && Camera.allowHDR == _hdr && Camera.allowDynamicResolution == _dynamicResolution)
                 return;
             
-            status = ApplySettings(Settings, true);
+            status = ApplySettings(settings, true);
         }
 
         protected internal void OnPreCull()
         {
-            if (!Application.isPlaying || Settings.upscaler == Settings.Upscaler.None) return;
+            if (!Application.isPlaying || settings.upscaler == Settings.Upscaler.None) return;
 
             if (_dynamicResolution)
             {
@@ -504,7 +514,7 @@ namespace Conifer.Upscaler.Scripts
                     (int)(OutputResolution.y * ScalableBufferManager.heightScaleFactor));
             }
 
-            status = Plugin.SetPerFrameData(Settings.FrameTime, Settings.sharpness, new Settings.CameraInfo(Camera));
+            status = Plugin.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(Camera));
             if (Failure(status)) return;
 
             if (!_dynamicResolution)
@@ -524,7 +534,7 @@ namespace Conifer.Upscaler.Scripts
         /// [ImageEffectAfterScale][ImageEffectUsesCommandBuffer]
         protected void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (!Application.isPlaying || Settings.upscaler == Settings.Upscaler.None)
+            if (!Application.isPlaying || settings.upscaler == Settings.Upscaler.None)
             {
                 Graphics.Blit(source, destination);
                 return;
