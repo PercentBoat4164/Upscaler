@@ -18,6 +18,8 @@
 #    endif
 #    include <algorithm>
 
+FfxInterface* FSR2::ffxInterface{nullptr};
+
 Upscaler::Status (FSR2::*FSR2::fpInitialize)(){&FSR2::safeFail};
 Upscaler::Status (FSR2::*FSR2::fpEvaluate)(){&FSR2::safeFail};
 
@@ -25,6 +27,7 @@ Upscaler::SupportState FSR2::supported{UNTESTED};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR2::VulkanInitialize() {
+    RETURN_ON_FAILURE(setStatusIf(ffxInterface != nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "The " + getName() + " interface has already been initialized."));
     UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
     VkDeviceContext deviceContext{
           .vkDevice=instance.device,
@@ -36,7 +39,8 @@ Upscaler::Status FSR2::VulkanInitialize() {
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
     void *buffer = calloc(bufferSize, 1);
     RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(&ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
+    ffxInterface = new FfxInterface;
+    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
     return SUCCESS;
 }
 
@@ -111,7 +115,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, Plugin::ImageID 
       .flags=FFX_RESOURCE_FLAGS_NONE,
       .usage=resourceUsage,
     };
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with FSR2. Please select a different image format (probably for the input color)."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with " + getName() + ". Please select a different image format (probably for the input color)."));
 
     resource = ffxGetResourceVK(image.image, description, const_cast<wchar_t*>(std::wstring(L"").c_str()), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     return SUCCESS;
@@ -162,19 +166,21 @@ Upscaler::Status FSR2::VulkanEvaluate() {
     };
     // clang-format on
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(&context, &dispatchDescription), "Failed to dispatch FSR2."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch FSR2."));
     return SUCCESS;
 }
 #    endif
 
 #    ifdef ENABLE_DX12
 Upscaler::Status FSR2::DX12Initialize() {
+    RETURN_ON_FAILURE(setStatusIf(ffxInterface != nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "The " + getName() + " interface has already been initialized."));
     device = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
     size_t           bufferSize     = ffxGetScratchMemorySizeDX12(1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
     void *buffer = calloc(bufferSize, 1);
     RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(&ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
+    ffxInterface = new FfxInterface;
+    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
     return SUCCESS;
 }
 
@@ -246,7 +252,7 @@ Upscaler::Status FSR2::DX12Evaluate() {
     };
     // clang-format on
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(&context, &dispatchDescription), "Failed to dispatch FSR2."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch FSR2."));
     return SUCCESS;
 }
 #    endif
@@ -352,11 +358,11 @@ std::vector<std::string> FSR2::requestVulkanDeviceExtensions(VkInstance /*unused
 }
 #    endif
 
-/**@todo cache me.*/
 bool FSR2::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
-    return (supported = success(getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    FSR2 fsr2(GraphicsAPI::getType());
+    return (supported = success(fsr2.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
 Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
@@ -378,10 +384,15 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
 }
 
 Upscaler::Status FSR2::initialize() {
-    return (this->*fpInitialize)();
+    if (ffxInterface == nullptr)
+        return ((this->*fpInitialize)());
+    return SUCCESS;
 }
 
 Upscaler::Status FSR2::create() {
+    if (context != nullptr)
+        RETURN_ON_FAILURE(shutdown());
+    // clang-format off
     FfxFsr2ContextDescription description{
       .flags =
 #    ifndef NDEBUG
@@ -394,12 +405,16 @@ Upscaler::Status FSR2::create() {
         (settings.HDR ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
-      .backendInterface = ffxInterface,
+      .backendInterface = *ffxInterface,
 #    ifndef NDEBUG
       .fpMessage = &FSR2::log
 #    endif
     };
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextCreate(&context, &description), "Failed to create the FSR2 context."));
+    // clang-format on
+
+    context = new FfxFsr2Context;
+    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."));
+    RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " context."));
     return SUCCESS;
 }
 
@@ -408,9 +423,8 @@ Upscaler::Status FSR2::evaluate() {
 }
 
 Upscaler::Status FSR2::shutdown() {
-    if (initialized)
-        RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(&context), "Failed to destroy the " + getName() + " context."));
-    initialized = false;
+    if (context != nullptr)
+        RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(context), "Failed to destroy the " + getName() + " context."));
     return SUCCESS;
 }
 #endif

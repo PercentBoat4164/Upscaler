@@ -10,6 +10,8 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/);
 #endif
 
+    static bool isSupported();
+
     constexpr Upscaler::Type getType() final {
         return Upscaler::NONE;
     }
@@ -18,7 +20,6 @@ public:
         return "Dummy upscaler";
     }
 
-    bool   isSupported() final;
     Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) final;
 
     Status initialize() final;

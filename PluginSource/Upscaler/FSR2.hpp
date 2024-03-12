@@ -1,15 +1,13 @@
 #pragma once
 #ifdef ENABLE_FSR2
-// Project
 #    include "Upscaler.hpp"
 
-// Upscaler
 #    include <ffx_fsr2.h>
 
 class FSR2 final : public Upscaler {
-    FfxInterface     ffxInterface;
-    FfxFsr2Context   context;
-    FfxDevice        device;
+    static FfxInterface*     ffxInterface;
+    FfxFsr2Context*   context{};
+    FfxDevice        device{};
 
     static Status (FSR2::*fpInitialize)();
     static Status (FSR2::*fpEvaluate)();
@@ -33,13 +31,15 @@ class FSR2 final : public Upscaler {
     static void log(FfxMsgType type, const wchar_t *t_msg);
 
 public:
-    explicit FSR2(GraphicsAPI::Type);
-    ~FSR2() final;
-
 #    ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/);
 #    endif
+
+    static bool isSupported();
+
+    explicit FSR2(GraphicsAPI::Type type);
+    ~FSR2() final;
 
     constexpr Type getType() final {
         return Upscaler::FSR2;
@@ -49,7 +49,6 @@ public:
         return "AMD FidelityFX Super Resolution";
     };
 
-    bool   isSupported() final;
     Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset /*unused*/, enum Settings::Quality mode, bool hdr) override;
 
     Status initialize() final;

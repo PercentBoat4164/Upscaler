@@ -4,9 +4,8 @@
 #include "FSR2.hpp"
 #include "NoUpscaler.hpp"
 
-#include <algorithm>
-#include <utility>
 #include <memory>
+#include <utility>
 
 void (*Upscaler::logCallback)(const char* msg){nullptr};
 
@@ -41,6 +40,35 @@ std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance inst
     return requestedExtensions;
 }
 #endif
+
+bool Upscaler::isSupported(const Type type) {
+    switch (type) {
+        case NONE: return NoUpscaler::isSupported();
+        case DLSS: return DLSS::isSupported();
+        case FSR2: return FSR2::isSupported();
+        case TYPE_MAX_ENUM: return false;
+    }
+    return false;
+}
+
+std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler;
+    switch (type) {
+        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
+#ifdef ENABLE_DLSS
+        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
+#endif
+#ifdef ENABLE_FSR2
+        case FSR2: newUpscaler = std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
+#endif
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+    }
+    return newUpscaler;
+}
+
+void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
+    logCallback = pFunction;
+}
 
 Upscaler::Status Upscaler::useImage(Plugin::ImageID imageID, UnityTextureID unityID) {
     RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
@@ -81,23 +109,4 @@ std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
     std::unique_ptr<Upscaler> newUpscaler = fromType(type);
     newUpscaler->userData                 = userData;
     return newUpscaler;
-}
-
-std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
-    std::unique_ptr<Upscaler> newUpscaler;
-    switch (type) {
-        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
-#ifdef ENABLE_DLSS
-        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
-#endif
-#ifdef ENABLE_FSR2
-        case FSR2: newUpscaler = std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
-#endif
-        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
-    }
-    return newUpscaler;
-}
-
-void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
-    logCallback = pFunction;
 }

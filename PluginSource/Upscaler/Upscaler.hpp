@@ -266,6 +266,10 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
 #endif
 
+    static bool                   isSupported(Type type);
+    static std::unique_ptr<Upscaler> fromType(Type type);
+    static void setLogCallback(void (*pFunction)(const char*));
+
     Upscaler()                           = default;
     Upscaler(const Upscaler&)            = delete;
     Upscaler(Upscaler&&)                 = delete;
@@ -275,7 +279,6 @@ public:
 
     constexpr virtual Type        getType()                                                                                = 0;
     constexpr virtual std::string getName()                                                                                = 0;
-    virtual bool                  isSupported()                                                                            = 0;
     virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
@@ -298,7 +301,4 @@ public:
     bool                 resetStatus();
 
     std::unique_ptr<Upscaler>        copyFromType(Type type);
-    static std::unique_ptr<Upscaler> fromType(Type type);
-
-    static void setLogCallback(void (*pFunction)(const char*));
 };

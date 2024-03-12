@@ -47,7 +47,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RegisterGlob
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSupported(Upscaler::Type type) {
-    return Upscaler::fromType(type)->isSupported();
+    return Upscaler::isSupported(type);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {

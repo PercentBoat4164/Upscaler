@@ -501,7 +501,6 @@ std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance
 }
 #    endif
 
-/**@todo cache me.*/
 bool DLSS::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
@@ -511,7 +510,8 @@ bool DLSS::isSupported() {
         return false;
     }
 #    endif
-    return (supported = success(getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    DLSS dlss(GraphicsAPI::getType());
+    return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
 Upscaler::Status
@@ -564,10 +564,7 @@ Upscaler::Status DLSS::initialize() {
     RETURN_ON_FAILURE(setStatusIf(initialized, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, getName() + " is already initialized!"));
     if (!resetStatus()) return getStatus();
 
-    // Upscaler_Initialize NGX SDK
     RETURN_ON_FAILURE((this->*fpInitialize)());
-    // Check for DLSS support
-    // Is driver up-to-date
     int needsUpdatedDriver{};
     RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_NeedsUpdatedDriver, &needsUpdatedDriver), "Failed to query the selected device's driver update needs. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
     if (needsUpdatedDriver != 0) {
@@ -577,11 +574,9 @@ Upscaler::Status DLSS::initialize() {
         RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMinor, &requiredMinorDriverVersion), "Failed to query the minor version of the minimum " + getName() + " supported driver for the selected graphics device. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
         return Upscaler::setStatus(SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE, "The selected device's drivers are out-of-date. They must be (" + std::to_string(requiredMajorDriverVersion) + "." + std::to_string(requiredMinorDriverVersion) + ") at a minimum.");
     }
-    // Is DLSS available on this hardware and platform
     int DLSSSupported{};
     RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported), "Failed to query status of " + getName() + " support for the selected graphics device. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
     RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED, getName() + " is not supported on the selected graphics device. If you are certain that you have a DLSS compatible device, please ensure that it is being used by Unity for rendering."));
-    // Is DLSS denied for this application
     RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported), "Failed to query the major version of the minimum " + getName() + " supported driver for the selected graphics device. This may result from outdated driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
     RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, SOFTWARE_ERROR_FEATURE_DENIED, getName() + " has been denied for this application. Consult an NVIDIA representative for more information."));
 
