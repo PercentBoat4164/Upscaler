@@ -69,10 +69,11 @@ namespace Conifer.Upscaler.Scripts.impl
                 SourceDepthTarget = null;
             }
             if (upscaler == Settings.Upscaler.None) return;
+            
 #if UPSCALER_USE_URP
-            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32, SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil), FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, false, false, false, false, 1, 0f, MSAASamples.None, false, dynamicResolution);
+            SourceDepthTarget = RTHandles.Alloc(resolution.x, resolution.y, 1, DepthBits.Depth32, GraphicsFormat.None, FilterMode.Point, TextureWrapMode.Repeat, TextureDimension.Tex2D, false, false, false, true, 1, 0f, MSAASamples.None, false, dynamicResolution);
 #else
-            SourceDepthTarget = new RenderTexture(resolution.x, resolution.y, GraphicsFormat.None, SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil)) {useDynamicScale = dynamicResolution};
+            SourceDepthTarget = new RenderTexture(resolution.x, resolution.y, GraphicsFormat.None, GraphicsFormat.D32_SFloat) {useDynamicScale = dynamicResolution};
             SourceDepthTarget.Create();
 #endif
         }
