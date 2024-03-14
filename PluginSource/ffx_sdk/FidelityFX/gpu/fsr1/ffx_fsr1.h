@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
 /// @defgroup FfxGPUFsr1 FidelityFX FSR1
 /// FidelityFX Super Resolution 1 GPU documentation
 /// 

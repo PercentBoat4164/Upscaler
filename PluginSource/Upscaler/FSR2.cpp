@@ -261,35 +261,35 @@ Upscaler::Status FSR2::setStatus(FfxErrorCode t_error, const std::string &t_msg)
     switch (t_error) {
         case FFX_OK:
             return Upscaler::setStatus(SUCCESS, t_msg + " | FFX_OK");
-        case FFX_ERROR_INVALID_POINTER:
+        case (int)FFX_ERROR_INVALID_POINTER:
             return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | FFX_ERROR_INVALID_POINTER");
-        case FFX_ERROR_INVALID_ALIGNMENT:
+        case (int)FFX_ERROR_INVALID_ALIGNMENT:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ALIGNMENT");
-        case FFX_ERROR_INVALID_SIZE:
+        case (int)FFX_ERROR_INVALID_SIZE:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_SIZE");
-        case FFX_EOF:
+        case (int)FFX_EOF:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, t_msg + " | FFX_EOF");
-        case FFX_ERROR_INVALID_PATH:
+        case (int)FFX_ERROR_INVALID_PATH:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_PATH");
-        case FFX_ERROR_EOF:
+        case (int)FFX_ERROR_EOF:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_EOF");
-        case FFX_ERROR_MALFORMED_DATA:
+        case (int)FFX_ERROR_MALFORMED_DATA:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_MALFORMED_DATA");
-        case FFX_ERROR_OUT_OF_MEMORY:
+        case (int)FFX_ERROR_OUT_OF_MEMORY:
             return Upscaler::setStatus(SOFTWARE_ERROR_OUT_OF_GPU_MEMORY, t_msg + " | FFX_ERROR_OUT_OF_MEMORY");
-        case FFX_ERROR_INCOMPLETE_INTERFACE:
+        case (int)FFX_ERROR_INCOMPLETE_INTERFACE:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INCOMPLETE_INTERFACE");
-        case FFX_ERROR_INVALID_ENUM:
+        case (int)FFX_ERROR_INVALID_ENUM:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ENUM");
-        case FFX_ERROR_INVALID_ARGUMENT:
+        case (int)FFX_ERROR_INVALID_ARGUMENT:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ARGUMENT");
-        case FFX_ERROR_OUT_OF_RANGE:
+        case (int)FFX_ERROR_OUT_OF_RANGE:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_OUT_OF_RANGE");
-        case FFX_ERROR_NULL_DEVICE:
+        case (int)FFX_ERROR_NULL_DEVICE:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_NULL_DEVICE");
-        case FFX_ERROR_BACKEND_API_ERROR:
+        case (int)FFX_ERROR_BACKEND_API_ERROR:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_BACKEND_API_ERROR");
-        case FFX_ERROR_INSUFFICIENT_MEMORY:
+        case (int)FFX_ERROR_INSUFFICIENT_MEMORY:
             return Upscaler::setStatus(SOFTWARE_ERROR_OUT_OF_GPU_MEMORY, t_msg + " | FFX_ERROR_INSUFFICIENT_MEMORY");
         default:
             return Upscaler::setStatus(GENERIC_ERROR, t_msg + " | Unknown");

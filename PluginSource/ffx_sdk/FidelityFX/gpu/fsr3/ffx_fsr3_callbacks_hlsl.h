@@ -21,5 +21,5 @@
 
 
 
-#include "fsr_sdk/FidelityFX/gpu/fsr2/ffx_fsr2_callbacks_hlsl.h"
+#include "../fsr2/ffx_fsr2_callbacks_hlsl.h"
 #include "ffx_fsr3_resources.h"

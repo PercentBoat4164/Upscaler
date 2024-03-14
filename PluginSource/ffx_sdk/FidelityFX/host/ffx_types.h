@@ -23,6 +23,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <cstddef>
 
 ///
 /// @defgroup ffxSDK SDK
@@ -48,7 +49,11 @@
 /// FidelityFX exported functions
 ///
 /// @ingroup Defines
-#define FFX_API __declspec(dllexport)
+#ifdef WIN32
+  #define FFX_API __declspec(dllexport)
+#else
+  #define FFX_API
+#endif
 #endif // #if defined (FFX_GCC)
 
 #define FFX_SDK_DEFAULT_CONTEXT_SIZE (1024 * 128)
@@ -235,14 +240,14 @@ typedef enum FfxSurfaceFormat {
     FFX_SURFACE_FORMAT_R32G32B32A32_FLOAT,     ///< 32 bit per channel, 4 channel float format
     FFX_SURFACE_FORMAT_R16G16B16A16_FLOAT,     ///< 16 bit per channel, 4 channel float format
     FFX_SURFACE_FORMAT_R32G32_FLOAT,           ///< 32 bit per channel, 2 channel float format
-    FFX_SURFACE_FORMAT_R8_UINT,                ///<  8 bit per channel, 1 channel float format
+    FFX_SURFACE_FORMAT_R8_UINT,                ///< 8 bit per channel, 1 channel float format
     FFX_SURFACE_FORMAT_R32_UINT,               ///< 32 bit per channel, 1 channel float format
     FFX_SURFACE_FORMAT_R10G10B10A2_UNORM,      ///< 10 bit per RGB channel with 2 bit alpha, 4 channel unsigned normalized format
     FFX_SURFACE_FORMAT_R8G8B8A8_TYPELESS,      ///<  8 bit per channel, 4 channel float format
     FFX_SURFACE_FORMAT_R8G8B8A8_UNORM,         ///<  8 bit per channel, 4 channel unsigned normalized format
     FFX_SURFACE_FORMAT_R8G8B8A8_SNORM,         ///<  8 bit per channel, 4 channel signed normalized format
     FFX_SURFACE_FORMAT_R8G8B8A8_SRGB,          ///<  8 bit per channel, 4 channel srgb normalized
-    FFX_SURFACE_FORMAT_R11G11B10_FLOAT,        ///< 32 bit per channel, 3 channel float format
+    FFX_SURFACE_FORMAT_R11G11B10_FLOAT,        ///< 32 bit 3 channel float format
     FFX_SURFACE_FORMAT_R16G16_FLOAT,           ///< 16 bit per channel, 2 channel float format
     FFX_SURFACE_FORMAT_R16G16_UINT,            ///< 16 bit per channel, 2 channel unsigned int format
     FFX_SURFACE_FORMAT_R16G16_SINT,            ///< 16 bit per channel, 2 channel signed int format

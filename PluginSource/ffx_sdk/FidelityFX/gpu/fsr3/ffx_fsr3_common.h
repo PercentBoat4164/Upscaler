@@ -20,6 +20,6 @@
 // THE SOFTWARE.
 
 
-#include "fsr_sdk/FidelityFX/gpu/fsr2/ffx_fsr2_common.h"
-#include "fsr_sdk/FidelityFX/gpu/frameinterpolation/ffx_frameinterpolation_common.h"
-#include "fsr_sdk/FidelityFX/gpu/opticalflow/ffx_opticalflow_common.h"
+#include "../fsr2/ffx_fsr2_common.h"
+#include "../frameinterpolation/ffx_frameinterpolation_common.h"
+#include "../opticalflow/ffx_opticalflow_common.h"

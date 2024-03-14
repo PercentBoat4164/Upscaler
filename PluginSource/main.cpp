@@ -9,14 +9,13 @@
 
 #ifdef ENABLE_VULKAN
 #    include "GraphicsAPI/Vulkan.hpp"
-#    include "GraphicsAPI/Vulkan.hpp"
 #endif
 
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
 
-// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GCC on Linux.
+// Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};

@@ -41,6 +41,7 @@
 #endif // #if defined(FFX_CPU)
 
 #if defined(FFX_CPU)
+#include <cstdint>
 /// A typedef for a boolean value.
 ///
 /// @ingroup CPUTypes

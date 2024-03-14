@@ -23,8 +23,8 @@
 #ifndef FFX_FSR3_RESOURCES_H
 #define FFX_FSR3_RESOURCES_H
 
-#include "fsr_sdk/FidelityFX/gpu/fsr2/ffx_fsr2_resources.h"
-#include "fsr_sdk/FidelityFX/gpu/frameinterpolation/ffx_frameinterpolation_resources.h"
+#include "../fsr2/ffx_fsr2_resources.h"
+#include "../frameinterpolation/ffx_frameinterpolation_resources.h"
 
 #if defined(FFX_CPU) || defined(FFX_GPU)
 #define FFX_FSR3_RESOURCE_IDENTIFIER_NULL                                           0
