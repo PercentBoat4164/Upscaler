@@ -16,9 +16,9 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 #ifndef NDEBUG
 #    define RETURN_ON_FAILURE(x)                \
@@ -98,7 +98,7 @@ public:
     public:
         enum Quality {
             Auto,
-            DLAA,
+            AntiAliasing,
             Quality,
             Balanced,
             Performance,
@@ -213,7 +213,7 @@ public:
                         return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
-                case DLAA: return NVSDK_NGX_PerfQuality_Value_DLAA;
+                case AntiAliasing: return NVSDK_NGX_PerfQuality_Value_DLAA;
                 case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
@@ -242,9 +242,13 @@ protected:
 
 public:
 #ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
 #endif
+
+    static bool                   isSupported(Type type);
+    static std::unique_ptr<Upscaler> fromType(Type type);
+    static void setLogCallback(void (*pFunction)(const char*));
 
     Upscaler()                           = default;
     Upscaler(const Upscaler&)            = delete;
@@ -255,7 +259,6 @@ public:
 
     constexpr virtual Type        getType()                                                                                = 0;
     constexpr virtual std::string getName()                                                                                = 0;
-    virtual bool                  isSupported()                                                                            = 0;
     virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
@@ -278,7 +281,4 @@ public:
     bool                 resetStatus();
 
     std::unique_ptr<Upscaler>        copyFromType(Type type);
-    static std::unique_ptr<Upscaler> fromType(Type type);
-
-    static void setLogCallback(void (*pFunction)(const char*));
 };

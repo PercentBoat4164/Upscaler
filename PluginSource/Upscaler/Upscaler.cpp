@@ -24,18 +24,47 @@ bool Upscaler::recoverable(const Status t_status) {
 #ifdef ENABLE_VULKAN
 std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanInstanceExtensions(supportedExtensions);
+#    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
     return requestedExtensions;
 }
 
 std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(supportedExtensions);
+#    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
     return requestedExtensions;
 }
 #endif
+
+bool Upscaler::isSupported(const Type type) {
+    switch (type) {
+        case NONE: return NoUpscaler::isSupported();
+        case DLSS: return DLSS::isSupported();
+        case TYPE_MAX_ENUM: return false;
+    }
+    return false;
+}
+
+std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
+    std::unique_ptr<Upscaler> newUpscaler;
+    switch (type) {
+        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
+#    ifdef ENABLE_DLSS
+        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
+#    endif
+        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+    }
+    return newUpscaler;
+}
+
+void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
+    logCallback = pFunction;
+}
 
 Upscaler::Status Upscaler::useImage(Plugin::ImageID imageID, UnityTextureID unityID) {
     RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
@@ -76,20 +105,4 @@ std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
     std::unique_ptr<Upscaler> newUpscaler = fromType(type);
     newUpscaler->userData                 = userData;
     return newUpscaler;
-}
-
-std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
-    std::unique_ptr<Upscaler> newUpscaler;
-    switch (type) {
-        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
-#ifdef ENABLE_DLSS
-        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
-#endif
-        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
-    }
-    return newUpscaler;
-}
-
-void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
-    logCallback = pFunction;
 }

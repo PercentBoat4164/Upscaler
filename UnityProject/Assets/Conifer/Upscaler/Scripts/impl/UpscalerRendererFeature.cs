@@ -51,7 +51,7 @@ namespace Conifer.Upscaler.Scripts.impl
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (!Application.isPlaying || !_registered || _upscaler is null || _upscaler.Settings.upscaler == Settings.Upscaler.None) return;
+            if (!Application.isPlaying || !_registered || _upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
             _upscaler.Camera.rect = new Rect(0, 0, _upscaler.OutputResolution.x, _upscaler.OutputResolution.y);
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             _upscale.ConfigureTarget(_upscaler.UpscalingData.OutputColorTarget);

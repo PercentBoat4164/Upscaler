@@ -115,23 +115,24 @@ class DLSS final : public Upscaler {
     static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
 
 public:
-    explicit DLSS(GraphicsAPI::Type);
-    ~DLSS() final;
-
 #    ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
 #    endif
+
+    static bool isSupported();
+
+    explicit DLSS(GraphicsAPI::Type type);
+    ~DLSS() final;
 
     constexpr Type getType() final {
         return Upscaler::DLSS;
     };
 
     constexpr std::string getName() final {
-        return "NVIDIA DLSS";
+        return "NVIDIA Deep Learning Super Sampling";
     };
 
-    bool   isSupported() final;
     Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode, bool hdr) final;
 
     Status initialize() final;
