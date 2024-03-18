@@ -584,6 +584,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings:
+    quality: 0
+    upscaler: 0
+    DLSSpreset: 0
+    sharpness: 0
   status: 0
 --- !u!114 &963194232
 MonoBehaviour:
@@ -693,7 +698,7 @@ Camera:
   field of view: 60
   orthographic: 0
   orthographic size: 5
-  m_Depth: 0
+  m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -735,6 +740,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings:
+    quality: 0
+    upscaler: 0
+    DLSSpreset: 0
+    sharpness: 0
   status: 0
 --- !u!114 &1161872140
 MonoBehaviour:
@@ -759,7 +769,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
