@@ -97,7 +97,6 @@ namespace Conifer.Upscaler.Editor
             }
 
             upscalerObject.ApplySettings(newSettings);
-            EditorUtility.SetDirty(upscalerObject);
         }
     }
 }

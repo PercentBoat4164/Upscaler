@@ -61,7 +61,7 @@ namespace Conifer.Upscaler.Scripts.impl
 
         private static void PreUpscale(ScriptableRenderContext context, Camera camera)
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || camera.name == "Preview Scene Camera") return;
             _upscaler = camera.GetComponent<Upscaler>();
             if (_upscaler is null) Debug.LogError("All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
             else _upscaler.OnPreCull();
