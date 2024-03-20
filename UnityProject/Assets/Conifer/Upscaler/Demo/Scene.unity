@@ -3514,7 +3514,7 @@ MonoBehaviour:
   accSprintMultiplier: 4
   lookSensitivity: 2
   dampingCoefficient: 5
-  focusOnEnable: 1
+  focusOnEnable: 0
 --- !u!1 &1161872134
 GameObject:
   m_ObjectHideFlags: 0
@@ -3813,6 +3813,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 963194228}
   - {fileID: 1161872138}
+  - {fileID: 1441297027}
   - {fileID: 842695023}
   - {fileID: 56748541}
-  - {fileID: 1441297027}

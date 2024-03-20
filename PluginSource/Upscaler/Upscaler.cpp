@@ -101,6 +101,11 @@ bool Upscaler::resetStatus() {
     return status == SUCCESS;
 }
 
+void Upscaler::forceStatus(Upscaler::Status newStatus, std::string message) {
+    status = newStatus;
+    statusMessage = std::move(message);
+}
+
 std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
     std::unique_ptr<Upscaler> newUpscaler = fromType(type);
     newUpscaler->userData                 = userData;

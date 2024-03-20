@@ -515,7 +515,7 @@ bool DLSS::isSupported() {
 }
 
 Upscaler::Status
-DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
+DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode) {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
     RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
@@ -524,7 +524,6 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
-    optimalSettings.HDR              = hdr;
     optimalSettings.quality          = mode;
     optimalSettings.preset           = preset;
 
@@ -603,13 +602,12 @@ Upscaler::Status DLSS::create() {
         .InTargetHeight     = settings.outputResolution.height,
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
-      .InFeatureCreateFlags = static_cast<int>(
+      .InFeatureCreateFlags = static_cast<NVSDK_NGX_DLSS_Feature_Flags>(
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVJittered) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
-        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DoSharpening) |
-        (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
+        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DoSharpening)
       ),
       .InEnableOutputSubrects = false,
     };

@@ -210,8 +210,10 @@ namespace Conifer.Upscaler.Scripts
             SettingsErrorInvalidSharpnessValue                 = SettingsError | (3U << ErrorCodeOffset),
             /// The quality mode is unusable by the current upscaler. See the accompanying status message for more information.
             SettingsErrorQualityModeNotAvailable               = SettingsError | (4U << ErrorCodeOffset),
+            /// An invalid <see cref="Settings.Upscaler"/> was provided.
+            SettingsErrorUpscalerNotAvailable                  = SettingsError | (5U << ErrorCodeOffset),
             /// The preset is unusable by DLSS. See the accompanying status message for more information.
-            SettingsErrorPresetNotAvailable                    = SettingsError | (5U << ErrorCodeOffset),
+            SettingsErrorPresetNotAvailable                    = SettingsError | (6U << ErrorCodeOffset),
             /// A GenericError* is thrown when a most likely cause has been found but it is not certain. A plain GenericError is thrown when there are many possible known errors.
             GenericError                                       =                  4U << ErrorTypeOffset,
             /// Either the GPU does not support the required Vulkan device extensions or the system does not support the required Vulkan instance extensions.
@@ -263,7 +265,6 @@ namespace Conifer.Upscaler.Scripts
         private static readonly int MotionID = Shader.PropertyToID("_CameraMotionVectorsTexture");
 
         internal Camera Camera;
-        private bool _hdr;
         private bool _dynamicResolution;
 
         internal UpscalingData UpscalingData;
@@ -374,10 +375,9 @@ namespace Conifer.Upscaler.Scripts
             if (!force && settings == newSettings) return status;
             if (Application.isPlaying)
             {
-                _hdr = Camera.allowHDR;
                 _dynamicResolution = Camera.allowDynamicResolution;
                 OutputResolution = new Vector2Int(Camera.pixelWidth, Camera.pixelHeight);
-                status = Plugin.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, _hdr);
+                status = Plugin.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, false);
                 if (Failure(status)) return status;
 
                 RenderingResolution = Plugin.GetRecommendedResolution().ToVector2Int();
@@ -401,7 +401,7 @@ namespace Conifer.Upscaler.Scripts
                 
                 if (newSettings.upscaler != Settings.Upscaler.None && RenderingResolution == new Vector2Int(0, 0)) return status;
 
-                UpscalingData.ManageOutputColorTarget(SystemInfo.GetGraphicsFormat(_hdr ? DefaultFormat.HDR : DefaultFormat.LDR), newSettings.upscaler, OutputResolution);
+                UpscalingData.ManageOutputColorTarget(SystemInfo.GetGraphicsFormat(DefaultFormat.LDR), newSettings.upscaler, OutputResolution);
                 UpscalingData.ManageSourceDepthTarget(_dynamicResolution, newSettings.upscaler, _dynamicResolution ? OutputResolution : RenderingResolution);
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
@@ -493,7 +493,7 @@ namespace Conifer.Upscaler.Scripts
                 }
             }
 
-            if (OutputResolution.x == Camera.pixelWidth && OutputResolution.y == Camera.pixelHeight && Camera.allowHDR == _hdr && Camera.allowDynamicResolution == _dynamicResolution)
+            if (OutputResolution.x == Camera.pixelWidth && OutputResolution.y == Camera.pixelHeight && Camera.allowDynamicResolution == _dynamicResolution)
                 return;
             
             status = ApplySettings(settings, true);

@@ -133,7 +133,7 @@ public:
         return "NVIDIA Deep Learning Super Sampling";
     };
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode, bool hdr) final;
+    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode) final;
 
     Status initialize() final;
     Status create() final;
