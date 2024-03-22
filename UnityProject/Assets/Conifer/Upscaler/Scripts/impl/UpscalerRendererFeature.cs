@@ -1,6 +1,4 @@
 #if UPSCALER_USE_URP
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -61,9 +59,9 @@ namespace Conifer.Upscaler.Scripts.impl
 
         private static void PreUpscale(ScriptableRenderContext context, Camera camera)
         {
-            if (!Application.isPlaying || camera.name == "Preview Scene Camera") return;
+            if (!Application.isPlaying) return;
             _upscaler = camera.GetComponent<Upscaler>();
-            if (_upscaler is null) Debug.LogError("All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
+            if (_upscaler is null) Debug.Log("All cameras using the Upscaler Renderer Feature must have the Upscaler script attached to them as well.", camera);
             else _upscaler.OnPreCull();
         }
 

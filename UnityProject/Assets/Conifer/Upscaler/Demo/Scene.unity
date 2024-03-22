@@ -3514,7 +3514,6 @@ MonoBehaviour:
   accSprintMultiplier: 4
   lookSensitivity: 2
   dampingCoefficient: 5
-  focusOnEnable: 0
 --- !u!1 &1161872134
 GameObject:
   m_ObjectHideFlags: 0
@@ -3688,7 +3687,6 @@ MonoBehaviour:
   accSprintMultiplier: 4
   lookSensitivity: 2
   dampingCoefficient: 5
-  focusOnEnable: 1
 --- !u!1 &1441297024
 GameObject:
   m_ObjectHideFlags: 0
