@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: d7276aeff27af52c0a05a061fca321f8
+guid: 82905fe93b471cd4ea21ac38e062656e
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,248 +7,243 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Material__25
-    second: {fileID: 2100000, guid: c3f81ad708292aae9b6d8cacefff1e7a, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Material__298
-    second: {fileID: 2100000, guid: d98632ee1cac957a0a203a9f269f2100, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Material__47
-    second: {fileID: 2100000, guid: 450904f3c083aaa118ca084137754709, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Material__57
-    second: {fileID: 2100000, guid: 950ad71c5b2644c84aa6874e6eb7178b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: arch
-    second: {fileID: 2100000, guid: 73f9225cf123c7202ac569b03e3aae04, type: 2}
+    second: {fileID: 2100000, guid: 5299b0168557c31c7943cf48db0eb0b6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: background
+    second: {fileID: 2100000, guid: c33063abc23a858edb986c83b01ebed9, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: bricks
-    second: {fileID: 2100000, guid: ea11db3f4b85a89fe9b3ef12643df5c1, type: 2}
+    second: {fileID: 2100000, guid: aa4e781da3b972b0e941af7b42da68fb, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: ceiling
-    second: {fileID: 2100000, guid: fe89dc07a1d1ec590aa98e7f68bec128, type: 2}
+    second: {fileID: 2100000, guid: 4e4ec1326bd2ec675ac56c7a717a7479, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: chain
-    second: {fileID: 2100000, guid: e08577e2447934a57b457ea05d10d2f4, type: 2}
+    second: {fileID: 2100000, guid: 70e9f629f66e2115db2095b0f4f1d527, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: column_a
-    second: {fileID: 2100000, guid: a453dd6413c85b1468bf68a92cdb99ed, type: 2}
+    second: {fileID: 2100000, guid: 8b4c7522ca6c125a187eb4bfe6e4dfcf, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: column_b
-    second: {fileID: 2100000, guid: 63a7a7401020f409cb911ca0b1c0ac7a, type: 2}
+    second: {fileID: 2100000, guid: 86566d10bb50068b4a24261d8d933c78, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: column_c
-    second: {fileID: 2100000, guid: bb439be74238f35c5b4ac7b1de7eb588, type: 2}
+    second: {fileID: 2100000, guid: 53e1906ebabcdaf8d9e1021625944db2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: details
-    second: {fileID: 2100000, guid: 5388498c9b32b2f7b843a5fe5d3f3b4b, type: 2}
+    second: {fileID: 2100000, guid: b6d67e4ddb4ac7a1e8ea6337115eacaf, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_a
-    second: {fileID: 2100000, guid: ddcfff0a12de3835fbb2ba6e4cffb6db, type: 2}
+    second: {fileID: 2100000, guid: 5971bbbba5cbd261fadbf8c4216e77e0, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_c
-    second: {fileID: 2100000, guid: 6c24a99561e19e72a90c71ab6b1d4cbb, type: 2}
+    second: {fileID: 2100000, guid: 772edd327e85e6a028ab578d774907c1, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_d
-    second: {fileID: 2100000, guid: feab24100da81b555903bc2e6e038ad6, type: 2}
+    second: {fileID: 2100000, guid: c203f5916444aa249b78c5ed1ea877c7, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_e
-    second: {fileID: 2100000, guid: c6f8480eb0932dffe98b0b21186382ed, type: 2}
+    second: {fileID: 2100000, guid: 942575472a81769fba5fc61b201e75a5, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_f
-    second: {fileID: 2100000, guid: 9e53508989bc941b7b7c0cef03347d0b, type: 2}
+    second: {fileID: 2100000, guid: 5258081bf66b81150a02f6c450a35750, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: fabric_g
-    second: {fileID: 2100000, guid: 440a26bdf96814fc8a173ac354ddebad, type: 2}
+    second: {fileID: 2100000, guid: 12ffc567314b81350b3556b4cd3c159b, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: flagpole
-    second: {fileID: 2100000, guid: 4f11133452c05990c8cec259f3ca12e1, type: 2}
+    second: {fileID: 2100000, guid: 1101abc6c89ff966fa001cccf62ada78, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: floor
-    second: {fileID: 2100000, guid: 7ed780d1d09d672dd80376515c374919, type: 2}
+    second: {fileID: 2100000, guid: 2a77930df0cca9d6c966157687b1e7a6, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: leaf
-    second: {fileID: 2100000, guid: 5d80313067f71debda59f5d4e06d0a12, type: 2}
+    second: {fileID: 2100000, guid: 33949dc3dd7291edda49cef480b5ddb6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: lion
+    second: {fileID: 2100000, guid: b8ea032904ed5c84f98122ac74d4ff1a, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: roof
-    second: {fileID: 2100000, guid: 01f960d6f532a47d399a3ab074d23302, type: 2}
+    second: {fileID: 2100000, guid: 7fd4f1afd1b1fe8b786b0d49614b51d2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: vase
-    second: {fileID: 2100000, guid: e967d9c0bc43ca32fab90202a3aee3db, type: 2}
+    second: {fileID: 2100000, guid: bab819047f1665ba08af586991d7e68c, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: vase_hanging
-    second: {fileID: 2100000, guid: 94c417d77511fb992a22046bf9d2415c, type: 2}
+    second: {fileID: 2100000, guid: 325188f71a8b8c0da8a02beabf79c962, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: vase_plant
+    second: {fileID: 2100000, guid: 08471e0247c54d77eaec40c91f691904, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: vase_round
-    second: {fileID: 2100000, guid: b01d691da7587e6d5ad36ce9d032ba62, type: 2}
+    second: {fileID: 2100000, guid: 0010a81e57cc8c5548f390577d1ee2dc, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: background
-    second: {fileID: 2800000, guid: 72b875590ce9db9d59c397286a9ba154, type: 3}
+    second: {fileID: 2800000, guid: eccf6c31be887fc3e8630d5b598d5564, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: chain_texture
-    second: {fileID: 2800000, guid: 19c0d3c6844d34951a4d7921c5880d28, type: 3}
+    second: {fileID: 2800000, guid: d1c71526c601162e8a82736db03de4e3, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: lion
-    second: {fileID: 2800000, guid: 3154d060e003ba14682d13de45535abe, type: 3}
+    second: {fileID: 2800000, guid: b41f617d5b97e1d369067025697399a1, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: spnza_bricks_a_diff
-    second: {fileID: 2800000, guid: ee0dce78d5bafdf928dfb1cf0c876de3, type: 3}
+    second: {fileID: 2800000, guid: 721056a7f0c0874b68fc41dd5b672ee0, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_arch_diff
-    second: {fileID: 2800000, guid: 454bc5fd1a96bbdb9b46f6e9c0f12f31, type: 3}
+    second: {fileID: 2800000, guid: 7722cdc579540b828b3d7a357605dee4, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_ceiling_a_diff
-    second: {fileID: 2800000, guid: 237f63924d566af45bc8f0aa7cce6892, type: 3}
+    second: {fileID: 2800000, guid: 75c0f93fe4379a9509758f4308752b01, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_column_a_diff
-    second: {fileID: 2800000, guid: 2a10797b14a536bccbf0ddd145833230, type: 3}
+    second: {fileID: 2800000, guid: 57c144b105f25690bb9b3dff69fff5d7, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_column_b_diff
-    second: {fileID: 2800000, guid: 383b6bc060156dddfa70188237b7a723, type: 3}
+    second: {fileID: 2800000, guid: cf3e3c64bdb5cf66e9820840794c1a68, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_column_c_diff
-    second: {fileID: 2800000, guid: 41cf9eb8e02d8d4e58d0444cd5754052, type: 3}
+    second: {fileID: 2800000, guid: cbb042fd001b28b56b4a14e55565c46d, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_curtain_blue_diff
-    second: {fileID: 2800000, guid: 5b609c1e020f3a3c4b3e9672b36e0d02, type: 3}
+    second: {fileID: 2800000, guid: bcedac923406e87609a1fb43cec15f08, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_curtain_diff
-    second: {fileID: 2800000, guid: a30b5898ad37b75528a436d3ba2952a9, type: 3}
+    second: {fileID: 2800000, guid: fb6b6bff27d5e2bed93bb872c39d1bf0, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_curtain_green_diff
-    second: {fileID: 2800000, guid: 5b5e58e3c14aee0b99bdaf797c3bcf12, type: 3}
+    second: {fileID: 2800000, guid: b3598f54b3594acd9a4cfc6a57196372, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_details_diff
-    second: {fileID: 2800000, guid: 0025540305ede45f3b3ff24ba7c09807, type: 3}
+    second: {fileID: 2800000, guid: 5e986e6af4dd31e58a0b12680242f051, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_fabric_blue_diff
-    second: {fileID: 2800000, guid: 935864a6f7a6979e88ea0022e6c92da1, type: 3}
+    second: {fileID: 2800000, guid: 5ce243789c26d0740be322cc0fd2060a, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_fabric_diff
-    second: {fileID: 2800000, guid: 04db3e4413d0be66a8b98b14f3e470fc, type: 3}
+    second: {fileID: 2800000, guid: f3d74068c1c533aa4962f377e2a8196d, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_fabric_green_diff
-    second: {fileID: 2800000, guid: 223e7569c56fbe8a08c4a0d28298988d, type: 3}
+    second: {fileID: 2800000, guid: 648f9d37d999a3348ac1fbdcb8f35279, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_flagpole_diff
-    second: {fileID: 2800000, guid: 8ef2ee1ff9e70460b98555970de510de, type: 3}
+    second: {fileID: 2800000, guid: 1eef28b2d7c73ecb59f6e898880c9e73, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_floor_a_diff
-    second: {fileID: 2800000, guid: 7fdb01d6c4281a8638a97ebb1b4a7fc5, type: 3}
+    second: {fileID: 2800000, guid: 26540ab0ff0d70cada6f90654219d9f2, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_roof_diff
-    second: {fileID: 2800000, guid: dd550e4bfe21730d8abb18755cf42b6b, type: 3}
+    second: {fileID: 2800000, guid: 0ea4f1624f6ed04b680daada6206d7e6, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sponza_thorn_diff
-    second: {fileID: 2800000, guid: 37aaa400ff062886cbac4823e476c661, type: 3}
+    second: {fileID: 2800000, guid: 34f69e2bca508096ba2c9d2964cf0271, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: vase_dif
-    second: {fileID: 2800000, guid: 2ce402341cb5ed83c87ab1c2693e8395, type: 3}
+    second: {fileID: 2800000, guid: 69a1a4ee6974647cf8f00db9f72120b8, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: vase_hanging
-    second: {fileID: 2800000, guid: d20ef281ab0b5e2ddac45332ecf3f8db, type: 3}
+    second: {fileID: 2800000, guid: 327322536ecbda0cb8f7a1bddff10104, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: vase_plant
-    second: {fileID: 2800000, guid: ade86cad85599552ab3e68caba8c3386, type: 3}
+    second: {fileID: 2800000, guid: 3f3afa46c096849c985b2a1c735bd810, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: vase_round
-    second: {fileID: 2800000, guid: 92b2d6689ed977f6e883774fb30c7f20, type: 3}
+    second: {fileID: 2800000, guid: ece34281fc43ea29ea1d0764a90f83a2, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0
