@@ -176,6 +176,7 @@ public:
         Halton     jitterGenerator;
         Jitter     jitter{0.F, 0.F};
         float      sharpness{};
+        bool       hdr{};
         float      frameTime{};
         bool       resetHistory{};
 
@@ -253,9 +254,9 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    constexpr virtual Type        getType()                                                                          = 0;
-    constexpr virtual std::string getName()                                                                          = 0;
-    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality) = 0;
+    constexpr virtual Type        getType()                                                                                      = 0;
+    constexpr virtual std::string getName()                                                                                      = 0;
+    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, const bool) = 0;
 
     virtual Status initialize() = 0;
     virtual Status create()     = 0;

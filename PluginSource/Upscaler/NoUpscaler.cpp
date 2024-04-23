@@ -17,7 +17,7 @@ NoUpscaler::NoUpscaler() {
     resetStatus();
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/) {
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
     return getStatus();
 }
 

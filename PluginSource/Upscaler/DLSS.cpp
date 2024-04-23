@@ -129,7 +129,7 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
     if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
@@ -514,8 +514,7 @@ bool DLSS::isSupported() {
     return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
-Upscaler::Status
-DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode) {
+Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
     RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
@@ -524,6 +523,7 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
+    optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
     optimalSettings.preset           = preset;
 
@@ -607,7 +607,8 @@ Upscaler::Status DLSS::create() {
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVJittered) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
-        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DoSharpening)
+        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DoSharpening) |
+        (settings.hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
       ),
       .InEnableOutputSubrects = false,
     };

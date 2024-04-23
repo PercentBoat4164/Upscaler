@@ -74,12 +74,13 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const Upscaler::Settings::Resolution   resolution,
   const Upscaler::Type                   type,
   const Upscaler::Settings::Preset       preset,
-  const enum Upscaler::Settings::Quality quality
+  const enum Upscaler::Settings::Quality quality,
+  const bool                             hdr
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
     if (type >= Upscaler::TYPE_MAX_ENUM) return upscaler->setStatus(Upscaler::SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE, std::to_string(type) + " is not a valid Upscaler enum value.");
     if (upscaler->getType() != type) upscaler = upscaler->copyFromType(type);
-    return upscaler->getOptimalSettings(resolution, preset, quality);
+    return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(uint16_t camera) {
