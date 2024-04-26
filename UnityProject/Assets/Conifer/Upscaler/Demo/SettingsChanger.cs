@@ -1,18 +1,18 @@
 using System;
-using Conifer.Upscaler.Scripts;
+using Conifer.Upscaler;
 using UnityEngine;
 
 namespace Conifer.Upscaler.Demo
 {
     public class SettingsChanger : MonoBehaviour
     {
-        private Scripts.Upscaler _upscaler;
+        private Upscaler _upscaler;
         private bool _shouldChangeDynamicResolution;
         private float scale;
 
         public void OnEnable()
         {
-            _upscaler = Camera.main!.GetComponent<Scripts.Upscaler>();
+            _upscaler = Camera.main!.GetComponent<Upscaler>();
             _upscaler.ErrorCallback = (status, s) => Debug.Log(s);
         }
 

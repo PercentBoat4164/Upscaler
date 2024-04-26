@@ -15,13 +15,14 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
-using Conifer.Upscaler.Scripts;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.Editor
 {
-    [CustomEditor(typeof(Scripts.Upscaler))]
+    [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
         private bool _basicSettingsFoldout = true;
@@ -29,26 +30,13 @@ namespace Conifer.Upscaler.Editor
 
         public override void OnInspectorGUI()
         {
-            var upscalerObject = (Scripts.Upscaler)serializedObject.targetObject;
+            var upscalerObject = (Upscaler)serializedObject.targetObject;
 
             EditorGUILayout.LabelField("Upscaler Settings");
             var style = new GUIStyle();
             var status = upscalerObject.status;
-            string message;
-            if (Scripts.Upscaler.Success(status))
-            {
-                style.normal.textColor = Color.green;
-                message = "Upscaling successfully running.";
-            }
-            else
-            {
-                style.normal.textColor = Color.red;
-                message = "Upscaling encountered an Error. Fell back to the 'None' Upscaler.";
-            }
+            style.normal.textColor = Upscaler.Success(status) ? Color.green : Color.red;
 
-            EditorGUILayout.LabelField(new GUIContent("Upscaler Status",
-                "Provides a description of the current status of the upscaler in plain English."
-            ), new GUIContent(message));
             EditorGUILayout.LabelField(new GUIContent("Status Code",
                 "Indicates the current 'UpscalerStatus' enum value.\n" +
                 "\nThis can also be accessed via the API using the 'Upscaler.Status' property.\n" +
@@ -56,7 +44,22 @@ namespace Conifer.Upscaler.Editor
             ), new GUIContent(status.ToString()), style);
 
             var newSettings = upscalerObject.QuerySettings();
-            
+
+            if (newSettings.upscaler != Settings.Upscaler.None)
+            {
+                var camera = upscalerObject.GetComponent<Camera>();
+                var cameraData = camera.GetUniversalAdditionalCameraData();
+                if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.upscalingFilter != UpscalingFilterSelection.Linear)
+                    EditorGUILayout.HelpBox("Set the URP Asset's 'Upscaling Filter' to 'Bilinear'.", MessageType.Error);
+                if (cameraData.antialiasing != AntialiasingMode.None)
+                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
+                        MessageType.Warning);
+                if (camera.allowMSAA)
+                    EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
+                if (!cameraData.renderPostProcessing)
+                    EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
+            }
+
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
             if (_basicSettingsFoldout)
             {
@@ -82,6 +85,9 @@ namespace Conifer.Upscaler.Editor
                             "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
                         ), newSettings.quality);
                 }
+
+                if (Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
+                    EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
                 EditorGUI.indentLevel -= 1;
             }
 
