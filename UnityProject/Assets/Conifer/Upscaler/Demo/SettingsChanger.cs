@@ -1,5 +1,4 @@
 using System;
-using Conifer.Upscaler;
 using UnityEngine;
 
 namespace Conifer.Upscaler.Demo
