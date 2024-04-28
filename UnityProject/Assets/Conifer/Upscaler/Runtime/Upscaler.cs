@@ -367,8 +367,16 @@ namespace Conifer.Upscaler
             if (!force && settings == newSettings) return status;
             if (Application.isPlaying)
             {
+                if (newSettings.upscaler != Settings.Upscaler.None)
+                    _camera.ResetProjectionMatrix();
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
-                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, false);
+                status = NativeInterface.SetPerFeatureSettings(
+                    new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler,
+                    newSettings.DLSSpreset, newSettings.quality, false);
+                if (Failure(status)) return status;
+
+                Graphics.ExecuteCommandBuffer(_upscalerPrepare);
+                status = NativeInterface.GetStatus();
                 if (Failure(status)) return status;
 
                 RenderingResolution = NativeInterface.GetRecommendedResolution().ToVector2Int();
@@ -385,22 +393,9 @@ namespace Conifer.Upscaler
 
                 SetDynamicResolution((float)RenderingResolution.x / OutputResolution.x);
 
-                if (newSettings.upscaler != Settings.Upscaler.None && RenderingResolution == new Vector2Int(0, 0))
-                {
-                    RenderingResolution = OutputResolution;
-                    return status;
-                }
-
-                Graphics.ExecuteCommandBuffer(_upscalerPrepare);
-                status = NativeInterface.GetStatus();
-                if (Failure(status)) return status;
-
                 var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
                 if (newSettings.upscaler == Settings.Upscaler.None)
-                {
                     mipBias = 0f;
-                    _camera.ResetProjectionMatrix();
-                }
 
                 foreach (var rend in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 foreach (var mat in rend.materials)
@@ -445,10 +440,13 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             var pixelSpaceJitter = NativeInterface.GetJitter(true).ToVector2();
             var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
-            var tempProj = _camera.projectionMatrix;
-            tempProj.m02 += clipSpaceJitter.x;
-            tempProj.m12 += clipSpaceJitter.y;
-            _camera.projectionMatrix = tempProj;
+            var temporaryProjectionMatrix = _camera.projectionMatrix;
+            temporaryProjectionMatrix.m02 += clipSpaceJitter.x;
+            temporaryProjectionMatrix.m12 += clipSpaceJitter.y;
+            var projectionMatrix = _camera.projectionMatrix;
+            _camera.nonJitteredProjectionMatrix = projectionMatrix;
+            _camera.projectionMatrix = temporaryProjectionMatrix;
+            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
         
         protected void OnEnable()
@@ -496,7 +494,7 @@ namespace Conifer.Upscaler
         {
             var newSettings = QuerySettings();
             newSettings.upscaler = Settings.Upscaler.None;
-            ApplySettings(newSettings);
+            ApplySettings(newSettings, true);
             RenderPipelineManager.beginCameraRendering -= PreUpscale;
         }
     }

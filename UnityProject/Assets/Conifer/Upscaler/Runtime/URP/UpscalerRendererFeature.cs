@@ -81,13 +81,12 @@ namespace Conifer.Upscaler.URP
                 upscale.SetViewMatrix(Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up));
                 upscale.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
                 upscale.SetGlobalTexture(DepthID, _outputDepth);
-                var system = MColorBufferSystem.GetValue(renderer);
-                MDesc.SetValue(system, cameraDescriptor);
                 context.ExecuteCommandBuffer(upscale);
                 upscale.Release();
 
                 renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
-                MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)), cameraDescriptor);
+                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
+                MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
             }
         }
 

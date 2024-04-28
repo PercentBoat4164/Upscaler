@@ -82,17 +82,13 @@ namespace Conifer.Upscaler.Editor
 
                 if (newSettings.upscaler != Settings.Upscaler.None)
                 {
-                    if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter
-                        is not (UpscalingFilterSelection.Linear or UpscalingFilterSelection.Auto))
+                    if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter == UpscalingFilterSelection.FSR)
                     {
-                        EditorGUILayout.HelpBox("Set the URP Asset's 'Upscaling Filter' to 'Automatic' or 'Bilinear'.",
+                        EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
                             MessageType.Error);
                         if (GUILayout.Button("Set to 'Automatic'"))
                             (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
                                 UpscalingFilterSelection.Auto;
-                        if (GUILayout.Button("Set to 'Bilinear'"))
-                            (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
-                                UpscalingFilterSelection.Linear;
                     }
                     if (cameraData.antialiasing != AntialiasingMode.None)
                     {

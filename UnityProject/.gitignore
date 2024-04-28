@@ -76,3 +76,6 @@ crashlytics-build.properties
 
 # Unity Crash Reports
 *.blob
+
+# Build results
+BuildOutputs

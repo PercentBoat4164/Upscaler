@@ -31,13 +31,6 @@ namespace Conifer.Upscaler.Demo
             if (Input.GetKeyDown(KeyCode.E))
                 settings.upscaler = (Settings.Upscaler)6;
 
-            _shouldChangeDynamicResolution ^= Input.GetKeyDown(KeyCode.B);
-            if (_shouldChangeDynamicResolution)
-            {
-                _scale = (float)(Math.Sin(Time.time) + 1) / 2 * (_upscaler.MaxRenderScale - _upscaler.MinRenderScale) + _upscaler.MinRenderScale;
-                ScalableBufferManager.ResizeBuffers(_scale, _scale);
-            }
-
             // Does nothing if settings have not changed.
             _upscaler.ApplySettings(settings);  // Be sure to handle errors here or have an error handler registered.
         }
