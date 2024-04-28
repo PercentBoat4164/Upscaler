@@ -10,7 +10,7 @@ This software is provided under a custom limited license, subject to the followi
 Copyright © 2024 Conifer Computing Company. All rights reserved.
 
 # Demo Showcase
-Delete the `Assets`>`Conifer`>`Upscaler`>`Demo` when you are finished exploring the demo scene.
+Delete the `Assets`>`Conifer`>`Upscaler`>`Demo` directory when you are finished exploring the demo scene.
 
 # Plugin Features
 Upscaler features almost every capability that DLSS has to offer. We support compatibility with:
@@ -31,4 +31,5 @@ Space | Move camera up
 Left Ctrl | Move camera Down
 R | Toggle cube rotation
 M | Toggle cube translation
-B | Toggle cycling through dynamic resolution scales. See the number in the top left for the current scale. Note that dynamic resolution must be enabled on the camera for this to have a visible effect.
+B | Toggle cycling through dynamic resolution scales
+E | Cause an error by attempting to set the quality to 6 (a non-existant quality mode)

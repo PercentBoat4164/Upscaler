@@ -113,6 +113,7 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
+    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
     RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create a valid `VkImageView`."));
     resource->ChangeResource(view, image.image, image.aspect, image.format, {image.extent.width, image.extent.height});
@@ -128,8 +129,8 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     NVSDK_NGX_Resource_VK& inColor = color->GetResource();
     Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
@@ -219,8 +220,8 @@ Upscaler::Status DLSS::DX12Evaluate() {
     D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
     Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), static_cast<uint32_t>(inColorDescription.Height)};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
@@ -303,8 +304,8 @@ Upscaler::Status DLSS::DX11Evaluate() {
 
     Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {

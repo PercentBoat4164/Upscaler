@@ -2,6 +2,9 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+using System.Linq;
+using System.Reflection;
+using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -19,7 +22,6 @@ namespace Conifer.Upscaler.Editor
         {
             var upscalerObject = (Upscaler)serializedObject.targetObject;
 
-            EditorGUILayout.LabelField("Upscaler Settings");
             var style = new GUIStyle();
             var status = upscalerObject.status;
             style.normal.textColor = Upscaler.Success(status) ? Color.green : Color.red;
@@ -32,19 +34,34 @@ namespace Conifer.Upscaler.Editor
 
             var newSettings = upscalerObject.QuerySettings();
 
-            if (newSettings.upscaler != Settings.Upscaler.None)
+            var camera = upscalerObject.GetComponent<Camera>();
+            var cameraData = camera.GetUniversalAdditionalCameraData();
+            var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
+                .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(UniversalRenderPipeline.asset))[(typeof(UniversalRenderPipelineAsset)
+                .GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
+                .Select((renderer, index) => new { renderer, index })
+                .First(i => i.renderer == cameraData.scriptableRenderer).index].rendererFeatures;
+            switch (features.Where(feature => feature is UpscalerRendererFeature).ToArray().Length)
             {
-                var camera = upscalerObject.GetComponent<Camera>();
-                var cameraData = camera.GetUniversalAdditionalCameraData();
-                if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.upscalingFilter != UpscalingFilterSelection.Linear)
-                    EditorGUILayout.HelpBox("Set the URP Asset's 'Upscaling Filter' to 'Bilinear'.", MessageType.Error);
-                if (cameraData.antialiasing != AntialiasingMode.None)
-                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
-                        MessageType.Warning);
-                if (camera.allowMSAA)
-                    EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
-                if (!cameraData.renderPostProcessing)
-                    EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
+                case > 1:
+                    EditorGUILayout.HelpBox(
+                        "There must be only a single UpscalerRendererFeature in this camera's 'Renderer'.",
+                        MessageType.Error);
+                    break;
+                case 0:
+                    EditorGUILayout.HelpBox(
+                        "There must be an UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
+                    break;
+            }
+            if (camera.GetComponents<Upscaler>().Length > 1)
+            {
+                EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
+                    MessageType.Error);
+                if (GUILayout.Button("Remove extra Upscaler components."))
+                    foreach (var upscaler in camera.GetComponents<Upscaler>().Skip(1))
+                        DestroyImmediate(upscaler);
             }
 
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
@@ -57,9 +74,36 @@ namespace Conifer.Upscaler.Editor
                         "\nUse None to completely disable upscaling.\n" +
                         "\nUse DLSS to enable NVIDIA's Deep Learning Super Sampling upscaling."
                     ), newSettings.upscaler);
+
                 if (newSettings.upscaler != Settings.Upscaler.None)
                 {
-                    newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
+                    if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter
+                        is not (UpscalingFilterSelection.Linear or UpscalingFilterSelection.Auto))
+                    {
+                        EditorGUILayout.HelpBox("Set the URP Asset's 'Upscaling Filter' to 'Automatic' or 'Bilinear'.",
+                            MessageType.Error);
+                        if (GUILayout.Button("Set to 'Automatic'"))
+                            (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
+                                UpscalingFilterSelection.Auto;
+                        if (GUILayout.Button("Set to 'Bilinear'"))
+                            (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
+                                UpscalingFilterSelection.Linear;
+                    }
+                    if (cameraData.antialiasing != AntialiasingMode.None)
+                    {
+                        EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
+                            MessageType.Warning);
+                        if (GUILayout.Button("Set to 'No Anti-aliasing'"))
+                            cameraData.antialiasing = AntialiasingMode.None;
+                    }
+                    if (camera.allowMSAA)
+                    {
+                        EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
+                        if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
+                    }
+                }
+
+                newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
                         new GUIContent("Quality",
                             "Choose a Quality Mode for the upscaler.\n" +
                             "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
@@ -71,9 +115,8 @@ namespace Conifer.Upscaler.Editor
                             "\nUse Performance to upscale by 50% on each axis.\n" +
                             "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
                         ), newSettings.quality);
-                }
 
-                if (Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
+                if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
                     EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
                 EditorGUI.indentLevel -= 1;
             }
@@ -90,7 +133,7 @@ namespace Conifer.Upscaler.Editor
                             "\nNote: This only works if DLSS is the the active Upscaler.\n" +
                             "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
                         ), newSettings.sharpness, 0f, 1f);
-                    if (newSettings.upscaler == Settings.Upscaler.DLSS)
+                    if (newSettings.upscaler == Settings.Upscaler.DeepLearningSuperSampling)
                     {
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
                             new GUIContent("DLSS Preset",
