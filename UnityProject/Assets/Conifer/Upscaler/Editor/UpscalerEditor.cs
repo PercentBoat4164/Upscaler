@@ -63,6 +63,11 @@ namespace Conifer.Upscaler.Editor
                     foreach (var upscaler in camera.GetComponents<Upscaler>().Skip(1))
                         DestroyImmediate(upscaler);
             }
+            if (!cameraData.renderPostProcessing)
+            {
+                EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
+                if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
+            }
 
             _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
             if (_basicSettingsFoldout)
