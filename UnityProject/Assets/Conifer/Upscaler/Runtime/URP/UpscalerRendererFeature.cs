@@ -3,7 +3,6 @@
  **********************************************************************/
 
 #if UPSCALER_USE_URP
-using System;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -18,6 +17,8 @@ namespace Conifer.Upscaler.URP
 
         private class Upscale : ScriptableRenderPass
         {
+            private static readonly Matrix4x4 Ortho = Matrix4x4.Ortho(-1, 1, 1, -1, 1, -1);
+            private static readonly Matrix4x4 LookAt = Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up);
             private static RTHandle _outputColor;
             private static RTHandle _outputDepth;
             private static Mesh _triangle;
@@ -25,21 +26,11 @@ namespace Conifer.Upscaler.URP
             private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
             private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
             private static readonly int BlitID = Shader.PropertyToID("_MainTex");
-            private static readonly Type PostProcessPass =
-                typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPass")!;
-            private static readonly FieldInfo MDescriptor =
-                PostProcessPass.GetField("m_Descriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MPostProcessPasses =
-                typeof(UniversalRenderer).GetField("m_PostProcessPasses", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MPostProcessPass =
-                typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPasses")!
-                .GetField("m_PostProcessPass", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly Type RenderTargetBufferSystem =
-                typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.Internal.RenderTargetBufferSystem")!;
-            private static readonly FieldInfo MColorBufferSystem =
-                typeof(UniversalRenderer).GetField("m_ColorBufferSystem", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MDesc =
-                RenderTargetBufferSystem.GetField("m_Desc", BindingFlags.NonPublic | BindingFlags.Static)!;
+            private static readonly FieldInfo MDescriptor = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPass")!.GetField("m_Descriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo MPostProcessPasses = typeof(UniversalRenderer).GetField("m_PostProcessPasses", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo MPostProcessPass = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPasses")!.GetField("m_PostProcessPass", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo MColorBufferSystem = typeof(UniversalRenderer).GetField("m_ColorBufferSystem", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo MDesc = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.Internal.RenderTargetBufferSystem")!.GetField("m_Desc", BindingFlags.NonPublic | BindingFlags.Static)!;
 
             public Upscale() => renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
@@ -65,27 +56,30 @@ namespace Conifer.Upscaler.URP
                 RenderingUtils.ReAllocateIfNeeded(ref _outputColor, descriptor, name: "UpscalerOutput");
                 descriptor = cameraDescriptor;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
-                RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "HighResolutionDepth");
+                RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "UpscalerDepth");
                 cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
 
                 var renderer = renderingData.cameraData.renderer;
-                var color = renderer.cameraColorTargetHandle;
                 var depth = renderer.cameraDepthTargetHandle;
                 var motion = Shader.GetGlobalTexture(MotionID);
 
                 var upscale = CommandBufferPool.Get("Upscale");
-                _upscaler.NativeInterface.Upscale(upscale, color, depth, motion, _outputColor);
-                upscale.SetRenderTarget(_outputDepth);
-                upscale.SetGlobalTexture(BlitID, depth);
-                upscale.SetProjectionMatrix(Matrix4x4.Ortho(-1, 1, 1, -1, 1, -1));
-                upscale.SetViewMatrix(Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up));
-                upscale.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
-                upscale.SetGlobalTexture(DepthID, _outputDepth);
+                _upscaler.NativeInterface.Upscale(upscale, renderer.cameraColorTargetHandle, depth, motion, _outputColor);
+                if (renderingData.cameraData.postProcessingRequiresDepthTexture)
+                {
+                    upscale.SetRenderTarget(_outputDepth);
+                    upscale.SetGlobalTexture(BlitID, depth);
+                    upscale.SetProjectionMatrix(Ortho);
+                    upscale.SetViewMatrix(LookAt);
+                    upscale.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
+                    upscale.SetGlobalTexture(DepthID, _outputDepth);
+                    MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
+                } else if (((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale <= .5)
+                    MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
+
                 context.ExecuteCommandBuffer(upscale);
                 upscale.Release();
-
                 renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
-                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
                 MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
             }
         }

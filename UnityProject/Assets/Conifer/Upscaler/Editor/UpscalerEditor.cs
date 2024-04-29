@@ -2,6 +2,7 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Conifer.Upscaler.URP;
@@ -17,9 +18,17 @@ namespace Conifer.Upscaler.Editor
     {
         private bool _basicSettingsFoldout = true;
         private bool _advancedSettingsFoldout;
+        private static readonly bool NativePluginLoaded = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(module => module.ModuleName).Contains("GfxPluginUpscaler.dll");
 
         public override void OnInspectorGUI()
         {
+            if (!NativePluginLoaded)
+            {
+                EditorGUILayout.HelpBox("You must restart Unity to load the Upscaler Native Plugin.",
+                    MessageType.Error);
+                return;
+            }
+
             var upscalerObject = (Upscaler)serializedObject.targetObject;
 
             var style = new GUIStyle();

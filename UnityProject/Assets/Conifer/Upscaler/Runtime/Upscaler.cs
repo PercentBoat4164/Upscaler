@@ -256,9 +256,6 @@ namespace Conifer.Upscaler
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
-        internal static readonly int MotionID = Shader.PropertyToID("_CameraMotionVectorsTexture");
-        internal static readonly int SourceDepthID = Shader.PropertyToID("_CameraDepthTexture");
-
         private Camera _camera;
 
         internal NativeInterface NativeInterface;
@@ -367,8 +364,7 @@ namespace Conifer.Upscaler
             if (!force && settings == newSettings) return status;
             if (Application.isPlaying)
             {
-                if (newSettings.upscaler != Settings.Upscaler.None)
-                    _camera.ResetProjectionMatrix();
+                _camera.ResetProjectionMatrix();
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
                 status = NativeInterface.SetPerFeatureSettings(
                     new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler,
@@ -391,7 +387,7 @@ namespace Conifer.Upscaler
                     MinRenderScale = 1f;
                 }
 
-                SetDynamicResolution((float)RenderingResolution.x / OutputResolution.x);
+                EnforceDynamicResolutionConstraints((float)RenderingResolution.x / OutputResolution.x);
 
                 var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
                 if (newSettings.upscaler == Settings.Upscaler.None)
@@ -409,15 +405,8 @@ namespace Conifer.Upscaler
             settings = newSettings.Copy();
             return status;
         }
-        
-        private void HandleError(Status reason, string message)
-        {
-            Debug.LogWarning(reason + " | " + message);
-            settings.upscaler = Settings.Upscaler.None;
-            ApplySettings(settings, true);
-        }
 
-        private void SetDynamicResolution(float? scale)
+        private void EnforceDynamicResolutionConstraints(float? scale)
         {
             var asset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
             asset.renderScale = Math.Clamp(scale is not null ? (float)scale! : asset.renderScale, MinRenderScale, MaxRenderScale);
@@ -434,7 +423,7 @@ namespace Conifer.Upscaler
                 new Settings.CameraInfo(_camera));
             if (Failure(status)) return;
 
-            SetDynamicResolution(null);
+            EnforceDynamicResolutionConstraints(null);
 
             _camera.ResetProjectionMatrix();
             if (FrameDebugger.enabled) return;
@@ -471,6 +460,13 @@ namespace Conifer.Upscaler
             status = NativeInterface.GetStatus();
             if (Failure(status))
             {
+                void HandleError(Status reason, string message)
+                {
+                    Debug.LogWarning(reason + " | " + message);
+                    settings.upscaler = Settings.Upscaler.None;
+                    ApplySettings(settings, true);
+                }
+
                 if (ErrorCallback is null) HandleError(status, NativeInterface.GetStatusMessage());
                 else
                 {
