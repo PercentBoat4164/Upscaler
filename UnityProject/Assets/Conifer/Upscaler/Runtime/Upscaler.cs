@@ -121,6 +121,8 @@ namespace Conifer.Upscaler
         public DLSSPreset DLSSpreset;
         /// The current sharpness value. This should always be in the range of 0 to 1. Defaults to 0.
         public float sharpness;
+        /// Enables displaying the Rendering Area overlay.
+        public bool showRenderingAreaOverlay;
         internal static float FrameTime => Time.deltaTime * 1000;
 
         /**
@@ -128,12 +130,12 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, showRenderingAreaOverlay = showRenderingAreaOverlay };
 
         public static bool operator ==(Settings self, Settings other)
         {
             if (self is not null && other is not null)
-                return self.quality == other.quality && self.upscaler == other.upscaler && self.DLSSpreset == other.DLSSpreset && Equals(self.sharpness, other.sharpness);
+                return self.quality == other.quality && self.upscaler == other.upscaler && self.DLSSpreset == other.DLSSpreset && Equals(self.sharpness, other.sharpness) && self.showRenderingAreaOverlay == other.showRenderingAreaOverlay;
             return false;
         }
 
@@ -141,7 +143,7 @@ namespace Conifer.Upscaler
 
         public override bool Equals(object obj) => (Settings)obj == this;
 
-        public override int GetHashCode() => HashCode.Combine(quality, upscaler, DLSSpreset, sharpness);
+        public override int GetHashCode() => HashCode.Combine(quality, upscaler, DLSSpreset, sharpness, showRenderingAreaOverlay);
     }
 
     /**
@@ -257,6 +259,7 @@ namespace Conifer.Upscaler
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
         private Camera _camera;
+        private float _currentRenderScale;
 
         internal NativeInterface NativeInterface;
         [SerializeField] internal Settings settings;
@@ -281,6 +284,15 @@ namespace Conifer.Upscaler
         /// The smallest per-axis fraction of <see cref="OutputResolution"/> that dynamic resolution is allowed to use.
         /// It defaults to 0.5.
         public float MinRenderScale { get; private set; } = .5f;
+
+        /// The current scaling that the upscaler is performing. See <see cref="MinRenderScale"/>, and
+        /// <see cref="MaxRenderScale"/> for the minimum and maximum allowed values respectively at any given time.
+        /// Attempting to set this to anything outside of this range will result in the incoming value being clamped.
+        public float CurrentRenderScale
+        {
+            get => _currentRenderScale;
+            set => _currentRenderScale = Math.Clamp(value, MinRenderScale, MaxRenderScale);
+        }
 
         /**
          * <summary>The callback used to handle any errors that the upscaler throws.</summary>
@@ -409,8 +421,10 @@ namespace Conifer.Upscaler
         private void EnforceDynamicResolutionConstraints(float? scale)
         {
             var asset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
-            asset.renderScale = Math.Clamp(scale is not null ? (float)scale! : asset.renderScale, MinRenderScale, MaxRenderScale);
-            var resolution = (Vector2)OutputResolution * asset.renderScale;
+            if (scale is not null) CurrentRenderScale = (float)scale;
+            else CurrentRenderScale = asset.renderScale;
+            asset.renderScale = CurrentRenderScale;
+            var resolution = (Vector2)OutputResolution * CurrentRenderScale;
             RenderingResolution = new Vector2Int((int)resolution.x, (int)resolution.y);
         }
 
@@ -492,6 +506,12 @@ namespace Conifer.Upscaler
             newSettings.upscaler = Settings.Upscaler.None;
             ApplySettings(newSettings, true);
             RenderPipelineManager.beginCameraRendering -= PreUpscale;
+        }
+
+        private void OnGUI()
+        {
+            if (settings.showRenderingAreaOverlay)
+                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y), "Rendering Area");
         }
     }
 }

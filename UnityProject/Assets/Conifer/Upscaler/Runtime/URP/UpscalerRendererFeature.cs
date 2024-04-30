@@ -11,6 +11,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.URP
 {
+    [DisallowMultipleRendererFeature("Upscaler Renderer Feature")]
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         private static Upscaler _upscaler;

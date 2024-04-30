@@ -16,8 +16,8 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
-        private bool _basicSettingsFoldout = true;
         private bool _advancedSettingsFoldout;
+        private bool _debugSettingsFoldout;
         private static readonly bool NativePluginLoaded = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(module => module.ModuleName).Contains("GfxPluginUpscaler.dll");
 
         public override void OnInspectorGUI()
@@ -52,18 +52,8 @@ namespace Conifer.Upscaler.Editor
                 .GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                 .Select((renderer, index) => new { renderer, index })
                 .First(i => i.renderer == cameraData.scriptableRenderer).index].rendererFeatures;
-            switch (features.Where(feature => feature is UpscalerRendererFeature).ToArray().Length)
-            {
-                case > 1:
-                    EditorGUILayout.HelpBox(
-                        "There must be only a single UpscalerRendererFeature in this camera's 'Renderer'.",
-                        MessageType.Error);
-                    break;
-                case 0:
-                    EditorGUILayout.HelpBox(
-                        "There must be an UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
-                    break;
-            }
+            if (features.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
+                EditorGUILayout.HelpBox("There must be an UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
             if (camera.GetComponents<Upscaler>().Length > 1)
             {
                 EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
@@ -78,65 +68,58 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
-            _basicSettingsFoldout = EditorGUILayout.Foldout(_basicSettingsFoldout, "Basic Upscaler Settings");
-            if (_basicSettingsFoldout)
+            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup(
+                new GUIContent("Upscaler",
+                    "Choose an Upscaler to use.\n" +
+                    "\nUse None to completely disable upscaling.\n" +
+                    "\nUse DLSS to enable NVIDIA's Deep Learning Super Sampling upscaling."
+                ), newSettings.upscaler);
+
+            if (newSettings.upscaler != Settings.Upscaler.None)
             {
-                EditorGUI.indentLevel += 1;
-                newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup(
-                    new GUIContent("Upscaler",
-                        "Choose an Upscaler to use.\n" +
-                        "\nUse None to completely disable upscaling.\n" +
-                        "\nUse DLSS to enable NVIDIA's Deep Learning Super Sampling upscaling."
-                    ), newSettings.upscaler);
-
-                if (newSettings.upscaler != Settings.Upscaler.None)
+                if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter == UpscalingFilterSelection.FSR)
                 {
-                    if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter == UpscalingFilterSelection.FSR)
-                    {
-                        EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
-                            MessageType.Error);
-                        if (GUILayout.Button("Set to 'Automatic'"))
-                            (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
-                                UpscalingFilterSelection.Auto;
-                    }
-                    if (cameraData.antialiasing != AntialiasingMode.None)
-                    {
-                        EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
-                            MessageType.Warning);
-                        if (GUILayout.Button("Set to 'No Anti-aliasing'"))
-                            cameraData.antialiasing = AntialiasingMode.None;
-                    }
-                    if (camera.allowMSAA)
-                    {
-                        EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
-                        if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
-                    }
+                    EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
+                        MessageType.Error);
+                    if (GUILayout.Button("Set to 'Automatic'"))
+                        (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
+                            UpscalingFilterSelection.Auto;
                 }
-
-                newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
-                        new GUIContent("Quality",
-                            "Choose a Quality Mode for the upscaler.\n" +
-                            "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
-                            "<= 2560 x 1440 -> Quality\n" +
-                            "<= 3840 x 2160 -> Performance\n" +
-                            "> 3840 x 2160 -> Ultra Performance\n" +
-                            "\nUse Quality to upscale by 33.3% on each axis.\n" +
-                            "\nUse Balanced to upscale by 42% on each axis.\n" +
-                            "\nUse Performance to upscale by 50% on each axis.\n" +
-                            "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
-                        ), newSettings.quality);
-
-                if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
-                    EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
-                EditorGUI.indentLevel -= 1;
+                if (cameraData.antialiasing != AntialiasingMode.None)
+                {
+                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
+                        MessageType.Warning);
+                    if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
+                }
+                if (camera.allowMSAA)
+                {
+                    EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
+                    if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
+                }
             }
+
+            EditorGUI.indentLevel += 1;
+            newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
+                    new GUIContent("Quality",
+                        "Choose a Quality Mode for the upscaler.\n" +
+                        "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
+                        "<= 2560 x 1440 -> Quality\n" +
+                        "<= 3840 x 2160 -> Performance\n" +
+                        "> 3840 x 2160 -> Ultra Performance\n" +
+                        "\nUse Quality to upscale by 33.3% on each axis.\n" +
+                        "\nUse Balanced to upscale by 42% on each axis.\n" +
+                        "\nUse Performance to upscale by 50% on each axis.\n" +
+                        "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
+                    ), newSettings.quality);
+
+            if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
+                EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
                 _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Upscaler Settings");
                 if (_advancedSettingsFoldout)
                 {
-                    EditorGUI.indentLevel += 1;
                     newSettings.sharpness = EditorGUILayout.Slider(
                         new GUIContent("Sharpness (Deprecated)",
                             "The amount of sharpening that DLSS should apply to the image.\n" +
@@ -144,7 +127,6 @@ namespace Conifer.Upscaler.Editor
                             "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
                         ), newSettings.sharpness, 0f, 1f);
                     if (newSettings.upscaler == Settings.Upscaler.DeepLearningSuperSampling)
-                    {
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
                             new GUIContent("DLSS Preset",
                                 "For most applications this can be left at Default.\n" +
@@ -153,11 +135,14 @@ namespace Conifer.Upscaler.Editor
                                 "\nUse Stable if your application tends to move the contents of the screen slowly. It prefers to keep information from previous frames.\n" +
                                 "\nUse Fast Paced if your application tends to move the contents of the screen quickly. It prefers to use information from the current frame.\n" +
                                 "\nUse Anti Ghosting if your application fails to provide all of the necessary motion vectors to DLSS."
-                    ), newSettings.DLSSpreset);
-                    }
-                    EditorGUI.indentLevel -= 1;
+                            ), newSettings.DLSSpreset);
                 }
+
+                _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
+                if (_debugSettingsFoldout)
+                    newSettings.showRenderingAreaOverlay = EditorGUILayout.Toggle("Overlay Rendering Area", newSettings.showRenderingAreaOverlay);
             }
+            EditorGUI.indentLevel -= 1;
 
             upscalerObject.ApplySettings(newSettings);
         }

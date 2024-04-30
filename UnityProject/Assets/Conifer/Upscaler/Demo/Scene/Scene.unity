@@ -461,6 +461,7 @@ MonoBehaviour:
     upscaler: 1
     DLSSpreset: 0
     sharpness: 0
+    showRenderingAreaOverlay: 0
   status: 0
 --- !u!1 &1308310398
 GameObject:
