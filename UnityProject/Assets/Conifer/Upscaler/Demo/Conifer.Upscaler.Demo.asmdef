@@ -1,6 +1,6 @@
 {
     "name": "Conifer.Upscaler.Demo",
-    "rootNamespace": "",
+    "rootNamespace": "Conifer.Upscaler.Demo",
     "references": [
         "GUID:58ed9f0751b73475e8851605847b4ea8"
     ],

@@ -1,6 +1,6 @@
 {
     "name": "Conifer.Upscaler.Editor",
-    "rootNamespace": "",
+    "rootNamespace": "Conifer.Upscaler.Editor",
     "references": [
         "GUID:15fc0a57446b3144c949da3e2b9737a9",
         "GUID:58ed9f0751b73475e8851605847b4ea8"
