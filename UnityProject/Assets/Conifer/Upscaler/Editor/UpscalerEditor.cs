@@ -28,19 +28,8 @@ namespace Conifer.Upscaler.Editor
                 return;
             }
 
-            var style = new GUIStyle();
             var upscaler = (Upscaler)serializedObject.targetObject;
-            var status = upscaler.status;
-            style.normal.textColor = Upscaler.Success(status) ? Color.green : Color.red;
-
-            EditorGUILayout.LabelField(new GUIContent("Status Code",
-                "Indicates the current 'UpscalerStatus' enum value.\n" +
-                "\nThis can also be accessed via the API using the 'Upscaler.Status' property.\n" +
-                "\nNote: Both 'NoUpscalerSet' and 'Success' indicate that the plugin is working as expected."
-            ), new GUIContent(status.ToString()), style);
-
             var newSettings = upscaler.QuerySettings();
-
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
