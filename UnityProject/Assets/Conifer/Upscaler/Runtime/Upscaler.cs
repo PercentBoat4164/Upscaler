@@ -337,9 +337,20 @@ namespace Conifer.Upscaler
          * Support for the upscaler requested is computed then cached. Any future calls with the same upscaler will use
          * the cached value.</remarks>
          *
-         * <example><code>bool DLSSSupported = Upscaler.IsSupported(Settings.Upscaler.DLSS);</code></example>
+         * <example><code>bool DLSSSupported = Upscaler.IsSupported(Settings.Upscaler.DeepLearningSuperSampling);</code>
+         * </example>
          */
         public static bool IsSupported(Settings.Upscaler mode) => NativeInterface.IsSupported(mode);
+
+        /**
+         * <summary>Check if the GfxPluginUpscaler shared library has been loaded.</summary>
+         *
+         * <returns>`true` if the GfxPluginUpscaler shared library has been loaded by Unity and false if it has not
+         * been.</returns>
+         *
+         * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
+         */
+        public static bool PluginLoaded() => NativeInterface.Loaded;
 
         /**
          * <summary>Query Upscaler's current settings.</summary>

@@ -18,21 +18,19 @@ namespace Conifer.Upscaler.Editor
     {
         private bool _advancedSettingsFoldout;
         private bool _debugSettingsFoldout;
-        private static readonly bool NativePluginLoaded = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(module => module.ModuleName).Contains("GfxPluginUpscaler.dll");
 
         public override void OnInspectorGUI()
         {
-            if (!NativePluginLoaded)
+            if (!Upscaler.PluginLoaded())
             {
                 EditorGUILayout.HelpBox("You must restart Unity to load the Upscaler Native Plugin.",
                     MessageType.Error);
                 return;
             }
 
-            var upscalerObject = (Upscaler)serializedObject.targetObject;
-
             var style = new GUIStyle();
-            var status = upscalerObject.status;
+            var upscaler = (Upscaler)serializedObject.targetObject;
+            var status = upscaler.status;
             style.normal.textColor = Upscaler.Success(status) ? Color.green : Color.red;
 
             EditorGUILayout.LabelField(new GUIContent("Status Code",
@@ -41,9 +39,9 @@ namespace Conifer.Upscaler.Editor
                 "\nNote: Both 'NoUpscalerSet' and 'Success' indicate that the plugin is working as expected."
             ), new GUIContent(status.ToString()), style);
 
-            var newSettings = upscalerObject.QuerySettings();
+            var newSettings = upscaler.QuerySettings();
 
-            var camera = upscalerObject.GetComponent<Camera>();
+            var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
                 .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -59,8 +57,8 @@ namespace Conifer.Upscaler.Editor
                 EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
                     MessageType.Error);
                 if (GUILayout.Button("Remove extra Upscaler components."))
-                    foreach (var upscaler in camera.GetComponents<Upscaler>().Skip(1))
-                        DestroyImmediate(upscaler);
+                    foreach (var component in camera.GetComponents<Upscaler>().Skip(1))
+                        DestroyImmediate(component);
             }
             if (!cameraData.renderPostProcessing)
             {
@@ -112,7 +110,7 @@ namespace Conifer.Upscaler.Editor
                         "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
                     ), newSettings.quality);
 
-            if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscalerObject.MaxRenderScale, upscalerObject.MinRenderScale))
+            if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscaler.MaxRenderScale, upscaler.MinRenderScale))
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
@@ -144,7 +142,7 @@ namespace Conifer.Upscaler.Editor
             }
             EditorGUI.indentLevel -= 1;
 
-            upscalerObject.ApplySettings(newSettings);
+            upscaler.ApplySettings(newSettings);
         }
     }
 }

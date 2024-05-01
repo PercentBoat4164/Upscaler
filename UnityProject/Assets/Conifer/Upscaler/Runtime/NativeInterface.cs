@@ -60,13 +60,14 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
         internal static extern void UnregisterCamera(uint camera);
     }
-    
+
     internal class NativeInterface
     {
         internal readonly Camera Camera;
-        private readonly uint _cameraID = Native.RegisterCamera();
-        private static readonly int EventIDBase = Native.GetEventIDBase();
-        private readonly IntPtr _renderingEventCallback = Native.GetRenderingEventCallback();
+        internal static bool Loaded;
+        private readonly uint _cameraID;
+        private static readonly int EventIDBase;
+        private readonly IntPtr _renderingEventCallback;
 
         private enum Event
         {
@@ -79,19 +80,42 @@ namespace Conifer.Upscaler
             SourceColor,
             SourceDepth,
             Motion,
-            OutputColor,
+            OutputColor
         }
 
         [MonoPInvokeCallback(typeof(LogCallbackDelegate))]
         internal static void InternalLogCallback(IntPtr msg) => Debug.Log(Marshal.PtrToStringAnsi(msg));
 
-        static NativeInterface() => Native.RegisterLogCallback(InternalLogCallback);
+        static NativeInterface()
+        {
+            try
+            {
+                EventIDBase = Native.GetEventIDBase();
+            }
+            catch (DllNotFoundException)
+            {
+                return;
+            }
+            Loaded = true;
+            Native.RegisterLogCallback(InternalLogCallback);
+        }
 
-        ~NativeInterface() => Native.UnregisterCamera(_cameraID);
+        internal NativeInterface()
+        {
+            if (!Loaded) return;
+            _cameraID = Native.RegisterCamera();
+            _renderingEventCallback = Native.GetRenderingEventCallback();
+        }
+
+        ~NativeInterface()
+        {
+            if (!Loaded) return;
+            Native.UnregisterCamera(_cameraID);
+        }
 
         internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture sourceDepth, Texture motion, Texture outputColor)
         {
-            if (sourceColor is null || sourceDepth is null || motion is null || outputColor is null) return;
+            if (!Loaded || sourceColor is null || sourceDepth is null || motion is null || outputColor is null) return;
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, sourceColor, _cameraID | (int)ImageID.SourceColor << 16);
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, sourceDepth, _cameraID | (int)ImageID.SourceDepth << 16);
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, motion,      _cameraID | (int)ImageID.Motion      << 16);
@@ -99,30 +123,34 @@ namespace Conifer.Upscaler
             cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
         }
 
-        internal void Prepare(CommandBuffer cb) =>
+        internal void Prepare(CommandBuffer cb)
+        {
+            if (!Loaded) return;
             cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Prepare + EventIDBase, new IntPtr(_cameraID));
+        }
 
-        internal static bool IsSupported(Settings.Upscaler mode) => Native.IsSupported(mode);
-        
-        internal Upscaler.Status GetStatus() => Native.GetStatus(_cameraID);
+        internal static bool IsSupported(Settings.Upscaler mode) => Loaded && Native.IsSupported(mode);
 
-        internal string GetStatusMessage() => Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID));
+        internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.SoftwareError;
 
-        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, bool hdr) =>
-            Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, hdr);
+        internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "";
 
-        internal Settings.Resolution GetRecommendedResolution() =>
-            Native.GetRecommendedResolution(_cameraID);
+        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, bool hdr) => Loaded ? Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, hdr) : Upscaler.Status.SoftwareError;
 
-        internal Settings.Resolution GetMaximumResolution() => Native.GetMaximumResolution(_cameraID);
+        internal Settings.Resolution GetRecommendedResolution() => Loaded ? Native.GetRecommendedResolution(_cameraID) : new Settings.Resolution();
 
-        internal Settings.Resolution GetMinimumResolution() => Native.GetMinimumResolution(_cameraID);
+        internal Settings.Resolution GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : new Settings.Resolution();
 
-        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo) =>
-            Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo);
+        internal Settings.Resolution GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : new Settings.Resolution();
 
-        internal Settings.Jitter GetJitter(bool advance) => Native.GetJitter(_cameraID, advance);
+        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo) => Loaded ? Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo) : Upscaler.Status.SoftwareError;
 
-        internal void ResetHistory() => Native.ResetHistory(_cameraID);
+        internal Settings.Jitter GetJitter(bool advance) => Loaded ? Native.GetJitter(_cameraID, advance) : new Settings.Jitter();
+
+        internal void ResetHistory()
+        {
+            if (!Loaded) return;
+            Native.ResetHistory(_cameraID);
+        }
     }
 }
