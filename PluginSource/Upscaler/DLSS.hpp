@@ -25,13 +25,13 @@ class DLSS final : public Upscaler {
           .InternalData = nullptr,
           .LoggingInfo {
 #   ifndef NDEBUG
-          .LoggingCallback = &DLSS::log,
-          .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
-          .DisableOtherLoggingSinks = false,
+            .LoggingCallback = &DLSS::log,
+            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
+            .DisableOtherLoggingSinks = false,
 #   else
-          .LoggingCallback = nullptr,
-          .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
-          .DisableOtherLoggingSinks = true,
+            .LoggingCallback = nullptr,
+            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
+            .DisableOtherLoggingSinks = true,
 #   endif
           }
         };

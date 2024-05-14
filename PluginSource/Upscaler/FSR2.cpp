@@ -122,11 +122,14 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, Plugin::ImageID 
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
-    FfxResource color, depth, motion, output;
+    FfxResource color, depth, motion, output, reactiveMask, tcMask, opaqueColor;
     RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
+    RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
+    RETURN_ON_FAILURE(VulkanGetResource(tcMask, Plugin::ImageID::TcMask));
+    RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
 
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
@@ -139,8 +142,8 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .depth                      = depth,
       .motionVectors              = motion,
       .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .reactive                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Transparency/Composition Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .reactive                   = reactiveMask,
+      .transparencyAndComposition = tcMask,
       .output                     = output,
       .jitterOffset               = {
             settings.jitter.x,
@@ -163,6 +166,12 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180),
       .viewSpaceToMetersFactor = 1.F,
+      .enableAutoReactive      = true,
+      .colorOpaqueOnly         = opaqueColor,
+      .autoTcThreshold         = settings.tcThreshold,
+      .autoTcScale             = settings.tcScale,
+      .autoReactiveScale       = settings.reactiveScale,
+      .autoReactiveMax         = settings.reactiveMax,
     };
     // clang-format on
 

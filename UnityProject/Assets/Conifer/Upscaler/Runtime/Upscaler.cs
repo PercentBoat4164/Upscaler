@@ -123,6 +123,14 @@ namespace Conifer.Upscaler
         public DLSSPreset DLSSpreset;
         /// The current sharpness value. This should always be in the range of 0 to 1. Defaults to 0.
         public float sharpness;
+        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to 0.05f.
+        public float tcThreshold = 0.05f;
+        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at hard edges of translucent objects. Defaults to 1.0f.
+        public float tcScale = 1.0f;
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to 5.0f.
+        public float reactiveScale = 5.0f;
+        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to 0.9f.
+        public float reactiveMax = 0.9f;
         /// Enables displaying the Rendering Area overlay.
         public bool showRenderingAreaOverlay;
         internal static float FrameTime => Time.deltaTime * 1000;
@@ -132,7 +140,7 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, showRenderingAreaOverlay = showRenderingAreaOverlay };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax, showRenderingAreaOverlay = showRenderingAreaOverlay };
 
         public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || DLSSpreset != other.DLSSpreset;
     }
@@ -431,7 +439,7 @@ namespace Conifer.Upscaler
             if (!Application.isPlaying) return;
             if (settings.upscaler == Settings.Upscaler.None) return;
 
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera));
+            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
 
             EnforceDynamicResolutionConstraints(null);

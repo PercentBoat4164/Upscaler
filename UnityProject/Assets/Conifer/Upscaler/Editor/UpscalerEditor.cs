@@ -2,9 +2,9 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+#if UPSCALER_USE_URP
 using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
@@ -34,7 +34,7 @@ namespace Conifer.Upscaler.Editor
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
                 .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset))[(typeof(UniversalRenderPipelineAsset)
+                .GetValue(GraphicsSettings.renderPipelineAsset))[(typeof(UniversalRenderPipelineAsset)
                 .GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                 .Select((renderer, index) => new { renderer, index })
@@ -55,21 +55,16 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
-            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup(
-                new GUIContent("Upscaler",
-                    "Choose an Upscaler to use.\n" +
-                    "\nUse None to completely disable upscaling.\n" +
-                    "\nUse DLSS to enable NVIDIA's Deep Learning Super Sampling upscaling."
-                ), newSettings.upscaler);
+            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup("Upscaler", newSettings.upscaler);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
-                if ((GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)?.upscalingFilter == UpscalingFilterSelection.FSR)
+                if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.upscalingFilter is UpscalingFilterSelection.FSR)
                 {
                     EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
                         MessageType.Error);
                     if (GUILayout.Button("Set to 'Automatic'"))
-                        (GraphicsSettings.renderPipelineAsset! as UniversalRenderPipelineAsset)!.upscalingFilter =
+                        (GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)!.upscalingFilter =
                             UpscalingFilterSelection.Auto;
                 }
                 if (cameraData.antialiasing != AntialiasingMode.None)
@@ -83,6 +78,22 @@ namespace Conifer.Upscaler.Editor
                     EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
                 }
+            }
+            /* @todo Make our own opaque texture when we need to then remove this warning and the one below it?*/
+            if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.supportsCameraOpaqueTexture is false)
+            {
+                EditorGUILayout.HelpBox("Upscaler requires access the 'Opaque Texture'.", MessageType.Warning);
+                if (GUILayout.Button("Enable 'Opaque Texture'"))
+                    (GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)!
+                        .supportsCameraOpaqueTexture = true;
+            }
+            if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.opaqueDownsampling is not Downsampling.None)
+            {
+                EditorGUILayout.HelpBox("set 'Opaque Downsampling' to 'None' for best results.", MessageType.Warning);
+                if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
+                    typeof(UniversalRenderPipelineAsset)
+                        .GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!
+                        .SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
             }
 
             EditorGUI.indentLevel += 1;
@@ -108,12 +119,18 @@ namespace Conifer.Upscaler.Editor
                 if (_advancedSettingsFoldout)
                 {
                     if (newSettings.upscaler != Settings.Upscaler.DeepLearningSuperSampling)
+                    {
                         newSettings.sharpness = EditorGUILayout.Slider(
                             new GUIContent("Sharpness",
                                 "The amount of sharpening that DLSS should apply to the image.\n" +
                                 "\nNote: This only works if DLSS is the the active Upscaler.\n" +
                                 "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
                             ), newSettings.sharpness, 0f, 1f);
+                        newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold", newSettings.tcThreshold, 0, 1.0f);
+                        newSettings.tcScale = EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
+                        newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", newSettings.reactiveScale, 0, 10.0f);
+                        newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max", newSettings.reactiveMax, 0, 1.0f);
+                    }
                     else
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
                             new GUIContent("DLSS Preset",
@@ -136,3 +153,4 @@ namespace Conifer.Upscaler.Editor
         }
     }
 }
+#endif

@@ -48,7 +48,7 @@ namespace Conifer.Upscaler
         internal static extern Settings.Resolution GetMinimumResolution(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        internal static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo);
+        internal static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
         internal static extern Settings.Jitter GetJitter(uint camera, bool advance);
@@ -79,7 +79,10 @@ namespace Conifer.Upscaler
             SourceColor,
             Depth,
             Motion,
-            OutputColor
+            OutputColor,
+            ReactiveMask,
+            TcMask,
+            OpaqueColor
         }
 
         [MonoPInvokeCallback(typeof(LogCallbackDelegate))]
@@ -112,11 +115,19 @@ namespace Conifer.Upscaler
             Native.UnregisterCamera(_cameraID);
         }
 
-        internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture sourceDepth, Texture motion, Texture outputColor)
+        internal void SetMaskImages(CommandBuffer cb, Texture reactiveMask, Texture tcMask, Texture opaqueColor)
         {
-            if (!Loaded || sourceColor is null || sourceDepth is null || motion is null || outputColor is null) return;
+            if (!Loaded || reactiveMask is null || tcMask is null || opaqueColor is null) return;
+            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, reactiveMask, _cameraID | (int)ImageID.ReactiveMask << 16);
+            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, tcMask,       _cameraID | (int)ImageID.TcMask       << 16);
+            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, opaqueColor,  _cameraID | (int)ImageID.OpaqueColor  << 16);
+        }
+
+        internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture depth, Texture motion, Texture outputColor)
+        {
+            if (!Loaded || sourceColor is null || depth is null || motion is null || outputColor is null) return;
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, sourceColor, _cameraID | (int)ImageID.SourceColor << 16);
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, sourceDepth, _cameraID | (int)ImageID.Depth << 16);
+            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, depth,       _cameraID | (int)ImageID.Depth       << 16);
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, motion,      _cameraID | (int)ImageID.Motion      << 16);
             cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, outputColor, _cameraID | (int)ImageID.OutputColor << 16);
             cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
@@ -142,7 +153,7 @@ namespace Conifer.Upscaler
 
         internal Settings.Resolution GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : new Settings.Resolution();
 
-        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo) => Loaded ? Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo) : Upscaler.Status.SoftwareError;
+        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax) => Loaded ? Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo, tcThreshold, tcScale, reactiveScale, reactiveMax) : Upscaler.Status.SoftwareError;
 
         internal Settings.Jitter GetJitter(bool advance) => Loaded ? Native.GetJitter(_cameraID, advance) : new Settings.Jitter();
 

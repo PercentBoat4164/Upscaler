@@ -192,6 +192,11 @@ public:
             float verticalFOV;
         } camera;
 
+        float tcThreshold;
+        float tcScale;
+        float reactiveScale;
+        float reactiveMax;
+
         virtual Jitter getNextJitter() {
             jitter = jitterGenerator.getNextJitter();
             return jitter;

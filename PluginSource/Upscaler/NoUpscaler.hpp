@@ -23,7 +23,7 @@ public:
         return "Dummy upscaler";
     }
 
-    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, float /*unused*/, bool /*unused*/) final;
+    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) final;
 
     Status initialize() final;
     Status create() final;
