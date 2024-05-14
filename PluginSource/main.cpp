@@ -78,6 +78,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const bool                             hdr
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
+    if (type >= Upscaler::TYPE_MAX_ENUM) return upscaler->setStatus(Upscaler::SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE, std::to_string(type) + " is not a valid Upscaler enum value.");
     if (upscaler->getType() != type) upscaler = upscaler->copyFromType(type);
     return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
@@ -129,8 +130,7 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(UnityGfxDeviceEve
         case kUnityGfxDeviceEventInitialize:
             GraphicsAPI::set(Plugin::Unity::graphicsInterface->GetRenderer());
 #ifdef ENABLE_DX11
-            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11)
-                DX11::createOneTimeSubmitContext();
+            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11) DX11::createOneTimeSubmitContext();
 #endif
             break;
         case kUnityGfxDeviceEventShutdown:

@@ -95,7 +95,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, Plugin::ImageID 
         accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
         layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     }
-    if (imageID == Plugin::ImageID::SourceDepth) {
+    if (imageID == Plugin::ImageID::Depth) {
         layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
@@ -115,16 +115,16 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, Plugin::ImageID 
       .flags=FFX_RESOURCE_FLAGS_NONE,
       .usage=resourceUsage,
     };
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with " + getName() + ". Please select a different image format (probably for the input color)."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with " + getName() + ". Please select a different image format."));
 
-    resource = ffxGetResourceVK(image.image, description, const_cast<wchar_t*>(std::wstring(L"").c_str()), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    resource = ffxGetResourceVK(image.image, description, std::wstring(L"").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     return SUCCESS;
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
     FfxResource color, depth, motion, output;
     RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
-    RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::SourceDepth));
+    RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
 
@@ -138,9 +138,9 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .color                      = color,
       .depth                      = depth,
       .motionVectors              = motion,
-      .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Exposure").c_str()), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .reactive                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Reactive Mask").c_str()), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, const_cast<wchar_t*>(std::wstring(L"Transparency/Composition Mask").c_str()), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .reactive                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Transparency/Composition Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .output                     = output,
       .jitterOffset               = {
             settings.jitter.x,
@@ -188,7 +188,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, Plugin::ImageID im
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
 
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
-    if (imageID == Plugin::ImageID::SourceDepth) {
+    if (imageID == Plugin::ImageID::Depth) {
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ID3D12Resource* image = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[imageID]);
@@ -211,7 +211,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, Plugin::ImageID im
 Upscaler::Status FSR2::DX12Evaluate() {
     FfxResource color, depth, motion, output;
     RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
-    RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::SourceDepth));
+    RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(DX12GetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::OutputColor));
 
@@ -268,7 +268,7 @@ Upscaler::Status FSR2::setStatus(FfxErrorCode t_error, const std::string &t_msg)
         case (int)FFX_ERROR_INVALID_SIZE:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_SIZE");
         case (int)FFX_EOF:
-            return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING, t_msg + " | FFX_EOF");
+            return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_EOF");
         case (int)FFX_ERROR_INVALID_PATH:
             return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_PATH");
         case (int)FFX_ERROR_EOF:
@@ -331,8 +331,8 @@ FSR2::FSR2(const GraphicsAPI::Type graphicsAPI) {
 #    endif
 #    ifdef ENABLE_DX11
         case GraphicsAPI::DX11: {
-            fpInitialize       = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
+            fpInitialize       = &FSR2::invalidGraphicsAPIFail;
+            fpEvaluate         = &FSR2::invalidGraphicsAPIFail;
             break;
         }
 #    endif
@@ -370,10 +370,11 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
-    optimalSettings.HDR              = hdr;
+    optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
 
     RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
+    optimalSettings.dynamicMaximumInputResolution = resolution;
 
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
@@ -402,7 +403,7 @@ Upscaler::Status FSR2::create() {
         static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |  /**@todo Make me a switch.*/
-        (settings.HDR ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
+        (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
       .backendInterface = *ffxInterface,

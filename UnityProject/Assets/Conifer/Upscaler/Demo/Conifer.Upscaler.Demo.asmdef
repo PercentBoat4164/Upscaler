@@ -1,0 +1,16 @@
+{
+    "name": "Conifer.Upscaler.Demo",
+    "rootNamespace": "Conifer.Upscaler.Demo",
+    "references": [
+        "GUID:58ed9f0751b73475e8851605847b4ea8"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

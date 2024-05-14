@@ -24,19 +24,27 @@ bool Upscaler::recoverable(const Status t_status) {
 #ifdef ENABLE_VULKAN
 std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanInstanceExtensions(supportedExtensions);
+#    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
+#    ifdef ENABLE_FSR2
     for (auto& extension : FSR2::requestVulkanInstanceExtensions(supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
     return requestedExtensions;
 }
 
 std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(supportedExtensions);
+#    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
+#    ifdef ENABLE_FSR2
     for (auto& extension : FSR2::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
+#    endif
     return requestedExtensions;
 }
 #endif
@@ -103,6 +111,11 @@ bool Upscaler::resetStatus() {
         statusMessage.clear();
     }
     return status == SUCCESS;
+}
+
+void Upscaler::forceStatus(Upscaler::Status newStatus, std::string message) {
+    status = newStatus;
+    statusMessage = std::move(message);
 }
 
 std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {

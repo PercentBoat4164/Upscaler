@@ -109,10 +109,11 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
         accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
         layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     }
-    if (imageID == Plugin::ImageID::SourceDepth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+    if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
+    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
     RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create a valid `VkImageView`."));
     resource->ChangeResource(view, image.image, image.aspect, image.format, {image.extent.width, image.extent.height});
@@ -121,22 +122,21 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
 
 Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanUpdateResource(color, Plugin::ImageID::SourceColor));
-    RETURN_ON_FAILURE(VulkanUpdateResource(depth, Plugin::ImageID::SourceDepth));
+    RETURN_ON_FAILURE(VulkanUpdateResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanUpdateResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanUpdateResource(output, Plugin::ImageID::OutputColor));
 
     NVSDK_NGX_Resource_VK& inColor = color->GetResource();
     Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
       .Feature = {
         .pInColor = &inColor,
         .pInOutput = &output->GetResource(),
-        .InSharpness = settings.sharpness,
       },
       .pInDepth                  = &depth->GetResource(),
       .pInMotionVectors          = &motion->GetResource(),
@@ -219,17 +219,16 @@ Upscaler::Status DLSS::DX12Evaluate() {
     D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
     Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), static_cast<uint32_t>(inColorDescription.Height)};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
       .Feature = {
         .pInColor = inColor,
         .pInOutput = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
-        .InSharpness = settings.sharpness,
       },
-      .pInDepth                  = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceDepth]),
+      .pInDepth                  = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
       .pInMotionVectors          = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
@@ -303,17 +302,16 @@ Upscaler::Status DLSS::DX11Evaluate() {
 
     Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
 
-    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
       .Feature = {
         .pInColor = inColor,
         .pInOutput = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
-        .InSharpness = settings.sharpness,
       },
-      .pInDepth                  = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceDepth]),
+      .pInDepth                  = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
       .pInMotionVectors          = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
@@ -369,18 +367,18 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
         case NVSDK_NGX_Result_Fail: error = UNKNOWN_ERROR; break;
         case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = HARDWARE_ERROR_DEVICE_NOT_SUPPORTED; break;
         case NVSDK_NGX_Result_FAIL_PlatformError: error = SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED; break;
-        case NVSDK_NGX_Result_FAIL_FeatureAlreadyExists: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
+        case NVSDK_NGX_Result_FAIL_FeatureAlreadyExists: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_FeatureNotFound: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
         case NVSDK_NGX_Result_FAIL_InvalidParameter: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_ScratchBufferTooSmall: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
+        case NVSDK_NGX_Result_FAIL_ScratchBufferTooSmall: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
         case NVSDK_NGX_Result_FAIL_NotInitialized: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_UnsupportedInputFormat:
-        case NVSDK_NGX_Result_FAIL_RWFlagMissing: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_MissingInput: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_UnableToInitializeFeature: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
+        case NVSDK_NGX_Result_FAIL_RWFlagMissing:
+        case NVSDK_NGX_Result_FAIL_MissingInput:
+        case NVSDK_NGX_Result_FAIL_UnableToInitializeFeature: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_OutOfDate: error = SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE; break;
         case NVSDK_NGX_Result_FAIL_OutOfGPUMemory: error = SOFTWARE_ERROR_OUT_OF_GPU_MEMORY; break;
-        case NVSDK_NGX_Result_FAIL_UnsupportedFormat: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING; break;
+        case NVSDK_NGX_Result_FAIL_UnsupportedFormat: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_UnableToWriteToAppDataPath: error = SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS; break;
         case NVSDK_NGX_Result_FAIL_UnsupportedParameter: error = SETTINGS_ERROR; break;
         case NVSDK_NGX_Result_FAIL_Denied: error = SOFTWARE_ERROR_FEATURE_DENIED; break;
@@ -398,6 +396,59 @@ void DLSS::log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_
         case NVSDK_NGX_LOGGING_LEVEL_NUM: break;
     }
     if (Upscaler::logCallback != nullptr) Upscaler::logCallback((msg + message).c_str());
+}
+
+#    ifdef ENABLE_VULKAN
+std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
+    uint32_t                 extensionCount{};
+    std::vector<std::string> requestedExtensions{};
+    VkExtensionProperties*   extensionProperties{};
+    NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
+    requestedExtensions.reserve(extensionCount);
+    for (uint32_t i{}; i < extensionCount; ++i) {
+        const char* extensionName = extensionProperties[i].extensionName;
+        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
+            requestedExtensions.emplace_back(extensionName);
+        } else {
+            instanceExtensionsSupported = UNSUPPORTED;
+            return {};
+        }
+    }
+    instanceExtensionsSupported = SUPPORTED;
+    return requestedExtensions;
+}
+
+std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
+    uint32_t                 extensionCount{};
+    std::vector<std::string> requestedExtensions{};
+    VkExtensionProperties*   extensionProperties{};
+    NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
+    requestedExtensions.reserve(extensionCount);
+    for (uint32_t i{}; i < extensionCount; ++i) {
+        const char* extensionName = extensionProperties[i].extensionName;
+        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
+            requestedExtensions.emplace_back(extensionName);
+        } else {
+            deviceExtensionsSupported = UNSUPPORTED;
+            return {};
+        }
+    }
+    deviceExtensionsSupported = SUPPORTED;
+    return requestedExtensions;
+}
+#    endif
+
+bool DLSS::isSupported() {
+    if (supported != UNTESTED)
+        return supported == SUPPORTED;
+#    ifdef ENABLE_VULKAN
+    if (instanceExtensionsSupported == UNSUPPORTED || deviceExtensionsSupported == UNSUPPORTED) {
+        supported = UNSUPPORTED;
+        return false;
+    }
+#    endif
+    DLSS dlss(GraphicsAPI::getType());
+    return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
 DLSS::DLSS(const GraphicsAPI::Type graphicsAPI) {
@@ -461,61 +512,7 @@ DLSS::~DLSS() {
     shutdown();
 }
 
-#    ifdef ENABLE_VULKAN
-std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
-    uint32_t                 extensionCount{};
-    std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*   extensionProperties{};
-    NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
-    requestedExtensions.reserve(extensionCount);
-    for (uint32_t i{}; i < extensionCount; ++i) {
-        const char* extensionName = extensionProperties[i].extensionName;
-        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
-            requestedExtensions.emplace_back(extensionName);
-        } else {
-            instanceExtensionsSupported = UNSUPPORTED;
-            return {};
-        }
-    }
-    instanceExtensionsSupported = SUPPORTED;
-    return requestedExtensions;
-}
-
-std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
-    uint32_t                 extensionCount{};
-    std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*   extensionProperties{};
-    NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
-    requestedExtensions.reserve(extensionCount);
-    for (uint32_t i{}; i < extensionCount; ++i) {
-        const char* extensionName = extensionProperties[i].extensionName;
-        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
-            requestedExtensions.emplace_back(extensionName);
-        } else {
-            deviceExtensionsSupported = UNSUPPORTED;
-            return {};
-        }
-    }
-    deviceExtensionsSupported = SUPPORTED;
-    return requestedExtensions;
-}
-#    endif
-
-bool DLSS::isSupported() {
-    if (supported != UNTESTED)
-        return supported == SUPPORTED;
-#    ifdef ENABLE_VULKAN
-    if (instanceExtensionsSupported == UNSUPPORTED || deviceExtensionsSupported == UNSUPPORTED) {
-        supported = UNSUPPORTED;
-        return false;
-    }
-#    endif
-    DLSS dlss(GraphicsAPI::getType());
-    return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
-}
-
-Upscaler::Status
-DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
     RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
@@ -524,7 +521,7 @@ DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::
 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
-    optimalSettings.HDR              = hdr;
+    optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
     optimalSettings.preset           = preset;
 
@@ -598,13 +595,12 @@ Upscaler::Status DLSS::create() {
         .InTargetHeight     = settings.outputResolution.height,
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
-      .InFeatureCreateFlags = static_cast<int>(
+      .InFeatureCreateFlags = static_cast<NVSDK_NGX_DLSS_Feature_Flags>(
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVJittered) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
-        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DoSharpening) |
-        (settings.HDR ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
+        (settings.hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
       ),
       .InEnableOutputSubrects = false,
     };

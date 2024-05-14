@@ -15,7 +15,7 @@ enum Event {
 
 enum ImageID : uint16_t {
     SourceColor,
-    SourceDepth,
+    Depth,
     Motion,
     OutputColor,
     IMAGE_ID_MAX_ENUM

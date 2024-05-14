@@ -12,6 +12,9 @@ public:
 
     static bool isSupported();
 
+    explicit NoUpscaler();
+    ~NoUpscaler() final = default;
+
     constexpr Upscaler::Type getType() final {
         return Upscaler::NONE;
     }
@@ -20,10 +23,12 @@ public:
         return "Dummy upscaler";
     }
 
-    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) final;
+    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, float /*unused*/, bool /*unused*/) final;
 
     Status initialize() final;
     Status create() final;
     Status evaluate() final;
     Status shutdown() final;
+
+    bool resetStatus() final;
 };

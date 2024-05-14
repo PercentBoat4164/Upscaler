@@ -23,16 +23,12 @@
 #include <string>
 #include <vector>
 
-#ifndef NDEBUG
 #    define RETURN_ON_FAILURE(x)                \
         {                                       \
             Upscaler::Status _ = x;             \
             if (Upscaler::failure(_)) return _; \
         }                                       \
         0
-#else
-#    define RETURN_ON_FAILURE(x) x
-#endif
 
 class Upscaler {
     constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
@@ -64,14 +60,15 @@ public:
         SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
         SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_WARNING                  = SOFTWARE_ERROR | 9U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
+        SOFTWARE_ERROR_UNSUPPORTED_GRAPHICS_API                   = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET,
         SETTINGS_ERROR                                            =                  3U  << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
         SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U  << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U  << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U  << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U  << ERROR_CODE_OFFSET,
         SETTINGS_ERROR_PRESET_NOT_AVAILABLE                       = SETTINGS_ERROR | 5U  << ERROR_CODE_OFFSET,
+        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 6U  << ERROR_CODE_OFFSET,
         GENERIC_ERROR                                             =                  4U  << ERROR_TYPE_OFFSET,
         GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR  | 1U  << ERROR_CODE_OFFSET,
         UNKNOWN_ERROR                                             =                  0xFFFFFFFE,
@@ -185,7 +182,7 @@ public:
         Halton     jitterGenerator;
         Jitter     jitter{0.F, 0.F};
         float      sharpness{};
-        bool       HDR{};
+        bool       hdr{};
         float      frameTime{};
         bool       resetHistory{};
 
@@ -238,6 +235,7 @@ public:
                 case Balanced: return FFX_FSR2_QUALITY_MODE_BALANCED;
                 case Performance: return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
                 case UltraPerformance: return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
+                default: return FFX_FSR2_QUALITY_MODE_BALANCED;
             }
             return FFX_FSR2_QUALITY_MODE_BALANCED;
         }
@@ -250,9 +248,14 @@ private:
     std::string statusMessage;
 
 protected:
-    template<typename T, typename... Args>
-    constexpr T safeFail(Args... /*unused*/) {
+    template<typename... Args>
+    constexpr Status safeFail(Args... /*unused*/) {
         return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
+    }
+
+    template<typename... Args>
+    constexpr Status invalidGraphicsAPIFail(Args... /*unused*/) {
+        return setStatus(SOFTWARE_ERROR_UNSUPPORTED_GRAPHICS_API, "The current upscaler does not support the current graphics API.");
     }
 
     static void (*logCallback)(const char* msg);
@@ -262,8 +265,8 @@ protected:
 
 public:
 #ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
+    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #endif
 
     static bool                   isSupported(Type type);
@@ -277,8 +280,8 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    constexpr virtual Type        getType()                                                                                = 0;
-    constexpr virtual std::string getName()                                                                                = 0;
+    constexpr virtual Type        getType()                                                                                                   = 0;
+    constexpr virtual std::string getName()                                                                                                   = 0;
     virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
@@ -287,18 +290,12 @@ public:
     virtual Status evaluate() = 0;
     virtual Status shutdown() = 0;
 
-    /// Returns the current status.
     [[nodiscard]] Status getStatus() const;
     std::string&         getErrorMessage();
-    /// Sets current status to t_error if there is no current status. Use resetStatus to clear the current status.
-    /// Returns the current status.
     Status               setStatus(Status, const std::string&);
-    /// Sets current status to t_error if t_shouldApplyError == true AND there is no current status. Use
-    /// resetStatus to clear the current status. Returns the current status
     Status               setStatusIf(bool, Status, std::string);
-    /// Returns false and does not modify the status if the current status is non-recoverable. Returns true if the
-    /// status has been cleared.
-    bool                 resetStatus();
+    virtual bool         resetStatus();
+    void                 forceStatus(Status, std::string);
 
-    std::unique_ptr<Upscaler>        copyFromType(Type type);
+    std::unique_ptr<Upscaler> copyFromType(Type type);
 };

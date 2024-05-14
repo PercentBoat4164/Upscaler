@@ -13,22 +13,31 @@ bool NoUpscaler::isSupported() {
     return true;
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) {
-    return NO_UPSCALER_SET;
+NoUpscaler::NoUpscaler() {
+    resetStatus();
+}
+
+Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
+    return getStatus();
 }
 
 Upscaler::Status NoUpscaler::initialize() {
-    return NO_UPSCALER_SET;
+    return getStatus();
 }
 
 Upscaler::Status NoUpscaler::create() {
-    return NO_UPSCALER_SET;
+    return getStatus();
 }
 
 Upscaler::Status NoUpscaler::evaluate() {
-    return NO_UPSCALER_SET;
+    return getStatus();
 }
 
 Upscaler::Status NoUpscaler::shutdown() {
-    return NO_UPSCALER_SET;
+    return getStatus();
+}
+
+bool NoUpscaler::resetStatus() {
+    forceStatus(NO_UPSCALER_SET, getName() + " is currently active.");
+    return true;
 }
