@@ -192,6 +192,7 @@ public:
             float verticalFOV;
         } camera;
 
+        bool autoReactive;
         float tcThreshold;
         float tcScale;
         float reactiveScale;
@@ -242,13 +243,11 @@ public:
                 case UltraPerformance: return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
                 default: return FFX_FSR2_QUALITY_MODE_BALANCED;
             }
-            return FFX_FSR2_QUALITY_MODE_BALANCED;
         }
 #endif
     } settings;
 
 private:
-    void*       userData{nullptr};
     Status      status{SUCCESS};
     std::string statusMessage;
 
@@ -301,6 +300,4 @@ public:
     Status               setStatusIf(bool, Status, std::string);
     virtual bool         resetStatus();
     void                 forceStatus(Status, std::string);
-
-    std::unique_ptr<Upscaler> copyFromType(Type type);
 };

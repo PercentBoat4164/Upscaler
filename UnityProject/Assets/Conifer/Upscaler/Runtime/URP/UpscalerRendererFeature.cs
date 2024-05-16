@@ -24,7 +24,6 @@ namespace Conifer.Upscaler.URP
             private static RTHandle _outputDepth;
             private static RTHandle _inputDepth;
             private static RTHandle _reactiveMask;
-            private static RTHandle _tcMask;
             private static Mesh _triangle;
             private static Material _blitMaterial;
             private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
@@ -62,12 +61,6 @@ namespace Conifer.Upscaler.URP
                 descriptor = cameraDescriptor;
                 descriptor.graphicsFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "UpscalerOutputDepth");
-                descriptor = cameraDescriptor;
-                descriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
-                descriptor.depthStencilFormat = GraphicsFormat.None;
-                RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, descriptor, name: "UpscalerReactiveMask");
-                RenderingUtils.ReAllocateIfNeeded(ref _tcMask, descriptor, name: "UpscalerTCMask");
-                cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
 
                 var renderer = renderingData.cameraData.renderer;
                 var depth = renderer.cameraDepthTargetHandle;
@@ -75,7 +68,12 @@ namespace Conifer.Upscaler.URP
                 var cb = CommandBufferPool.Get("Upscale");
                 if (_upscaler.settings.upscaler == Settings.Upscaler.FidelityFXSuperResolution2)
                 {
-                    _upscaler.NativeInterface.SetMaskImages(cb, _reactiveMask, _tcMask, Shader.GetGlobalTexture(OpaqueID));
+                    descriptor = cameraDescriptor;
+                    descriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
+                    descriptor.depthStencilFormat = GraphicsFormat.None;
+                    RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, descriptor, name: "UpscalerReactiveMask");
+
+                    _upscaler.NativeInterface.SetReactiveImages(cb, _reactiveMask, Shader.GetGlobalTexture(OpaqueID));
 
                     descriptor = cameraDescriptor;
                     descriptor.width = _upscaler.RenderingResolution.x;
@@ -92,6 +90,11 @@ namespace Conifer.Upscaler.URP
 
                     depth = _inputDepth;
                 }
+                else
+                {
+                    _reactiveMask?.Release();
+                    _inputDepth?.Release();
+                }
 
                 _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, Shader.GetGlobalTexture(MotionID), _outputColor);
                 if (renderingData.cameraData.postProcessingRequiresDepthTexture)
@@ -103,11 +106,12 @@ namespace Conifer.Upscaler.URP
                     cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
                     cb.SetGlobalTexture(DepthID, _outputDepth);
                 }
-                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
 
                 context.ExecuteCommandBuffer(cb);
                 cb.Release();
                 renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
+                cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
+                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
                 MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
             }
         }

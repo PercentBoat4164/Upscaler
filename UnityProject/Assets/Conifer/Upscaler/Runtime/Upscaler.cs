@@ -121,15 +121,17 @@ namespace Conifer.Upscaler
         public Upscaler upscaler;
         /// The current DLSS preset. Defaults to <see cref="Settings.DLSSPreset.Default"/>.
         public DLSSPreset DLSSpreset;
-        /// The current sharpness value. This should always be in the range of 0 to 1. Defaults to 0.
+        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>.
         public float sharpness;
-        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to 0.05f.
+        /// Instructs Upscaler to FSR parameters for automatic reactive mask generation. Defaults to <c>true</c>.
+        public bool useReactiveMask;
+        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>.
         public float tcThreshold = 0.05f;
-        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at hard edges of translucent objects. Defaults to 1.0f.
+        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at hard edges of translucent objects. Defaults to <c>1.0f</c>.
         public float tcScale = 1.0f;
-        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to 5.0f.
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>.
         public float reactiveScale = 5.0f;
-        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to 0.9f.
+        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>.
         public float reactiveMax = 0.9f;
         /// Enables displaying the Rendering Area overlay.
         public bool showRenderingAreaOverlay;
@@ -140,7 +142,7 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax, showRenderingAreaOverlay = showRenderingAreaOverlay };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax, showRenderingAreaOverlay = showRenderingAreaOverlay };
 
         public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || DLSSpreset != other.DLSSpreset;
     }
@@ -163,7 +165,7 @@ namespace Conifer.Upscaler
          */
         public enum Status : uint
         {
-            /// The success signal sent by DLSS.
+            /// The success signal sent by the upscaler.
             Success                                            =                  0U,
             /// The success signal sent by the dummy upscaler.
             NoUpscalerSet                                      =                  2U,
@@ -209,7 +211,7 @@ namespace Conifer.Upscaler
             SettingsErrorPresetNotAvailable                    = SettingsError | (5U << ErrorCodeOffset),
             /// An invalid <see cref="Settings.Upscaler"/> was provided.
             SettingsErrorUpscalerNotAvailable                  = SettingsError | (6U << ErrorCodeOffset),
-            /// A GenericError* is thrown when a most likely cause has been found but it is not certain. A plain GenericError is thrown when there are many possible known errors.
+            /// A GenericError* is thrown when a most likely cause has been found, but it is not certain. A plain GenericError is thrown when there are many possible known errors.
             GenericError                                       =                  4U << ErrorTypeOffset,
             /// Either the GPU does not support the required Vulkan device extensions or the system does not support the required Vulkan instance extensions.
             GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError  | (1U << ErrorCodeOffset),
@@ -222,7 +224,7 @@ namespace Conifer.Upscaler
          *
          * <param name="status">The status in question.</param>
          *
-         * <returns>true if the <see cref="Status"/> is success-y and false if not.</returns>
+         * <returns><c>true</c> if the <see cref="Status"/> is success-y and <c>false</c> if not.</returns>
          *
          * <remarks>This returns true only for <see cref="Status.Success"/> and <see cref="Status.NoUpscalerSet"/>.
          * Being a <see cref="Success"/> <see cref="Status"/> means that the upscaler in question is usable in its
@@ -235,9 +237,9 @@ namespace Conifer.Upscaler
          *
          * <param name="status">The status in question.</param>
          *
-         * <returns>true if the <see cref="Status"/> is an error and false if not.</returns>
+         * <returns><c>true</c> if the <see cref="Status"/> is an error and <c>false</c> if not.</returns>
          *
-         * <remarks>This returns true for all <see cref="Status"/>es that are not <see cref="Status.Success"/> or
+         * <remarks>This returns <c>true</c> for all <see cref="Status"/>es that are not <see cref="Status.Success"/> or
          * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Failure"/> <see cref="Status"/> means that the
          * upscaler in question is not usable in its current state. See <see cref="Recoverable"/> to determine if fixing
          * the problem is possible.</remarks>
@@ -271,18 +273,18 @@ namespace Conifer.Upscaler
         public Vector2Int OutputResolution { get; private set; }
 
         /// The current resolution at which the scene is being rendered. This is determined either by dynamic
-        /// resolution, or by querying the upscaler. It is never (0, 0). When the upscaler has a <see cref="Status"/>
+        /// resolution, or by querying the upscaler. It is never <c>(0, 0)</c>. When the upscaler has a <see cref="Status"/>
         /// error or the upscaler is <see cref="Conifer.Upscaler.Settings.Upscaler.None"/> it will be the same as
         /// <see cref="OutputResolution"/>.
         public Vector2Int RenderingResolution { get; private set; }
 
         /// The largest per-axis fraction of <see cref="OutputResolution"/> that dynamic resolution is allowed to use.
-        /// It defaults to 1.
-        public float MaxRenderScale { get; private set; } = 1f;
+        /// It defaults to <c>1.0f</c>.
+        public float MaxRenderScale { get; private set; } = 1.0f;
 
         /// The smallest per-axis fraction of <see cref="OutputResolution"/> that dynamic resolution is allowed to use.
-        /// It defaults to 0.5.
-        public float MinRenderScale { get; private set; } = .5f;
+        /// It defaults to <c>0.5f</c>.
+        public float MinRenderScale { get; private set; } = 0.5f;
 
         /// The current scaling that the upscaler is performing. See <see cref="MinRenderScale"/>, and
         /// <see cref="MaxRenderScale"/> for the minimum and maximum allowed values respectively at any given time.
@@ -330,7 +332,7 @@ namespace Conifer.Upscaler
          *
          * <param name="mode">The upscaler to query support for.</param>
          *
-         * <returns>`true` if the upscaler is supported and `false` if it is not.</returns>
+         * <returns><c>true</c> if the upscaler is supported and <c>false</c> if it is not.</returns>
          *
          * <remarks>This method is slow the first time it is used for each upscaler, then fast every time after that.
          * Support for the upscaler requested is computed then cached. Any future calls with the same upscaler will use
@@ -344,8 +346,8 @@ namespace Conifer.Upscaler
         /**
          * <summary>Check if the GfxPluginUpscaler shared library has been loaded.</summary>
          *
-         * <returns>`true` if the GfxPluginUpscaler shared library has been loaded by Unity and false if it has not
-         * been.</returns>
+         * <returns><c>true</c> if the GfxPluginUpscaler shared library has been loaded by Unity and <c>false</c> if it
+         * has not been.</returns>
          *
          * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
          */
@@ -358,7 +360,7 @@ namespace Conifer.Upscaler
          *
          * <remarks>This method is fast. It can be used to check a specific setting, or used in conjunction with
          * <see cref="ApplySettings"/> to change a specific setting while leaving all others the same. The value
-         * returned by this method may change every time <see cref="ApplySettings"/> is called.</remarks>
+         * returned by this method <b>may</b> change every time <see cref="ApplySettings"/> is called.</remarks>
          *
          * <example><code>Upscaler.Settings currentSettings = upscaler.QuerySettings();</code></example>
          */
@@ -439,7 +441,7 @@ namespace Conifer.Upscaler
             if (!Application.isPlaying) return;
             if (settings.upscaler == Settings.Upscaler.None) return;
 
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
+            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
 
             EnforceDynamicResolutionConstraints(null);

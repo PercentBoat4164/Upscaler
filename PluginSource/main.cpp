@@ -21,7 +21,7 @@ static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
 
 void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int eventID, void* data) {
     if (eventID == kUnityRenderingExtEventUpdateTextureBeginV2) {
-        auto* params = static_cast<UnityRenderingExtTextureUpdateParamsV2*>(data);
+        const auto* params = static_cast<UnityRenderingExtTextureUpdateParamsV2*>(data);
         upscalers[params->userData & 0x0000FFFFU]->useImage(static_cast<Plugin::ImageID>(params->userData >> 16U), params->textureID);
     } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Prepare) {
         const std::unique_ptr<Upscaler>& upscaler = upscalers[reinterpret_cast<uint64_t>(data)];
@@ -78,7 +78,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
     if (type >= Upscaler::TYPE_MAX_ENUM) return upscaler->setStatus(Upscaler::SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE, std::to_string(type) + " is not a valid Upscaler enum value.");
-    if (upscaler->getType() != type) upscaler = upscaler->copyFromType(type);
+    if (upscaler->getType() != type) upscaler = upscaler->fromType(type);
     return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
@@ -99,6 +99,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const float                          frameTime,
   const float                          sharpness,
   const Upscaler::Settings::Camera     cameraInfo,
+  const bool                           autoReactive,
   const float                          tcThreshold,
   const float                          tcScale,
   const float                          reactiveScale,
@@ -113,6 +114,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
     settings.frameTime           = frameTime;
     settings.sharpness           = sharpness;
     settings.camera              = cameraInfo;
+    settings.autoReactive        = autoReactive;
     settings.tcThreshold         = tcThreshold;
     settings.tcScale             = tcScale;
     settings.reactiveScale       = reactiveScale;
@@ -148,7 +150,7 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDev
 #endif
             break;
         default: break;
-    };
+    }
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {

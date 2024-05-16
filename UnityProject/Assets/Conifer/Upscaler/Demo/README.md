@@ -22,14 +22,14 @@ Upscaler features almost every capability that DLSS has to offer. We support com
 # Demo Controls
 Click on the game view to capture the cursor.
 
-Key | Action
----|---
-Escape | Free cursor
-W, A, S, D | Move camera
-Left Shift | Move camera faster
-Space | Move camera up
-Left Ctrl | Move camera Down
-R | Toggle cube rotation
-M | Toggle cube translation
-B | Toggle cycling through dynamic resolution scales
-E | Cause an error by attempting to set the quality to 6 (a non-existant quality mode)
+| Key        | Action                                                                             |
+|------------|------------------------------------------------------------------------------------|
+| Escape     | Free cursor                                                                        |
+| W, A, S, D | Move camera                                                                        |
+| Left Shift | Move camera faster                                                                 |
+| Space      | Move camera up                                                                     |
+| Left Ctrl  | Move camera Down                                                                   |
+| R          | Toggle cube rotation                                                               |
+| M          | Toggle cube translation                                                            |
+| B          | Toggle cycling through dynamic resolution scales                                   |
+| E          | Cause an error by attempting to set the quality to 6 (a non-existant quality mode) |

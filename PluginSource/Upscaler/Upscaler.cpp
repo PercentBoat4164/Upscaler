@@ -52,8 +52,12 @@ std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance inst
 bool Upscaler::isSupported(const Type type) {
     switch (type) {
         case NONE: return NoUpscaler::isSupported();
+#ifdef ENABLE_DLSS
         case DLSS: return DLSS::isSupported();
+#endif
+#ifdef ENABLE_FSR2
         case FSR2: return FSR2::isSupported();
+#endif
         case TYPE_MAX_ENUM: return false;
     }
     return false;
@@ -78,9 +82,9 @@ void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
     logCallback = pFunction;
 }
 
-Upscaler::Status Upscaler::useImage(Plugin::ImageID imageID, UnityTextureID unityID) {
+Upscaler::Status Upscaler::useImage(const Plugin::ImageID imageID, const UnityTextureID unityID) {
     RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
-    textureIDs[imageID] = unityID;
+    textureIDs.at(imageID) = unityID;
     return SUCCESS;
 }
 
@@ -97,7 +101,7 @@ Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_
 }
 
 Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
-    bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
+    const bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
     if (shouldApplyError) {
         status        = t_error;
         statusMessage = std::move(t_msg);
@@ -113,13 +117,7 @@ bool Upscaler::resetStatus() {
     return status == SUCCESS;
 }
 
-void Upscaler::forceStatus(Upscaler::Status newStatus, std::string message) {
+void Upscaler::forceStatus(const Status newStatus, std::string message) {
     status = newStatus;
     statusMessage = std::move(message);
-}
-
-std::unique_ptr<Upscaler> Upscaler::copyFromType(const Type type) {
-    std::unique_ptr<Upscaler> newUpscaler = fromType(type);
-    newUpscaler->userData                 = userData;
-    return newUpscaler;
 }

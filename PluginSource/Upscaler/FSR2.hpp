@@ -5,9 +5,9 @@
 #    include <ffx_fsr2.h>
 
 class FSR2 final : public Upscaler {
-    static FfxInterface*     ffxInterface;
-    FfxFsr2Context*   context{};
-    FfxDevice        device{};
+    static FfxInterface*    ffxInterface;
+    FfxFsr2Context*         context{};
+    FfxDevice               device{};
 
     static Status (FSR2::*fpInitialize)();
     static Status (FSR2::*fpEvaluate)();

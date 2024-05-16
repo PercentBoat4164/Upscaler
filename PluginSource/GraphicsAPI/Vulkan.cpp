@@ -4,9 +4,7 @@
 #    include <Upscaler/Upscaler.hpp>
 
 #    include <IUnityGraphicsVulkan.h>
-#    include <IUnityRenderingExtensions.h>
 
-#    include <algorithm>
 #    include <cstring>
 
 VkInstance Vulkan::temporaryInstance{VK_NULL_HANDLE};
@@ -68,7 +66,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
     for (const std::string& extension : requestedExtensions)
-        if (std::find_if(enabledExtensions.begin(), enabledExtensions.end(), [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
+        if (std::ranges::find_if(enabledExtensions, [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
             enabledExtensions.push_back(extension.c_str());
 
     // Modify the createInfo.
@@ -117,7 +115,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
     for (const std::string& extension : requestedExtensions)
-        if (std::find_if(enabledExtensions.begin(), enabledExtensions.end(), [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
+        if (std::ranges::find_if(enabledExtensions, [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
             enabledExtensions.push_back(extension.c_str());
 
     // Modify the createInfo.
@@ -142,7 +140,7 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 }
 
 PFN_vkGetInstanceProcAddr
-Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
+Vulkan::interceptInitialization(const PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
     loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;

@@ -126,10 +126,14 @@ namespace Conifer.Upscaler.Editor
                                 "\nNote: This only works if DLSS is the the active Upscaler.\n" +
                                 "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
                             ), newSettings.sharpness, 0f, 1f);
-                        newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold", newSettings.tcThreshold, 0, 1.0f);
-                        newSettings.tcScale = EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
-                        newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", newSettings.reactiveScale, 0, 10.0f);
-                        newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max", newSettings.reactiveMax, 0, 1.0f);
+                        newSettings.useReactiveMask = EditorGUILayout.Toggle("Use Reactive Mask", newSettings.useReactiveMask);
+                        if (newSettings.useReactiveMask)
+                        {
+                            newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold", newSettings.tcThreshold, 0, 1.0f);
+                            newSettings.tcScale = EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
+                            newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", newSettings.reactiveScale, 0, 10.0f);
+                            newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max", newSettings.reactiveMax, 0, 1.0f);
+                        }
                     }
                     else
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
