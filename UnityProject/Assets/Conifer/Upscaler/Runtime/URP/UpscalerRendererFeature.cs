@@ -3,6 +3,7 @@
  **********************************************************************/
 
 #if UPSCALER_USE_URP
+using System;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -15,6 +16,23 @@ namespace Conifer.Upscaler.URP
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         private static Upscaler _upscaler;
+
+        private class SetMipBias : ScriptableRenderPass
+        {
+            private static readonly int GlobalMipBias = Shader.PropertyToID("_GlobalMipBias");
+
+            public SetMipBias() => renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
+
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {
+                var mipBias = (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
+
+                var cb = CommandBufferPool.Get("SetMipBias");
+                cb.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
+                context.ExecuteCommandBuffer(cb);
+                CommandBufferPool.Release(cb);
+            }
+        }
 
         private class Upscale : ScriptableRenderPass
         {
@@ -58,33 +76,32 @@ namespace Conifer.Upscaler.URP
                 descriptor = cameraDescriptor;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
                 RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "UpscalerDepth");
-                cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
 
                 var renderer = renderingData.cameraData.renderer;
                 var depth = renderer.cameraDepthTargetHandle;
-                var motion = Shader.GetGlobalTexture(MotionID);
 
-                var upscale = CommandBufferPool.Get("Upscale");
-                _upscaler.NativeInterface.Upscale(upscale, renderer.cameraColorTargetHandle, depth, motion, _outputColor);
+                var cb = CommandBufferPool.Get("Upscale");
+                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, Shader.GetGlobalTexture(MotionID), _outputColor);
                 if (renderingData.cameraData.postProcessingRequiresDepthTexture)
                 {
-                    upscale.SetRenderTarget(_outputDepth);
-                    upscale.SetGlobalTexture(BlitID, depth);
-                    upscale.SetProjectionMatrix(Ortho);
-                    upscale.SetViewMatrix(LookAt);
-                    upscale.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
-                    upscale.SetGlobalTexture(DepthID, _outputDepth);
-                    MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
-                } else if (((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale <= .5)
-                    MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
+                    cb.SetRenderTarget(_outputDepth);
+                    cb.SetGlobalTexture(BlitID, depth);
+                    cb.SetProjectionMatrix(Ortho);
+                    cb.SetViewMatrix(LookAt);
+                    cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
+                    cb.SetGlobalTexture(DepthID, _outputDepth);
+                }
 
-                context.ExecuteCommandBuffer(upscale);
-                upscale.Release();
+                context.ExecuteCommandBuffer(cb);
+                CommandBufferPool.Release(cb);
                 renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
+                cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
+                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
                 MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
             }
         }
 
+        private readonly SetMipBias _setMipBias = new();
         private readonly Upscale _upscale = new();
 
         public override void Create()
@@ -99,6 +116,7 @@ namespace Conifer.Upscaler.URP
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
             if (_upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
+            renderer.EnqueuePass(_setMipBias);
             renderer.EnqueuePass(_upscale);
         }
     }

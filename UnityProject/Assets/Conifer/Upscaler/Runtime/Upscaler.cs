@@ -260,11 +260,10 @@ namespace Conifer.Upscaler
 
         private Camera _camera;
         private float _currentRenderScale;
+        private CommandBuffer _upscalerPrepare;
 
         internal NativeInterface NativeInterface;
         [SerializeField] internal Settings settings;
-
-        private CommandBuffer _upscalerPrepare;
 
         /// The current output resolution. This will be updated to match the camera's
         /// <see cref="UnityEngine.Camera.pixelRect"/> whenever it resizes. Upscaler does not control the output
@@ -389,9 +388,7 @@ namespace Conifer.Upscaler
             {
                 _camera.ResetProjectionMatrix();
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
-                status = NativeInterface.SetPerFeatureSettings(
-                    new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler,
-                    newSettings.DLSSpreset, newSettings.quality, false);
+                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, false);
                 if (Failure(status)) return status;
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
@@ -411,18 +408,6 @@ namespace Conifer.Upscaler
                 }
 
                 EnforceDynamicResolutionConstraints((float)RenderingResolution.x / OutputResolution.x);
-
-                var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
-                if (newSettings.upscaler == Settings.Upscaler.None)
-                    mipBias = 0f;
-
-                foreach (var rend in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                foreach (var mat in rend.materials)
-                foreach (var texID in mat.GetTexturePropertyNameIDs())
-                {
-                    var tex = mat.GetTexture(texID);
-                    if (tex is not null) tex.mipMapBias = mipBias;
-                }
             }
 
             settings = newSettings.Copy();
@@ -444,8 +429,7 @@ namespace Conifer.Upscaler
             if (!Application.isPlaying) return;
             if (settings.upscaler == Settings.Upscaler.None) return;
 
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness,
-                new Settings.CameraInfo(_camera));
+            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera));
             if (Failure(status)) return;
 
             EnforceDynamicResolutionConstraints(null);
@@ -505,17 +489,13 @@ namespace Conifer.Upscaler
                 }
             }
 
-            if (OutputResolution.x == _camera.pixelWidth && OutputResolution.y == _camera.pixelHeight)
-                return;
-            
-            status = ApplySettings(settings, true);
+            if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight)
+                status = ApplySettings(settings, true);
         }
 
         private void OnDisable()
         {
-            var newSettings = QuerySettings();
-            newSettings.upscaler = Settings.Upscaler.None;
-            ApplySettings(newSettings, true);
+            EnforceDynamicResolutionConstraints(1.0f);
             RenderPipelineManager.beginCameraRendering -= PreUpscale;
         }
 
