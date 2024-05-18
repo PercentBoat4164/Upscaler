@@ -25,7 +25,8 @@ namespace Conifer.Upscaler.URP
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                var mipBias = (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
+                var mipBias =
+                    (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
 
                 var cb = CommandBufferPool.Get("SetMipBias");
                 cb.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
@@ -45,11 +46,11 @@ namespace Conifer.Upscaler.URP
             private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
             private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
             private static readonly int BlitID = Shader.PropertyToID("_MainTex");
-            private static readonly FieldInfo MDescriptor = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPass")!.GetField("m_Descriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MPostProcessPasses = typeof(UniversalRenderer).GetField("m_PostProcessPasses", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MPostProcessPass = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPasses")!.GetField("m_PostProcessPass", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MColorBufferSystem = typeof(UniversalRenderer).GetField("m_ColorBufferSystem", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo MDesc = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.Internal.RenderTargetBufferSystem")!.GetField("m_Desc", BindingFlags.NonPublic | BindingFlags.Static)!;
+            private static readonly FieldInfo FDescriptor = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPass")!.GetField("m_Descriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo FPostProcessPasses = typeof(UniversalRenderer).GetField("m_PostProcessPasses", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo FPostProcessPass = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPasses")!.GetField("m_PostProcessPass", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo FColorBufferSystem = typeof(UniversalRenderer).GetField("m_ColorBufferSystem", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            private static readonly FieldInfo FDesc = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.Internal.RenderTargetBufferSystem")!.GetField("m_Desc", BindingFlags.NonPublic | BindingFlags.Static)!;
 
             public Upscale() => renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
@@ -72,16 +73,18 @@ namespace Conifer.Upscaler.URP
                 var descriptor = cameraDescriptor;
                 descriptor.enableRandomWrite = true;
                 descriptor.depthStencilFormat = GraphicsFormat.None;
-                RenderingUtils.ReAllocateIfNeeded(ref _outputColor, descriptor, name: "UpscalerOutput");
+                RenderingUtils.ReAllocateIfNeeded(ref _outputColor, descriptor, name: "Conifer_UpscalerOutput");
                 descriptor = cameraDescriptor;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
-                RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "UpscalerDepth");
+                RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "Conifer_UpscalerDepth");
 
                 var renderer = renderingData.cameraData.renderer;
                 var depth = renderer.cameraDepthTargetHandle;
+                var motion = Shader.GetGlobalTexture(MotionID);
+                if (motion is null) return;
 
                 var cb = CommandBufferPool.Get("Upscale");
-                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, Shader.GetGlobalTexture(MotionID), _outputColor);
+                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, motion, _outputColor);
                 if (renderingData.cameraData.postProcessingRequiresDepthTexture)
                 {
                     cb.SetRenderTarget(_outputDepth);
@@ -96,13 +99,18 @@ namespace Conifer.Upscaler.URP
                 CommandBufferPool.Release(cb);
                 renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
                 cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
-                MDesc.SetValue(MColorBufferSystem.GetValue(renderer), cameraDescriptor);
-                MDescriptor.SetValue(MPostProcessPass.GetValue(MPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
+                FDesc.SetValue(FColorBufferSystem.GetValue(renderer), cameraDescriptor);
+                FDescriptor.SetValue(FPostProcessPass.GetValue(FPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
             }
         }
 
         private readonly SetMipBias _setMipBias = new();
         private readonly Upscale _upscale = new();
+        private static readonly MethodInfo MSetViewProjectionAndJitterMatrix = typeof(CameraData).GetMethod("SetViewProjectionAndJitterMatrix", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo FMotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).GetField("m_MotionVectorsPersistentData", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly Type MotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).Assembly.GetType("UnityEngine.Rendering.Universal.MotionVectorsPersistentData")!;
+        private static readonly FieldInfo FLastFrameIndex = MotionVectorsPersistentData.GetField("m_LastFrameIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly MethodInfo MMotionVectorsPersistentDataUpdate = MotionVectorsPersistentData.GetMethod("Update", BindingFlags.Public | BindingFlags.Instance);
 
         public override void Create()
         {
@@ -115,6 +123,16 @@ namespace Conifer.Upscaler.URP
             if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game) return;
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
             if (_upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
+
+            MSetViewProjectionAndJitterMatrix.Invoke(renderingData.cameraData, new object[] {renderingData.cameraData.camera.cameraToWorldMatrix, renderingData.cameraData.camera.nonJitteredProjectionMatrix, Matrix4x4.Translate(new Vector3(_upscaler.Jitter.x, _upscaler.Jitter.y, 0))});
+            var mVecData = FMotionVectorsPersistentData.GetValue(renderingData.cameraData.camera.GetUniversalAdditionalCameraData());
+            var frameIndex = (int[])FLastFrameIndex.GetValue(mVecData);
+            frameIndex[0] = -1;
+            FLastFrameIndex.SetValue(mVecData, frameIndex);
+            MMotionVectorsPersistentDataUpdate.Invoke(mVecData, new object[]{renderingData.cameraData});
+            frameIndex[0] = Time.frameCount + 1;
+            FLastFrameIndex.SetValue(mVecData, frameIndex);
+
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             renderer.EnqueuePass(_setMipBias);
             renderer.EnqueuePass(_upscale);

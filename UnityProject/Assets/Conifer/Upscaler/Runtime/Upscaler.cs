@@ -3,6 +3,7 @@
  **********************************************************************/
 
 using System;
+using System.Reflection;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -263,6 +264,7 @@ namespace Conifer.Upscaler
         private CommandBuffer _upscalerPrepare;
 
         internal NativeInterface NativeInterface;
+        internal Vector2 Jitter;
         [SerializeField] internal Settings settings;
 
         /// The current output resolution. This will be updated to match the camera's
@@ -423,29 +425,6 @@ namespace Conifer.Upscaler
             var resolution = (Vector2)OutputResolution * CurrentRenderScale;
             RenderingResolution = new Vector2Int((int)resolution.x, (int)resolution.y);
         }
-
-        private void PreUpscale(ScriptableRenderContext context, Camera _)
-        {
-            if (!Application.isPlaying) return;
-            if (settings.upscaler == Settings.Upscaler.None) return;
-
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera));
-            if (Failure(status)) return;
-
-            EnforceDynamicResolutionConstraints(null);
-
-            _camera.ResetProjectionMatrix();
-            if (FrameDebugger.enabled) return;
-            var pixelSpaceJitter = NativeInterface.GetJitter(true).ToVector2();
-            var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
-            var temporaryProjectionMatrix = _camera.projectionMatrix;
-            temporaryProjectionMatrix.m02 += clipSpaceJitter.x;
-            temporaryProjectionMatrix.m12 += clipSpaceJitter.y;
-            var projectionMatrix = _camera.projectionMatrix;
-            _camera.nonJitteredProjectionMatrix = projectionMatrix;
-            _camera.projectionMatrix = temporaryProjectionMatrix;
-            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
-        }
         
         protected void OnEnable()
         {
@@ -460,7 +439,6 @@ namespace Conifer.Upscaler
 
             if (!IsSupported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
             ApplySettings(settings, true);
-            RenderPipelineManager.beginCameraRendering += PreUpscale;
         }
 
         protected void Update()
@@ -491,13 +469,33 @@ namespace Conifer.Upscaler
 
             if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight)
                 status = ApplySettings(settings, true);
+
+            if (settings.upscaler == Settings.Upscaler.None) return;
+
+            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera));
+            if (Failure(status)) return;
+
+            EnforceDynamicResolutionConstraints(null);
+
+            if (FrameDebugger.enabled) return;
+            _camera.ResetProjectionMatrix();
+            _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
+            Jitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var projectionMatrix = _camera.projectionMatrix;
+            if (_camera.orthographic)
+            {
+                projectionMatrix *= Matrix4x4.Translate(new Vector3(Jitter.x, Jitter.y, 0));
+            }
+            else
+            {
+                projectionMatrix.m02 += Jitter.x;
+                projectionMatrix.m12 += Jitter.y;
+            }
+            _camera.projectionMatrix = projectionMatrix;
+            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
 
-        private void OnDisable()
-        {
-            EnforceDynamicResolutionConstraints(1.0f);
-            RenderPipelineManager.beginCameraRendering -= PreUpscale;
-        }
+        private void OnDisable() => ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale = 1f;
 
         private void OnGUI()
         {

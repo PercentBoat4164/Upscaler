@@ -175,6 +175,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: sponza
       objectReference: {fileID: 0}
+    - target: {fileID: 6196166099409650757, guid: 219a88e584d737e2598e3971d5cf7b47, type: 3}
+      propertyPath: m_MotionVectors
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -457,7 +461,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   settings:
-    quality: 0
+    quality: 5
     upscaler: 1
     DLSSpreset: 0
     sharpness: 0
