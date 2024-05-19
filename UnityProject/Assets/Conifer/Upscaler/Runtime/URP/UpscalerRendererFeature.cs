@@ -106,11 +106,11 @@ namespace Conifer.Upscaler.URP
 
         private readonly SetMipBias _setMipBias = new();
         private readonly Upscale _upscale = new();
-        private static readonly MethodInfo MSetViewProjectionAndJitterMatrix = typeof(CameraData).GetMethod("SetViewProjectionAndJitterMatrix", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FMotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).GetField("m_MotionVectorsPersistentData", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly Type MotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).Assembly.GetType("UnityEngine.Rendering.Universal.MotionVectorsPersistentData")!;
         private static readonly FieldInfo FLastFrameIndex = MotionVectorsPersistentData.GetField("m_LastFrameIndex", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly MethodInfo MMotionVectorsPersistentDataUpdate = MotionVectorsPersistentData.GetMethod("Update", BindingFlags.Public | BindingFlags.Instance);
+        private static readonly FieldInfo FPreviousViewProjection = MotionVectorsPersistentData.GetField("m_PreviousViewProjection", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo FViewProjection = MotionVectorsPersistentData.GetField("m_ViewProjection", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public override void Create()
         {
@@ -124,14 +124,12 @@ namespace Conifer.Upscaler.URP
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
             if (_upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
 
-            MSetViewProjectionAndJitterMatrix.Invoke(renderingData.cameraData, new object[] {renderingData.cameraData.camera.cameraToWorldMatrix, renderingData.cameraData.camera.nonJitteredProjectionMatrix, Matrix4x4.Translate(new Vector3(_upscaler.Jitter.x, _upscaler.Jitter.y, 0))});
             var mVecData = FMotionVectorsPersistentData.GetValue(renderingData.cameraData.camera.GetUniversalAdditionalCameraData());
-            var frameIndex = (int[])FLastFrameIndex.GetValue(mVecData);
-            frameIndex[0] = -1;
-            FLastFrameIndex.SetValue(mVecData, frameIndex);
-            MMotionVectorsPersistentDataUpdate.Invoke(mVecData, new object[]{renderingData.cameraData});
-            frameIndex[0] = Time.frameCount + 1;
-            FLastFrameIndex.SetValue(mVecData, frameIndex);
+            var lastFrameIndex = (int[])FLastFrameIndex.GetValue(mVecData);
+            lastFrameIndex[0] = Time.frameCount + 1;
+            FLastFrameIndex.SetValue(mVecData, lastFrameIndex);
+            FPreviousViewProjection.SetValue(mVecData, FViewProjection.GetValue(mVecData));
+            FViewProjection.SetValue(mVecData, new []{GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.nonJitteredProjectionMatrix, true) * renderingData.cameraData.camera.worldToCameraMatrix});
 
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             renderer.EnqueuePass(_setMipBias);
