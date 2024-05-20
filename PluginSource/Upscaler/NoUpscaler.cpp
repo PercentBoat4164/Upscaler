@@ -4,7 +4,7 @@ std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::
     return {};
 }
 
-std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/) {
+std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/) {
     return {};
 }
 #endif
@@ -14,7 +14,7 @@ bool NoUpscaler::isSupported() {
 }
 
 NoUpscaler::NoUpscaler() {
-    resetStatus();
+    (void)resetStatus();
 }
 
 Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {

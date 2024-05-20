@@ -1,5 +1,6 @@
 #pragma once
 #ifdef ENABLE_DLSS
+#    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Plugin.hpp"
 #    include "Upscaler.hpp"
 
@@ -9,18 +10,18 @@
 #    endif
 
 class DLSS final : public Upscaler {
-    static struct Application {
+    static struct alignas(128) Application {
         // clang-format off
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
-            .ApplicationId = 0xDC98EEC,
+            .ApplicationId = 0xDC98EECU,
           }
         };
         NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
           .PathListInfo {
             .Path   = new const wchar_t *{L"./Assets/Plugins"},
-            .Length = 1,
+            .Length = 1U,
           },
           .InternalData = nullptr,
           .LoggingInfo {
@@ -46,23 +47,20 @@ class DLSS final : public Upscaler {
     } applicationInfo;
 
 #    ifdef ENABLE_VULKAN
-    struct RAII_NGXVulkanResource {
-        explicit RAII_NGXVulkanResource()                           = default;
-        RAII_NGXVulkanResource(const RAII_NGXVulkanResource& other) = default;
-        RAII_NGXVulkanResource(RAII_NGXVulkanResource&& other)      = default;
-
+    struct alignas(64) RAII_NGXVulkanResource {
+        explicit RAII_NGXVulkanResource()                                      = default;
+        RAII_NGXVulkanResource(const RAII_NGXVulkanResource& other)            = default;
+        RAII_NGXVulkanResource(RAII_NGXVulkanResource&& other)                 = default;
         RAII_NGXVulkanResource& operator=(const RAII_NGXVulkanResource& other) = default;
         RAII_NGXVulkanResource& operator=(RAII_NGXVulkanResource&& other)      = default;
+        ~RAII_NGXVulkanResource();
 
         void                   ChangeResource(VkImageView view, VkImage image, VkImageAspectFlags aspect, VkFormat format, Settings::Resolution resolution);
         NVSDK_NGX_Resource_VK& GetResource();
-        void                   Destroy();
-
-        ~RAII_NGXVulkanResource();
 
     private:
         NVSDK_NGX_Resource_VK resource{};
-    } *color, *depth, *motion, *output{nullptr};
+    } *color{nullptr}, *depth{nullptr}, *motion{nullptr}, *output{nullptr};
 #    endif
 
     NVSDK_NGX_Handle*            featureHandle{};
@@ -123,21 +121,26 @@ public:
     static bool isSupported();
 
     explicit DLSS(GraphicsAPI::Type type);
-    ~DLSS() final;
+    DLSS()                       = default;
+    DLSS(const DLSS&)            = delete;
+    DLSS(DLSS&&)                 = delete;
+    DLSS& operator=(const DLSS&) = delete;
+    DLSS& operator=(DLSS&&)      = delete;
+    ~DLSS() override;
 
-    constexpr Type getType() final {
+    constexpr Type getType() override {
         return Upscaler::DLSS;
-    };
+    }
 
-    constexpr std::string getName() final {
+    constexpr std::string getName() override {
         return "NVIDIA Deep Learning Super Sampling";
-    };
+    }
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode, bool hdr) final;
+    Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset preset, enum Settings::Quality mode, bool hdr) override;
 
-    Status initialize() final;
-    Status create() final;
-    Status evaluate() final;
-    Status shutdown() final;
+    Status initialize() override;
+    Status create() override;
+    Status evaluate() override;
+    Status shutdown() override;
 };
 #endif

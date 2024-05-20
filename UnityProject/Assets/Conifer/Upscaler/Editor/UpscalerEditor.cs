@@ -18,6 +18,8 @@ namespace Conifer.Upscaler.Editor
     {
         private bool _advancedSettingsFoldout;
         private bool _debugSettingsFoldout;
+        private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         public override void OnInspectorGUI()
         {
@@ -32,13 +34,11 @@ namespace Conifer.Upscaler.Editor
             var newSettings = upscaler.QuerySettings();
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
-            var features = ((ScriptableRendererData[])typeof(UniversalRenderPipelineAsset)
-                .GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(GraphicsSettings.renderPipelineAsset))[(typeof(UniversalRenderPipelineAsset)
-                .GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
-                .Select((renderer, index) => new { renderer, index })
-                .First(i => i.renderer == cameraData.scriptableRenderer).index].rendererFeatures;
+            var features = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
+                [(FRenderers.GetValue(GraphicsSettings.renderPipelineAsset) as ScriptableRenderer[])!
+                    .Select((renderer, index) => new { renderer, index })
+                    .First(i => i.renderer == cameraData.scriptableRenderer).index
+                ].rendererFeatures;
             if (features.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
                 EditorGUILayout.HelpBox("There must be a single UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
             if (camera.GetComponents<Upscaler>().Length > 1)
@@ -55,7 +55,7 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
-            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup("Upscaler", newSettings.upscaler);
+            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), newSettings.upscaler, x => Upscaler.IsSupported((Settings.Upscaler)x), false);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
@@ -69,8 +69,7 @@ namespace Conifer.Upscaler.Editor
                 }
                 if (cameraData.antialiasing != AntialiasingMode.None)
                 {
-                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.",
-                        MessageType.Warning);
+                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Error);
                     if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
                 }
                 if (camera.allowMSAA)

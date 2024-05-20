@@ -102,7 +102,6 @@ VkResult Vulkan::Hook_vkCreateDevice(
     loadInstanceFunctionPointers(temporaryInstance);
 
     VkDeviceCreateInfo createInfo = *pCreateInfo;
-    std::stringstream  message;
 
     // Find out which extensions are supported
     const std::vector<std::string>  supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
@@ -166,7 +165,7 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
     const VkImageViewCreateInfo createInfo {
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
-      .flags    = 0x0,
+      .flags    = 0x0U,
       .image    = image,
       .viewType = VK_IMAGE_VIEW_TYPE_2D,
       .format   = format,
@@ -176,10 +175,10 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
       },
       .subresourceRange = {
         .aspectMask     = flags,
-        .baseMipLevel   = 0,
-        .levelCount     = 1,
-        .baseArrayLayer = 0,
-        .layerCount     = 1,
+        .baseMipLevel   = 0U,
+        .levelCount     = 1U,
+        .baseArrayLayer = 0U,
+        .layerCount     = 1U,
       },
     };
     // clang-format on

@@ -18,16 +18,15 @@
 #        include "GraphicsAPI/Vulkan.hpp"
 
 #        include <IUnityGraphicsVulkan.h>
-
-#        include <IUnityRenderingExtensions.h>
 #    endif
 
 #    include <algorithm>
 #    include <cstring>
+#    include <valarray>
 
 #    ifdef ENABLE_VULKAN
 void DLSS::RAII_NGXVulkanResource::ChangeResource(VkImageView view, VkImage image, VkImageAspectFlags aspect, VkFormat format, Settings::Resolution resolution) {
-    Destroy();
+    Vulkan::destroyImageView(resource.Resource.ImageViewInfo.ImageView);
     resource = {
       .Resource = {
         .ImageViewInfo = {
@@ -55,12 +54,7 @@ NVSDK_NGX_Resource_VK& DLSS::RAII_NGXVulkanResource::GetResource() {
 }
 
 DLSS::RAII_NGXVulkanResource::~RAII_NGXVulkanResource() {
-    Destroy();
-}
-
-void DLSS::RAII_NGXVulkanResource::Destroy() {
     Vulkan::destroyImageView(resource.Resource.ImageViewInfo.ImageView);
-    resource = {};
 }
 #    endif
 
@@ -111,7 +105,7 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Pl
     }
     if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     UnityVulkanImage image{};
-    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs[imageID], UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
 
     RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
@@ -126,11 +120,11 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanUpdateResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanUpdateResource(output, Plugin::ImageID::OutputColor));
 
-    NVSDK_NGX_Resource_VK& inColor = color->GetResource();
-    Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
+    NVSDK_NGX_Resource_VK&     inColor = color->GetResource();
+    const Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
-//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
+    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
@@ -181,13 +175,9 @@ Upscaler::Status DLSS::VulkanShutdown() {
         parameters = nullptr;
     }
 
-    color->Destroy();
     delete color;
-    depth->Destroy();
     delete depth;
-    motion->Destroy();
     delete motion;
-    output->Destroy();
     delete output;
 
     if (--users == 0)
@@ -216,11 +206,11 @@ Upscaler::Status DLSS::DX12Create() {
 
 Upscaler::Status DLSS::DX12Evaluate() {
     ID3D12Resource* inColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
-    D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
-    Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), static_cast<uint32_t>(inColorDescription.Height)};
+    const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
+    const Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), inColorDescription.Height};
 
-//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
@@ -291,19 +281,17 @@ Upscaler::Status DLSS::DX11Create() {
 }
 
 Upscaler::Status DLSS::DX11Evaluate() {
-    static bool errorLastFrame;
-
-    ID3D11Resource* inColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
-    ID3D11Texture2D* tex = nullptr;
-    HRESULT hr = inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex));
+    ID3D11Resource*  inColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    ID3D11Texture2D* tex     = nullptr;
+    const HRESULT    hr      = inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex));
     RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(hr) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC inColorDescription;
     tex->GetDesc(&inColorDescription);
 
-    Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
+    const Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
 
-//    if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-//        return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
+    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
@@ -387,7 +375,7 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
     return Upscaler::setStatus(error, t_msg);
 }
 
-void DLSS::log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent) {
+void DLSS::log(const char* message, const NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature /*unused*/) {
     std::string msg;
     switch (loggingLevel) {
         case NVSDK_NGX_LOGGING_LEVEL_OFF: break;
@@ -395,7 +383,7 @@ void DLSS::log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_
         case NVSDK_NGX_LOGGING_LEVEL_VERBOSE: msg = "DLSS Verbose -> "; break;
         case NVSDK_NGX_LOGGING_LEVEL_NUM: break;
     }
-    if (Upscaler::logCallback != nullptr) Upscaler::logCallback((msg + message).c_str());
+    if (logCallback != nullptr) logCallback((msg + message).c_str());
 }
 
 #    ifdef ENABLE_VULKAN
@@ -451,8 +439,8 @@ bool DLSS::isSupported() {
     return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
-DLSS::DLSS(const GraphicsAPI::Type graphicsAPI) {
-    switch (graphicsAPI) {
+DLSS::DLSS(const GraphicsAPI::Type type) {
+    switch (type) {
         case GraphicsAPI::NONE: {
             fpInitialize = &DLSS::safeFail;
             fpCreate     = &DLSS::safeFail;
@@ -553,7 +541,6 @@ Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution,
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NGXPreset);
 
     settings = optimalSettings;
-    settings.jitterGenerator.generate(settings.renderingResolution, settings.outputResolution);
     return SUCCESS;
 }
 
@@ -597,7 +584,6 @@ Upscaler::Status DLSS::create() {
       },
       .InFeatureCreateFlags = static_cast<NVSDK_NGX_DLSS_Feature_Flags>(
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
-        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVJittered) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
         (settings.hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)

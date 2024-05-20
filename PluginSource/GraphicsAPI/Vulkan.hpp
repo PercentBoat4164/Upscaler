@@ -52,8 +52,12 @@ class Vulkan final : public GraphicsAPI {
     interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/);
 
 public:
-    Vulkan()  = delete;
-    ~Vulkan() = delete;
+    Vulkan()                         = delete;
+    Vulkan(const Vulkan&)            = delete;
+    Vulkan(Vulkan&&)                 = delete;
+    Vulkan& operator=(const Vulkan&) = delete;
+    Vulkan& operator=(Vulkan&&)      = delete;
+    ~Vulkan()                        = delete;
 
     static bool                    registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces);
     static IUnityGraphicsVulkanV2* getGraphicsInterface();

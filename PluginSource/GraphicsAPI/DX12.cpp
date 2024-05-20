@@ -1,6 +1,7 @@
 #ifdef ENABLE_DX12
 #    include "DX12.hpp"
 
+// These headers are required even though CLion reports them as unused.
 #    include <d3d12.h>
 #    include <d3d12compatibility.h>
 

@@ -260,12 +260,12 @@ namespace Conifer.Upscaler
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
         private Camera _camera;
+        private bool _hdr;
         private float _currentRenderScale;
+        private CommandBuffer _upscalerPrepare;
 
         internal NativeInterface NativeInterface;
         [SerializeField] internal Settings settings;
-
-        private CommandBuffer _upscalerPrepare;
 
         /// The current output resolution. This will be updated to match the camera's
         /// <see cref="UnityEngine.Camera.pixelRect"/> whenever it resizes. Upscaler does not control the output
@@ -388,7 +388,8 @@ namespace Conifer.Upscaler
             if (Application.isPlaying && (force || settings.RequiresUpdateFrom(newSettings)))
             {
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
-                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, newSettings.sharpness, true);
+                _hdr = _camera.allowHDR;
+                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, newSettings.sharpness, _hdr);
                 if (Failure(status)) return status;
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
@@ -408,18 +409,6 @@ namespace Conifer.Upscaler
                 }
 
                 EnforceDynamicResolutionConstraints((float)RenderingResolution.x / OutputResolution.x);
-
-                var mipBias = (float)Math.Log((float)RenderingResolution.x / OutputResolution.x, 2f) - 1f;
-                if (newSettings.upscaler == Settings.Upscaler.None)
-                    mipBias = 0f;
-
-                foreach (var rend in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                foreach (var mat in rend.materials)
-                foreach (var texID in mat.GetTexturePropertyNameIDs())
-                {
-                    var tex = mat.GetTexture(texID);
-                    if (tex is not null) tex.mipMapBias = mipBias;
-                }
             }
 
             settings = newSettings.Copy();
@@ -435,28 +424,6 @@ namespace Conifer.Upscaler
             var resolution = (Vector2)OutputResolution * CurrentRenderScale;
             RenderingResolution = new Vector2Int((int)resolution.x, (int)resolution.y);
         }
-
-        private void PreUpscale(ScriptableRenderContext context, Camera _)
-        {
-            if (!Application.isPlaying) return;
-            if (settings.upscaler == Settings.Upscaler.None) return;
-
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
-            if (Failure(status)) return;
-
-            EnforceDynamicResolutionConstraints(null);
-
-            _camera.ResetProjectionMatrix();
-            if (FrameDebugger.enabled) return;
-            var pixelSpaceJitter = NativeInterface.GetJitter(true).ToVector2();
-            var clipSpaceJitter = -pixelSpaceJitter / RenderingResolution * 2;
-            var temporaryProjectionMatrix = _camera.projectionMatrix;
-            temporaryProjectionMatrix.m02 += clipSpaceJitter.x;
-            temporaryProjectionMatrix.m12 += clipSpaceJitter.y;
-            _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            _camera.projectionMatrix = temporaryProjectionMatrix;
-            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
-        }
         
         protected void OnEnable()
         {
@@ -471,7 +438,6 @@ namespace Conifer.Upscaler
 
             if (!IsSupported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
             ApplySettings(settings, true);
-            RenderPipelineManager.beginCameraRendering += PreUpscale;
         }
 
         protected void Update()
@@ -500,19 +466,36 @@ namespace Conifer.Upscaler
                 }
             }
 
-            if (OutputResolution.x == _camera.pixelWidth && OutputResolution.y == _camera.pixelHeight)
-                return;
+            if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight || _hdr != _camera.allowHDR)
+                status = ApplySettings(settings, true);
 
-            status = ApplySettings(settings, true);
+            if (settings.upscaler == Settings.Upscaler.None) return;
+
+            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
+            if (Failure(status)) return;
+
+            EnforceDynamicResolutionConstraints(null);
+
+            if (FrameDebugger.enabled) return;
+            _camera.ResetProjectionMatrix();
+            _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
+            var clipSpaceJitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var projectionMatrix = _camera.projectionMatrix;
+            if (_camera.orthographic)
+            {
+                projectionMatrix.m03 += -clipSpaceJitter.x;
+                projectionMatrix.m13 += -clipSpaceJitter.y;
+            }
+            else
+            {
+                projectionMatrix.m02 += clipSpaceJitter.x;
+                projectionMatrix.m12 += clipSpaceJitter.y;
+            }
+            _camera.projectionMatrix = projectionMatrix;
+            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
 
-        private void OnDisable()
-        {
-            var newSettings = QuerySettings();
-            newSettings.upscaler = Settings.Upscaler.None;
-            ApplySettings(newSettings, true);
-            RenderPipelineManager.beginCameraRendering -= PreUpscale;
-        }
+        private void OnDisable() => ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale = 1f;
 
         private void OnGUI()
         {

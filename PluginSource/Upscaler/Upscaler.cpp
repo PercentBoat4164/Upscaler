@@ -2,6 +2,7 @@
 
 #include "DLSS.hpp"
 #include "FSR2.hpp"
+#include "GraphicsAPI/GraphicsAPI.hpp"
 #include "NoUpscaler.hpp"
 
 #include <memory>
@@ -36,7 +37,7 @@ std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::ve
 }
 
 std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
-    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(supportedExtensions);
+    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions);
 #    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
@@ -101,8 +102,7 @@ Upscaler::Status Upscaler::setStatus(const Status t_error, const std::string& t_
 }
 
 Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Status t_error, std::string t_msg) {
-    const bool shouldApplyError = success(status) && failure(t_error) && t_shouldApplyError;
-    if (shouldApplyError) {
+    if (success(status) && failure(t_error) && t_shouldApplyError) {
         status        = t_error;
         statusMessage = std::move(t_msg);
     }
