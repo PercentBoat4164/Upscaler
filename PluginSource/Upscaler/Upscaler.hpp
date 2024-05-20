@@ -1,6 +1,5 @@
 #pragma once
 
-#include "GraphicsAPI/GraphicsAPI.hpp"
 #include "Plugin.hpp"
 
 #ifdef ENABLE_VULKAN
@@ -11,8 +10,6 @@
 #    include <nvsdk_ngx_defs.h>
 #endif
 
-#include <IUnityRenderingExtensions.h>
-
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -20,17 +17,132 @@
 #include <string>
 #include <vector>
 
-#    define RETURN_ON_FAILURE(x)                \
-        {                                       \
-            Upscaler::Status _ = x;             \
-            if (Upscaler::failure(_)) return _; \
-        }                                       \
-        0
+#    define RETURN_ON_FAILURE(x)        \
+{                                       \
+    Upscaler::Status _ = x;             \
+    if (Upscaler::failure(_)) return _; \
+}                                       \
+0
 
-class Upscaler {
-    constexpr static uint8_t ERROR_TYPE_OFFSET = 29;
-    constexpr static uint8_t ERROR_CODE_OFFSET = 16;
-    constexpr static uint8_t ERROR_RECOVERABLE = 1;
+struct alignas(128) UpscalerBase {
+    constexpr static uint8_t SamplesPerPixel = 8;
+
+    enum Type {
+        NONE,
+#ifdef ENABLE_DLSS
+        DLSS,
+#endif
+        TYPE_MAX_ENUM
+    };
+
+    struct alignas(128) Settings final {
+        enum Quality : uint8_t {
+            Auto,
+            AntiAliasing,
+            Quality,
+            Balanced,
+            Performance,
+            UltraPerformance,
+            QUALITY_MODE_MAX_ENUM
+        } quality{};
+
+        enum Preset : uint8_t {
+            Default,
+            Stable,
+            FastPaced,
+            AnitGhosting,
+            PRESET_MAX_ENUM
+        } preset{};
+
+        struct alignas(8) Resolution {
+            uint32_t width;
+            uint32_t height;
+        } renderingResolution{}, dynamicMaximumInputResolution{}, dynamicMinimumInputResolution{}, outputResolution{};
+
+        struct alignas(8) Jitter {
+            float x;
+            float y;
+        } jitter{};
+
+        struct alignas(16) Camera {
+            float farPlane;
+            float nearPlane;
+            float verticalFOV;
+        } camera;
+
+        float      sharpness{};
+        float      frameTime{};
+        bool       hdr{};
+        bool       resetHistory{};
+
+        Jitter getNextJitter() {
+            static struct alignas(16) JitterState {
+                uint8_t  base{};
+                uint32_t n = 0U;
+                uint32_t d = 1U;
+                uint32_t iterations{};
+
+                float advance(const uint32_t maxIterations) {
+                    if (iterations >= maxIterations) {
+                        n = 0U;
+                        d = 1U;
+                    }
+                    const uint32_t x = d - n;
+                    if (x == 1U) {
+                        n = 1U;
+                        d *= base;
+                    } else {
+                        uint32_t y = d / base;
+                        while (x <= y) y /= base;
+                        n = (base + 1U) * y - x;
+                    }
+                    return static_cast<float>(n) / static_cast<float>(d) - 0.5F;
+                }
+            } x{2U}, y{3U};
+
+            const float scalingFactor = static_cast<float>(outputResolution.width) / static_cast<float>(renderingResolution.width);
+            const auto  jitterSamples = static_cast<uint32_t>(std::ceil(SamplesPerPixel * scalingFactor * scalingFactor));
+            jitter                    = {x.advance(jitterSamples), y.advance(jitterSamples)};
+            return jitter;
+        }
+
+        template<Type T, typename _ = std::enable_if_t<T == NONE>>
+        [[nodiscard]] enum Quality getQuality() const {
+            return quality;
+        }
+
+#ifdef ENABLE_DLSS
+        template<Type T, typename _ = std::enable_if_t<T == DLSS>>
+        NVSDK_NGX_PerfQuality_Value getQuality() {
+            switch (quality) {
+                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
+                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
+                    if (pixelCount <= 2560U * 1440U)
+                        return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= 3840U * 2160U)
+                        return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                }
+                case AntiAliasing: return NVSDK_NGX_PerfQuality_Value_DLAA;
+                case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
+                case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                default: return NVSDK_NGX_PerfQuality_Value_Balanced;
+            }
+        }
+#endif
+    } settings;
+
+protected:
+    bool                                                  initialized{};
+    std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
+};
+
+class Upscaler : public UpscalerBase {
+    constexpr static uint8_t ERROR_TYPE_OFFSET = 29U;
+    constexpr static uint8_t ERROR_CODE_OFFSET = 16U;
+    constexpr static uint8_t ERROR_RECOVERABLE = 1U;
 
 public:
     // clang-format off
@@ -77,152 +189,13 @@ public:
     static bool failure(Status);
     static bool recoverable(Status);
 
-    enum Type {
-        NONE,
-#ifdef ENABLE_DLSS
-        DLSS,
-#endif
-        TYPE_MAX_ENUM
-    };
-
     enum SupportState {
         UNTESTED,
         UNSUPPORTED,
         SUPPORTED
     };
 
-    class Settings {
-    public:
-        enum Quality {
-            Auto,
-            AntiAliasing,
-            Quality,
-            Balanced,
-            Performance,
-            UltraPerformance,
-            QUALITY_MODE_MAX_ENUM
-        };
-
-        enum Preset {
-            Default,
-            Stable,
-            FastPaced,
-            AnitGhosting,
-            PRESET_MAX_ENUM
-        };
-
-        struct Resolution {
-            uint32_t width;
-            uint32_t height;
-        };
-
-        struct Jitter {
-            float x;
-            float y;
-        };
-
-    private:
-        class Halton {
-            constexpr static uint8_t      SamplesPerPixel = 8;
-            std::vector<Jitter>           sequence;
-            decltype(sequence)::size_type index;
-
-        public:
-            void generate(
-              Upscaler::Settings::Resolution renderResolution,
-              Upscaler::Settings::Resolution presentResolution
-            ) {
-                float scalingFactor = static_cast<float>(presentResolution.width) / static_cast<float>(renderResolution.width);
-                sequence.resize(static_cast<decltype(sequence)::size_type>(std::ceil(SamplesPerPixel * scalingFactor * scalingFactor)));
-
-                for (uint8_t i = 0; i < 2; ++i) {
-                    uint32_t base = i + 2;
-                    uint32_t n    = 0;
-                    uint32_t d    = 1;
-                    for (Jitter& element : sequence) {
-                        uint32_t x = d - n;
-                        if (x == 1) {
-                            n = 1;
-                            d *= base;
-                        } else {
-                            uint32_t y = d / base;
-                            while (x <= y) y /= base;
-                            n = (base + 1) * y - x;
-                        }
-                        float* subElement = i == 0 ? &element.x : &element.y;
-                        *subElement       = static_cast<float>(n) / static_cast<float>(d) - .5f;
-                    }
-                }
-            }
-
-            Jitter getNextJitter() {
-                if (sequence.empty()) return {0, 0};
-                index %= sequence.size();
-                return sequence[index++];
-            }
-        };
-
-    public:
-        Preset preset{Default};
-
-        enum Quality quality {
-            Auto
-        };
-
-        Resolution renderingResolution{};
-        Resolution dynamicMaximumInputResolution{};
-        Resolution dynamicMinimumInputResolution{};
-        Resolution outputResolution{};
-        Halton     jitterGenerator;
-        Jitter     jitter{0.F, 0.F};
-        float      sharpness{};
-        bool       hdr{};
-        float      frameTime{};
-        bool       resetHistory{};
-
-        struct Camera {
-            float farPlane;
-            float nearPlane;
-            float verticalFOV;
-        } camera;
-
-        virtual Jitter getNextJitter() {
-            jitter = jitterGenerator.getNextJitter();
-            return jitter;
-        }
-
-        template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] enum Quality getQuality() const {
-            return quality;
-        }
-
-#ifdef ENABLE_DLSS
-        template<Type T, typename _ = std::enable_if_t<T == DLSS>>
-        NVSDK_NGX_PerfQuality_Value getQuality() {
-            switch (quality) {
-                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
-                    const uint64_t pixelCount{
-                      static_cast<uint64_t>(outputResolution.width) * outputResolution.height
-                    };
-                    if (pixelCount <= static_cast<uint64_t>(2560) * 1440)
-                        return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= static_cast<uint64_t>(3840) * 2160)
-                        return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                    return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                }
-                case AntiAliasing: return NVSDK_NGX_PerfQuality_Value_DLAA;
-                case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
-                case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                default: return NVSDK_NGX_PerfQuality_Value_Balanced;
-            }
-        }
-#endif
-    } settings;
-
 private:
-    void*       userData{nullptr};
     Status      status{SUCCESS};
     std::string statusMessage;
 
@@ -233,9 +206,6 @@ protected:
     }
 
     static void (*logCallback)(const char* msg);
-
-    bool                                                  initialized{false};
-    std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
 
 public:
 #ifdef ENABLE_VULKAN
@@ -254,9 +224,9 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    constexpr virtual Type        getType()                                                                                      = 0;
-    constexpr virtual std::string getName()                                                                                      = 0;
-    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, const bool) = 0;
+    constexpr virtual Type        getType()                                                                                = 0;
+    constexpr virtual std::string getName()                                                                                = 0;
+    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
     virtual Status create()     = 0;
@@ -270,6 +240,4 @@ public:
     Status               setStatusIf(bool, Status, std::string);
     virtual bool         resetStatus();
     void                 forceStatus(Status, std::string);
-
-    std::unique_ptr<Upscaler> copyFromType(Type type);
 };

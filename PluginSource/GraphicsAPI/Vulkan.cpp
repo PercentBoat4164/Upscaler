@@ -6,7 +6,6 @@
 #    include <IUnityGraphicsVulkan.h>
 #    include <IUnityRenderingExtensions.h>
 
-#    include <algorithm>
 #    include <cstring>
 
 VkInstance Vulkan::temporaryInstance{VK_NULL_HANDLE};
@@ -68,7 +67,7 @@ VkResult Vulkan::Hook_vkCreateInstance(
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
     for (const std::string& extension : requestedExtensions)
-        if (std::find_if(enabledExtensions.begin(), enabledExtensions.end(), [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
+        if (std::ranges::find_if(enabledExtensions, [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
             enabledExtensions.push_back(extension.c_str());
 
     // Modify the createInfo.
@@ -104,7 +103,6 @@ VkResult Vulkan::Hook_vkCreateDevice(
     loadInstanceFunctionPointers(temporaryInstance);
 
     VkDeviceCreateInfo createInfo = *pCreateInfo;
-    std::stringstream  message;
 
     // Find out which extensions are supported
     const std::vector<std::string>  supportedExtensions = getSupportedDeviceExtensions(physicalDevice);
@@ -117,7 +115,7 @@ VkResult Vulkan::Hook_vkCreateDevice(
     for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i)
         enabledExtensions.emplace_back(pCreateInfo->ppEnabledExtensionNames[i]);
     for (const std::string& extension : requestedExtensions)
-        if (std::find_if(enabledExtensions.begin(), enabledExtensions.end(), [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
+        if (std::ranges::find_if(enabledExtensions, [&extension](const char* str) { return strcmp(str, extension.c_str()) == 0; }) == enabledExtensions.end())
             enabledExtensions.push_back(extension.c_str());
 
     // Modify the createInfo.
@@ -142,7 +140,7 @@ PFN_vkVoidFunction Vulkan::Hook_vkGetInstanceProcAddr(VkInstance t_instance, con
 }
 
 PFN_vkGetInstanceProcAddr
-Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
+Vulkan::interceptInitialization(const PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
     loadEarlyFunctionPointers();
     return Hook_vkGetInstanceProcAddr;
@@ -218,9 +216,6 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
         case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case kUnityRenderingExtFormatL8_UNorm:                               // INVALID
-        case kUnityRenderingExtFormatA8_UNorm:                               // INVALID
-        case kUnityRenderingExtFormatA16_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
         case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
         case kUnityRenderingExtFormatB8G8R8_UNorm: return VK_FORMAT_B8G8R8_UNORM;
@@ -246,26 +241,11 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
         case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
         case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
-        case kUnityRenderingExtFormatA2R10G10B10_XRSRGBPack32:                         // INVALID
-        case kUnityRenderingExtFormatA2R10G10B10_XRUNormPack32:                        // INVALID
-        case kUnityRenderingExtFormatR10G10B10_XRSRGBPack32:                           // INVALID
-        case kUnityRenderingExtFormatR10G10B10_XRUNormPack32:                          // INVALID
-        case kUnityRenderingExtFormatA10R10G10B10_XRSRGBPack32:                        // INVALID
-        case kUnityRenderingExtFormatA10R10G10B10_XRUNormPack32:                       // INVALID
-        case kUnityRenderingExtFormatA8R8G8B8_SRGB:                                    // INVALID
-        case kUnityRenderingExtFormatA8R8G8B8_UNorm:                                   // INVALID
-        case kUnityRenderingExtFormatA32R32G32B32_SFloat: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatD16_UNorm: return VK_FORMAT_D16_UNORM;
-        case kUnityRenderingExtFormatD24_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatD24_UNorm_S8_UInt: return VK_FORMAT_D24_UNORM_S8_UINT;
         case kUnityRenderingExtFormatD32_SFloat: return VK_FORMAT_D32_SFLOAT;
         case kUnityRenderingExtFormatD32_SFloat_S8_UInt: return VK_FORMAT_D32_SFLOAT_S8_UINT;
         case kUnityRenderingExtFormatS8_UInt: return VK_FORMAT_S8_UINT;
-        case kUnityRenderingExtFormatRGBA_DXT1_SRGB:                               // case kUnityRenderingExtFormatRGBA_DXT1_UNorm:  // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT3_SRGB:                               // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT3_UNorm:                              // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT5_SRGB:                               // INVALID
-        case kUnityRenderingExtFormatRGBA_DXT5_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatR_BC4_UNorm: return VK_FORMAT_BC4_UNORM_BLOCK;
         case kUnityRenderingExtFormatR_BC4_SNorm: return VK_FORMAT_BC4_SNORM_BLOCK;
         case kUnityRenderingExtFormatRG_BC5_UNorm: return VK_FORMAT_BC5_UNORM_BLOCK;
@@ -282,7 +262,6 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatRGBA_PVRTC_2Bpp_UNorm: return VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG;
         case kUnityRenderingExtFormatRGBA_PVRTC_4Bpp_SRGB: return VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG;
         case kUnityRenderingExtFormatRGBA_PVRTC_4Bpp_UNorm: return VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG;
-        case kUnityRenderingExtFormatRGB_ETC_UNorm: return VK_FORMAT_UNDEFINED;  // INVALID
         case kUnityRenderingExtFormatRGB_ETC2_SRGB: return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
         case kUnityRenderingExtFormatRGB_ETC2_UNorm: return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
         case kUnityRenderingExtFormatRGB_A1_ETC2_SRGB: return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
@@ -305,13 +284,6 @@ VkFormat Vulkan::getFormat(const UnityRenderingExtTextureFormat format) {
         case kUnityRenderingExtFormatRGBA_ASTC10X10_UNorm: return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
         case kUnityRenderingExtFormatRGBA_ASTC12X12_SRGB: return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
         case kUnityRenderingExtFormatRGBA_ASTC12X12_UNorm: return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
-        case kUnityRenderingExtFormatYUV2:
-        case kUnityRenderingExtFormatRGBA_ASTC4X4_UFloat:
-        case kUnityRenderingExtFormatRGBA_ASTC5X5_UFloat:
-        case kUnityRenderingExtFormatRGBA_ASTC6X6_UFloat:
-        case kUnityRenderingExtFormatRGBA_ASTC8X8_UFloat:
-        case kUnityRenderingExtFormatRGBA_ASTC10X10_UFloat:
-        case kUnityRenderingExtFormatRGBA_ASTC12X12_UFloat:
         default: return VK_FORMAT_UNDEFINED;
     }
 }
@@ -321,7 +293,7 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
     const VkImageViewCreateInfo createInfo {
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
-      .flags    = 0x0,
+      .flags    = 0x0U,
       .image    = image,
       .viewType = VK_IMAGE_VIEW_TYPE_2D,
       .format   = format,
@@ -331,10 +303,10 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
       },
       .subresourceRange = {
         .aspectMask     = flags,
-        .baseMipLevel   = 0,
-        .levelCount     = 1,
-        .baseArrayLayer = 0,
-        .layerCount     = 1,
+        .baseMipLevel   = 0U,
+        .levelCount     = 1U,
+        .baseArrayLayer = 0U,
+        .layerCount     = 1U,
       },
     };
     // clang-format on

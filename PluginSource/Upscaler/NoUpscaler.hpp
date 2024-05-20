@@ -1,34 +1,37 @@
 #pragma once
 
-#include "Plugin.hpp"
 #include "Upscaler.hpp"
 
 class NoUpscaler final : public Upscaler {
 public:
 #ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
-    static std::vector<std::string> requestVulkanDeviceExtensions(const std::vector<std::string>& /*unused*/);
+    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/);
 #endif
 
     static bool isSupported();
 
-    explicit NoUpscaler();
-    ~NoUpscaler() final = default;
+    NoUpscaler();
+    NoUpscaler(const NoUpscaler&)            = delete;
+    NoUpscaler(NoUpscaler&&)                 = delete;
+    NoUpscaler& operator=(const NoUpscaler&) = delete;
+    NoUpscaler& operator=(NoUpscaler&&)      = delete;
+    ~NoUpscaler() override                   = default;
 
-    constexpr Upscaler::Type getType() final {
-        return Upscaler::NONE;
+    constexpr Type getType() override {
+        return NONE;
     }
 
-    constexpr std::string getName() final {
+    constexpr std::string getName() override {
         return "Dummy upscaler";
     }
 
-    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) final;
+    Status getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) override;
 
-    Status initialize() final;
-    Status create() final;
-    Status evaluate() final;
-    Status shutdown() final;
+    Status initialize() override;
+    Status create() override;
+    Status evaluate() override;
+    Status shutdown() override;
 
-    bool resetStatus() final;
+    bool resetStatus() override;
 };

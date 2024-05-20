@@ -260,11 +260,11 @@ namespace Conifer.Upscaler
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
         private Camera _camera;
+        private bool _hdr;
         private float _currentRenderScale;
         private CommandBuffer _upscalerPrepare;
 
         internal NativeInterface NativeInterface;
-        internal Vector2 Jitter;
         [SerializeField] internal Settings settings;
 
         /// The current output resolution. This will be updated to match the camera's
@@ -390,7 +390,8 @@ namespace Conifer.Upscaler
             {
                 _camera.ResetProjectionMatrix();
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
-                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, false);
+                _hdr = _camera.allowHDR;
+                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, _hdr);
                 if (Failure(status)) return status;
 
                 Graphics.ExecuteCommandBuffer(_upscalerPrepare);
@@ -467,7 +468,7 @@ namespace Conifer.Upscaler
                 }
             }
 
-            if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight)
+            if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight || _hdr != _camera.allowHDR)
                 status = ApplySettings(settings, true);
 
             if (settings.upscaler == Settings.Upscaler.None) return;
@@ -480,16 +481,17 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            Jitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var clipSpaceJitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
-                projectionMatrix *= Matrix4x4.Translate(new Vector3(Jitter.x, Jitter.y, 0));
+                projectionMatrix.m03 += -clipSpaceJitter.x;
+                projectionMatrix.m13 += -clipSpaceJitter.y;
             }
             else
             {
-                projectionMatrix.m02 += Jitter.x;
-                projectionMatrix.m12 += Jitter.y;
+                projectionMatrix.m02 += clipSpaceJitter.x;
+                projectionMatrix.m12 += clipSpaceJitter.y;
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;

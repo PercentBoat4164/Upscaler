@@ -20,7 +20,7 @@ public:
     GraphicsAPI(GraphicsAPI&&)                 = delete;
     GraphicsAPI& operator=(const GraphicsAPI&) = delete;
     GraphicsAPI& operator=(GraphicsAPI&&)      = delete;
-    ~GraphicsAPI()                             = delete;
+    ~GraphicsAPI()                             = default;
 
     static void set(UnityGfxRenderer);
     static Type getType();

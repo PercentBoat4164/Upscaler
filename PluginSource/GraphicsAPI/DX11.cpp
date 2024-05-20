@@ -5,19 +5,19 @@
 
 #    include <IUnityGraphicsD3D11.h>
 
-ID3D11DeviceContext* DX11::_oneTimeSubmitContext{nullptr};
+ID3D11DeviceContext* DX11::oneTimeSubmitContext{nullptr};
 IUnityGraphicsD3D11* DX11::graphicsInterface{nullptr};
 
 void DX11::createOneTimeSubmitContext() {
-    graphicsInterface->GetDevice()->GetImmediateContext(&_oneTimeSubmitContext);
+    graphicsInterface->GetDevice()->GetImmediateContext(&oneTimeSubmitContext);
 }
 
 ID3D11DeviceContext* DX11::getOneTimeSubmitContext() {
-    return _oneTimeSubmitContext;
+    return oneTimeSubmitContext;
 }
 
 void DX11::destroyOneTimeSubmitContext() {
-    _oneTimeSubmitContext->Release();
+    oneTimeSubmitContext->Release();
 }
 
 bool DX11::registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces) {
