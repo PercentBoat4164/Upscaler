@@ -1,5 +1,6 @@
 #pragma once
 #ifdef ENABLE_FSR2
+#    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
 #    include <ffx_fsr2.h>
@@ -37,23 +38,28 @@ public:
 #    endif
 
     static bool isSupported();
+    static bool isSupported(enum Settings::Quality mode);
 
     explicit FSR2(GraphicsAPI::Type type);
-    ~FSR2() final;
+    FSR2(const FSR2&)            = delete;
+    FSR2(FSR2&&)                 = delete;
+    FSR2& operator=(const FSR2&) = delete;
+    FSR2& operator=(FSR2&&)      = delete;
+    ~FSR2() override;
 
-    constexpr Type getType() final {
+    constexpr Type getType() override {
         return Upscaler::FSR2;
-    };
+    }
 
-    constexpr std::string getName() final {
+    constexpr std::string getName() override {
         return "AMD FidelityFX Super Resolution";
-    };
+    }
 
     Status getOptimalSettings(Settings::Resolution resolution, Settings::Preset /*unused*/, enum Settings::Quality mode, bool hdr) override;
 
-    Status initialize() final;
-    Status create() final;
-    Status evaluate() final;
-    Status shutdown() final;
+    Status initialize() override;
+    Status create() override;
+    Status evaluate() override;
+    Status shutdown() override;
 };
 #endif

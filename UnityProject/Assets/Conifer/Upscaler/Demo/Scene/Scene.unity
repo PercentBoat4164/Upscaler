@@ -343,7 +343,7 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 1
+  orthographic: 0
   orthographic size: 5
   m_Depth: -1
   m_CullingMask:
@@ -461,9 +461,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   settings:
     quality: 0
-    upscaler: 2
+    upscaler: 1
     DLSSpreset: 0
     sharpness: 0
+    useReactiveMask: 0
+    tcThreshold: 0.05
+    tcScale: 1
+    reactiveScale: 5
+    reactiveMax: 0.9
     showRenderingAreaOverlay: 0
   status: 0
 --- !u!1 &1308310398

@@ -48,6 +48,10 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSu
     return Upscaler::isSupported(type);
 }
 
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsQualitySupported(const Upscaler::Type type, const enum Upscaler::Settings::Quality mode) {
+    return Upscaler::isSupported(type, mode);
+}
+
 extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
     const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
     const uint16_t id   = iter - upscalers.begin();

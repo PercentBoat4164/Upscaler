@@ -64,6 +64,20 @@ bool Upscaler::isSupported(const Type type) {
     return false;
 }
 
+bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
+    switch (type) {
+        case NONE: return NoUpscaler::isSupported(mode);
+#ifdef ENABLE_DLSS
+        case DLSS: return DLSS::isSupported(mode);
+#endif
+#ifdef ENABLE_FSR2
+        case FSR2: return FSR2::isSupported(mode);
+#endif
+        case TYPE_MAX_ENUM: return false;
+    }
+    return false;
+}
+
 std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     std::unique_ptr<Upscaler> newUpscaler;
     switch (type) {

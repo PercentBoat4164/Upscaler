@@ -28,7 +28,7 @@
 0
 
 struct alignas(128) UpscalerBase {
-    constexpr static uint8_t SamplesPerPixel = 8;
+    constexpr static uint8_t SamplesPerPixel = 8U;
 
     enum Type {
         NONE,
@@ -66,7 +66,9 @@ struct alignas(128) UpscalerBase {
             float y;
         } jitter{};
 
-        struct alignas(16) Camera {
+        // DO NOT CHANGE THE ALIGNMENT FROM 4!
+        // This breaks Release mode builds.
+        struct alignas(4) Camera {
             float farPlane;
             float nearPlane;
             float verticalFOV;
@@ -108,19 +110,19 @@ struct alignas(128) UpscalerBase {
             } x{2U}, y{3U};
 
             const float scalingFactor = static_cast<float>(outputResolution.width) / static_cast<float>(renderingResolution.width);
-            const auto  jitterSamples = static_cast<uint32_t>(std::ceil(SamplesPerPixel * scalingFactor * scalingFactor));
+            const auto  jitterSamples = static_cast<uint32_t>(std::ceil(static_cast<float>(SamplesPerPixel) * scalingFactor * scalingFactor));
             jitter                    = {x.advance(jitterSamples), y.advance(jitterSamples)};
             return jitter;
         }
 
-        template<Type T, typename _ = std::enable_if_t<T == NONE>>
-        [[nodiscard]] enum Quality getQuality() const {
-            return quality;
+        template<Type, typename>
+        [[nodiscard]] constexpr enum Quality getQuality() {
+            return static_cast<enum Quality>(-1);
         }
 
 #ifdef ENABLE_DLSS
-        template<Type T, typename _ = std::enable_if_t<T == DLSS>>
-        NVSDK_NGX_PerfQuality_Value getQuality() {
+        template<Type T, typename = std::enable_if_t<T == DLSS>>
+        [[nodiscard]] NVSDK_NGX_PerfQuality_Value getQuality() const {
             switch (quality) {
                 case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
@@ -135,21 +137,27 @@ struct alignas(128) UpscalerBase {
                 case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
                 case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                 case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                default: return NVSDK_NGX_PerfQuality_Value_Balanced;
+                default: return static_cast<NVSDK_NGX_PerfQuality_Value>(-1);
             }
         }
 #endif
 #ifdef ENABLE_FSR2
-        template<Type T, typename _ = std::enable_if_t<T == FSR2>>
-        FfxFsr2QualityMode getQuality() {
+        template<Type T, typename = std::enable_if_t<T == FSR2>>
+        [[nodiscard]] FfxFsr2QualityMode getQuality() const {
             switch (quality) {
-                case Auto:
-                case AntiAliasing: /**@todo Fix me.*/
+                case Auto: {
+                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
+                    if (pixelCount <= 2560U * 1440U)
+                        return FFX_FSR2_QUALITY_MODE_QUALITY;
+                    if (pixelCount <= 3840U * 2160U)
+                        return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
+                    return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
+                }
                 case Quality: return FFX_FSR2_QUALITY_MODE_QUALITY;
                 case Balanced: return FFX_FSR2_QUALITY_MODE_BALANCED;
                 case Performance: return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
                 case UltraPerformance: return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
-                default: return FFX_FSR2_QUALITY_MODE_BALANCED;
+                default: return static_cast<FfxFsr2QualityMode>(-1);
             }
         }
 #endif
@@ -239,9 +247,10 @@ public:
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #endif
 
-    static bool                   isSupported(Type type);
+    static bool                      isSupported(Type type);
+    static bool                      isSupported(Type type, enum Settings::Quality mode);
     static std::unique_ptr<Upscaler> fromType(Type type);
-    static void setLogCallback(void (*pFunction)(const char*));
+    static void                      setLogCallback(void (*pFunction)(const char*));
 
     Upscaler()                           = default;
     Upscaler(const Upscaler&)            = delete;

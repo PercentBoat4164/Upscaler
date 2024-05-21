@@ -10,6 +10,7 @@ public:
 #endif
 
     static bool isSupported();
+    static bool isSupported(enum Settings::Quality mode);
 
     NoUpscaler();
     NoUpscaler(const NoUpscaler&)            = delete;

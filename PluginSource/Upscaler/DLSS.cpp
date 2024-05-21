@@ -25,7 +25,7 @@
 #    include <valarray>
 
 #    ifdef ENABLE_VULKAN
-void DLSS::RAII_NGXVulkanResource::ChangeResource(VkImageView view, VkImage image, VkImageAspectFlags aspect, VkFormat format, Settings::Resolution resolution) {
+void DLSS::RAII_NGXVulkanResource::ChangeResource(VkImageView view, VkImage image, const VkImageAspectFlags aspect, const VkFormat format, const Settings::Resolution resolution) {
     Vulkan::destroyImageView(resource.Resource.ImageViewInfo.ImageView);
     resource = {
       .Resource = {
@@ -94,7 +94,7 @@ Upscaler::Status DLSS::VulkanCreate() {
     return SUCCESS;
 }
 
-Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, Plugin::ImageID imageID) {
+Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, const Plugin::ImageID imageID) {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
 
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
@@ -359,7 +359,7 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
         case NVSDK_NGX_Result_FAIL_FeatureNotFound: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
         case NVSDK_NGX_Result_FAIL_InvalidParameter: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
         case NVSDK_NGX_Result_FAIL_ScratchBufferTooSmall: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
-        case NVSDK_NGX_Result_FAIL_NotInitialized: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
+        case NVSDK_NGX_Result_FAIL_NotInitialized:
         case NVSDK_NGX_Result_FAIL_UnsupportedInputFormat:
         case NVSDK_NGX_Result_FAIL_RWFlagMissing:
         case NVSDK_NGX_Result_FAIL_MissingInput:
@@ -395,7 +395,7 @@ std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
         const char* extensionName = extensionProperties[i].extensionName;
-        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
+        if (std::ranges::find_if(supportedExtensions, [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
             requestedExtensions.emplace_back(extensionName);
         } else {
             instanceExtensionsSupported = UNSUPPORTED;
@@ -414,7 +414,7 @@ std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
         const char* extensionName = extensionProperties[i].extensionName;
-        if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
+        if (std::ranges::find_if(supportedExtensions, [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
             requestedExtensions.emplace_back(extensionName);
         } else {
             deviceExtensionsSupported = UNSUPPORTED;
@@ -435,8 +435,12 @@ bool DLSS::isSupported() {
         return false;
     }
 #    endif
-    DLSS dlss(GraphicsAPI::getType());
+    const DLSS dlss(GraphicsAPI::getType());
     return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+}
+
+bool DLSS::isSupported(const enum Settings::Quality mode) {
+    return mode == Settings::Auto || mode == Settings::AntiAliasing || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
 DLSS::DLSS(const GraphicsAPI::Type type) {
@@ -514,7 +518,6 @@ Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution,
     optimalSettings.preset           = preset;
 
     RETURN_ON_FAILURE(setStatus(NGX_DLSS_GET_OPTIMAL_SETTINGS(parameters, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::DLSS>(), &optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, &optimalSettings.dynamicMaximumInputResolution.width, &optimalSettings.dynamicMaximumInputResolution.height, &optimalSettings.dynamicMinimumInputResolution.width, &optimalSettings.dynamicMinimumInputResolution.height, &optimalSettings.sharpness), "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the output resolution, sharpness is between 0.0 and 1.0, and that the Quality setting is a valid enum value."));
-
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
 
@@ -529,14 +532,7 @@ Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution,
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, NGXPreset);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, NGXPreset);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, NGXPreset);
-
-    switch (preset) {
-        case Settings::Default: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_Default; break;
-        case Settings::Stable: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_F; break;
-        case Settings::FastPaced: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_C; break;
-        case Settings::AnitGhosting: NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_B; break;
-        case Settings::PRESET_MAX_ENUM: RETURN_ON_FAILURE(Upscaler::setStatus(SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected preset does not exist."));
-    }
+    if (preset == Settings::AnitGhosting) NGXPreset = NVSDK_NGX_DLSS_Hint_Render_Preset_B;
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NGXPreset);
     NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NGXPreset);
 
@@ -593,14 +589,13 @@ Upscaler::Status DLSS::create() {
     // clang-format on
 
     RETURN_ON_FAILURE((this->*fpCreate)());
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle returned from `NGX_*_CREATE_DLSS_EXT1()` was `nullptr`."));
+    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle `nullptr`."));
     return SUCCESS;
 }
 
 Upscaler::Status DLSS::evaluate() {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
-
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     return SUCCESS;
 }

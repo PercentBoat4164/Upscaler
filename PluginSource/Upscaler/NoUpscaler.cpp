@@ -13,6 +13,10 @@ bool NoUpscaler::isSupported() {
     return true;
 }
 
+bool NoUpscaler::isSupported(enum Settings::Quality /*unused*/) {
+    return false;
+}
+
 NoUpscaler::NoUpscaler() {
     (void)resetStatus();
 }

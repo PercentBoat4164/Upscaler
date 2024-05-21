@@ -119,9 +119,9 @@ public:
 #    endif
 
     static bool isSupported();
+    static bool isSupported(enum Settings::Quality mode);
 
     explicit DLSS(GraphicsAPI::Type type);
-    DLSS()                       = default;
     DLSS(const DLSS&)            = delete;
     DLSS(DLSS&&)                 = delete;
     DLSS& operator=(const DLSS&) = delete;

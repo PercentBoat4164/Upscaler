@@ -24,7 +24,10 @@ namespace Conifer.Upscaler
         internal static extern void RegisterLogCallback(LogCallbackDelegate logCallback);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsUpscalerSupported")]
-        internal static extern bool IsSupported(Settings.Upscaler mode);
+        internal static extern bool IsSupported(Settings.Upscaler type);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsQualitySupported")]
+        internal static extern bool IsSupported(Settings.Upscaler type, Settings.Quality mode);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
         internal static extern uint RegisterCamera();
@@ -67,6 +70,7 @@ namespace Conifer.Upscaler
         private readonly uint _cameraID;
         private static readonly int EventIDBase;
         private readonly IntPtr _renderingEventCallback;
+        private readonly CommandBuffer _prepareCommandBuffer;
 
         private enum Event
         {
@@ -107,6 +111,8 @@ namespace Conifer.Upscaler
             if (!Loaded) return;
             _cameraID = Native.RegisterCamera();
             _renderingEventCallback = Native.GetRenderingEventCallback();
+            _prepareCommandBuffer = new CommandBuffer();
+            _prepareCommandBuffer.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Prepare + EventIDBase, new IntPtr(_cameraID));
         }
 
         ~NativeInterface()
@@ -132,19 +138,22 @@ namespace Conifer.Upscaler
             cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
         }
 
-        internal void Prepare(CommandBuffer cb)
-        {
-            if (!Loaded) return;
-            cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Prepare + EventIDBase, new IntPtr(_cameraID));
-        }
+        internal static bool IsSupported(Settings.Upscaler type) => Loaded && Native.IsSupported(type);
 
-        internal static bool IsSupported(Settings.Upscaler mode) => Loaded && Native.IsSupported(mode);
+        internal static bool IsSupported(Settings.Upscaler type, Settings.Quality mode) => Loaded && Native.IsSupported(type, mode);
 
         internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.SoftwareError;
 
         internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "";
 
-        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, float sharpness, bool hdr) => Loaded ? Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, sharpness, hdr) : Upscaler.Status.SoftwareError;
+        internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, float sharpness, bool hdr)
+        {
+            if (!Loaded) return Upscaler.Status.SoftwareError;
+            var status = Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, sharpness, hdr);
+            if (Upscaler.Failure(status)) return status;
+            Graphics.ExecuteCommandBuffer(_prepareCommandBuffer);
+            return GetStatus();
+        }
 
         internal Settings.Resolution GetRecommendedResolution() => Loaded ? Native.GetRecommendedResolution(_cameraID) : new Settings.Resolution();
 

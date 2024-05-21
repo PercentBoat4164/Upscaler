@@ -20,6 +20,7 @@ namespace Conifer.Upscaler.Editor
         private bool _debugSettingsFoldout;
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         public override void OnInspectorGUI()
         {
@@ -90,31 +91,20 @@ namespace Conifer.Upscaler.Editor
             {
                 EditorGUILayout.HelpBox("set 'Opaque Downsampling' to 'None' for best results.", MessageType.Warning);
                 if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
-                    typeof(UniversalRenderPipelineAsset)
-                        .GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!
-                        .SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
+                    FOpaqueDownsampling.SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
             }
-
-            EditorGUI.indentLevel += 1;
-            newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(
-                    new GUIContent("Quality",
-                        "Choose a Quality Mode for the upscaler.\n" +
-                        "\nUse Auto to automatically select a Quality Mode based on output resolution:\n" +
-                        "<= 2560 x 1440 -> Quality\n" +
-                        "<= 3840 x 2160 -> Performance\n" +
-                        "> 3840 x 2160 -> Ultra Performance\n" +
-                        "\nUse Quality to upscale by 33.3% on each axis.\n" +
-                        "\nUse Balanced to upscale by 42% on each axis.\n" +
-                        "\nUse Performance to upscale by 50% on each axis.\n" +
-                        "\nUse Ultra Performance to upscale by 66.6% on each axis.\n"
-                    ), newSettings.quality);
+            newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
+                    "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
+                    "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
+                    "non-None upscalers."), newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
 
             if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscaler.MaxRenderScale, upscaler.MinRenderScale))
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
-                _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Upscaler Settings");
+                EditorGUI.indentLevel += 1;
+                _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Settings");
                 if (_advancedSettingsFoldout)
                 {
                     if (newSettings.upscaler != Settings.Upscaler.DeepLearningSuperSampling)
@@ -139,18 +129,18 @@ namespace Conifer.Upscaler.Editor
                             new GUIContent("DLSS Preset",
                                 "For most applications this can be left at Default.\n" +
                                 "Use presets when DLSS does not work well with your application by default.\n" +
-                                "\nUse Default for the default behaviour.\n" +
-                                "\nUse Stable if your application tends to move the contents of the screen slowly. It prefers to keep information from previous frames.\n" +
-                                "\nUse Fast Paced if your application tends to move the contents of the screen quickly. It prefers to use information from the current frame.\n" +
-                                "\nUse Anti Ghosting if your application fails to provide all of the necessary motion vectors to DLSS."
+                                "\nUse 'Default' for the default behaviour.\n" +
+                                "\nUse 'Stable' if your application tends to move the contents of the screen slowly. It prefers to keep information from previous frames.\n" +
+                                "\nUse 'Fast Paced' if your application tends to move the contents of the screen quickly. It prefers to use information from the current frame.\n" +
+                                "\nUse 'Anti Ghosting' if your application fails to provide all of the necessary motion vectors to DLSS."
                             ), newSettings.DLSSpreset);
                 }
 
                 _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
                 if (_debugSettingsFoldout)
-                    newSettings.showRenderingAreaOverlay = EditorGUILayout.Toggle("Overlay Rendering Area", newSettings.showRenderingAreaOverlay);
+                    newSettings.showRenderingAreaOverlay = EditorGUILayout.Toggle(new GUIContent("Overlay Rendering Area", "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."), newSettings.showRenderingAreaOverlay);
+                EditorGUI.indentLevel -= 1;
             }
-            EditorGUI.indentLevel -= 1;
 
             upscaler.ApplySettings(newSettings);
         }

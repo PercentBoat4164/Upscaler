@@ -111,7 +111,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
       .width=image.extent.width,
       .height=image.extent.height,
       .depth=image.extent.depth,
-      .mipCount=1,
+      .mipCount=1U,
       .flags=FFX_RESOURCE_FLAGS_NONE,
       .usage=resourceUsage,
     };
@@ -122,11 +122,14 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
-    FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
+    FfxResource color, depth, motion, output, tcMask, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
+    tcMask.resource = VK_NULL_HANDLE;
+    if (failure(VulkanGetResource(tcMask, Plugin::ImageID::TcMask)))
+        Upscaler::resetStatus();
     if (settings.autoReactive) {
         RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
@@ -161,7 +164,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .motionVectors              = motion,
       .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .transparencyAndComposition = tcMask,
       .output                     = output,
       .jitterOffset               = {
             settings.jitter.x,
@@ -175,15 +178,15 @@ Upscaler::Status FSR2::VulkanEvaluate() {
             color.description.width,
             color.description.height
       },
-      .enableSharpening        = settings.sharpness > 0,
+      .enableSharpening        = settings.sharpness > 0.0F,
       .sharpness               = settings.sharpness,
       .frameTimeDelta          = settings.frameTime,
-      .preExposure             = 1.F,
+      .preExposure             = 1.0F,
       .reset                   = settings.resetHistory,
       .cameraNear              = settings.camera.farPlane,
       .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
-      .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180),
-      .viewSpaceToMetersFactor = 1.F,
+      .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
+      .viewSpaceToMetersFactor = 1.0F,
       .enableAutoReactive      = settings.autoReactive,
       .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .autoTcThreshold         = settings.tcThreshold,
@@ -194,7 +197,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
     // clang-format on
 
     // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch FSR2."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
     return SUCCESS;
 }
 #    endif
@@ -208,7 +211,7 @@ Upscaler::Status FSR2::DX12Initialize() {
     void *buffer = calloc(bufferSize, 1);
     RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
     ffxInterface = new FfxInterface;
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
+    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface."));
     return SUCCESS;
 }
 
@@ -220,6 +223,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ID3D12Resource*           image            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Image " + std::to_string(imageID) + " was never sent to " + getName()));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 
     const FfxResourceDescription description {
@@ -228,7 +232,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
       .width=static_cast<uint32_t>(imageDescription.Width),
       .height=static_cast<uint32_t>(imageDescription.Height),
       .alignment=static_cast<uint32_t>(imageDescription.Alignment),
-      .mipCount=1,
+      .mipCount=1U,
       .flags=FFX_RESOURCE_FLAGS_NONE,
       .usage=resourceUsage,
     };
@@ -237,13 +241,18 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
 }
 
 Upscaler::Status FSR2::DX12Evaluate() {
-    FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
+    FfxResource color, depth, motion, output, tcMask, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(DX12GetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::OutputColor));
-    RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
-    RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
+    tcMask.resource = nullptr;
+    if (failure(DX12GetResource(tcMask, Plugin::ImageID::TcMask)))
+        Upscaler::resetStatus();
+    if (settings.autoReactive) {
+        RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
+        RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
+    }
 
     UnityGraphicsD3D12RecordingState state{};
     DX12::getGraphicsInterface()->CommandRecordingState(&state);
@@ -272,8 +281,8 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .depth                      = depth,
       .motionVectors              = motion,
       .exposure                   = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .reactive                   = reactiveMask,
-      .transparencyAndComposition = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .transparencyAndComposition = tcMask,
       .output                     = output,
       .jitterOffset               = {
            settings.jitter.x,
@@ -287,17 +296,17 @@ Upscaler::Status FSR2::DX12Evaluate() {
           color.description.width,
           color.description.height
       },
-      .enableSharpening        = settings.sharpness > 0,
+      .enableSharpening        = settings.sharpness > 0.0F,
       .sharpness               = settings.sharpness,
       .frameTimeDelta          = settings.frameTime,
-      .preExposure             = 1.F,
+      .preExposure             = 1.0F,
       .reset                   = settings.resetHistory,
       .cameraNear              = settings.camera.farPlane,
       .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
-      .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180),
-      .viewSpaceToMetersFactor = 1.F,
-      .enableAutoReactive      = true,
-      .colorOpaqueOnly         = opaqueColor,
+      .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
+      .viewSpaceToMetersFactor = 1.0F,
+      .enableAutoReactive      = settings.autoReactive,
+      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .autoTcThreshold         = settings.tcThreshold,
       .autoTcScale             = settings.tcScale,
       .autoReactiveScale       = settings.reactiveScale,
@@ -415,8 +424,12 @@ std::vector<std::string> FSR2::requestVulkanDeviceExtensions(VkInstance /*unused
 bool FSR2::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
-    FSR2 fsr2(GraphicsAPI::getType());
+    const FSR2 fsr2(GraphicsAPI::getType());
     return (supported = success(fsr2.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+}
+
+bool FSR2::isSupported(const enum Settings::Quality mode) {
+    return mode == Settings::Auto || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
 Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
@@ -428,13 +441,11 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
     optimalSettings.quality          = mode;
 
     RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
-    optimalSettings.dynamicMaximumInputResolution = resolution;
-
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
+    optimalSettings.dynamicMaximumInputResolution = resolution;
 
     settings = optimalSettings;
-    settings.jitterGenerator.generate(settings.renderingResolution, settings.outputResolution);
     return SUCCESS;
 }
 
@@ -455,8 +466,7 @@ Upscaler::Status FSR2::create() {
 #    endif
         static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |  /**@todo Make me a switch.*/
+        static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
         (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
