@@ -308,6 +308,14 @@ add_library(GfxPluginUpscaler main.cpp
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")
 target_include_directories(GfxPluginUpscaler PUBLIC ${UNITY_FILES} ${CMAKE_SOURCE_DIR})
+if (NOT WIN32)
+    target_link_options(GfxPluginUpscaler PUBLIC -Wl,-rpath=$ORIGIN)
+endif ()
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_link_options(GfxPluginUpscaler PUBLIC -s)
+    endif ()
+endif ()
 
 # Link selected graphics APIs
 if (ENABLE_VULKAN)
