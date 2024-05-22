@@ -135,6 +135,11 @@ Upscaler::Status FSR2::VulkanEvaluate() {
         RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
 
+    // RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
@@ -253,6 +258,11 @@ Upscaler::Status FSR2::DX12Evaluate() {
         RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
+
+    // RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     UnityGraphicsD3D12RecordingState state{};
     DX12::getGraphicsInterface()->CommandRecordingState(&state);

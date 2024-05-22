@@ -123,8 +123,10 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     NVSDK_NGX_Resource_VK&     inColor = color->GetResource();
     const Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
-    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame. @todo Make a ...WARNING... enum value to return in this case?
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
@@ -209,8 +211,10 @@ Upscaler::Status DLSS::DX12Evaluate() {
     const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
     const Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), inColorDescription.Height};
 
-    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
@@ -290,8 +294,10 @@ Upscaler::Status DLSS::DX11Evaluate() {
 
     const Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
 
-    // if (inputResolution.width < settings.dynamicMinimumInputResolution.width || inputResolution.width > settings.dynamicMaximumInputResolution.width || inputResolution.height < settings.dynamicMinimumInputResolution.height || inputResolution.height > settings.dynamicMaximumInputResolution.height)
-    //     return SUCCESS;  // We do not want this to stop DLSS, we simply want it to not render this frame.
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
