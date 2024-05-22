@@ -1,4 +1,4 @@
-# Upscaler shared libraries
 *
+!.gitignore
 !GfxPluginUpscaler.dll
 !libGfxPluginUpscaler.so
