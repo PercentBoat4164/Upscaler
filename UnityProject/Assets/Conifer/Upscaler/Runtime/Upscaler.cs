@@ -39,7 +39,9 @@ namespace Conifer.Upscaler
             /// NVIDIA's Deep Learning Super Sampling upscaler.
             DeepLearningSuperSampling,
             /// AMD's FidelityFX Super Resolution upscaler.
-            FidelityFXSuperResolution2
+            FidelityFXSuperResolution2,
+            /// Intel's Xe Super Sampling upscaler.
+            XeSuperSampling
         }
 
         /**
@@ -48,10 +50,14 @@ namespace Conifer.Upscaler
         [Serializable]
         public enum Quality
         {
-            /// Automatically choose another <see cref="Settings.Quality"/> mode based on output resolution.
+            /// Automatically choose another <see cref="Settings.Quality"/> mode based on output resolution. Available to all <see cref="Upscaler"/>s.
             Auto,
             /// Render at native resolution and use the <see cref="Settings.Upscaler"/> for antialiasing.
             AntiAliasing,
+            /// Recommended for extremely low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            UltraQualityPlus,
+            /// Recommended for very low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            UltraQuality,
             /// Recommended for lower resolution outputs.
             Quality,
             /// Recommended in most scenarios.

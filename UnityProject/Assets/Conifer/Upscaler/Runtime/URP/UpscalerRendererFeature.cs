@@ -85,15 +85,8 @@ namespace Conifer.Upscaler.URP
                 var depth = renderer.cameraDepthTargetHandle;
 
                 var cb = CommandBufferPool.Get("Upscale");
-                if (_upscaler.settings.upscaler == Settings.Upscaler.FidelityFXSuperResolution2)
+                if (_upscaler.settings.upscaler is Settings.Upscaler.FidelityFXSuperResolution2 or Settings.Upscaler.XeSuperSampling)
                 {
-                    descriptor = cameraDescriptor;
-                    descriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
-                    descriptor.depthStencilFormat = GraphicsFormat.None;
-                    RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, descriptor, name: "UpscalerReactiveMask");
-
-                    _upscaler.NativeInterface.SetReactiveImages(cb, _reactiveMask, Shader.GetGlobalTexture(OpaqueID));
-
                     descriptor = cameraDescriptor;
                     descriptor.width = _upscaler.RenderingResolution.x;
                     descriptor.width = _upscaler.RenderingResolution.y;
@@ -108,6 +101,16 @@ namespace Conifer.Upscaler.URP
                     cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
 
                     depth = _inputDepth;
+
+                    if (_upscaler.settings.upscaler is Settings.Upscaler.FidelityFXSuperResolution2)
+                    {
+                        descriptor = cameraDescriptor;
+                        descriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
+                        descriptor.depthStencilFormat = GraphicsFormat.None;
+                        RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, descriptor, name: "UpscalerReactiveMask");
+
+                        _upscaler.NativeInterface.SetReactiveImages(cb, _reactiveMask, Shader.GetGlobalTexture(OpaqueID));
+                    }
                 }
                 else
                 {

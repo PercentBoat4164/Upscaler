@@ -8,6 +8,7 @@ namespace Conifer.Upscaler.Demo
 		public float accSprintMultiplier = 4; // how much faster you go when "sprinting"
 		public float lookSensitivity = 1; // mouse look sensitivity
 		public float dampingCoefficient = 5; // how quickly you break to a halt after you stop your input
+		private bool _move;
 		private Camera _camera;
 
 		private Vector3 _velocity; // current velocity
@@ -35,6 +36,8 @@ namespace Conifer.Upscaler.Demo
 			// Physics
 			_velocity = Vector3.Lerp(_velocity, Vector3.zero, dampingCoefficient * Time.deltaTime);
 			transform.position += _velocity * Time.deltaTime;
+			if (_move)
+				transform.position += new Vector3(Mathf.Sin(Time.time) / 300.0F, 0, 0);
 		}
 
 		private void UpdateInput() {
@@ -51,6 +54,8 @@ namespace Conifer.Upscaler.Demo
 			// Leave cursor lock
 			if (Input.GetKeyDown(KeyCode.Escape))
 				Focused = false;
+
+			_move ^= Input.GetKeyDown(KeyCode.T);
 		}
 
 		private Vector3 GetAccelerationVector() {

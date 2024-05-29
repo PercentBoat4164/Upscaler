@@ -32,11 +32,6 @@ class FSR2 final : public Upscaler {
     static void log(FfxMsgType type, const wchar_t *t_msg);
 
 public:
-#    ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/);
-#    endif
-
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
 

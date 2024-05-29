@@ -12,6 +12,9 @@
 #ifdef ENABLE_FSR2
 #    include <ffx_fsr2.h>
 #endif
+#ifdef ENABLE_XESS
+#    include <xess/xess.h>
+#endif
 
 #include <array>
 #include <cmath>
@@ -20,7 +23,7 @@
 #include <string>
 #include <vector>
 
-#    define RETURN_ON_FAILURE(x)        \
+#define RETURN_ON_FAILURE(x)        \
 {                                       \
     Upscaler::Status _ = x;             \
     if (Upscaler::failure(_)) return _; \
@@ -34,6 +37,7 @@ struct alignas(128) UpscalerBase {
         NONE,
         DLSS,
         FSR2,
+        XESS,
         TYPE_MAX_ENUM
     };
 
@@ -41,6 +45,8 @@ struct alignas(128) UpscalerBase {
         enum Quality : uint8_t {
             Auto,
             AntiAliasing,
+            UltraQualityPlus,
+            UltraQuality,
             Quality,
             Balanced,
             Performance,
@@ -126,10 +132,8 @@ struct alignas(128) UpscalerBase {
             switch (quality) {
                 case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U)
-                        return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= 3840U * 2160U)
-                        return NVSDK_NGX_PerfQuality_Value_MaxPerf;
+                    if (pixelCount <= 2560U * 1440U) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
+                    if (pixelCount <= 3840U * 2160U) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
                     return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
                 }
                 case AntiAliasing: return NVSDK_NGX_PerfQuality_Value_DLAA;
@@ -147,10 +151,8 @@ struct alignas(128) UpscalerBase {
             switch (quality) {
                 case Auto: {
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U)
-                        return FFX_FSR2_QUALITY_MODE_QUALITY;
-                    if (pixelCount <= 3840U * 2160U)
-                        return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
+                    if (pixelCount <= 2560U * 1440U) return FFX_FSR2_QUALITY_MODE_QUALITY;
+                    if (pixelCount <= 3840U * 2160U) return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
                     return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
                 }
                 case Quality: return FFX_FSR2_QUALITY_MODE_QUALITY;
@@ -161,10 +163,30 @@ struct alignas(128) UpscalerBase {
             }
         }
 #endif
+#ifdef ENABLE_XESS
+        template<Type T, typename = std::enable_if_t<T == XESS>>
+        [[nodiscard]] xess_quality_settings_t getQuality() const {
+            switch (quality) {
+                case Auto: {
+                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
+                    if (pixelCount <= 2560U * 1440U) return XESS_QUALITY_SETTING_QUALITY;
+                    if (pixelCount <= 3840U * 2160U) return XESS_QUALITY_SETTING_PERFORMANCE;
+                    return XESS_QUALITY_SETTING_ULTRA_PERFORMANCE;
+                }
+                case AntiAliasing: return XESS_QUALITY_SETTING_AA;
+                case UltraQualityPlus: return XESS_QUALITY_SETTING_ULTRA_QUALITY_PLUS;
+                case UltraQuality: return XESS_QUALITY_SETTING_ULTRA_QUALITY;
+                case Quality: return XESS_QUALITY_SETTING_QUALITY;
+                case Balanced: return XESS_QUALITY_SETTING_BALANCED;
+                case Performance: return XESS_QUALITY_SETTING_PERFORMANCE;
+                case UltraPerformance: return XESS_QUALITY_SETTING_ULTRA_PERFORMANCE;
+                default: return static_cast<xess_quality_settings_t>(-1);
+            }
+        }
+#endif
     } settings;
 
 protected:
-    bool                                                  initialized{};
     std::array<UnityTextureID, Plugin::IMAGE_ID_MAX_ENUM> textureIDs{};
 };
 

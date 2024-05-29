@@ -30,13 +30,17 @@ cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support. Value is only re
 
 # At least one upscaler must be enabled.
 cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT APPLE" OFF)
-cmake_dependent_option(ENABLE_FSR2 "Compiles with FSR2 support. Value is ignored on macOS operating systems." ON "NOT APPLE" OFF)
+option(ENABLE_FSR2 "Compiles with FSR2 support." ON)
+option(ENABLE_XESS "Compiles with XeSS support." ON)
 
 if (ENABLE_DLSS)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
 endif ()
 if (ENABLE_FSR2)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;OFF")
+endif ()
+if (ENABLE_XESS)
+    ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "OFF;ON;OFF")
 endif ()
 foreach (ITEM SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11)
     if (NOT ${ITEM})
@@ -82,12 +86,12 @@ endfunction ()
 ConiferFilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with support for ${FINAL_STRING}.")
-ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3" "ENABLE_DLSS;ENABLE_FSR2" FILTERED_LIST)
+ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR2;ENABLE_XESS" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with ${FINAL_STRING}.")
 
 # Fail if no upscaler was selected
-if (NOT ENABLE_DLSS AND NOT ENABLE_FSR2)
+if (NOT ENABLE_DLSS AND NOT ENABLE_FSR2 AND NOT ENABLE_XESS)
     message(FATAL_ERROR "No upscaler(s) were enabled.")
 endif ()
 
@@ -96,15 +100,9 @@ if (NOT ENABLE_VULKAN AND NOT ENABLE_DX12 AND NOT ENABLE_DX11)
     message(FATAL_ERROR "No graphics API(s) were enabled.")
 endif ()
 
-# If DLSS was enabled ensure that its SDK exists
-if (ENABLE_DLSS)
-    cmake_path(SET NGX_SDK_DIR "${CMAKE_SOURCE_DIR}/nvngx_dlss_sdk")
-endif ()
-
-# If FSR2 was enabled ensure that its SDK exists
-if (ENABLE_FSR2)
-    cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/ffx_sdk")
-endif ()
+cmake_path(SET NGX_SDK_DIR "${CMAKE_SOURCE_DIR}/nvngx_dlss_sdk")
+cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/ffx_sdk")
+cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/XeSS_SDK-1.3.0")
 
 # Add the plugin path the list of shared libraries to copy
 if (WIN32)
@@ -267,6 +265,21 @@ if (ENABLE_FSR2)
     endif ()
 endif ()
 
+function (ConiferAddXeSSLibrary LIBRARY_NAME LIBRARY_PATH LIBRARY_FILENAME)
+    add_library(${LIBRARY_NAME} IMPORTED SHARED)
+    target_include_directories(${LIBRARY_NAME} INTERFACE ${ARGN})
+    set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_LOCATION "${LIBRARY_PATH}/bin/${LIBRARY_FILENAME}.dll")
+    set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_IMPLIB "${LIBRARY_PATH}/lib/${LIBRARY_FILENAME}.lib")
+    list(APPEND CONIFER_LIBRARIES ${LIBRARY_NAME})
+    set(CONIFER_LIBRARIES ${CONIFER_LIBRARIES} PARENT_SCOPE)
+    list(APPEND SHARED_LIBRARIES "${LIBRARY_PATH}/bin/${LIBRARY_FILENAME}.dll")
+    set(SHARED_LIBRARIES ${SHARED_LIBRARIES} PARENT_SCOPE)
+endfunction ()
+
+if (ENABLE_XESS)
+    ConiferAddXeSSLibrary(xess "${XESS_SDK_DIR}" "libxess" "${XESS_SDK_DIR}/inc")
+endif ()
+
 ##############
 # Our plugin #
 ##############
@@ -286,15 +299,18 @@ endif ()
 if (ENABLE_DLSS)
     set(DLSS_SOURCES Upscaler/DLSS.cpp)
 endif ()
-
 if (ENABLE_FSR2)
     set(FSR2_SOURCES Upscaler/FSR2.cpp)
+endif ()
+if (ENABLE_XESS)
+    set(XESS_SOURCES Upscaler/XeSS.cpp)
 endif ()
 
 # Add library and link Unity files
 add_library(GfxPluginUpscaler main.cpp
         ${DLSS_SOURCES}
         ${FSR2_SOURCES}
+        ${XESS_SOURCES}
 
         ${DX11_SOURCES}
         ${DX12_SOURCES}
@@ -326,7 +342,7 @@ endif ()
 target_link_libraries(GfxPluginUpscaler ${CONIFER_LIBRARIES})
 
 # Add compile definitions
-foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR2)
+foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR2;ENABLE_XESS)
     if (${ITEM})
         target_compile_definitions(GfxPluginUpscaler PUBLIC ${ITEM})
     endif ()
