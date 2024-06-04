@@ -156,8 +156,8 @@ namespace Conifer.Upscaler
     }
 
     /**
-     * The unified interface used to interact with the different <see cref="Settings.Upscaler"/>s. It may only be put on a
-     * <see cref="UnityEngine.Camera"/> object.
+     * The unified interface used to interact with the different <see cref="Settings.Upscaler"/>s. It may only be put on
+     * a <see cref="UnityEngine.Camera"/> object.
      */
     [RequireComponent(typeof(Camera))]
     public class Upscaler : MonoBehaviour
@@ -234,9 +234,9 @@ namespace Conifer.Upscaler
          *
          * <returns><c>true</c> if the <see cref="Status"/> is success-y and <c>false</c> if not.</returns>
          *
-         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/> and <see cref="Status.NoUpscalerSet"/>.
-         * Being a <see cref="Success"/> <see cref="Status"/> means that the <see cref="Settings.Upscaler"/> in question
-         * is usable in its current state.</remarks>
+         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/> and
+         * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Success"/> <see cref="Status"/> means that the
+         * <see cref="Settings.Upscaler"/> in question is usable in its current state.</remarks>
          */
         public static bool Success(Status status) => status <= Status.NoUpscalerSet;
 
@@ -399,8 +399,8 @@ namespace Conifer.Upscaler
         /**
          * <summary>Check if the <c>GfxPluginUpscaler</c> shared library has been loaded.</summary>
          *
-         * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c> if it
-         * has not been.</returns>
+         * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c>
+         * if it has not been.</returns>
          *
          * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
          */
