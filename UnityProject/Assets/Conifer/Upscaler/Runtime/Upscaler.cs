@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.0.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 using System;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -543,7 +548,12 @@ namespace Conifer.Upscaler
         private void OnGUI()
         {
             if (settings.upscaler != Settings.Upscaler.None && showRenderingAreaOverlay)
-                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y), "Rendering Area");
+            {
+                var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
+                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y),
+                    scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
+                    +"% of total pixels rendered");
+            }
         }
     }
 }

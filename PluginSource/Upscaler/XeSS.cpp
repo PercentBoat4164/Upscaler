@@ -55,6 +55,7 @@ Upscaler::Status XeSS::DX12Evaluate() {
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(inColorDescription.Width), -static_cast<float>(inColorDescription.Height)), "Failed to set motion scale"));
     RETURN_ON_FAILURE(setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + "."));
     return SUCCESS;
 }

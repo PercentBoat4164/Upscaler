@@ -2,7 +2,6 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
-using System;
 using System.Linq;
 using System.Reflection;
 #if UPSCALER_USE_URP

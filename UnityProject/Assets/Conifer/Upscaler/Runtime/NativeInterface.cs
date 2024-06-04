@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.0.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 using System;
 using System.Runtime.InteropServices;
 using AOT;

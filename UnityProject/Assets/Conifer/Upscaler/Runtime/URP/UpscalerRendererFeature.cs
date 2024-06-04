@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.0.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 #if UPSCALER_USE_URP
 using System;
 using System.Reflection;
@@ -42,10 +47,8 @@ namespace Conifer.Upscaler.URP
             private static RTHandle _outputDepth;
             private static RTHandle _inputDepth;
             private static RTHandle _reactiveMask;
-            private static RTHandle _xessMotion;
             private static Mesh _triangle;
             private static Material _blitMaterial;
-            private static Material _motionMaterial;
             private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
             private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
             private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
@@ -67,7 +70,6 @@ namespace Conifer.Upscaler.URP
                     triangles = new[] { 0, 1, 2 }
                 };
                 _blitMaterial = new Material(Shader.Find("Hidden/BlitToDepth"));
-                _motionMaterial = new Material(Shader.Find("Hidden/Conifer/Upscaler/CorrectXeSSMotion"));
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -85,7 +87,6 @@ namespace Conifer.Upscaler.URP
 
                 var renderer = renderingData.cameraData.renderer;
                 var depth = renderer.cameraDepthTargetHandle;
-                var motion = Shader.GetGlobalTexture(MotionID);
 
                 var cb = CommandBufferPool.Get("Upscale");
                 if (_upscaler.settings.upscaler == Settings.Upscaler.FidelityFXSuperResolution2)
@@ -116,26 +117,7 @@ namespace Conifer.Upscaler.URP
                     _inputDepth?.Release();
                 }
 
-                if (_upscaler.settings.upscaler == Settings.Upscaler.XeSuperSampling)
-                {
-                    descriptor = cameraDescriptor;
-                    descriptor.width = _upscaler.RenderingResolution.x;
-                    descriptor.height = _upscaler.RenderingResolution.y;
-                    descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
-                    descriptor.depthStencilFormat = GraphicsFormat.None;
-                    RenderingUtils.ReAllocateIfNeeded(ref _xessMotion, descriptor, name: "UpscalerXeSSMotion");
-
-                    cb.SetGlobalVector("UpscalerXeSSMotionScale", new Vector4(descriptor.width, descriptor.height));
-                    cb.Blit(motion, _xessMotion, _motionMaterial);
-
-                    motion = _xessMotion;
-                }
-                else
-                {
-                    _xessMotion?.Release();
-                }
-
-                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, motion, _outputColor);
+                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, Shader.GetGlobalTexture(MotionID), _outputColor);
                 if (renderingData.cameraData.postProcessingRequiresDepthTexture)
                 {
                     cb.SetRenderTarget(_outputDepth);
