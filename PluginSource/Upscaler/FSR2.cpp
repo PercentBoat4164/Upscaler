@@ -89,19 +89,15 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
 
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
-    FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_UAV};
+    FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
     VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
     if (imageID == Plugin::ImageID::OutputColor) {
         accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
         layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        resourceUsage = FFX_RESOURCE_USAGE_UAV;
     }
-    if (imageID == Plugin::ImageID::Depth) {
+    if (imageID == Plugin::ImageID::Depth)
         layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
-        resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
-    }
-    if (imageID == Plugin::ImageID::Motion) {
-        resourceUsage = FFX_RESOURCE_USAGE_READ_ONLY;
-    }
 
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);

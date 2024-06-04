@@ -522,17 +522,17 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
-                projectionMatrix.m03 += -clipSpaceJitter.x;
-                projectionMatrix.m13 += -clipSpaceJitter.y;
+                projectionMatrix.m03 += clipSpaceJitter.x;
+                projectionMatrix.m13 += clipSpaceJitter.y;
             }
             else
             {
-                projectionMatrix.m02 += clipSpaceJitter.x;
-                projectionMatrix.m12 += clipSpaceJitter.y;
+                projectionMatrix.m02 += -clipSpaceJitter.x;
+                projectionMatrix.m12 += -clipSpaceJitter.y;
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
