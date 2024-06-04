@@ -470,7 +470,9 @@ Upscaler::Status FSR2::create() {
 }
 
 Upscaler::Status FSR2::evaluate() {
-    return (this->*fpEvaluate)();
+    RETURN_ON_FAILURE((this->*fpEvaluate)());
+    settings.resetHistory = false;
+    return SUCCESS;
 }
 
 Upscaler::Status FSR2::shutdown() {

@@ -152,8 +152,6 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     };
     // clang-format on
 
-    settings.resetHistory = false;
-
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
@@ -592,6 +590,7 @@ Upscaler::Status DLSS::evaluate() {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
     RETURN_ON_FAILURE((this->*fpEvaluate)());
+    settings.resetHistory = false;
     return SUCCESS;
 }
 

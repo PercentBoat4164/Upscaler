@@ -37,7 +37,7 @@ namespace Conifer.Upscaler.Demo
 			_velocity = Vector3.Lerp(_velocity, Vector3.zero, dampingCoefficient * Time.deltaTime);
 			transform.position += _velocity * Time.deltaTime;
 			if (_move)
-				transform.position += new Vector3(Mathf.Sin(Time.time) / 300.0F, 0, 0);
+				transform.position = new Vector3(Mathf.Sin(Time.time), 1, -10);
 		}
 
 		private void UpdateInput() {

@@ -138,8 +138,6 @@ namespace Conifer.Upscaler
         public float reactiveScale = 5.0f;
         /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float reactiveMax = 0.9f;
-        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
-        public bool showRenderingAreaOverlay;
         internal static float FrameTime => Time.deltaTime * 1000;
 
         /**
@@ -147,7 +145,7 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax, showRenderingAreaOverlay = showRenderingAreaOverlay };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax };
 
         public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || DLSSpreset != other.DLSSpreset;
     }
@@ -264,6 +262,12 @@ namespace Conifer.Upscaler
          * </remarks>
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
+
+        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
+        public bool showRenderingAreaOverlay;
+
+        /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame.
+        public bool forceHistoryResetEveryFrame;
 
         private Camera _camera;
         private bool _hdr;
@@ -508,6 +512,8 @@ namespace Conifer.Upscaler
 
             if (settings.upscaler == Settings.Upscaler.None) return;
 
+            if (forceHistoryResetEveryFrame) ResetHistory();
+
             status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
 
@@ -536,7 +542,7 @@ namespace Conifer.Upscaler
 
         private void OnGUI()
         {
-            if (settings.upscaler != Settings.Upscaler.None && settings.showRenderingAreaOverlay)
+            if (settings.upscaler != Settings.Upscaler.None && showRenderingAreaOverlay)
                 GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y), "Rendering Area");
         }
     }

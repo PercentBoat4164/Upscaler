@@ -42,7 +42,7 @@ Upscaler::Status XeSS::DX12Evaluate() {
     ID3D12Resource* motion = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
     ID3D12Resource* outColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]);
 
-    const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
+    const D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
 
     const xess_d3d12_execute_params_t params {
         .pColorTexture = inColor,
@@ -51,6 +51,7 @@ Upscaler::Status XeSS::DX12Evaluate() {
         .pOutputTexture = outColor,
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
+        .exposureScale = 1.0F,
         .resetHistory = static_cast<uint32_t>(settings.resetHistory),
         .inputWidth = static_cast<uint32_t>(inColorDescription.Width),
         .inputHeight = static_cast<uint32_t>(inColorDescription.Height),
@@ -181,12 +182,15 @@ Upscaler::Status XeSS::initialize() {
 
 Upscaler::Status XeSS::create() {
     RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, getName() + " context does not exist."));
-    return (this->*fpCreate)();
+    RETURN_ON_FAILURE((this->*fpCreate)());
+    return SUCCESS;
 }
 
 Upscaler::Status XeSS::evaluate() {
     RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, getName() + " context does not exist."));
-    return (this->*fpEvaluate)();
+    RETURN_ON_FAILURE((this->*fpEvaluate)());
+    settings.resetHistory = false;
+    return SUCCESS;
 }
 
 Upscaler::Status XeSS::shutdown() {
@@ -195,6 +199,4 @@ Upscaler::Status XeSS::shutdown() {
     context = nullptr;
     return SUCCESS;
 }
-
-
 #endif
