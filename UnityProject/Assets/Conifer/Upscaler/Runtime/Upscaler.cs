@@ -421,8 +421,8 @@ namespace Conifer.Upscaler
          * <remarks>This method is very slow when the <see cref="Settings"/> have changed, or if force is set to
          * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/>,
          * <see cref="RenderingResolution"/>, <see cref="MaxRenderScale"/>, and <see cref="MinRenderScale"/> based on
-         * queries of the new <see cref="Settings.Upscaler"/>. It then sets the internal <see cref="Settings"/> variable
-         * to a copy of <paramref name="newSettings"/>.</remarks>
+         * queries of the new <see cref="Settings.Upscaler"/>. It then resets the camera's projection matrix and sets
+         * the internal <see cref="Settings"/> variable to a copy of <paramref name="newSettings"/>.</remarks>
          *
          * <example><code>upscaler.ApplySettings(settings);</code></example>
          */
@@ -448,6 +448,7 @@ namespace Conifer.Upscaler
                     MinRenderScale = 1f;
                 }
                 EnforceDynamicResolutionConstraints((float)RenderingResolution.x / OutputResolution.x);
+                _camera.ResetProjectionMatrix();
             }
 
             settings = newSettings.Copy();
