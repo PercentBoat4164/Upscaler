@@ -43,7 +43,6 @@ Upscaler::Status XeSS::DX12Evaluate() {
     ID3D12Resource* outColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]);
 
     const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
-    const Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), inColorDescription.Height};
 
     const xess_d3d12_execute_params_t params {
         .pColorTexture = inColor,
@@ -53,14 +52,12 @@ Upscaler::Status XeSS::DX12Evaluate() {
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .resetHistory = static_cast<uint32_t>(settings.resetHistory),
-        .inputWidth = inputResolution.width,
-        .inputHeight = inputResolution.height,
+        .inputWidth = static_cast<uint32_t>(inColorDescription.Width),
+        .inputHeight = static_cast<uint32_t>(inColorDescription.Height),
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + "."));
-
-
     return SUCCESS;
 }
 #endif

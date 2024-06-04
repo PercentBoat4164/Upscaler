@@ -122,7 +122,6 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanUpdateResource(output, Plugin::ImageID::OutputColor));
 
     NVSDK_NGX_Resource_VK&     inColor = color->GetResource();
-    const Settings::Resolution inputResolution{inColor.Resource.ImageViewInfo.Width, inColor.Resource.ImageViewInfo.Height};
 
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
@@ -140,12 +139,12 @@ Upscaler::Status DLSS::VulkanEvaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = inputResolution.width,
-        .Height = inputResolution.height,
+        .Width  = inColor.Resource.ImageViewInfo.Width,
+        .Height = inColor.Resource.ImageViewInfo.Height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(inputResolution.width),
-      .InMVScaleY = -static_cast<float>(inputResolution.height),
+      .InMVScaleX = -static_cast<float>(inColor.Resource.ImageViewInfo.Width),
+      .InMVScaleY = -static_cast<float>(inColor.Resource.ImageViewInfo.Height),
 #       ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #       endif
@@ -210,7 +209,6 @@ Upscaler::Status DLSS::DX12Create() {
 Upscaler::Status DLSS::DX12Evaluate() {
     ID3D12Resource* inColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
     const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
-    const Settings::Resolution inputResolution{static_cast<uint32_t>(inColorDescription.Width), inColorDescription.Height};
 
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
@@ -228,12 +226,12 @@ Upscaler::Status DLSS::DX12Evaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = inputResolution.width,
-        .Height = inputResolution.height,
+        .Width  = static_cast<uint32_t>(inColorDescription.Width),
+        .Height = static_cast<uint32_t>(inColorDescription.Height),
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(inputResolution.width),
-      .InMVScaleY = -static_cast<float>(inputResolution.height),
+      .InMVScaleX = -static_cast<float>(inColorDescription.Width),
+      .InMVScaleY = -static_cast<float>(inColorDescription.Height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -241,7 +239,7 @@ Upscaler::Status DLSS::DX12Evaluate() {
     };
     // clang-format on
 
-    UnityGraphicsD3D12RecordingState state;
+    UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &DLSSEvalParameters), "Failed to evaluate the " + getName() + " feature."));
     return SUCCESS;
@@ -288,7 +286,6 @@ Upscaler::Status DLSS::DX11Evaluate() {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(hr) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC inColorDescription;
     tex->GetDesc(&inColorDescription);
-    const Settings::Resolution inputResolution{inColorDescription.Width, inColorDescription.Height};
 
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
     // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
@@ -306,8 +303,8 @@ Upscaler::Status DLSS::DX11Evaluate() {
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = inputResolution.width,
-        .Height = inputResolution.height,
+        .Width  = inColorDescription.Width,
+        .Height = inColorDescription.Height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
       .InMVScaleX = -static_cast<float>(inColorDescription.Width),
@@ -390,7 +387,7 @@ void DLSS::log(const char* message, const NVSDK_NGX_Logging_Level loggingLevel, 
 std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
     uint32_t                 extensionCount{};
     std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*   extensionProperties{};
+    VkExtensionProperties*    extensionProperties{};
     NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
