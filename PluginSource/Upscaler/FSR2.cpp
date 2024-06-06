@@ -102,8 +102,10 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
     if (imageID == Plugin::ImageID::Motion) {
         resourceUsage = FFX_RESOURCE_USAGE_READ_ONLY;
     }
+
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
 
     const FfxResourceDescription description {
       .type=FFX_RESOURCE_TYPE_TEXTURE2D,
@@ -116,7 +118,6 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
       .usage=resourceUsage,
     };
     RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with " + getName() + ". Please select a different image format."));
-
     resource = ffxGetResourceVK(image.image, description, std::wstring(L"").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     return SUCCESS;
 }
@@ -228,7 +229,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ID3D12Resource*           image            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Image " + std::to_string(imageID) + " was never sent to " + getName()));
+    RETURN_ON_FAILURE(setStatusIf(image.image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 
     const FfxResourceDescription description {
