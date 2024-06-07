@@ -443,7 +443,7 @@ namespace Conifer.Upscaler
             _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
             settings ??= new Settings();
-            NativeInterface = new NativeInterface();
+            NativeInterface ??= new NativeInterface();
 
             if (!IsSupported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
             ApplySettings(settings, true);

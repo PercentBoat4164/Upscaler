@@ -18,6 +18,7 @@
 #    endif
 #    include <algorithm>
 
+uint32_t FSR2::users{};
 FfxInterface* FSR2::ffxInterface{nullptr};
 
 Upscaler::Status (FSR2::*FSR2::fpInitialize)(){&FSR2::safeFail};
@@ -27,7 +28,7 @@ Upscaler::SupportState FSR2::supported{UNTESTED};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR2::VulkanInitialize() {
-    RETURN_ON_FAILURE(setStatusIf(ffxInterface != nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "The " + getName() + " interface has already been initialized."));
+    delete ffxInterface;
     const UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
     VkDeviceContext deviceContext{
           .vkDevice=instance.device,
@@ -123,23 +124,20 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
-    FfxResource color, depth, motion, output, tcMask, reactiveMask, opaqueColor;
+    FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
-    tcMask.resource = VK_NULL_HANDLE;
-    if (failure(VulkanGetResource(tcMask, Plugin::ImageID::TcMask)))
-        Upscaler::resetStatus();
     if (settings.autoReactive) {
         RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
 
-    // RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
@@ -170,15 +168,15 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .motionVectors              = motion,
       .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = tcMask,
+      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .output                     = output,
       .jitterOffset               = {
             settings.jitter.x,
             settings.jitter.y
       },
       .motionVectorScale = {
-            -static_cast<float>(color.description.width),
-            -static_cast<float>(color.description.height)
+            -static_cast<float>(motion.description.width),
+            -static_cast<float>(motion.description.height)
       },
       .renderSize = {
             color.description.width,
@@ -210,7 +208,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
 
 #    ifdef ENABLE_DX12
 Upscaler::Status FSR2::DX12Initialize() {
-    RETURN_ON_FAILURE(setStatusIf(ffxInterface != nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "The " + getName() + " interface has already been initialized."));
+    delete ffxInterface;
     device                      = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
     const size_t bufferSize     = ffxGetScratchMemorySizeDX12(1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
@@ -229,7 +227,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ID3D12Resource*           image            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
-    RETURN_ON_FAILURE(setStatusIf(image.image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `nullptr` image."));
+    RETURN_ON_FAILURE(setStatusIf(image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 
     const FfxResourceDescription description {
@@ -247,23 +245,20 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
 }
 
 Upscaler::Status FSR2::DX12Evaluate() {
-    FfxResource color, depth, motion, output, tcMask, reactiveMask, opaqueColor;
+    FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(DX12GetResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::OutputColor));
-    tcMask.resource = nullptr;
-    if (failure(DX12GetResource(tcMask, Plugin::ImageID::TcMask)))
-        Upscaler::resetStatus();
     if (settings.autoReactive) {
         RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
 
-    // RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     UnityGraphicsD3D12RecordingState state{};
     DX12::getGraphicsInterface()->CommandRecordingState(&state);
@@ -293,15 +288,15 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .motionVectors              = motion,
       .exposure                   = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = tcMask,
+      .transparencyAndComposition = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .output                     = output,
       .jitterOffset               = {
            settings.jitter.x,
            settings.jitter.y
       },
       .motionVectorScale = {
-          -static_cast<float>(color.description.width),
-          -static_cast<float>(color.description.height)
+          -static_cast<float>(motion.description.width),
+          -static_cast<float>(motion.description.height)
       },
       .renderSize = {
           color.description.width,
@@ -461,14 +456,19 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
 }
 
 Upscaler::Status FSR2::initialize() {
-    if (ffxInterface == nullptr)
-        return (this->*fpInitialize)();
+    if (ffxInterface == nullptr) {
+        RETURN_ON_FAILURE((this->*fpInitialize)());
+        ++users;
+    }
     return SUCCESS;
 }
 
 Upscaler::Status FSR2::create() {
-    if (context != nullptr)
+    RETURN_ON_FAILURE(setStatusIf(ffxInterface == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Tried to create " + getName() + " context without a valid interface."));
+    if (context != nullptr) {
+        ++users;  // Corrected by `shutdown()`. Also prevents the interface from being destroyed.
         RETURN_ON_FAILURE(shutdown());
+    }
     // clang-format off
     const FfxFsr2ContextDescription description{
       .flags =
@@ -478,6 +478,7 @@ Upscaler::Status FSR2::create() {
         static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
+        static_cast<unsigned>(FFX_FSR2_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) |
         (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
@@ -502,6 +503,12 @@ Upscaler::Status FSR2::shutdown() {
     if (context != nullptr) {
         RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(context), "Failed to destroy the " + getName() + " context."));
         delete context;
+        context = nullptr;
+    }
+    if (ffxInterface != nullptr && --users == 0) {
+        operator delete(ffxInterface->scratchBuffer, ffxInterface->scratchBufferSize);
+        delete ffxInterface;
+        ffxInterface = nullptr;
     }
     return SUCCESS;
 }

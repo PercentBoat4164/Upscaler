@@ -82,7 +82,7 @@ endfunction ()
 ConiferFilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with support for ${FINAL_STRING}.")
-ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3" "ENABLE_DLSS;ENABLE_FSR2" FILTERED_LIST)
+ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 2" "ENABLE_DLSS;ENABLE_FSR2" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with ${FINAL_STRING}.")
 

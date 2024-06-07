@@ -6,6 +6,7 @@
 #    include <ffx_fsr2.h>
 
 class FSR2 final : public Upscaler {
+    static uint32_t         users;
     static FfxInterface*    ffxInterface;
     FfxFsr2Context*         context{};
     FfxDevice               device{};

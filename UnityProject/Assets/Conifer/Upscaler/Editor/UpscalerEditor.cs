@@ -96,7 +96,8 @@ namespace Conifer.Upscaler.Editor
             newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
-                    "non-None upscalers."), newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
+                    "non-None upscalers. Greyed out options are not available for this upscaler."),
+                newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
 
             if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscaler.MaxRenderScale, upscaler.MinRenderScale))
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
@@ -110,11 +111,7 @@ namespace Conifer.Upscaler.Editor
                     if (newSettings.upscaler != Settings.Upscaler.DeepLearningSuperSampling)
                     {
                         newSettings.sharpness = EditorGUILayout.Slider(
-                            new GUIContent("Sharpness",
-                                "The amount of sharpening that DLSS should apply to the image.\n" +
-                                "\nNote: This only works if DLSS is the the active Upscaler.\n" +
-                                "\nNote: This feature is deprecated. NVIDIA suggests shipping your own sharpening solution."
-                            ), newSettings.sharpness, 0f, 1f);
+                            new GUIContent("Sharpness"), newSettings.sharpness, 0f, 1f);
                         newSettings.useReactiveMask = EditorGUILayout.Toggle("Use Reactive Mask", newSettings.useReactiveMask);
                         if (newSettings.useReactiveMask)
                         {
@@ -126,14 +123,7 @@ namespace Conifer.Upscaler.Editor
                     }
                     else
                         newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
-                            new GUIContent("DLSS Preset",
-                                "For most applications this can be left at Default.\n" +
-                                "Use presets when DLSS does not work well with your application by default.\n" +
-                                "\nUse 'Default' for the default behaviour.\n" +
-                                "\nUse 'Stable' if your application tends to move the contents of the screen slowly. It prefers to keep information from previous frames.\n" +
-                                "\nUse 'Fast Paced' if your application tends to move the contents of the screen quickly. It prefers to use information from the current frame.\n" +
-                                "\nUse 'Anti Ghosting' if your application fails to provide all of the necessary motion vectors to DLSS."
-                            ), newSettings.DLSSpreset);
+                            new GUIContent("DLSS Preset"), newSettings.DLSSpreset);
                 }
 
                 _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
