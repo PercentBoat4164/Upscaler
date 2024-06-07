@@ -31,7 +31,7 @@ cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support. Value is only re
 # At least one upscaler must be enabled.
 cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT APPLE" OFF)
 option(ENABLE_FSR2 "Compiles with FSR2 support." ON)
-option(ENABLE_XESS "Compiles with XeSS support." ON)
+cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
 
 if (ENABLE_DLSS)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
