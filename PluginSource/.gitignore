@@ -1,4 +1,5 @@
 # For legal reasons
-nvngx_dlss_sdk
+DLSS-*
+XeSS_SDK-*
 # Project exclude paths
 *-build-*

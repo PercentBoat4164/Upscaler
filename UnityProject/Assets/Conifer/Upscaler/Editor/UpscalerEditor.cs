@@ -105,30 +105,56 @@ namespace Conifer.Upscaler.Editor
             if (newSettings.upscaler != Settings.Upscaler.None)
             {
                 EditorGUI.indentLevel += 1;
-                _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Settings");
-                if (_advancedSettingsFoldout)
+                if (newSettings.upscaler != Settings.Upscaler.XeSuperSampling)
                 {
-                    if (newSettings.upscaler != Settings.Upscaler.DeepLearningSuperSampling)
+                    _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Settings");
+                    if (_advancedSettingsFoldout)
                     {
-                        newSettings.sharpness = EditorGUILayout.Slider(
-                            new GUIContent("Sharpness"), newSettings.sharpness, 0f, 1f);
-                        newSettings.useReactiveMask = EditorGUILayout.Toggle("Use Reactive Mask", newSettings.useReactiveMask);
-                        if (newSettings.useReactiveMask)
+                        switch (newSettings.upscaler)
                         {
-                            newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold", newSettings.tcThreshold, 0, 1.0f);
-                            newSettings.tcScale = EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
-                            newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", newSettings.reactiveScale, 0, 10.0f);
-                            newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max", newSettings.reactiveMax, 0, 1.0f);
+                            case Settings.Upscaler.FidelityFXSuperResolution2:
+                            {
+                                newSettings.sharpness = EditorGUILayout.Slider(
+                                    new GUIContent("Sharpness"), newSettings.sharpness, 0f, 1f);
+                                newSettings.useReactiveMask =
+                                    EditorGUILayout.Toggle("Use Reactive Mask", newSettings.useReactiveMask);
+                                if (newSettings.useReactiveMask)
+                                {
+                                    newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold",
+                                        newSettings.tcThreshold, 0, 1.0f);
+                                    newSettings.tcScale =
+                                        EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
+                                    newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale",
+                                        newSettings.reactiveScale, 0, 10.0f);
+                                    newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max",
+                                        newSettings.reactiveMax, 0, 1.0f);
+                                }
+                                break;
+                            }
+                            case Settings.Upscaler.DeepLearningSuperSampling:
+                                newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
+                                    new GUIContent("DLSS Preset"), newSettings.DLSSpreset);
+                                break;
+                            case Settings.Upscaler.None: break;
+                            case Settings.Upscaler.XeSuperSampling: break;
+                            default: break;
                         }
                     }
-                    else
-                        newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
-                            new GUIContent("DLSS Preset"), newSettings.DLSSpreset);
                 }
 
                 _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
                 if (_debugSettingsFoldout)
-                    newSettings.showRenderingAreaOverlay = EditorGUILayout.Toggle(new GUIContent("Overlay Rendering Area", "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."), newSettings.showRenderingAreaOverlay);
+                {
+                    upscaler.showRenderingAreaOverlay = EditorGUILayout.Toggle(
+                        new GUIContent("Overlay Rendering Area",
+                            "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),
+                        upscaler.showRenderingAreaOverlay);
+                    upscaler.forceHistoryResetEveryFrame = EditorGUILayout.Toggle(
+                        new GUIContent("Force History Reset",
+                            "Forces the active upscaler to ignore it's internal history buffer."),
+                        upscaler.forceHistoryResetEveryFrame);
+                }
+
                 EditorGUI.indentLevel -= 1;
             }
 

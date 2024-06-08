@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.0.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 using System;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -39,7 +44,9 @@ namespace Conifer.Upscaler
             /// NVIDIA's Deep Learning Super Sampling upscaler.
             DeepLearningSuperSampling,
             /// AMD's FidelityFX Super Resolution upscaler.
-            FidelityFXSuperResolution2
+            FidelityFXSuperResolution2,
+            /// Intel's Xe Super Sampling upscaler.
+            XeSuperSampling
         }
 
         /**
@@ -48,10 +55,14 @@ namespace Conifer.Upscaler
         [Serializable]
         public enum Quality
         {
-            /// Automatically choose another <see cref="Settings.Quality"/> mode based on output resolution.
+            /// Automatically choose another <see cref="Settings.Quality"/> mode based on output resolution. Available to all <see cref="Upscaler"/>s.
             Auto,
             /// Render at native resolution and use the <see cref="Settings.Upscaler"/> for antialiasing.
             AntiAliasing,
+            /// Recommended for extremely low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            UltraQualityPlus,
+            /// Recommended for very low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            UltraQuality,
             /// Recommended for lower resolution outputs.
             Quality,
             /// Recommended in most scenarios.
@@ -132,8 +143,6 @@ namespace Conifer.Upscaler
         public float reactiveScale = 5.0f;
         /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float reactiveMax = 0.9f;
-        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
-        public bool showRenderingAreaOverlay;
         internal static float FrameTime => Time.deltaTime * 1000;
 
         /**
@@ -141,14 +150,14 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax, showRenderingAreaOverlay = showRenderingAreaOverlay };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax };
 
         public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || DLSSpreset != other.DLSSpreset;
     }
 
     /**
-     * The unified interface used to interact with the different <see cref="Settings.Upscaler"/>s. It may only be put on a
-     * <see cref="UnityEngine.Camera"/> object.
+     * The unified interface used to interact with the different <see cref="Settings.Upscaler"/>s. It may only be put on
+     * a <see cref="UnityEngine.Camera"/> object.
      */
     [RequireComponent(typeof(Camera))]
     public class Upscaler : MonoBehaviour
@@ -225,9 +234,9 @@ namespace Conifer.Upscaler
          *
          * <returns><c>true</c> if the <see cref="Status"/> is success-y and <c>false</c> if not.</returns>
          *
-         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/> and <see cref="Status.NoUpscalerSet"/>.
-         * Being a <see cref="Success"/> <see cref="Status"/> means that the <see cref="Settings.Upscaler"/> in question
-         * is usable in its current state.</remarks>
+         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/> and
+         * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Success"/> <see cref="Status"/> means that the
+         * <see cref="Settings.Upscaler"/> in question is usable in its current state.</remarks>
          */
         public static bool Success(Status status) => status <= Status.NoUpscalerSet;
 
@@ -258,6 +267,12 @@ namespace Conifer.Upscaler
          * </remarks>
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
+
+        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
+        public bool showRenderingAreaOverlay;
+
+        /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame.
+        public bool forceHistoryResetEveryFrame;
 
         private Camera _camera;
         private bool _hdr;
@@ -384,8 +399,8 @@ namespace Conifer.Upscaler
         /**
          * <summary>Check if the <c>GfxPluginUpscaler</c> shared library has been loaded.</summary>
          *
-         * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c> if it
-         * has not been.</returns>
+         * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c>
+         * if it has not been.</returns>
          *
          * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
          */
@@ -415,8 +430,8 @@ namespace Conifer.Upscaler
          * <remarks>This method is very slow when the <see cref="Settings"/> have changed, or if force is set to
          * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/>,
          * <see cref="RenderingResolution"/>, <see cref="MaxRenderScale"/>, and <see cref="MinRenderScale"/> based on
-         * queries of the new <see cref="Settings.Upscaler"/>. It then sets the internal <see cref="Settings"/> variable
-         * to a copy of <paramref name="newSettings"/>.</remarks>
+         * queries of the new <see cref="Settings.Upscaler"/>. It then resets the camera's projection matrix and sets
+         * the internal <see cref="Settings"/> variable to a copy of <paramref name="newSettings"/>.</remarks>
          *
          * <example><code>upscaler.ApplySettings(settings);</code></example>
          */
@@ -480,6 +495,8 @@ namespace Conifer.Upscaler
 
             if (settings.upscaler == Settings.Upscaler.None) return;
 
+            if (forceHistoryResetEveryFrame) ResetHistory();
+
             status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
             RenderingResolution = Vector2Int.Min(NativeInterface.GetMaximumResolution().ToVector2Int(), Vector2Int.Max(NativeInterface.GetMinimumResolution().ToVector2Int(), RenderingResolution));
@@ -487,17 +504,17 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = -NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
-                projectionMatrix.m03 += -clipSpaceJitter.x;
-                projectionMatrix.m13 += -clipSpaceJitter.y;
+                projectionMatrix.m03 += clipSpaceJitter.x;
+                projectionMatrix.m13 += clipSpaceJitter.y;
             }
             else
             {
-                projectionMatrix.m02 += clipSpaceJitter.x;
-                projectionMatrix.m12 += clipSpaceJitter.y;
+                projectionMatrix.m02 += -clipSpaceJitter.x;
+                projectionMatrix.m12 += -clipSpaceJitter.y;
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
@@ -507,8 +524,13 @@ namespace Conifer.Upscaler
 
         private void OnGUI()
         {
-            if (settings.upscaler != Settings.Upscaler.None && settings.showRenderingAreaOverlay)
-                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y), "Rendering Area");
+            if (settings.upscaler != Settings.Upscaler.None && showRenderingAreaOverlay)
+            {
+                var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
+                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y),
+                    scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
+                    +"% of total pixels rendered");
+            }
         }
     }
 }

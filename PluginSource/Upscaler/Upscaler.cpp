@@ -4,6 +4,7 @@
 #include "FSR2.hpp"
 #include "GraphicsAPI/GraphicsAPI.hpp"
 #include "NoUpscaler.hpp"
+#include "XeSS.hpp"
 
 #include <memory>
 #include <utility>
@@ -29,10 +30,6 @@ std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::ve
     for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
         requestedExtensions.push_back(extension);
 #    endif
-#    ifdef ENABLE_FSR2
-    for (auto& extension : FSR2::requestVulkanInstanceExtensions(supportedExtensions))
-        requestedExtensions.push_back(extension);
-#    endif
     return requestedExtensions;
 }
 
@@ -40,10 +37,6 @@ std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance inst
     std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions);
 #    ifdef ENABLE_DLSS
     for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
-        requestedExtensions.push_back(extension);
-#    endif
-#    ifdef ENABLE_FSR2
-    for (auto& extension : FSR2::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
         requestedExtensions.push_back(extension);
 #    endif
     return requestedExtensions;
@@ -59,6 +52,9 @@ bool Upscaler::isSupported(const Type type) {
 #ifdef ENABLE_FSR2
         case FSR2: return FSR2::isSupported();
 #endif
+#ifdef ENABLE_XESS
+        case XESS: return XeSS::isSupported();
+#endif
         case TYPE_MAX_ENUM: return false;
     }
     return false;
@@ -73,24 +69,28 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
 #ifdef ENABLE_FSR2
         case FSR2: return FSR2::isSupported(mode);
 #endif
+#ifdef ENABLE_XESS
+        case XESS: return XeSS::isSupported(mode);
+#endif
         case TYPE_MAX_ENUM: return false;
     }
     return false;
 }
 
 std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
-    std::unique_ptr<Upscaler> newUpscaler;
     switch (type) {
-        case NONE: newUpscaler = std::make_unique<NoUpscaler>(); break;
+        case NONE: return std::make_unique<NoUpscaler>(); break;
 #ifdef ENABLE_DLSS
-        case DLSS: newUpscaler = std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
+        case DLSS: return std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
 #endif
 #ifdef ENABLE_FSR2
-        case FSR2: newUpscaler = std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
+        case FSR2: return std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
 #endif
-        default: newUpscaler = std::make_unique<NoUpscaler>(); break;
+#ifdef ENABLE_XESS
+        case XESS: return std::make_unique<XeSS>(GraphicsAPI::getType());
+#endif
+        default: return std::make_unique<NoUpscaler>(); break;
     }
-    return newUpscaler;
 }
 
 void Upscaler::setLogCallback(void (*pFunction)(const char*)) {

@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.0.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 #if UPSCALER_USE_URP
 using System;
 using System.Reflection;
