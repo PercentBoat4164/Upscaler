@@ -524,13 +524,11 @@ namespace Conifer.Upscaler
 
         private void OnGUI()
         {
-            if (settings.upscaler != Settings.Upscaler.None && showRenderingAreaOverlay)
-            {
-                var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
-                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y),
-                    scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
-                    +"% of total pixels rendered");
-            }
+            if (settings.upscaler == Settings.Upscaler.None || !showRenderingAreaOverlay) return;
+            var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
+            GUI.Box(new Rect(0, OutputResolution.y - RenderingResolution.y, RenderingResolution.x, RenderingResolution.y),
+                scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
+                +"% of total pixels rendered");
         }
     }
 }

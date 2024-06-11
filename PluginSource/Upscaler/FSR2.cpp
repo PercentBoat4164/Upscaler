@@ -448,7 +448,6 @@ Upscaler::Status FSR2::create() {
         static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
         static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) |
         (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},

@@ -600,6 +600,7 @@ Upscaler::Status DLSS::create() {
       .InFeatureCreateFlags = static_cast<NVSDK_NGX_DLSS_Feature_Flags>(
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
+        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
         (settings.hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
       ),
       .InEnableOutputSubrects = false,

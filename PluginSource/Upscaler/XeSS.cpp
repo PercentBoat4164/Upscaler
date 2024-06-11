@@ -30,7 +30,6 @@ Upscaler::Status XeSS::DX12Create() {
         .initFlags =
             static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
             static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
-            static_cast<uint32_t>(XESS_INIT_FLAG_HIGH_RES_MV) |
             (settings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
     RETURN_ON_FAILURE(setStatus(xessD3D12Init(context, &params), "Failed to initialize the " + getName() + " context."));
