@@ -10,15 +10,11 @@
 using System;
 using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Rendering;
-#if UPSCALER_USE_URP
-using UnityEngine.Rendering.Universal;
-#endif
 
 namespace Conifer.Upscaler
 {
     /**
-     * <summary>Holds all of the information that can be adjusted to tell Upscaler how to perform the upscaling.</summary>
+     * <summary>Holds all the information that can be adjusted to tell Upscaler how to perform the upscaling.</summary>
      *
      * <remarks>Obtain an instance of this class using <see cref="Conifer.Upscaler.Upscaler.QuerySettings"/>.
      * Check the values, or make your changes then apply them using
@@ -50,7 +46,10 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * The <see cref="Settings.Quality"/> modes that the <see cref="Settings.Upscaler"/>s support. Query support for a particular mode using <see cref="Conifer.Upscaler.Upscaler.IsSupported(Conifer.Upscaler.Settings.Quality)"/> and <see cref="Conifer.Upscaler.Upscaler.IsSupported(Conifer.Upscaler.Settings.Upscaler, Conifer.Upscaler.Settings.Quality)"/>
+         * The <see cref="Settings.Quality"/> modes that the <see cref="Settings.Upscaler"/>s support. Query support for
+         * a particular mode using
+         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Quality)"/> and
+         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Upscaler, Quality)"/>
          */
         [Serializable]
         public enum Quality
@@ -94,7 +93,7 @@ namespace Conifer.Upscaler
             private readonly int _x;
             private readonly int _y;
 
-            public Vector2Int ToVector2Int() => new() { x = _x, y = _y };
+            public Vector2Int ToVector2Int() => new() { x = Math.Max(_x, 1), y = Math.Max(_y, 1) };
 
             public Resolution(int x, int y)
             {
@@ -137,7 +136,7 @@ namespace Conifer.Upscaler
         public bool useReactiveMask;
         /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float tcThreshold = 0.05f;
-        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
+        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float tcScale = 1.0f;
         /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float reactiveScale = 5.0f;
@@ -207,7 +206,7 @@ namespace Conifer.Upscaler
             SoftwareErrorUnsupportedGraphicsAPI                = SoftwareError | (10U << ErrorCodeOffset),
             /// A generic settings level error. This is a recoverable error for the <see cref="Settings.Upscaler"/> that reports it. Try changing the settings and trying again.
             SettingsError                                      =                 (3U << ErrorTypeOffset)  | ErrorRecoverable,
-            /// The input resolution is unusable by the current <see cref="Settings.Upscaler"/>. The input resolution must fall within the bounds set by the <see cref="Settings.Upscaler"/>. Use <see cref="Upscaler.OutputResolution"/> along with <see cref="Upscaler.MinRenderScale"/> and <see cref="Upscaler.MaxRenderScale"/> to compute the lower and upper input resolution bounds respectively. See the accompanying status message for more information.
+            /// The input resolution is unusable by the current <see cref="Settings.Upscaler"/>. The input resolution must fall within the bounds set by the <see cref="Settings.Upscaler"/>. Use <see cref="Upscaler.MinRenderResolution"/> and <see cref="Upscaler.MaxRenderResolution"/> as the lower and upper input resolution bounds respectively. See the accompanying status message for more information.
             SettingsErrorInvalidInputResolution                = SettingsError | (1U << ErrorCodeOffset),
             /// The output resolution is unusable by the current <see cref="Settings.Upscaler"/>. <see cref="Settings.Upscaler.DeepLearningSuperSampling"/> requires at least a 32x32 output resolution. See the accompanying status message for more information.
             SettingsErrorInvalidOutputResolution               = SettingsError | (2U << ErrorCodeOffset),
@@ -276,7 +275,7 @@ namespace Conifer.Upscaler
 
         private Camera _camera;
         private bool _hdr;
-        private float _currentRenderScale;
+        private Vector2Int _renderResolution;
 
         internal NativeInterface NativeInterface;
         [SerializeField] internal Settings settings;
@@ -286,28 +285,35 @@ namespace Conifer.Upscaler
         /// resolution but rather adapts to whatever output resolution Unity requests.
         public Vector2Int OutputResolution { get; private set; }
 
-        /// The current resolution at which the scene is being rendered. This is determined either by dynamic
-        /// resolution, or by querying the <see cref="Settings.Upscaler"/>. It is never <c>(0, 0)</c>. When the
-        /// <see cref="Settings.Upscaler"/> has a <see cref="Status"/> error or the <see cref="Settings.Upscaler"/> is
+        /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
+        /// of <see cref="MaxRenderResolution"/> and <see cref="MinRenderResolution"/>. It is also set to the
+        /// <see cref="RecommendedRenderingResolution"/> whenever the <see cref="Settings.upscaler"/> or
+        /// <see cref="Settings.quality"/> are changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>.
+        /// When the <see cref="Settings.Upscaler"/> has a
+        /// <see cref="Status"/> error or the <see cref="Settings.Upscaler"/> is
         /// <see cref="Conifer.Upscaler.Settings.Upscaler.None"/> it will be the same as <see cref="OutputResolution"/>.
-        public Vector2Int RenderingResolution { get; private set; }
-
-        /// The largest per-axis fraction of <see cref="OutputResolution"/> that dynamic resolution is allowed to use.
-        /// It defaults to <c>1.0f</c> (1x upscaling).
-        public float MaxRenderScale { get; private set; } = 1.0f;
-
-        /// The smallest per-axis fraction of <see cref="OutputResolution"/> that dynamic resolution is allowed to use.
-        /// It defaults to <c>0.5f</c> (2x upscaling).
-        public float MinRenderScale { get; private set; } = 0.5f;
-
-        /// The current scaling that the <see cref="Settings.Upscaler"/> is performing. See <see cref="MinRenderScale"/>
-        /// and <see cref="MaxRenderScale"/> for the minimum and maximum allowed values respectively at any given time.
-        /// Attempting to set this to anything outside of that range will result in the incoming value being clamped.
-        public float CurrentRenderScale
+        public Vector2Int RenderResolution
         {
-            get => _currentRenderScale;
-            set => _currentRenderScale = Math.Clamp(value, MinRenderScale, MaxRenderScale);
+            get => _renderResolution;
+            set => _renderResolution = new Vector2Int(
+                    Math.Clamp(value.x, MinRenderResolution.x, MaxRenderResolution.x),
+                    Math.Clamp(value.y, MinRenderResolution.y, MaxRenderResolution.y)
+                );
         }
+
+        /// The recommended resolution for this quality mode as given by the selected <see cref="Settings.Upscaler"/>.
+        /// This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        public Vector2Int RecommendedRenderingResolution => NativeInterface?.GetRecommendedResolution().ToVector2Int() ?? Vector2Int.zero;
+
+        /// The maximum dynamic resolution for this quality mode as given by the selected
+        /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
+        /// enabled.
+        public Vector2Int MaxRenderResolution => NativeInterface?.GetMaximumResolution().ToVector2Int() ?? Vector2Int.zero;
+
+        /// The minimum dynamic resolution for this quality mode as given by the selected
+        /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
+        /// enabled.
+        public Vector2Int MinRenderResolution => NativeInterface?.GetMinimumResolution().ToVector2Int() ?? Vector2Int.zero;
 
         /**
          * <summary>The callback used to handle any errors that the <see cref="Settings.Upscaler"/> throws.</summary>
@@ -342,7 +348,7 @@ namespace Conifer.Upscaler
          * </code></example>
          */
         public void ResetHistory() => NativeInterface.ResetHistory();
-        
+
         /**
          * <summary>Check if an <see cref="Settings.Upscaler"/> is supported in the current environment.</summary>
          *
@@ -420,7 +426,8 @@ namespace Conifer.Upscaler
         public Settings QuerySettings() => settings is null ? new Settings() : settings.Copy();
 
         /**
-         * <summary>Push the new <see cref="Settings"/> to the <see cref="Upscaler"/>.</summary>
+         * <summary>Push the new <see cref="Settings"/> to the <see cref="Upscaler"/>. This does not need to be
+         * called when adjusting dynamic resolution. Simply change <see cref="RenderResolution"/>.</summary>
          *
          * <param name="newSettings">The new <see cref="Settings"/> to apply.</param>
          * <param name="force">Should the <see cref="Settings"/> be applied even if they are the same as before?</param>
@@ -428,9 +435,8 @@ namespace Conifer.Upscaler
          * <returns>The <see cref="Upscaler.Status"/> of the upscaler after attempting to apply settings.</returns>
          *
          * <remarks>This method is very slow when the <see cref="Settings"/> have changed, or if force is set to
-         * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/>,
-         * <see cref="RenderingResolution"/>, <see cref="MaxRenderScale"/>, and <see cref="MinRenderScale"/> based on
-         * queries of the new <see cref="Settings.Upscaler"/>. It then resets the camera's projection matrix and sets
+         * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/> and
+         * <see cref="RenderResolution"/> based on queries of the new <see cref="Settings.Upscaler"/>. It then sets
          * the internal <see cref="Settings"/> variable to a copy of <paramref name="newSettings"/>.</remarks>
          *
          * <example><code>upscaler.ApplySettings(settings);</code></example>
@@ -444,8 +450,7 @@ namespace Conifer.Upscaler
 
                 status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, newSettings.sharpness, _hdr);
                 if (Failure(status)) return status;
-
-                RenderingResolution = NativeInterface.GetRecommendedResolution().ToVector2Int();
+                if (settings.upscaler != newSettings.upscaler || settings.quality != newSettings.quality) RenderResolution = RecommendedRenderingResolution;
             }
 
             settings = newSettings.Copy();
@@ -499,12 +504,12 @@ namespace Conifer.Upscaler
 
             status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
-            RenderingResolution = Vector2Int.Min(NativeInterface.GetMaximumResolution().ToVector2Int(), Vector2Int.Max(NativeInterface.GetMinimumResolution().ToVector2Int(), RenderingResolution));
+            RenderResolution = Vector2Int.Min(NativeInterface.GetMaximumResolution().ToVector2Int(), Vector2Int.Max(NativeInterface.GetMinimumResolution().ToVector2Int(), RenderResolution));
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = NativeInterface.GetJitter(true).ToVector2() / RenderingResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter(true).ToVector2() / RenderResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
@@ -520,13 +525,13 @@ namespace Conifer.Upscaler
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
 
-        private void OnDisable() => ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale = 1f;
+        private void OnDisable() => _camera.ResetProjectionMatrix();
 
         private void OnGUI()
         {
             if (settings.upscaler == Settings.Upscaler.None || !showRenderingAreaOverlay) return;
-            var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
-            GUI.Box(new Rect(0, OutputResolution.y - RenderingResolution.y, RenderingResolution.x, RenderingResolution.y),
+            var scale = OutputResolution.x / RenderResolution.x;
+            GUI.Box(new Rect(0, OutputResolution.y - RenderResolution.y, RenderResolution.x, RenderResolution.y),
                 scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
                 +"% of total pixels rendered");
         }

@@ -2,6 +2,7 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+using System;
 using System.Linq;
 using System.Reflection;
 #if UPSCALER_USE_URP
@@ -99,7 +100,8 @@ namespace Conifer.Upscaler.Editor
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
                 newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
 
-            if (newSettings.upscaler != Settings.Upscaler.None && Equals(upscaler.MaxRenderScale, upscaler.MinRenderScale))
+            var dynamicResolutionSupported = !Equals(upscaler.MaxRenderResolution, upscaler.MinRenderResolution);
+            if (newSettings.upscaler != Settings.Upscaler.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             if (newSettings.upscaler != Settings.Upscaler.None)
@@ -153,6 +155,15 @@ namespace Conifer.Upscaler.Editor
                         new GUIContent("Force History Reset",
                             "Forces the active upscaler to ignore it's internal history buffer."),
                         upscaler.forceHistoryResetEveryFrame);
+                    if (dynamicResolutionSupported)
+                    {
+                        var resolution = EditorGUILayout.Slider(
+                            new GUIContent("Dynamic Resolution", "Sets the dynamic resolution values."),
+                            upscaler.RenderResolution.x, upscaler.MinRenderResolution.x,
+                            upscaler.MaxRenderResolution.x);
+                        upscaler.RenderResolution = new Vector2Int((int)Math.Ceiling(resolution),
+                            (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
+                    }
                 }
 
                 EditorGUI.indentLevel -= 1;

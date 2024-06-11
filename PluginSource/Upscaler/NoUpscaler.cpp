@@ -21,7 +21,11 @@ NoUpscaler::NoUpscaler() {
     (void)resetStatus();
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(Settings::Resolution /*unused*/, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
+Upscaler::Status NoUpscaler::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
+    settings.renderingResolution = resolution;
+    settings.outputResolution = resolution;
+    settings.dynamicMaximumInputResolution = resolution;
+    settings.dynamicMinimumInputResolution = resolution;
     return getStatus();
 }
 
