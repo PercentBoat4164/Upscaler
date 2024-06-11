@@ -121,30 +121,33 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanUpdateResource(motion, Plugin::ImageID::Motion));
     RETURN_ON_FAILURE(VulkanUpdateResource(output, Plugin::ImageID::OutputColor));
 
-    NVSDK_NGX_Resource_VK&     inColor = color->GetResource();
+    NVSDK_NGX_Resource_VK&     colorResource = color->GetResource();
+    const Settings::Resolution inputResolution{colorResource.Resource.ImageViewInfo.Width, colorResource.Resource.ImageViewInfo.Height};
+    NVSDK_NGX_Resource_VK&     motionResource = motion->GetResource();
+    const Settings::Resolution motionResolution{motionResource.Resource.ImageViewInfo.Width, motionResource.Resource.ImageViewInfo.Height};
 
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
       .Feature = {
-        .pInColor = &inColor,
+        .pInColor = &colorResource,
         .pInOutput = &output->GetResource(),
       },
       .pInDepth                  = &depth->GetResource(),
-      .pInMotionVectors          = &motion->GetResource(),
+      .pInMotionVectors          = &motionResource,
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
-        .Width  = inColor.Resource.ImageViewInfo.Width,
-        .Height = inColor.Resource.ImageViewInfo.Height,
+        .Width  = inputResolution.width,
+        .Height = inputResolution.height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(inColor.Resource.ImageViewInfo.Width),
-      .InMVScaleY = -static_cast<float>(inColor.Resource.ImageViewInfo.Height),
+      .InMVScaleX = -static_cast<float>(motionResolution.width),
+      .InMVScaleY = -static_cast<float>(motionResolution.height),
 #       ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #       endif
@@ -207,11 +210,13 @@ Upscaler::Status DLSS::DX12Create() {
 Upscaler::Status DLSS::DX12Evaluate() {
     ID3D12Resource* inColor = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
     const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
+    ID3D12Resource* motion = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
+    const D3D12_RESOURCE_DESC  motionDescription = motion->GetDesc();
 
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inColorDescription.Width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inColorDescription.Height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inColorDescription.Width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inColorDescription.Height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
@@ -220,7 +225,7 @@ Upscaler::Status DLSS::DX12Evaluate() {
         .pInOutput = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
       },
       .pInDepth                  = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
-      .pInMotionVectors          = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
+      .pInMotionVectors          = motion,
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
@@ -228,8 +233,8 @@ Upscaler::Status DLSS::DX12Evaluate() {
         .Height = static_cast<uint32_t>(inColorDescription.Height),
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(inColorDescription.Width),
-      .InMVScaleY = -static_cast<float>(inColorDescription.Height),
+      .InMVScaleX = -static_cast<float>(motionDescription.Width),
+      .InMVScaleY = -static_cast<float>(motionDescription.Height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -280,15 +285,20 @@ Upscaler::Status DLSS::DX11Create() {
 Upscaler::Status DLSS::DX11Evaluate() {
     ID3D11Resource*  inColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
     ID3D11Texture2D* tex     = nullptr;
-    const HRESULT    hr      = inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex));
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(hr) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC inColorDescription;
     tex->GetDesc(&inColorDescription);
 
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    // RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
+    ID3D11Resource* motion = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
+    tex                    = nullptr;
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(motion->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
+    D3D11_TEXTURE2D_DESC motionDescription;
+    tex->GetDesc(&motionDescription);
+
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inColorDescription.Width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inColorDescription.Height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inColorDescription.Width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
+    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inColorDescription.Height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
@@ -297,7 +307,7 @@ Upscaler::Status DLSS::DX11Evaluate() {
         .pInOutput = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
       },
       .pInDepth                  = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
-      .pInMotionVectors          = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
+      .pInMotionVectors          = motion,
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
@@ -305,8 +315,8 @@ Upscaler::Status DLSS::DX11Evaluate() {
         .Height = inColorDescription.Height,
       },
       .InReset    = static_cast<int>(settings.resetHistory),
-      .InMVScaleX = -static_cast<float>(inColorDescription.Width),
-      .InMVScaleY = -static_cast<float>(inColorDescription.Height),
+      .InMVScaleX = -static_cast<float>(motionDescription.Width),
+      .InMVScaleY = -static_cast<float>(motionDescription.Height),
 #ifndef NDEBUG
       .InIndicatorInvertYAxis = 1,
 #endif
@@ -385,7 +395,7 @@ void DLSS::log(const char* message, const NVSDK_NGX_Logging_Level loggingLevel, 
 std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
     uint32_t                 extensionCount{};
     std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*    extensionProperties{};
+    VkExtensionProperties*   extensionProperties{};
     NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
@@ -577,8 +587,7 @@ Upscaler::Status DLSS::initialize() {
 
 Upscaler::Status DLSS::create() {
     RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
-    if (featureHandle != nullptr)
-        RETURN_ON_FAILURE((this->*fpRelease)());
+    if (featureHandle != nullptr) RETURN_ON_FAILURE((this->*fpRelease)());
     // clang-format off
     DLSSCreateParams = {
       .Feature = {
@@ -589,9 +598,9 @@ Upscaler::Status DLSS::create() {
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
       },
       .InFeatureCreateFlags = static_cast<NVSDK_NGX_DLSS_Feature_Flags>(
-        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_DepthInverted) |
         static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_AutoExposure) |
+        static_cast<unsigned>(NVSDK_NGX_DLSS_Feature_Flags_MVLowRes) |
         (settings.hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0U)
       ),
       .InEnableOutputSubrects = false,

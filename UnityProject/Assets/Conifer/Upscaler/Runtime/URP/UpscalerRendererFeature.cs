@@ -20,6 +20,26 @@ namespace Conifer.Upscaler.URP
     [DisallowMultipleRendererFeature("Upscaler Renderer Feature")]
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
+        private static Mesh _triangle;
+        private static Material _blitMaterial;
+        private static readonly int BlitID = Shader.PropertyToID("_MainTex");
+        private static readonly Matrix4x4 Ortho = Matrix4x4.Ortho(-1, 1, 1, -1, 1, -1);
+        private static readonly Matrix4x4 LookAt = Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up);
+
+        private static void BlitDepth(CommandBuffer cb, RenderTargetIdentifier src, RenderTargetIdentifier dst)
+        {
+            cb.SetRenderTarget(dst);
+            cb.SetGlobalTexture(BlitID, src);
+            cb.SetProjectionMatrix(Ortho);
+            cb.SetViewMatrix(LookAt);
+            cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
+        }
+
+        private static RTHandle _cameraRenderResolutionColorTarget;
+        private static RTHandle _cameraRenderResolutionDepthTarget;
+        private static RTHandle _cameraOutputResolutionColorTarget;
+        private static RTHandle _cameraOutputResolutionDepthTarget;
+
         private static Upscaler _upscaler;
 
         private class SetMipBias : ScriptableRenderPass
@@ -30,9 +50,8 @@ namespace Conifer.Upscaler.URP
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                var mipBias = (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
-
                 var cb = CommandBufferPool.Get("SetMipBias");
+                var mipBias = (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
                 cb.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
@@ -41,99 +60,95 @@ namespace Conifer.Upscaler.URP
 
         private class Upscale : ScriptableRenderPass
         {
-            private static readonly Matrix4x4 Ortho = Matrix4x4.Ortho(-1, 1, 1, -1, 1, -1);
-            private static readonly Matrix4x4 LookAt = Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up);
-            private static RTHandle _outputColor;
-            private static RTHandle _outputDepth;
-            private static RTHandle _inputDepth;
-            private static RTHandle _reactiveMask;
-            private static Mesh _triangle;
-            private static Material _blitMaterial;
+            private static readonly int GlobalMipBias = Shader.PropertyToID("_GlobalMipBias");
             private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
             private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
-            private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
-            private static readonly int BlitID = Shader.PropertyToID("_MainTex");
-            private static readonly FieldInfo FDescriptor = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPass")!.GetField("m_Descriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo FPostProcessPasses = typeof(UniversalRenderer).GetField("m_PostProcessPasses", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo FPostProcessPass = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.PostProcessPasses")!.GetField("m_PostProcessPass", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo FColorBufferSystem = typeof(UniversalRenderer).GetField("m_ColorBufferSystem", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly FieldInfo FDesc = typeof(UniversalRenderer).Assembly.GetType("UnityEngine.Rendering.Universal.Internal.RenderTargetBufferSystem")!.GetField("m_Desc", BindingFlags.NonPublic | BindingFlags.Static)!;
+            private static readonly int UpscalerOutput = Shader.PropertyToID("Conifer_UpscalerOutput");
+            private static readonly int UpscalerInputDepth = Shader.PropertyToID("Conifer_UpscalerInputDepth");
+            private static readonly int UpscalerReactiveMask = Shader.PropertyToID("Conifer_UpscalerReactiveMask");
+            private static readonly int UpscalerMotion = Shader.PropertyToID("UpscalerMotion");
 
             public Upscale() => renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
-            public static void Create()
+            public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                _triangle = new Mesh
-                {
-                    vertices = new Vector3[] { new(-1, -1, 0), new(3, -1, 0), new(-1, 3, 0) },
-                    uv = new Vector2[] { new(0, 1), new(2, 1), new(0, -1) },
-                    triangles = new[] { 0, 1, 2 }
-                };
-                _blitMaterial = new Material(Shader.Find("Hidden/BlitToDepth"));
+                var cameraTextureDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                cameraTextureDescriptor.width = _upscaler.RenderingResolution.x;
+                cameraTextureDescriptor.height = _upscaler.RenderingResolution.y;
+                var colorDescriptor = cameraTextureDescriptor;
+                colorDescriptor.depthStencilFormat = GraphicsFormat.None;
+                RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
+                var depthDescriptor = cameraTextureDescriptor;
+                depthDescriptor.colorFormat = RenderTextureFormat.Depth;
+                RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, name: "Conifer_CameraDepthTarget");
+                BlitDepth(cmd, Texture2D.blackTexture, _cameraRenderResolutionDepthTarget);
+
+                _cameraOutputResolutionColorTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
+                _cameraOutputResolutionDepthTarget = renderingData.cameraData.renderer.cameraDepthTargetHandle;
+                renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraRenderResolutionColorTarget, _cameraRenderResolutionDepthTarget);
+
+                var mipBias = (float)Math.Log((float)_upscaler.RenderingResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
+                cmd.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
+            }
+
+            public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
+            {
+                var outputDescriptor = cameraTextureDescriptor;
+                outputDescriptor.enableRandomWrite = true;
+                outputDescriptor.depthStencilFormat = GraphicsFormat.None;
+                cmd.GetTemporaryRT(UpscalerOutput, outputDescriptor);
+                var inputDescriptor = cameraTextureDescriptor;
+                inputDescriptor.width = _upscaler.RenderingResolution.x;
+                inputDescriptor.height = _upscaler.RenderingResolution.y;
+                inputDescriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
+                inputDescriptor.depthStencilFormat = GraphicsFormat.None;
+                cmd.GetTemporaryRT(UpscalerMotion, inputDescriptor);
+
+                if (_upscaler.settings.upscaler != Settings.Upscaler.FidelityFXSuperResolution2) return;
+
+                inputDescriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
+                inputDescriptor.depthStencilFormat = GraphicsFormat.None;
+                cmd.GetTemporaryRT(UpscalerReactiveMask, inputDescriptor);
+                inputDescriptor.graphicsFormat = GraphicsFormat.None;
+                inputDescriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
+                cmd.GetTemporaryRT(UpscalerInputDepth, inputDescriptor);
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                var cameraDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                cameraDescriptor.width = _upscaler.OutputResolution.x;
-                cameraDescriptor.height = _upscaler.OutputResolution.y;
-                var descriptor = cameraDescriptor;
-                descriptor.enableRandomWrite = true;
-                descriptor.depthStencilFormat = GraphicsFormat.None;
-                RenderingUtils.ReAllocateIfNeeded(ref _outputColor, descriptor, name: "Conifer_UpscalerOutput");
-                descriptor = cameraDescriptor;
-                descriptor.colorFormat = RenderTextureFormat.Depth;
-                RenderingUtils.ReAllocateIfNeeded(ref _outputDepth, descriptor, name: "Conifer_UpscalerDepth");
-
                 var renderer = renderingData.cameraData.renderer;
-                var depth = renderer.cameraDepthTargetHandle;
+                Texture depth = renderer.cameraDepthTargetHandle;
 
                 var cb = CommandBufferPool.Get("Upscale");
                 if (_upscaler.settings.upscaler == Settings.Upscaler.FidelityFXSuperResolution2)
                 {
-                    descriptor = cameraDescriptor;
-                    descriptor.width = _upscaler.RenderingResolution.x;
-                    descriptor.width = _upscaler.RenderingResolution.y;
-                    descriptor.graphicsFormat = GraphicsFormat.None;
-                    descriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
-                    RenderingUtils.ReAllocateIfNeeded(ref _inputDepth, descriptor, isShadowMap:true, name: "UpscalerInputDepth");
-                    descriptor = cameraDescriptor;
-                    descriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
-                    descriptor.depthStencilFormat = GraphicsFormat.None;
-                    RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, descriptor, name: "UpscalerReactiveMask");
+                    /*@todo Create an Opaque Texture if the renderer does not provide one.*/
+                    _upscaler.NativeInterface.SetReactiveImages(cb, Shader.GetGlobalTexture(UpscalerReactiveMask), Shader.GetGlobalTexture(OpaqueID));
 
-                    cb.SetRenderTarget(_inputDepth);
-                    cb.SetGlobalTexture(BlitID, depth);
-                    cb.SetProjectionMatrix(Ortho);
-                    cb.SetViewMatrix(LookAt);
-                    cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
-                    _upscaler.NativeInterface.SetReactiveImages(cb, _reactiveMask, Shader.GetGlobalTexture(OpaqueID));
-
-                    depth = _inputDepth;
-                }
-                else
-                {
-                    _reactiveMask?.Release();
-                    _inputDepth?.Release();
+                    var inputDepth = Shader.GetGlobalTexture(UpscalerInputDepth);
+                    BlitDepth(cb, depth, inputDepth);
+                    depth = inputDepth;
                 }
 
-                _upscaler.NativeInterface.Upscale(cb, renderer.cameraColorTargetHandle, depth, Shader.GetGlobalTexture(MotionID), _outputColor);
-                if (renderingData.cameraData.postProcessingRequiresDepthTexture)
-                {
-                    cb.SetRenderTarget(_outputDepth);
-                    cb.SetGlobalTexture(BlitID, depth);
-                    cb.SetProjectionMatrix(Ortho);
-                    cb.SetViewMatrix(LookAt);
-                    cb.DrawMesh(_triangle, Matrix4x4.identity, _blitMaterial);
-                    cb.SetGlobalTexture(DepthID, _outputDepth);
-                }
+                /*@todo Only create the output color if the original camera target cannot be written to from compute.*/
+                cb.Blit(Shader.GetGlobalTexture(MotionID), UpscalerMotion);
+                _upscaler.NativeInterface.Upscale(cb, _cameraRenderResolutionColorTarget, depth, Shader.GetGlobalTexture(UpscalerMotion), Shader.GetGlobalTexture(UpscalerOutput));
+                cb.CopyTexture(UpscalerOutput, _cameraOutputResolutionColorTarget);
+                BlitDepth(cb, _cameraRenderResolutionDepthTarget, _cameraOutputResolutionDepthTarget);
 
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
-                renderer.ConfigureCameraTarget(_outputColor, _outputDepth);
-                cameraDescriptor.depthStencilFormat = GraphicsFormat.None;
-                FDesc.SetValue(FColorBufferSystem.GetValue(renderer), cameraDescriptor);
-                FDescriptor.SetValue(FPostProcessPass.GetValue(FPostProcessPasses.GetValue(renderer)!)!, cameraDescriptor);
+
+                renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraOutputResolutionColorTarget, _cameraOutputResolutionDepthTarget);
+            }
+
+            public override void OnCameraCleanup(CommandBuffer cmd)
+            {
+                cmd.ReleaseTemporaryRT(UpscalerOutput);
+                cmd.ReleaseTemporaryRT(UpscalerMotion);
+                if (_upscaler.settings.upscaler != Settings.Upscaler.FidelityFXSuperResolution2) return;
+                cmd.ReleaseTemporaryRT(UpscalerReactiveMask);
+                cmd.ReleaseTemporaryRT(UpscalerInputDepth);
             }
         }
 
@@ -148,22 +163,31 @@ namespace Conifer.Upscaler.URP
         public override void Create()
         {
             name = "Upscaler";
-            Upscale.Create();
+            _triangle = new Mesh
+            {
+                vertices = new Vector3[] { new(-1, -1, 0), new(3, -1, 0), new(-1, 3, 0) },
+                uv = new Vector2[] { new(0, 1), new(2, 1), new(0, -1) },
+                triangles = new[] { 0, 1, 2 }
+            };
+            _blitMaterial = new Material(Shader.Find("Hidden/BlitToDepth"));
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game) return;
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-            if (_upscaler is null || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
+            if (_upscaler is null || !_upscaler.isActiveAndEnabled || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
 
-            var mVecData = FMotionVectorsPersistentData.GetValue(renderingData.cameraData.camera.GetUniversalAdditionalCameraData());
+            var cameraData = renderingData.cameraData.camera.GetUniversalAdditionalCameraData();
+            if (cameraData.resetHistory) _upscaler.ResetHistory();
+            var mVecData = FMotionVectorsPersistentData.GetValue(cameraData);
             var lastFrameIndex = (int[])FLastFrameIndex.GetValue(mVecData);
             lastFrameIndex[0] = Time.frameCount + 1;
             FLastFrameIndex.SetValue(mVecData, lastFrameIndex);
             FPreviousViewProjection.SetValue(mVecData, FViewProjection.GetValue(mVecData));
             FViewProjection.SetValue(mVecData, new []{GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.nonJitteredProjectionMatrix, true) * renderingData.cameraData.camera.worldToCameraMatrix});
 
+            _setMipBias.ConfigureInput(ScriptableRenderPassInput.None);
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             renderer.EnqueuePass(_setMipBias);
             renderer.EnqueuePass(_upscale);

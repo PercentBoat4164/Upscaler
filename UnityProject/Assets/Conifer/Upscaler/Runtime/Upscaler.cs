@@ -446,32 +446,10 @@ namespace Conifer.Upscaler
                 if (Failure(status)) return status;
 
                 RenderingResolution = NativeInterface.GetRecommendedResolution().ToVector2Int();
-                if (newSettings.upscaler != Settings.Upscaler.None)
-                {
-                    var resolution = NativeInterface.GetMaximumResolution().ToVector2Int();
-                    MaxRenderScale = (float)resolution.x / OutputResolution.x;
-                    resolution = NativeInterface.GetMinimumResolution().ToVector2Int();
-                    MinRenderScale = (float)resolution.x / OutputResolution.x;
-                } else {
-                    MaxRenderScale = 1f;
-                    MinRenderScale = 1f;
-                }
-                EnforceDynamicResolutionConstraints((float)RenderingResolution.x / OutputResolution.x);
-                _camera.ResetProjectionMatrix();
             }
 
             settings = newSettings.Copy();
             return status;
-        }
-
-        private void EnforceDynamicResolutionConstraints(float? scale)
-        {
-            var asset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
-            if (scale is not null) CurrentRenderScale = (float)scale;
-            else CurrentRenderScale = asset.renderScale;
-            asset.renderScale = CurrentRenderScale;
-            var resolution = (Vector2)OutputResolution * CurrentRenderScale;
-            RenderingResolution = new Vector2Int((int)resolution.x, (int)resolution.y);
         }
         
         protected void OnEnable()
@@ -480,7 +458,7 @@ namespace Conifer.Upscaler
             _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
             settings ??= new Settings();
-            NativeInterface = new NativeInterface();
+            NativeInterface ??= new NativeInterface();
 
             if (!IsSupported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
             ApplySettings(settings, true);
@@ -521,8 +499,7 @@ namespace Conifer.Upscaler
 
             status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
             if (Failure(status)) return;
-
-            EnforceDynamicResolutionConstraints(null);
+            RenderingResolution = Vector2Int.Min(NativeInterface.GetMaximumResolution().ToVector2Int(), Vector2Int.Max(NativeInterface.GetMinimumResolution().ToVector2Int(), RenderingResolution));
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
@@ -547,13 +524,11 @@ namespace Conifer.Upscaler
 
         private void OnGUI()
         {
-            if (settings.upscaler != Settings.Upscaler.None && showRenderingAreaOverlay)
-            {
-                var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
-                GUI.Box(new Rect(0, 0, RenderingResolution.x, RenderingResolution.y),
-                    scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
-                    +"% of total pixels rendered");
-            }
+            if (settings.upscaler == Settings.Upscaler.None || !showRenderingAreaOverlay) return;
+            var scale = ((UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline).renderScale;
+            GUI.Box(new Rect(0, OutputResolution.y - RenderingResolution.y, RenderingResolution.x, RenderingResolution.y),
+                scale * 100 + "% of pixels rendered per-axis\n" + 100 / (1 / scale * (1 / scale))
+                +"% of total pixels rendered");
         }
     }
 }

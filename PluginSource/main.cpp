@@ -82,7 +82,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
     if (type >= Upscaler::TYPE_MAX_ENUM) return upscaler->setStatus(Upscaler::SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE, std::to_string(type) + " is not a valid Upscaler enum value.");
-    if (upscaler->getType() != type) upscaler = Upscaler::fromType(type);
+    if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
     return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
