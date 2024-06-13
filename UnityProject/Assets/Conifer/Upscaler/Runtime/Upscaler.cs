@@ -450,7 +450,7 @@ namespace Conifer.Upscaler
 
                 status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, newSettings.sharpness, _hdr);
                 if (Failure(status)) return status;
-                if (settings.upscaler != newSettings.upscaler || settings.quality != newSettings.quality) RenderResolution = RecommendedRenderingResolution;
+                if (settings.upscaler != newSettings.upscaler || settings.quality != newSettings.quality || force) RenderResolution = RecommendedRenderingResolution;
             }
 
             settings = newSettings.Copy();

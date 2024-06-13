@@ -100,7 +100,7 @@ namespace Conifer.Upscaler.Editor
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
                 newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
 
-            var dynamicResolutionSupported = !Equals(upscaler.MaxRenderResolution, upscaler.MinRenderResolution);
+            var dynamicResolutionSupported = !Equals(upscaler.MaxRenderResolution, upscaler.MinRenderResolution) || !Application.isPlaying;
             if (newSettings.upscaler != Settings.Upscaler.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
