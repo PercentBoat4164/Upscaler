@@ -80,13 +80,13 @@ struct alignas(128) UpscalerBase {
             float verticalFOV;
         } camera;
 
-        float tcThreshold;
-        float tcScale;
-        float reactiveScale;
-        float reactiveMax;
+        float tcThreshold{};
+        float tcScale{};
+        float reactiveScale{};
+        float reactiveMax{};
         float sharpness{};
         float frameTime{};
-        bool  autoReactive;
+        bool  autoReactive{};
         bool  hdr{};
         bool  resetHistory{};
 
@@ -119,11 +119,6 @@ struct alignas(128) UpscalerBase {
             const auto  jitterSamples = static_cast<uint32_t>(std::ceil(static_cast<float>(SamplesPerPixel) * scalingFactor * scalingFactor));
             jitter                    = {x.advance(jitterSamples), y.advance(jitterSamples)};
             return jitter;
-        }
-
-        template<Type, typename>
-        [[nodiscard]] constexpr enum Quality getQuality() {
-            return static_cast<enum Quality>(-1);
         }
 
 #ifdef ENABLE_DLSS
@@ -223,7 +218,7 @@ private:
 protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /*unused*/) {
-        return setStatus(RecoverableRuntimeError, "This graphics API is not supported or graphics initialization failed: `safeFail` was called!");
+        return setStatus(RecoverableRuntimeError, "Graphics initialization failed: `safeFail` was called!");
     }
 
     template<typename... Args>

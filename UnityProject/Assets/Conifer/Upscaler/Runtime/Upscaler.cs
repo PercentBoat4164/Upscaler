@@ -10,6 +10,7 @@
 using System;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Conifer.Upscaler
 {
@@ -76,7 +77,7 @@ namespace Conifer.Upscaler
          * Passes special instructions to DLSS telling it how to deal with your application's idiosyncrasies.
          */
         [Serializable]
-        public enum DLSSPreset
+        public enum DlssPreset
         {
             /// Default DLSS behavior. Recommended in most scenarios.
             Default,
@@ -86,28 +87,6 @@ namespace Conifer.Upscaler
             FastPaced,
             /// Handles objects with missing or incorrect motion vectors best. Recommended for applications that cannot generate all required motion vectors.
             AntiGhosting,
-        }
-
-        internal readonly struct Resolution
-        {
-            private readonly int _x;
-            private readonly int _y;
-
-            public Vector2Int ToVector2Int() => new() { x = Math.Max(_x, 1), y = Math.Max(_y, 1) };
-
-            public Resolution(int x, int y)
-            {
-                _x = x;
-                _y = y;
-            }
-        }
-
-        internal readonly struct Jitter
-        {
-            private readonly float _x;
-            private readonly float _y;
-
-            public Vector2 ToVector2() => new() { x = _x, y = _y };
         }
 
         internal readonly struct CameraInfo
@@ -128,8 +107,8 @@ namespace Conifer.Upscaler
         public Quality quality;
         /// The current <see cref="Settings.Upscaler"/>. Defaults to <see cref="Settings.Upscaler.None"/>.
         public Upscaler upscaler;
-        /// The current <see cref="Settings.DLSSPreset"/>. Defaults to <see cref="Settings.DLSSPreset.Default"/>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.DeepLearningSuperSampling"/>.
-        public DLSSPreset DLSSpreset;
+        /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.DeepLearningSuperSampling"/>.
+        public DlssPreset dlssPreset;
         /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
         public float sharpness;
         /// Instructs Upscaler to set <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
@@ -149,9 +128,9 @@ namespace Conifer.Upscaler
          * 
          * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
          */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, DLSSpreset = DLSSpreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax };
+        public Settings Copy() => new() { quality = quality, upscaler = upscaler, dlssPreset = dlssPreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax };
 
-        public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || DLSSpreset != other.DLSSpreset;
+        public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || dlssPreset != other.dlssPreset;
     }
 
     /**
@@ -259,25 +238,22 @@ namespace Conifer.Upscaler
         public Vector2Int RenderResolution
         {
             get => _renderResolution;
-            set => _renderResolution = new Vector2Int(
-                    Math.Clamp(value.x, MinRenderResolution.x, MaxRenderResolution.x),
-                    Math.Clamp(value.y, MinRenderResolution.y, MaxRenderResolution.y)
-                );
+            set => _renderResolution = Vector2Int.Max(MinRenderResolution, Vector2Int.Min(MaxRenderResolution, value));
         }
 
         /// The recommended resolution for this quality mode as given by the selected <see cref="Settings.Upscaler"/>.
         /// This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int RecommendedRenderingResolution => NativeInterface?.GetRecommendedResolution().ToVector2Int() ?? Vector2Int.zero;
+        public Vector2Int RecommendedRenderingResolution => NativeInterface?.GetRecommendedResolution() ?? Vector2Int.zero;
 
         /// The maximum dynamic resolution for this quality mode as given by the selected
         /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MaxRenderResolution => NativeInterface?.GetMaximumResolution().ToVector2Int() ?? Vector2Int.zero;
+        public Vector2Int MaxRenderResolution => NativeInterface?.GetMaximumResolution() ?? Vector2Int.zero;
 
         /// The minimum dynamic resolution for this quality mode as given by the selected
         /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MinRenderResolution => NativeInterface?.GetMinimumResolution().ToVector2Int() ?? Vector2Int.zero;
+        public Vector2Int MinRenderResolution => NativeInterface?.GetMinimumResolution() ?? Vector2Int.zero;
 
         /**
          * <summary>The callback used to handle any errors that the <see cref="Settings.Upscaler"/> throws.</summary>
@@ -412,7 +388,7 @@ namespace Conifer.Upscaler
                 OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
                 _hdr = _camera.allowHDR;
 
-                status = NativeInterface.SetPerFeatureSettings(new Settings.Resolution(OutputResolution.x, OutputResolution.y), newSettings.upscaler, newSettings.DLSSpreset, newSettings.quality, newSettings.sharpness, _hdr);
+                status = NativeInterface.SetPerFeatureSettings(OutputResolution, newSettings.upscaler, newSettings.dlssPreset, newSettings.quality, newSettings.sharpness, _hdr);
                 if (Failure(status)) return status;
                 if (settings.upscaler != newSettings.upscaler || settings.quality != newSettings.quality || force) RenderResolution = RecommendedRenderingResolution;
             }
@@ -472,7 +448,7 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = NativeInterface.GetJitter(true).ToVector2() / RenderResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter(true) / RenderResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {

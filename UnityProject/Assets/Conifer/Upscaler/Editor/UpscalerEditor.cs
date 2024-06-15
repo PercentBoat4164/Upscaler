@@ -134,8 +134,8 @@ namespace Conifer.Upscaler.Editor
                                 break;
                             }
                             case Settings.Upscaler.DeepLearningSuperSampling:
-                                newSettings.DLSSpreset = (Settings.DLSSPreset)EditorGUILayout.EnumPopup(
-                                    new GUIContent("DLSS Preset"), newSettings.DLSSpreset);
+                                newSettings.dlssPreset = (Settings.DlssPreset)EditorGUILayout.EnumPopup(
+                                    new GUIContent("DLSS Preset"), newSettings.dlssPreset);
                                 break;
                             case Settings.Upscaler.None: break;
                             case Settings.Upscaler.XeSuperSampling: break;

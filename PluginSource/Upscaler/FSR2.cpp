@@ -149,7 +149,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
     //     .flags = 0
     // };
 
-    const FfxFsr2DispatchDescription dispatchDescription{
+    const FfxFsr2DispatchDescription dispatchDescription {
       .commandList                = commandList,
       .color                      = color,
       .depth                      = depth,
