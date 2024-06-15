@@ -18,20 +18,19 @@ namespace Conifer.Upscaler.Demo
         {
             if (!_upscaler) return;
 
-            var settings = _upscaler.QuerySettings();
             if (Input.GetKeyDown(KeyCode.U))
-                settings.upscaler = settings.upscaler == Settings.Upscaler.None
-                    ? Settings.Upscaler.DeepLearningSuperSampling
-                    : Settings.Upscaler.None;
+                _upscaler.technique = _upscaler.technique == Upscaler.Technique.None
+                    ? Upscaler.Technique.DeepLearningSuperSampling
+                    : Upscaler.Technique.None;
 
             if (Input.GetKeyDown(KeyCode.Q))
-                settings.quality = (Settings.Quality)(((int)settings.quality + 1) % 5);
+                _upscaler.quality = (Upscaler.Quality)(((int)_upscaler.quality + 1) % 5);
 
             if (Input.GetKeyDown(KeyCode.E))
-                settings.upscaler = (Settings.Upscaler)6;
+                _upscaler.technique = (Upscaler.Technique)6;
 
             // Does nothing if settings have not changed.
-            _upscaler.ApplySettings(settings);  // Be sure to handle errors here or have an error handler registered.
+            _upscaler.ApplySettings();  // Be sure to handle errors here or have an error handler registered.
         }
     }
 }

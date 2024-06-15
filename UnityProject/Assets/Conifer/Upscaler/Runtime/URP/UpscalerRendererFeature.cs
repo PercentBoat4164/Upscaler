@@ -104,7 +104,7 @@ namespace Conifer.Upscaler.URP
                 inputDescriptor.depthStencilFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref Motion, inputDescriptor, name: "Conifer_UpscalerMotion");
 
-                if (_upscaler.settings.upscaler != Settings.Upscaler.FidelityFXSuperResolution2) return;
+                if (_upscaler.technique != Upscaler.Technique.FidelityFXSuperResolution2) return;
 
                 inputDescriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
                 inputDescriptor.depthStencilFormat = GraphicsFormat.None;
@@ -120,7 +120,7 @@ namespace Conifer.Upscaler.URP
                 Texture depth = renderer.cameraDepthTargetHandle;
 
                 var cb = CommandBufferPool.Get("Upscale");
-                if (_upscaler.settings.upscaler == Settings.Upscaler.FidelityFXSuperResolution2)
+                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution2)
                 {
                     /*@todo Create an Opaque Texture if the renderer does not provide one.*/
                     _upscaler.NativeInterface.SetReactiveImages(cb, ReactiveMask, Shader.GetGlobalTexture(OpaqueID));
@@ -167,7 +167,7 @@ namespace Conifer.Upscaler.URP
         {
             if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game) return;
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-            if (_upscaler is null || !_upscaler.isActiveAndEnabled || _upscaler.settings.upscaler == Settings.Upscaler.None) return;
+            if (_upscaler is null || !_upscaler.isActiveAndEnabled || _upscaler.technique == Upscaler.Technique.None) return;
 
             var cameraData = renderingData.cameraData.camera.GetUniversalAdditionalCameraData();
             if (cameraData.resetHistory) _upscaler.ResetHistory();

@@ -29,10 +29,10 @@ namespace Conifer.Upscaler
         internal static extern void RegisterLogCallback(LogCallbackDelegate logCallback);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsUpscalerSupported")]
-        internal static extern bool IsSupported(Settings.Upscaler type);
+        internal static extern bool IsSupported(Upscaler.Technique type);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsQualitySupported")]
-        internal static extern bool IsSupported(Settings.Upscaler type, Settings.Quality mode);
+        internal static extern bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
         internal static extern ushort RegisterCamera();
@@ -44,7 +44,7 @@ namespace Conifer.Upscaler
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFeatureSettings")]
-        internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Settings.Upscaler upscaler, Settings.DlssPreset preset, Settings.Quality quality, float sharpness, bool hdr);
+        internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedCameraResolution")]
         internal static extern Vector2Int GetRecommendedResolution(ushort camera);
@@ -56,7 +56,7 @@ namespace Conifer.Upscaler
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        internal static extern void SetPerFrameData(ushort camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
+        internal static extern void SetPerFrameData(ushort camera, float frameTime, float sharpness, Vector3 cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
         internal static extern Vector2 GetJitter(ushort camera, bool advance);
@@ -143,18 +143,18 @@ namespace Conifer.Upscaler
             cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
         }
 
-        internal static bool IsSupported(Settings.Upscaler type) => Loaded && Native.IsSupported(type);
+        internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
 
-        internal static bool IsSupported(Settings.Upscaler type, Settings.Quality mode) => Loaded && Native.IsSupported(type, mode);
+        internal static bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode) => Loaded && Native.IsSupported(type, mode);
 
         internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
 
         internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
 
-        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Settings.Upscaler upscaler, Settings.DlssPreset preset, Settings.Quality quality, float sharpness, bool hdr)
+        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr)
         {
             if (!Loaded) return Upscaler.Status.FatalRuntimeError;
-            var status = Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, sharpness, hdr);
+            var status = Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr);
             if (Upscaler.Failure(status)) return status;
             Graphics.ExecuteCommandBuffer(_prepareCommandBuffer);
             return GetStatus();
@@ -166,7 +166,7 @@ namespace Conifer.Upscaler
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal void SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax)
+        internal void SetPerFrameData(float frameTime, float sharpness, Vector3 cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax)
         {
             if (Loaded) Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo, autoReactive, tcThreshold, tcScale, reactiveScale, reactiveMax);
         }

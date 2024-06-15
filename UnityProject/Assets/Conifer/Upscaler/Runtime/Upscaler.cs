@@ -15,28 +15,19 @@ using UnityEngine.Serialization;
 namespace Conifer.Upscaler
 {
     /**
-     * <summary>Holds all the information that can be adjusted to tell Upscaler how to perform the upscaling.</summary>
-     *
-     * <remarks>Obtain an instance of this class using <see cref="Conifer.Upscaler.Upscaler.QuerySettings"/>.
-     * Check the values, or make your changes then apply them using
-     * <see cref="Conifer.Upscaler.Upscaler.ApplySettings"/>.</remarks>
-     *
-     * <example><code>
-     * Settings settings = upscaler.QuerySettings();
-     * settings.upscaler = Settings.Upscaler.DeepLearningSuperSampling;
-     * upscaler.ApplySettings(settings);
-     * </code></example>
+     * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on
+     * a <see cref="UnityEngine.Camera"/> object.
      */
-    [Serializable]
-    public class Settings
+    [RequireComponent(typeof(Camera))]
+    public class Upscaler : MonoBehaviour
     {
         /**
-         * The <see cref="Settings.Upscaler"/>s that Upscaler supports.
+         * The <see cref="Technique"/>s that Upscaler supports.
          */
         [Serializable]
-        public enum Upscaler
+        public enum Technique
         {
-            /// The <see cref="None"/> <see cref="Settings.Upscaler"/>. Use this to turn off upscaling.
+            /// The <see cref="None"/> <see cref="Technique"/>. Use this to turn off upscaling.
             None,
             /// NVIDIA's Deep Learning Super Sampling upscaler.
             DeepLearningSuperSampling,
@@ -47,21 +38,21 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * The <see cref="Settings.Quality"/> modes that the <see cref="Settings.Upscaler"/>s support. Query support for
+         * The <see cref="Quality"/> modes that the <see cref="Technique"/>s support. Query support for
          * a particular mode using
          * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Quality)"/> and
-         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Upscaler, Quality)"/>
+         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Technique, Quality)"/>
          */
         [Serializable]
         public enum Quality
         {
-            /// Automatically choose another <see cref="Settings.Quality"/> mode based on output resolution. Available to all <see cref="Upscaler"/>s.
+            /// Automatically choose another <see cref="Quality"/> mode based on output resolution. Available to all <see cref="Technique"/>s.
             Auto,
-            /// Render at native resolution and use the <see cref="Settings.Upscaler"/> for antialiasing.
+            /// Render at native resolution and use the <see cref="Technique"/> for antialiasing.
             AntiAliasing,
-            /// Recommended for extremely low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            /// Recommended for extremely low resolution outputs. Only available when using the <see cref="Technique.XeSuperSampling"/> <see cref="Technique"/>.
             UltraQualityPlus,
-            /// Recommended for very low resolution outputs. Only available when using the <see cref="Upscaler.XeSuperSampling"/> <see cref="Upscaler"/>.
+            /// Recommended for very low resolution outputs. Only available when using the <see cref="Technique.XeSuperSampling"/> <see cref="Technique"/>.
             UltraQuality,
             /// Recommended for lower resolution outputs.
             Quality,
@@ -89,77 +80,26 @@ namespace Conifer.Upscaler
             AntiGhosting,
         }
 
-        internal readonly struct CameraInfo
-        {
-            public CameraInfo(Camera camera)
-            {
-                _farPlane = camera.farClipPlane;
-                _nearPlane = camera.nearClipPlane;
-                _verticalFOV = camera.fieldOfView;
-            }
-
-            private readonly float _farPlane;
-            private readonly float _nearPlane;
-            private readonly float _verticalFOV;
-        }
-
-        /// The current <see cref="Settings.Quality"/> mode. Defaults to <see cref="Settings.Quality.Auto"/>.
-        public Quality quality;
-        /// The current <see cref="Settings.Upscaler"/>. Defaults to <see cref="Settings.Upscaler.None"/>.
-        public Upscaler upscaler;
-        /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.DeepLearningSuperSampling"/>.
-        public DlssPreset dlssPreset;
-        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public float sharpness;
-        /// Instructs Upscaler to set <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public bool useReactiveMask;
-        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public float tcThreshold = 0.05f;
-        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public float tcScale = 1.0f;
-        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public float reactiveScale = 5.0f;
-        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="Settings.upscaler"/> is <see cref="Settings.Upscaler.FidelityFXSuperResolution2"/>.
-        public float reactiveMax = 0.9f;
-        internal static float FrameTime => Time.deltaTime * 1000;
-
-        /**
-         * <summary>Copies all values into a new instance.</summary>
-         * 
-         * <returns>A deep copy of this <see cref="Settings"/> object.</returns>
-         */
-        public Settings Copy() => new() { quality = quality, upscaler = upscaler, dlssPreset = dlssPreset, sharpness = sharpness, useReactiveMask = useReactiveMask, tcThreshold = tcThreshold, tcScale = tcScale, reactiveScale = reactiveScale, reactiveMax = reactiveMax };
-
-        public bool RequiresUpdateFrom(Settings other) => quality != other.quality || upscaler != other.upscaler || dlssPreset != other.dlssPreset;
-    }
-
-    /**
-     * The unified interface used to interact with the different <see cref="Settings.Upscaler"/>s. It may only be put on
-     * a <see cref="UnityEngine.Camera"/> object.
-     */
-    [RequireComponent(typeof(Camera))]
-    public class Upscaler : MonoBehaviour
-    {
         private const byte ErrorRecoverable = 1 << 7;
 
         /**
-         * The possible <see cref="Status"/> values that can be reported by an <see cref="Settings.Upscaler"/>. See
-         * <see cref="Upscaler.Success"/>, <see cref="Upscaler.Failure"/>, and <see cref="Upscaler.Recoverable"/> to
+         * The possible <see cref="Status"/> values that can be reported by an <see cref="Technique"/>. See
+         * <see cref="Success"/>, <see cref="Failure"/>, and <see cref="Recoverable"/> to
          * extract information from a particular <see cref="Status"/>.
          */
         public enum Status : byte
         {
-            /// The success signal sent by non-<see cref="Settings.Upscaler.None"/> <see cref="Settings.Upscaler"/>s.
+            /// The success signal sent by non-<see cref="Technique.None"/> <see cref="Technique"/>s.
             Success                     = 0 | ErrorRecoverable,
-            /// The GPU does not support the <see cref="Settings.Upscaler"/> that reports this. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            /// The GPU does not support the <see cref="Technique"/> that reports this. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             DeviceNotSupported          = 1,
-            /// The GPU drivers are out of date. Tell the user to update them. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            /// The GPU drivers are out of date. Tell the user to update them. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             DriversOutOfDate            = 2,
-            /// The current <see cref="Settings.Upscaler"/> does not support the current Graphics API. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            /// The current <see cref="Technique"/> does not support the current Graphics API. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             UnsupportedGraphicsApi      = 3,
-            /// This operating system is not supported. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            /// This operating system is not supported. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             OperatingSystemNotSupported = 4,
-            /// NVIDIA has denied this application the <see cref="Settings.Upscaler.DeepLearningSuperSampling"/> feature. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            /// NVIDIA has denied this application the <see cref="Technique.DeepLearningSuperSampling"/> feature. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             FeatureDenied               = 5,
             /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory then try again.
             OutOfMemory                 = 6 | ErrorRecoverable,
@@ -176,9 +116,9 @@ namespace Conifer.Upscaler
          *
          * <returns><c>true</c> if the <see cref="Status"/> is success-y and <c>false</c> if not.</returns>
          *
-         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/> and
-         * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Success"/> <see cref="Status"/> means that the
-         * <see cref="Settings.Upscaler"/> in question is usable in its current state.</remarks>
+         * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/>. Being a <see cref="Success"/>
+         * <see cref="Status"/> means that the <see cref="Technique"/> in question is usable in its current state.
+         * </remarks>
          */
         public static bool Success(Status status) => status == Status.Success;
 
@@ -190,7 +130,7 @@ namespace Conifer.Upscaler
          * <returns><c>true</c> if the <see cref="Status"/> is an error and <c>false</c> if not.</returns>
          *
          * <remarks>This returns <c>true</c> for all <see cref="Status"/>es that are not <see cref="Status.Success"/>.
-         * Being a <see cref="Failure"/> <see cref="Status"/> means that the <see cref="Settings.Upscaler"/> in question
+         * Being a <see cref="Failure"/> <see cref="Status"/> means that the <see cref="Technique"/> in question
          * is not usable in its current state. See <see cref="Recoverable"/> to determine if fixing the problem is
          * possible.</remarks>
          */
@@ -204,8 +144,8 @@ namespace Conifer.Upscaler
          * <returns><c>true</c> if the <see cref="Status"/> is recoverable and <c>false</c> if not.</returns>
          *
          * <remarks><see cref="Success"/> <see cref="Status"/>es are not recoverable. Being <see cref="Recoverable"/>
-         * means that it is possible to put the <see cref="Settings.Upscaler"/> back into a <see cref="Success"/> state.
-         * Non-recoverable <see cref="Status"/>es are fatal for the <see cref="Settings.Upscaler"/> that reports them.
+         * means that it is possible to put the <see cref="Technique"/> back into a <see cref="Success"/> state.
+         * Non-recoverable <see cref="Status"/>es are fatal for the <see cref="Technique"/> that reports them.
          * </remarks>
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
@@ -218,10 +158,8 @@ namespace Conifer.Upscaler
 
         private Camera _camera;
         private bool _hdr;
-        private Vector2Int _renderResolution;
 
         internal NativeInterface NativeInterface;
-        [SerializeField] internal Settings settings;
 
         /// The current output resolution. This will be updated to match the <see cref="UnityEngine.Camera"/>'s
         /// <see cref="UnityEngine.Camera.pixelRect"/> whenever it resizes. Upscaler does not control the output
@@ -230,54 +168,76 @@ namespace Conifer.Upscaler
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxRenderResolution"/> and <see cref="MinRenderResolution"/>. It is also set to the
-        /// <see cref="RecommendedRenderingResolution"/> whenever the <see cref="Settings.upscaler"/> or
-        /// <see cref="Settings.quality"/> are changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>.
-        /// When the <see cref="Settings.Upscaler"/> has a
-        /// <see cref="Status"/> error or the <see cref="Settings.Upscaler"/> is
-        /// <see cref="Conifer.Upscaler.Settings.Upscaler.None"/> it will be the same as <see cref="OutputResolution"/>.
+        /// <see cref="RecommendedRenderingResolution"/> whenever the <see cref="technique"/> or
+        /// <see cref="quality"/> are changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>.
+        /// When the <see cref="Technique"/> has a
+        /// <see cref="Status"/> error or the <see cref="Technique"/> is
+        /// <see cref="Technique.None"/> it will be the same as <see cref="OutputResolution"/>.
         public Vector2Int RenderResolution
         {
             get => _renderResolution;
             set => _renderResolution = Vector2Int.Max(MinRenderResolution, Vector2Int.Min(MaxRenderResolution, value));
         }
+        private Vector2Int _renderResolution;
 
-        /// The recommended resolution for this quality mode as given by the selected <see cref="Settings.Upscaler"/>.
+        /// The recommended resolution for this quality mode as given by the selected <see cref="Technique"/>.
         /// This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int RecommendedRenderingResolution => NativeInterface?.GetRecommendedResolution() ?? Vector2Int.zero;
+        public Vector2Int RecommendedRenderingResolution { get; private set; }
 
         /// The maximum dynamic resolution for this quality mode as given by the selected
-        /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MaxRenderResolution => NativeInterface?.GetMaximumResolution() ?? Vector2Int.zero;
+        public Vector2Int MaxRenderResolution { get; private set; }
 
         /// The minimum dynamic resolution for this quality mode as given by the selected
-        /// <see cref="Settings.Upscaler"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MinRenderResolution => NativeInterface?.GetMinimumResolution() ?? Vector2Int.zero;
+        public Vector2Int MinRenderResolution { get; private set; }
 
         /**
-         * <summary>The callback used to handle any errors that the <see cref="Settings.Upscaler"/> throws.</summary>
+         * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws.</summary>
          *
-         * <param name="Status">The <see cref="Status"/> that the <see cref="Settings.Upscaler"/> errored with.</param>
+         * <param name="Status">The <see cref="Status"/> that the <see cref="Technique"/> errored with.</param>
          * <param name="string">A plain English message describing the nature of the issue.</param>
          *
          * <remarks>This callback is only ever called if an error occurs. When that happens it will be called from the
          * <see cref="Update"/> method during the next frame. If this callback fails to bring the
-         * <see cref="Settings.Upscaler"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the
-         * default error handler will reset the current <see cref="Settings.Upscaler"/> to the default
-         * <see cref="Conifer.Upscaler.Settings.Upscaler.None"/>.</remarks>
+         * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the
+         * default error handler will reset the current <see cref="Technique"/> to the default
+         * <see cref="Technique.None"/>.</remarks>
          *
          * <example><code>upscaler.ErrorCallback = (status, message) => { };</code></example>
          */
         [NonSerialized][CanBeNull] public Action<Status, string> ErrorCallback;
 
-        /// The current <see cref="Status"/> for the managed <see cref="Settings.Upscaler"/>.
-        public Status status;
+        /// The current <see cref="Status"/> for the managed <see cref="Technique"/>.
+        public Status CurrentStatus { get; private set; }
+        /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
+        public Quality quality;
+        private Quality _quality;
+        /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
+        [FormerlySerializedAs("upscaler")] public Technique technique;
+        private Technique _technique;
+        /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
+        public DlssPreset dlssPreset;
+        private DlssPreset _dlssPreset;
+        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public float sharpness;
+        /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution2"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public bool useReactiveMask;
+        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public float tcThreshold = 0.05f;
+        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public float tcScale = 1.0f;
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public float reactiveScale = 5.0f;
+        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        public float reactiveMax = 0.9f;
 
         /**
-         * <summary>Tells the <see cref="Settings.Upscaler"/> to reset the pixel history this frame.</summary>
+         * <summary>Tells the <see cref="Technique"/> to reset the pixel history this frame.</summary>
          *
-         * <remarks>This method is fast. It will set a flag that tells the <see cref="Settings.Upscaler"/> to reset the
+         * <remarks>This method is fast. It will set a flag that tells the <see cref="Technique"/> to reset the
          * pixel history this frame.This flag is automatically cleared at the end of each frame. This should be only
          * called everytime there is no correlation between what the camera saw last frame and what it sees this frame.
          * </remarks>
@@ -290,57 +250,57 @@ namespace Conifer.Upscaler
         public void ResetHistory() => NativeInterface.ResetHistory();
 
         /**
-         * <summary>Check if an <see cref="Settings.Upscaler"/> is supported in the current environment.</summary>
+         * <summary>Check if an <see cref="Technique"/> is supported in the current environment.</summary>
          *
-         * <param name="type">The <see cref="Settings.Upscaler"/> to query support for.</param>
+         * <param name="type">The <see cref="Technique"/> to query support for.</param>
          *
-         * <returns><c>true</c> if the <see cref="Settings.Upscaler"/> is supported and <c>false</c> if it is not.
+         * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.
          * </returns>
          *
-         * <remarks>This method is slow the first time it is used for each <see cref="Settings.Upscaler"/>, then fast
-         * every time after that. Support for the <see cref="Settings.Upscaler"/> requested is computed then cached. Any
-         * future calls with the same <see cref="Settings.Upscaler"/> will use the cached value.</remarks>
+         * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast
+         * every time after that. Support for the <see cref="Technique"/> requested is computed then cached. Any
+         * future calls with the same <see cref="Technique"/> will use the cached value.</remarks>
          *
          * <example><code>bool DLSSSupported = Upscaler.IsSupported(Settings.Upscaler.DeepLearningSuperSampling);</code>
          * </example>
          */
-        public static bool IsSupported(Settings.Upscaler type) => NativeInterface.IsSupported(type);
+        public static bool IsSupported(Technique type) => NativeInterface.IsSupported(type);
 
         /**
-         * <summary>Check if a <see cref="Settings.Quality"/> mode is supported by a given
-         * <see cref="Settings.Upscaler"/>.</summary>
+         * <summary>Check if a <see cref="Quality"/> mode is supported by a given
+         * <see cref="Technique"/>.</summary>
          *
-         * <param name="type">The <see cref="Settings.Upscaler"/> to query.</param>
-         * <param name="mode">The <see cref="Settings.Quality"/> mode to query support for.</param>
+         * <param name="type">The <see cref="Technique"/> to query.</param>
+         * <param name="mode">The <see cref="Quality"/> mode to query support for.</param>
          *
-         * <returns><c>true</c> if the <see cref="Settings.Upscaler"/> supports the requested
-         * <see cref="Settings.Quality"/> mode and <c>false</c> if it does not.</returns>
+         * <returns><c>true</c> if the <see cref="Technique"/> supports the requested
+         * <see cref="Quality"/> mode and <c>false</c> if it does not.</returns>
          *
-         * <remarks>This method is always fast. Every non-<see cref="Settings.Upscaler.None"/>
-         * <see cref="Settings.Upscaler"/> will return <c>true</c> for the <see cref="Settings.Quality.Auto"/>
-         * <see cref="Settings.Quality"/> mode.</remarks>
+         * <remarks>This method is always fast. Every non-<see cref="Technique.None"/>
+         * <see cref="Technique"/> will return <c>true</c> for the <see cref="Quality.Auto"/>
+         * <see cref="Quality"/> mode.</remarks>
          *
          * <example><code>bool supportsAA = upscaler.IsSupported(Settings.Quality.AntiAliasing);</code></example>
          */
-        public static bool IsSupported(Settings.Upscaler type, Settings.Quality mode) => NativeInterface.IsSupported(type, mode);
+        public static bool IsSupported(Technique type, Quality mode) => NativeInterface.IsSupported(type, mode);
 
         /**
-         * <summary>Check if a <see cref="Settings.Quality"/> mode is supported by the current
-         * <see cref="Settings.Upscaler"/>.</summary>
+         * <summary>Check if a <see cref="Quality"/> mode is supported by the current
+         * <see cref="Technique"/>.</summary>
          *
-         * <param name="mode">The <see cref="Settings.Quality"/> mode to query the current
-         * <see cref="Settings.Upscaler"/> for support of.</param>
+         * <param name="mode">The <see cref="Quality"/> mode to query the current
+         * <see cref="Technique"/> for support of.</param>
          *
-         * <returns><c>true</c> if the current <see cref="Settings.Upscaler"/> supports the requested
-         * <see cref="Settings.Quality"/> mode and <c>false</c> if it does not.</returns>
+         * <returns><c>true</c> if the current <see cref="Technique"/> supports the requested
+         * <see cref="Quality"/> mode and <c>false</c> if it does not.</returns>
          *
          * <remarks>This method is always fast. This is a convenience method for
-         * <see cref="IsSupported(Conifer.Upscaler.Settings.Upscaler, Conifer.Upscaler.Settings.Quality)"/> that uses
-         * this upscaler's <see cref="Settings.Upscaler"/> as the first argument. </remarks>
+         * <see cref="IsSupported(Technique, Quality)"/> that uses
+         * this upscaler's <see cref="Technique"/> as the first argument. </remarks>
          *
          * <example><code>bool supportsAA = upscaler.IsSupported(Settings.Quality.AntiAliasing);</code></example>
          */
-        public bool IsSupported(Settings.Quality mode) => IsSupported(settings.upscaler, mode);
+        public bool IsSupported(Quality mode) => IsSupported(technique, mode);
 
         /**
          * <summary>Check if the <c>GfxPluginUpscaler</c> shared library has been loaded.</summary>
@@ -353,96 +313,85 @@ namespace Conifer.Upscaler
         public static bool PluginLoaded() => NativeInterface.Loaded;
 
         /**
-         * <summary>Query <see cref="Upscaler"/>'s current <see cref="Settings"/>.</summary>
+         * <summary>Use the new settings. This does not need to be called when adjusting dynamic resolution. Simply
+         * change <see cref="RenderResolution"/>.</summary>
          *
-         * <returns>A copy of the <see cref="Settings"/> currently in use.</returns>
+         * <param name="force">Should the settings be applied even if they are the same as before? Defaults to <c>false</c></param>
          *
-         * <remarks>This method is fast. It can be used to check a specific setting, or used in conjunction with
-         * <see cref="ApplySettings"/> to change a specific setting while leaving all others the same. The value
-         * returned by this method <b>may</b> change every time <see cref="ApplySettings"/> is called.</remarks>
+         * <returns>The <see cref="Status"/> of the upscaler after attempting to apply settings.</returns>
          *
-         * <example><code>Upscaler.Settings currentSettings = upscaler.QuerySettings();</code></example>
-         */
-        public Settings QuerySettings() => settings is null ? new Settings() : settings.Copy();
-
-        /**
-         * <summary>Push the new <see cref="Settings"/> to the <see cref="Upscaler"/>. This does not need to be
-         * called when adjusting dynamic resolution. Simply change <see cref="RenderResolution"/>.</summary>
-         *
-         * <param name="newSettings">The new <see cref="Settings"/> to apply.</param>
-         * <param name="force">Should the <see cref="Settings"/> be applied even if they are the same as before?</param>
-         *
-         * <returns>The <see cref="Upscaler.Status"/> of the upscaler after attempting to apply settings.</returns>
-         *
-         * <remarks>This method is very slow when the <see cref="Settings"/> have changed, or if force is set to
+         * <remarks>This method is very slow when the settings have changed, or if force is set to
          * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/> and
-         * <see cref="RenderResolution"/> based on queries of the new <see cref="Settings.Upscaler"/>. It then sets
-         * the internal <see cref="Settings"/> variable to a copy of <paramref name="newSettings"/>.</remarks>
+         * <see cref="RenderResolution"/> based on queries of the new <see cref="Technique"/>.</remarks>
          *
-         * <example><code>upscaler.ApplySettings(settings);</code></example>
+         * <example><code>upscaler.ApplySettings();</code></example>
          */
-        public Status ApplySettings(Settings newSettings, bool force = false)
+        public Status ApplySettings(bool force = false)
         {
-            if (Application.isPlaying && (force || settings.RequiresUpdateFrom(newSettings)))
+            if (Application.isPlaying && (force || quality != _quality || dlssPreset != _dlssPreset || technique != _technique || OutputResolution != _camera.pixelRect.size || _hdr != _camera.allowHDR))
             {
-                OutputResolution = new Vector2Int(_camera.pixelWidth, _camera.pixelHeight);
+                OutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
                 _hdr = _camera.allowHDR;
+                
+                // Validate settings
 
-                status = NativeInterface.SetPerFeatureSettings(OutputResolution, newSettings.upscaler, newSettings.dlssPreset, newSettings.quality, newSettings.sharpness, _hdr);
-                if (Failure(status)) return status;
-                if (settings.upscaler != newSettings.upscaler || settings.quality != newSettings.quality || force) RenderResolution = RecommendedRenderingResolution;
+                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, _hdr);
+                if (Failure(CurrentStatus)) return CurrentStatus;
+                RecommendedRenderingResolution = NativeInterface.GetRecommendedResolution();
+                MaxRenderResolution = NativeInterface.GetMaximumResolution();
+                MinRenderResolution = NativeInterface.GetMinimumResolution();
+                if (technique != _technique || quality != _quality || force) RenderResolution = RecommendedRenderingResolution;
+                _quality = quality;
+                _dlssPreset = dlssPreset;
+                _technique = technique;
             }
-
-            settings = newSettings.Copy();
-            return status;
+            return CurrentStatus;
         }
-        
+
         protected void OnEnable()
         {
             _camera = GetComponent<Camera>();
             _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
-            settings ??= new Settings();
             NativeInterface ??= new NativeInterface();
 
-            if (!IsSupported(settings.upscaler)) settings.upscaler = Settings.Upscaler.None;
-            ApplySettings(settings, true);
+            if (!IsSupported(technique)) technique = Technique.None;
+            ApplySettings(true);
         }
 
         protected void Update()
         {
             if (!Application.isPlaying) return;
-            status = NativeInterface.GetStatus();
-            if (Failure(status))
+            CurrentStatus = NativeInterface.GetStatus();
+            if (Failure(CurrentStatus))
             {
                 void HandleError(Status reason, string message)
                 {
                     Debug.LogWarning(reason + " | " + message);
-                    settings.upscaler = Settings.Upscaler.None;
-                    ApplySettings(settings, true);
+                    technique = Technique.None;
+                    ApplySettings(true);
                 }
 
-                if (ErrorCallback is null) HandleError(status, NativeInterface.GetStatusMessage());
+                if (ErrorCallback is null) HandleError(CurrentStatus, NativeInterface.GetStatusMessage());
                 else
                 {
-                    ErrorCallback(status, NativeInterface.GetStatusMessage());
-                    status = NativeInterface.GetStatus();
-                    if (Failure(status))
+                    ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
+                    CurrentStatus = NativeInterface.GetStatus();
+                    if (Failure(CurrentStatus))
                     {
                         Debug.LogError("The registered error handler failed to rectify the following error.");
-                        HandleError(status, NativeInterface.GetStatusMessage());
+                        HandleError(CurrentStatus, NativeInterface.GetStatusMessage());
                     }
                 }
             }
 
-            if (OutputResolution.x != _camera.pixelWidth || OutputResolution.y != _camera.pixelHeight || _hdr != _camera.allowHDR)
-                status = ApplySettings(settings, true);
+            CurrentStatus = ApplySettings();
 
-            if (settings.upscaler == Settings.Upscaler.None) return;
+            if (technique == Technique.None) return;
 
             if (forceHistoryResetEveryFrame) ResetHistory();
 
-            NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
+            NativeInterface.SetPerFrameData(Time.deltaTime * 1000.0F, sharpness, new Vector3(_camera.farClipPlane, _camera.nearClipPlane, _camera.fieldOfView), useReactiveMask, tcThreshold, tcScale, reactiveScale, reactiveMax);
             RenderResolution = RenderResolution;
 
             if (FrameDebugger.enabled) return;
@@ -468,7 +417,7 @@ namespace Conifer.Upscaler
 
         private void OnGUI()
         {
-            if (settings.upscaler == Settings.Upscaler.None || !showRenderingAreaOverlay) return;
+            if (technique == Technique.None || !showRenderingAreaOverlay) return;
             var scale = (float)RenderResolution.x / OutputResolution.x;
             GUI.Box(new Rect(0, OutputResolution.y - RenderResolution.y, RenderResolution.x, RenderResolution.y),
                 Math.Ceiling(scale * 100) + "% per-axis\n" + Math.Ceiling(scale * scale * 100) + "% total");

@@ -33,7 +33,6 @@ namespace Conifer.Upscaler.Editor
             }
 
             var upscaler = (Upscaler)serializedObject.targetObject;
-            var newSettings = upscaler.QuerySettings();
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var features = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
@@ -57,9 +56,9 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
-            newSettings.upscaler = (Settings.Upscaler)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), newSettings.upscaler, x => Upscaler.IsSupported((Settings.Upscaler)x), false);
+            upscaler.technique = (Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), upscaler.technique, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
 
-            if (newSettings.upscaler != Settings.Upscaler.None)
+            if (upscaler.technique != Upscaler.Technique.None)
             {
                 if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.upscalingFilter is UpscalingFilterSelection.FSR)
                 {
@@ -94,51 +93,51 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
                     FOpaqueDownsampling.SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
             }
-            newSettings.quality = (Settings.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
+            upscaler.quality = (Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
-                newSettings.quality, x => newSettings.upscaler == Settings.Upscaler.None || upscaler.IsSupported((Settings.Quality)x), false);
+                upscaler.quality, x => upscaler.technique == Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Quality)x), false);
 
             var dynamicResolutionSupported = !Equals(upscaler.MaxRenderResolution, upscaler.MinRenderResolution) || !Application.isPlaying;
-            if (newSettings.upscaler != Settings.Upscaler.None && !dynamicResolutionSupported)
+            if (upscaler.technique != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
-            if (newSettings.upscaler != Settings.Upscaler.None)
+            if (upscaler.technique != Upscaler.Technique.None)
             {
                 EditorGUI.indentLevel += 1;
-                if (newSettings.upscaler != Settings.Upscaler.XeSuperSampling)
+                if (upscaler.technique != Upscaler.Technique.XeSuperSampling)
                 {
                     _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Settings");
                     if (_advancedSettingsFoldout)
                     {
-                        switch (newSettings.upscaler)
+                        switch (upscaler.technique)
                         {
-                            case Settings.Upscaler.FidelityFXSuperResolution2:
+                            case Upscaler.Technique.FidelityFXSuperResolution2:
                             {
-                                newSettings.sharpness = EditorGUILayout.Slider(
-                                    new GUIContent("Sharpness"), newSettings.sharpness, 0f, 1f);
-                                newSettings.useReactiveMask =
-                                    EditorGUILayout.Toggle("Use Reactive Mask", newSettings.useReactiveMask);
-                                if (newSettings.useReactiveMask)
+                                upscaler.sharpness = EditorGUILayout.Slider(
+                                    new GUIContent("Sharpness"), upscaler.sharpness, 0f, 1f);
+                                upscaler.useReactiveMask =
+                                    EditorGUILayout.Toggle("Use Reactive Mask", upscaler.useReactiveMask);
+                                if (upscaler.useReactiveMask)
                                 {
-                                    newSettings.tcThreshold = EditorGUILayout.Slider("T/C Threshold",
-                                        newSettings.tcThreshold, 0, 1.0f);
-                                    newSettings.tcScale =
-                                        EditorGUILayout.Slider("T/C Scale", newSettings.tcScale, 0, 5.0f);
-                                    newSettings.reactiveScale = EditorGUILayout.Slider("Reactivity Scale",
-                                        newSettings.reactiveScale, 0, 10.0f);
-                                    newSettings.reactiveMax = EditorGUILayout.Slider("Reactivity Max",
-                                        newSettings.reactiveMax, 0, 1.0f);
+                                    upscaler.tcThreshold = EditorGUILayout.Slider("T/C Threshold",
+                                        upscaler.tcThreshold, 0, 1.0f);
+                                    upscaler.tcScale =
+                                        EditorGUILayout.Slider("T/C Scale", upscaler.tcScale, 0, 5.0f);
+                                    upscaler.reactiveScale = EditorGUILayout.Slider("Reactivity Scale",
+                                        upscaler.reactiveScale, 0, 10.0f);
+                                    upscaler.reactiveMax = EditorGUILayout.Slider("Reactivity Max",
+                                        upscaler.reactiveMax, 0, 1.0f);
                                 }
                                 break;
                             }
-                            case Settings.Upscaler.DeepLearningSuperSampling:
-                                newSettings.dlssPreset = (Settings.DlssPreset)EditorGUILayout.EnumPopup(
-                                    new GUIContent("DLSS Preset"), newSettings.dlssPreset);
+                            case Upscaler.Technique.DeepLearningSuperSampling:
+                                upscaler.dlssPreset = (Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
+                                    new GUIContent("DLSS Preset"), upscaler.dlssPreset);
                                 break;
-                            case Settings.Upscaler.None: break;
-                            case Settings.Upscaler.XeSuperSampling: break;
+                            case Upscaler.Technique.None: break;
+                            case Upscaler.Technique.XeSuperSampling: break;
                             default: break;
                         }
                     }
@@ -169,7 +168,7 @@ namespace Conifer.Upscaler.Editor
                 EditorGUI.indentLevel -= 1;
             }
 
-            upscaler.ApplySettings(newSettings);
+            upscaler.ApplySettings();
         }
     }
 }
