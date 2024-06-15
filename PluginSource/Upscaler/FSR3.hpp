@@ -1,18 +1,19 @@
 #pragma once
-#ifdef ENABLE_FSR2
+#ifdef ENABLE_FSR3
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
-#    include <ffx_fsr2.h>
+#    include <ffx_fsr3.h>
 
-class FSR2 final : public Upscaler {
-    static uint32_t         users;
-    static FfxInterface*    ffxInterface;
-    FfxFsr2Context*         context{};
-    FfxDevice               device{};
+class FSR3 final : public Upscaler {
+    static uint32_t                     users;
+    static std::array<FfxInterface*, 3> ffxInterfaces;
+    FfxFsr3Context*                     context{};
+    FfxSwapchain                        swapchain{};
+    FfxDevice                           device{};
 
-    static Status (FSR2::*fpInitialize)();
-    static Status (FSR2::*fpEvaluate)();
+    static Status (FSR3::*fpInitialize)();
+    static Status (FSR3::*fpEvaluate)();
 
     static SupportState supported;
 
@@ -36,15 +37,15 @@ public:
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
 
-    explicit FSR2(GraphicsAPI::Type type);
-    FSR2(const FSR2&)            = delete;
-    FSR2(FSR2&&)                 = delete;
-    FSR2& operator=(const FSR2&) = delete;
-    FSR2& operator=(FSR2&&)      = delete;
-    ~FSR2() override;
+    explicit FSR3(GraphicsAPI::Type type);
+    FSR3(const FSR3&)            = delete;
+    FSR3(FSR3&&)                 = delete;
+    FSR3& operator=(const FSR3&) = delete;
+    FSR3& operator=(FSR3&&)      = delete;
+    ~FSR3() override;
 
     constexpr Type getType() override {
-        return Upscaler::FSR2;
+        return Upscaler::FSR3;
     }
 
     constexpr std::string getName() override {

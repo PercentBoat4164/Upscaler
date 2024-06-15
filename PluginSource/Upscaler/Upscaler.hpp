@@ -9,8 +9,8 @@
 #ifdef ENABLE_DLSS
 #    include <nvsdk_ngx_defs.h>
 #endif
-#ifdef ENABLE_FSR2
-#    include <ffx_fsr2.h>
+#ifdef ENABLE_FSR3
+#    include <ffx_fsr3.h>
 #endif
 #ifdef ENABLE_XESS
 #    include <xess/xess.h>
@@ -36,7 +36,7 @@ struct alignas(128) UpscalerBase {
     enum Type {
         NONE,
         DLSS,
-        FSR2,
+        FSR3,
         XESS,
         TYPE_MAX_ENUM
     };
@@ -145,21 +145,21 @@ struct alignas(128) UpscalerBase {
             }
         }
 #endif
-#ifdef ENABLE_FSR2
-        template<Type T, typename = std::enable_if_t<T == FSR2>>
-        [[nodiscard]] FfxFsr2QualityMode getQuality() const {
+#ifdef ENABLE_FSR3
+        template<Type T, typename = std::enable_if_t<T == FSR3>>
+        [[nodiscard]] FfxFsr3QualityMode getQuality() const {
             switch (quality) {
                 case Auto: {
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U) return FFX_FSR2_QUALITY_MODE_QUALITY;
-                    if (pixelCount <= 3840U * 2160U) return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
-                    return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
+                    if (pixelCount <= 2560U * 1440U) return FFX_FSR3_QUALITY_MODE_QUALITY;
+                    if (pixelCount <= 3840U * 2160U) return FFX_FSR3_QUALITY_MODE_PERFORMANCE;
+                    return FFX_FSR3_QUALITY_MODE_ULTRA_PERFORMANCE;
                 }
-                case Quality: return FFX_FSR2_QUALITY_MODE_QUALITY;
-                case Balanced: return FFX_FSR2_QUALITY_MODE_BALANCED;
-                case Performance: return FFX_FSR2_QUALITY_MODE_PERFORMANCE;
-                case UltraPerformance: return FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE;
-                default: return static_cast<FfxFsr2QualityMode>(-1);
+                case Quality: return FFX_FSR3_QUALITY_MODE_QUALITY;
+                case Balanced: return FFX_FSR3_QUALITY_MODE_BALANCED;
+                case Performance: return FFX_FSR3_QUALITY_MODE_PERFORMANCE;
+                case UltraPerformance: return FFX_FSR3_QUALITY_MODE_ULTRA_PERFORMANCE;
+                default: return static_cast<FfxFsr3QualityMode>(-1);
             }
         }
 #endif

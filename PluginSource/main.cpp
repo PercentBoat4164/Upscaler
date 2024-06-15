@@ -29,6 +29,8 @@ void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int eventID, void
         upscaler->create();
     } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) {
         upscalers[reinterpret_cast<uint64_t>(data)]->evaluate();
+    } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Interpolate) {
+
     }
 }
 

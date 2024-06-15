@@ -30,13 +30,13 @@ cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support. Value is only re
 
 # At least one upscaler must be enabled.
 cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT APPLE" OFF)
-option(ENABLE_FSR2 "Compiles with FSR2 support." ON)
+option(ENABLE_FSR3 "Compiles with FSR3 support." ON)
 cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
 
 if (ENABLE_DLSS)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
 endif ()
-if (ENABLE_FSR2)
+if (ENABLE_FSR3)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;OFF")
 endif ()
 if (ENABLE_XESS)
@@ -86,12 +86,12 @@ endfunction ()
 ConiferFilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with support for ${FINAL_STRING}.")
-ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 2;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR2;ENABLE_XESS" FILTERED_LIST)
+ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with ${FINAL_STRING}.")
 
 # Fail if no upscaler was selected
-if (NOT ENABLE_DLSS AND NOT ENABLE_FSR2 AND NOT ENABLE_XESS)
+if (NOT ENABLE_DLSS AND NOT ENABLE_FSR3 AND NOT ENABLE_XESS)
     message(FATAL_ERROR "No upscaler(s) were enabled.")
 endif ()
 
@@ -137,7 +137,7 @@ if (ENABLE_DLSS AND NOT EXISTS ${NGX_SDK_DIR})
 endif ()
 
 # Ensure FSR was found
-if (ENABLE_FSR2 AND NOT EXISTS ${FFX_SDK_DIR})
+if (ENABLE_FSR3 AND NOT EXISTS ${FFX_SDK_DIR})
     message(FATAL_ERROR "Please extract the latest FSR SDK into '${FFX_SDK_DIR}'.")
 endif ()
 
@@ -148,7 +148,7 @@ if (NOT IS_COMPATIBLE AND ENABLE_DLSS)
         set(IS_COMPATIBLE ON)
     endif ()
 endif ()
-if (NOT IS_COMPATIBLE AND ENABLE_FSR2)
+if (NOT IS_COMPATIBLE AND ENABLE_FSR3)
     if (ENABLE_VULKAN OR ENABLE_DX12)
         set(IS_COMPATIBLE ON)
     endif ()
@@ -216,7 +216,7 @@ endfunction ()
 if (ENABLE_DLSS)
     if (WIN32)
         ConiferAddDLSSLibrary(dlss "${NGX_SDK_DIR}/lib" "nvngx_dlss" "nvsdk_ngx" "${NGX_SDK_DIR}/include")
-    else ()
+    elseif (UNIX AND NOT APPLE)
         ConiferAddDLSSLibrary(dlss "${NGX_SDK_DIR}/lib" "nvidia-ngx-dlss" "nvsdk_ngx" "${NGX_SDK_DIR}/include")
     endif ()
 endif ()
@@ -253,15 +253,18 @@ function (ConiferAddFSRLibrary LIBRARY_NAME LIBRARY_PATH DYNAMIC_LIBRARY_FILENAM
     set(SHARED_LIBRARIES ${SHARED_LIBRARIES} PARENT_SCOPE)
 endfunction ()
 
-if (ENABLE_FSR2)
-    ConiferAddFSRLibrary(fsr2_core "${FFX_SDK_DIR}/lib" "ffx_fsr2_x86_64" "${FFX_SDK_DIR}" "${FFX_SDK_DIR}/FidelityFX/host")
+if (ENABLE_FSR3)
+    ConiferAddFSRLibrary(fsr3_core     "${FFX_SDK_DIR}/lib" "ffx_fsr3_x86_64"               "${FFX_SDK_DIR}" "${FFX_SDK_DIR}/FidelityFX/host")
+    ConiferAddFSRLibrary(fsr3_upscaler "${FFX_SDK_DIR}/lib" "ffx_fsr3upscaler_x86_64")
+    ConiferAddFSRLibrary(fsr3_of       "${FFX_SDK_DIR}/lib" "ffx_opticalflow_x86_64"        "${FFX_SDK_DIR}")
+    ConiferAddFSRLibrary(fsr3_fg       "${FFX_SDK_DIR}/lib" "ffx_frameinterpolation_x86_64" "${FFX_SDK_DIR}")
 
     if (ENABLE_VULKAN)
-        ConiferAddFSRLibrary(fsr2_vk "${FFX_SDK_DIR}/lib" "ffx_backend_vk_x86_64" "${FFX_SDK_DIR}/FidelityFX/host/backends/vk")
+        ConiferAddFSRLibrary(fsr3_vk "${FFX_SDK_DIR}/lib" "ffx_backend_vk_x86_64" "${FFX_SDK_DIR}/FidelityFX/host/backends/vk")
     endif ()
 
     if (ENABLE_DX12)
-        ConiferAddFSRLibrary(fsr2_dx12 "${FFX_SDK_DIR}/lib" "ffx_backend_dx12_x86_64" "${FFX_SDK_DIR}/FidelityFX/host/backends/dx12")
+        ConiferAddFSRLibrary(fsr3_dx12 "${FFX_SDK_DIR}/lib" "ffx_backend_dx12_x86_64" "${FFX_SDK_DIR}/FidelityFX/host/backends/dx12")
     endif ()
 endif ()
 
@@ -299,8 +302,8 @@ endif ()
 if (ENABLE_DLSS)
     set(DLSS_SOURCES Upscaler/DLSS.cpp)
 endif ()
-if (ENABLE_FSR2)
-    set(FSR2_SOURCES Upscaler/FSR2.cpp)
+if (ENABLE_FSR3)
+    set(FSR3_SOURCES Upscaler/FSR3.cpp)
 endif ()
 if (ENABLE_XESS)
     set(XESS_SOURCES Upscaler/XeSS.cpp)
@@ -309,7 +312,7 @@ endif ()
 # Add library and link Unity files
 add_library(GfxPluginUpscaler main.cpp
         ${DLSS_SOURCES}
-        ${FSR2_SOURCES}
+        ${FSR3_SOURCES}
         ${XESS_SOURCES}
 
         ${DX11_SOURCES}
@@ -342,7 +345,7 @@ endif ()
 target_link_libraries(GfxPluginUpscaler ${CONIFER_LIBRARIES})
 
 # Add compile definitions
-foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR2;ENABLE_XESS)
+foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS)
     if (${ITEM})
         target_compile_definitions(GfxPluginUpscaler PUBLIC ${ITEM})
     endif ()

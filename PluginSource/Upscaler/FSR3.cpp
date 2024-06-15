@@ -1,5 +1,5 @@
-#include "FSR2.hpp"
-#ifdef ENABLE_FSR2
+#include "FSR3.hpp"
+#ifdef ENABLE_FSR3
 #    ifdef ENABLE_VULKAN
 #        include "GraphicsAPI/Vulkan.hpp"
 
@@ -18,30 +18,31 @@
 #    endif
 #    include <algorithm>
 
-uint32_t FSR2::users{};
-FfxInterface* FSR2::ffxInterface{nullptr};
+uint32_t FSR3::users{};
+std::array<FfxInterface*, 3> FSR3::ffxInterfaces{nullptr, nullptr, nullptr};
 
-Upscaler::Status (FSR2::*FSR2::fpInitialize)(){&FSR2::safeFail};
-Upscaler::Status (FSR2::*FSR2::fpEvaluate)(){&FSR2::safeFail};
+Upscaler::Status (FSR3::*FSR3::fpInitialize)(){&FSR3::safeFail};
+Upscaler::Status (FSR3::*FSR3::fpEvaluate)(){&FSR3::safeFail};
 
-Upscaler::SupportState FSR2::supported{UNTESTED};
+Upscaler::SupportState FSR3::supported{UNTESTED};
 
 #    ifdef ENABLE_VULKAN
-Upscaler::Status FSR2::VulkanInitialize() {
-    delete ffxInterface;
+Upscaler::Status FSR3::VulkanInitialize() {
     const UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
     VkDeviceContext deviceContext{
-          .vkDevice=instance.device,
-          .vkPhysicalDevice=instance.physicalDevice,
-          .vkDeviceProcAddr=Vulkan::getDeviceProcAddr()
+        .vkDevice=instance.device,
+        .vkPhysicalDevice=instance.physicalDevice,
+        .vkDeviceProcAddr=Vulkan::getDeviceProcAddr()
     };
-    device                  = ffxGetDeviceVK(&deviceContext);
+    device = ffxGetDeviceVK(&deviceContext);
     const size_t bufferSize = ffxGetScratchMemorySizeVK(instance.physicalDevice, 1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
-    void *buffer = calloc(bufferSize, 1);
-    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    ffxInterface = new FfxInterface;
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
+    for (FfxInterface*& ffxInterface : ffxInterfaces) {
+        void *buffer = calloc(bufferSize, 1);
+        RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+        ffxInterface = new FfxInterface;
+        RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR3 interface."));
+    }
     return SUCCESS;
 }
 
@@ -86,7 +87,7 @@ FfxSurfaceFormat getFormat(const VkFormat format) {
     }
 }
 
-Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::ImageID imageID) {
+Upscaler::Status FSR3::VulkanGetResource(FfxResource& resource, const Plugin::ImageID imageID) {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
 
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
@@ -119,7 +120,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::VulkanEvaluate() {
+Upscaler::Status FSR3::VulkanEvaluate() {
     FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
@@ -142,7 +143,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
     FfxCommandList commandList = ffxGetCommandListVK(state.commandBuffer);
 
     // clang-format off
-    // const FfxFsr2UpscalerGenerateReactiveDescription generateReactiveDescription {
+    // const FfxFsr3UpscalerGenerateReactiveDescription generateReactiveDescription {
     //     .commandList = commandList,
     //     .colorOpaqueOnly = opaqueColor,
     //     .colorPreUpscale = color,
@@ -157,7 +158,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
     //     .flags = 0
     // };
 
-    const FfxFsr2DispatchDescription dispatchDescription{
+    const FfxFsr3DispatchUpscaleDescription dispatchDescription{
       .commandList                = commandList,
       .color                      = color,
       .depth                      = depth,
@@ -165,7 +166,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .output                     = output,
+      .upscaleOutput              = output,
       .jitterOffset               = {
             settings.jitter.x,
             settings.jitter.y
@@ -187,35 +188,33 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
       .viewSpaceToMetersFactor = 1.0F,
-      .enableAutoReactive      = settings.autoReactive,
-      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .autoTcThreshold         = settings.tcThreshold,
-      .autoTcScale             = settings.tcScale,
-      .autoReactiveScale       = settings.reactiveScale,
-      .autoReactiveMax         = settings.reactiveMax,
     };
     // clang-format on
 
-    // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
+    // RETURN_ON_FAILURE(setStatus(ffxFsr3UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr3ContextDispatchUpscale(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
     return SUCCESS;
 }
 #    endif
 
 #    ifdef ENABLE_DX12
-Upscaler::Status FSR2::DX12Initialize() {
-    delete ffxInterface;
+Upscaler::Status FSR3::DX12Initialize() {
     device                      = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
     const size_t bufferSize     = ffxGetScratchMemorySizeDX12(1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
-    void *buffer = calloc(bufferSize, 1);
-    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    ffxInterface = new FfxInterface;
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface."));
+    for (FfxInterface*& ffxInterface : ffxInterfaces) {
+        delete ffxInterface;
+        void *buffer = calloc(bufferSize, 1);
+        RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+        ffxInterface = new FfxInterface;
+        RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface."));
+    }
+    swapchain = ffxGetSwapchainDX12(reinterpret_cast<IDXGISwapChain4*>(DX12::getGraphicsInterface()->GetSwapChain()));
+    RETURN_ON_FAILURE(setStatusIf(swapchain == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unity is using an out-of-date swapchain representation."));
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::ImageID imageID) {
+Upscaler::Status FSR3::DX12GetResource(FfxResource& resource, const Plugin::ImageID imageID) {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
 
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
@@ -240,7 +239,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::DX12Evaluate() {
+Upscaler::Status FSR3::DX12Evaluate() {
     FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
     RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
     RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::Depth));
@@ -261,23 +260,25 @@ Upscaler::Status FSR2::DX12Evaluate() {
 
     FfxCommandList commandList = ffxGetCommandListDX12(state.commandList);
 
-    // clang-format off
-    // const FfxFsr2UpscalerGenerateReactiveDescription generateReactiveDescription {
-    //     .commandList = commandList,
-    //     .colorOpaqueOnly = opaqueColor,
-    //     .colorPreUpscale = color,
-    //     .outReactive = reactiveMask,
-    //     .renderSize = {
-    //         .width = color.description.width,
-    //         .height = color.description.height
-    //     },
-    //     .scale = settings.reactiveScale,
-    //     .cutoffThreshold = settings.reactiveMax,
-    //     .binaryValue = 1.0F,
-    //     .flags = 0
-    // };
+    if (settings.autoReactive) {
+        const FfxFsr3GenerateReactiveDescription generateReactiveDescription {
+            .commandList = commandList,
+            .colorOpaqueOnly = opaqueColor,
+            .colorPreUpscale = color,
+            .outReactive = reactiveMask,
+            .renderSize = {
+                .width = color.description.width,
+                .height = color.description.height
+            },
+            .scale = settings.reactiveScale,
+            .cutoffThreshold = settings.reactiveMax,
+            .binaryValue = 1.0F,
+            .flags = 0
+        };
+        RETURN_ON_FAILURE(setStatus(ffxFsr3ContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
+    }
 
-    const FfxFsr2DispatchDescription dispatchDescription{
+    const FfxFsr3DispatchUpscaleDescription dispatchDescription{
       .commandList                = commandList,
       .color                      = color,
       .depth                      = depth,
@@ -285,7 +286,7 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .exposure                   = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
       .transparencyAndComposition = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .output                     = output,
+      .upscaleOutput              = output,
       .jitterOffset               = {
            settings.jitter.x,
            settings.jitter.y
@@ -307,22 +308,14 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .cameraFar               = settings.camera.nearPlane,  // Switched because depth is inverted
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
       .viewSpaceToMetersFactor = 1.0F,
-      .enableAutoReactive      = settings.autoReactive,
-      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .autoTcThreshold         = settings.tcThreshold,
-      .autoTcScale             = settings.tcScale,
-      .autoReactiveScale       = settings.reactiveScale,
-      .autoReactiveMax         = settings.reactiveMax,
     };
-    // clang-format on
 
-    // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr3ContextDispatchUpscale(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
     return SUCCESS;
 }
 #    endif
 
-Upscaler::Status FSR2::setStatus(const FfxErrorCode t_error, const std::string &t_msg) {
+Upscaler::Status FSR3::setStatus(const FfxErrorCode t_error, const std::string &t_msg) {
     switch (t_error) {
         case static_cast<int>(FFX_OK): return Upscaler::setStatus(SUCCESS, t_msg + " | FFX_OK");
         case static_cast<int>(FFX_ERROR_INVALID_POINTER): return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | FFX_ERROR_INVALID_POINTER");
@@ -344,71 +337,71 @@ Upscaler::Status FSR2::setStatus(const FfxErrorCode t_error, const std::string &
     }
 }
 
-void FSR2::log(const FfxMsgType type, const wchar_t *t_msg) {
+void FSR3::log(const FfxMsgType type, const wchar_t *t_msg) {
     std::wstring message(t_msg);
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
     switch (type) {
-        case FFX_MESSAGE_TYPE_ERROR: msg = "FSR2 Error ---> " + msg; break;
-        case FFX_MESSAGE_TYPE_WARNING: msg = "FSR2 Warning -> " + msg; break;
+        case FFX_MESSAGE_TYPE_ERROR: msg = "FSR3 Error ---> " + msg; break;
+        case FFX_MESSAGE_TYPE_WARNING: msg = "FSR3 Warning -> " + msg; break;
         case FFX_MESSAGE_TYPE_COUNT: break;
     }
     if (logCallback != nullptr) logCallback(msg.c_str());
 }
 
-bool FSR2::isSupported() {
+bool FSR3::isSupported() {
     if (supported != UNTESTED)
         return supported == SUPPORTED;
-    const FSR2 fsr2(GraphicsAPI::getType());
-    return (supported = success(fsr2.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    const FSR3 fsr3(GraphicsAPI::getType());
+    return (supported = success(fsr3.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
 }
 
-bool FSR2::isSupported(const enum Settings::Quality mode) {
+bool FSR3::isSupported(const enum Settings::Quality mode) {
     return mode == Settings::Auto || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
-FSR2::FSR2(const GraphicsAPI::Type type) {
+FSR3::FSR3(const GraphicsAPI::Type type) {
     switch (type) {
         case GraphicsAPI::NONE: {
-            fpInitialize       = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
+            fpInitialize       = &FSR3::safeFail;
+            fpEvaluate         = &FSR3::safeFail;
             break;
         }
 #    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
-            fpInitialize       = &FSR2::VulkanInitialize;
-            fpEvaluate         = &FSR2::VulkanEvaluate;
+            fpInitialize       = &FSR3::VulkanInitialize;
+            fpEvaluate         = &FSR3::VulkanEvaluate;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpInitialize       = &FSR2::DX12Initialize;
-            fpEvaluate         = &FSR2::DX12Evaluate;
+            fpInitialize       = &FSR3::DX12Initialize;
+            fpEvaluate         = &FSR3::DX12Evaluate;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX11
         case GraphicsAPI::DX11: {
-            fpInitialize       = &FSR2::invalidGraphicsAPIFail;
-            fpEvaluate         = &FSR2::invalidGraphicsAPIFail;
+            fpInitialize       = &FSR3::invalidGraphicsAPIFail;
+            fpEvaluate         = &FSR3::invalidGraphicsAPIFail;
             break;
         }
 #    endif
         default: {
-            fpInitialize       = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
+            fpInitialize       = &FSR3::safeFail;
+            fpEvaluate         = &FSR3::safeFail;
             break;
         }
     }
     initialize();
 }
 
-FSR2::~FSR2() {
+FSR3::~FSR3() {
     shutdown();
 }
 
-Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status FSR3::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(setStatusIf(mode >= Upscaler::Settings::QUALITY_MODE_MAX_ENUM, SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, "The selected quality mode is unavailable or invalid."));
 
     Settings optimalSettings         = settings;
@@ -416,7 +409,7 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
     optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr3GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR3>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
     RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
     optimalSettings.dynamicMaximumInputResolution = resolution;
@@ -425,61 +418,75 @@ Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution,
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::initialize() {
-    if (ffxInterface == nullptr) {
-        RETURN_ON_FAILURE((this->*fpInitialize)());
-        ++users;
-    }
+Upscaler::Status FSR3::initialize() {
+    RETURN_ON_FAILURE((this->*fpInitialize)());
+    ++users;
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::create() {
-    RETURN_ON_FAILURE(setStatusIf(ffxInterface == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Tried to create " + getName() + " context without a valid interface."));
-    if (context != nullptr) {
-        ++users;  // Corrected by `shutdown()`. Also prevents the interface from being destroyed.
-        RETURN_ON_FAILURE(shutdown());
-    }
+Upscaler::Status FSR3::create() {
+    if (context != nullptr) return SUCCESS;
     // clang-format off
-    const FfxFsr2ContextDescription description{
+    FfxFsr3ContextDescription description {
       .flags =
 #    ifndef NDEBUG
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DEBUG_CHECKING) |
+        static_cast<unsigned>(FFX_FSR3_ENABLE_DEBUG_CHECKING) |
 #    endif
-        static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
-        (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
+        static_cast<unsigned>(FFX_FSR3_ENABLE_AUTO_EXPOSURE) |
+        static_cast<unsigned>(FFX_FSR3_ENABLE_DEPTH_INVERTED) |
+        static_cast<unsigned>(FFX_FSR3_ENABLE_DYNAMIC_RESOLUTION) |
+        (settings.hdr ? FFX_FSR3_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
       .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
+      .upscaleOutputSize = {settings.outputResolution.width, settings.outputResolution.height},
       .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
-      .backendInterface = *ffxInterface,
+      .backendInterfaceSharedResources = *ffxInterfaces[0],
+      .backendInterfaceUpscaling = *ffxInterfaces[1],
+      .backendInterfaceFrameInterpolation = *ffxInterfaces[2],
 #    ifndef NDEBUG
-      .fpMessage = &FSR2::log
+      .fpMessage = &FSR3::log,
 #    endif
+      .backBufferFormat = FFX_SURFACE_FORMAT_R16G16B16A16_FLOAT,
     };
     // clang-format on
 
-    context = new FfxFsr2Context;
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."));
+    context = new FfxFsr3Context;
+    RETURN_ON_FAILURE(setStatus(ffxFsr3ContextCreate(context, &description), "Failed to create the " + getName() + " context."));
     RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " context."));
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::evaluate() {
+Upscaler::Status FSR3::evaluate() {
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
     return SUCCESS;
 }
 
-Upscaler::Status FSR2::shutdown() {
+Upscaler::Status FSR3::shutdown() {
+    RETURN_ON_FAILURE(setStatusIf(!swapchain, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Swapchain not specified."));
+    ffxWaitForPresents(swapchain);
+    const FfxFrameGenerationConfig frameGenerationConfig {
+        .swapChain = swapchain,
+        .presentCallback = nullptr,
+        .frameGenerationCallback = nullptr,
+        .frameGenerationEnabled = false,
+        .allowAsyncWorkloads = false,
+        .HUDLessColor = FfxResource({}),
+        .flags = 0,
+        .onlyPresentInterpolated = false
+    };
+    ffxFsr3ConfigureFrameGeneration(context, &frameGenerationConfig);
+    ffxRegisterFrameinterpolationUiResourceDX12(swapchain, FfxResource({}));
     if (context != nullptr) {
-        RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(context), "Failed to destroy the " + getName() + " context."));
+        setStatus(ffxFsr3ContextDestroy(context), "Failed to destroy the " + getName() + " context.");
         delete context;
         context = nullptr;
     }
-    if (ffxInterface != nullptr && --users == 0) {
-        operator delete(ffxInterface->scratchBuffer, ffxInterface->scratchBufferSize);
-        delete ffxInterface;
-        ffxInterface = nullptr;
+    for (FfxInterface*& ffxInterface : ffxInterfaces) {
+        if (ffxInterface != nullptr && users == 0) {
+            free(ffxInterface->scratchBuffer);
+            delete ffxInterface;
+            ffxInterface = nullptr;
+        }
     }
     return SUCCESS;
 }

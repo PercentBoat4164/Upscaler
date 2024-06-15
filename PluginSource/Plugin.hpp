@@ -11,6 +11,7 @@ static int eventIDBase;
 enum Event {
     Prepare,
     Upscale,
+    Interpolate,
 };
 
 enum ImageID : uint16_t {
