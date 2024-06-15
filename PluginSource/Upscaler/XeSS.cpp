@@ -37,26 +37,24 @@ Upscaler::Status XeSS::DX12Create() {
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
-    ID3D12Resource*           inColor            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
-    const D3D12_RESOURCE_DESC inColorDescription = inColor->GetDesc();
-    ID3D12Resource*           motion             = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
-    const D3D12_RESOURCE_DESC motionDescription = motion->GetDesc();
+    ID3D12Resource*           color              = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    const D3D12_RESOURCE_DESC colorDescription   = color->GetDesc();
 
     const xess_d3d12_execute_params_t params {
-        .pColorTexture = inColor,
-        .pVelocityTexture = motion,
+        .pColorTexture = color,
+        .pVelocityTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
         .pDepthTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
         .pOutputTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .exposureScale = 1.0F,
         .resetHistory = static_cast<uint32_t>(settings.resetHistory),
-        .inputWidth = static_cast<uint32_t>(inColorDescription.Width),
-        .inputHeight = static_cast<uint32_t>(inColorDescription.Height),
+        .inputWidth = static_cast<uint32_t>(colorDescription.Width),
+        .inputHeight = static_cast<uint32_t>(colorDescription.Height),
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
-    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(colorDescription.Width), -static_cast<float>(colorDescription.Height)), "Failed to set motion scale"));
     RETURN_ON_FAILURE(setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + "."));
     return Success;
 }

@@ -133,38 +133,22 @@ Upscaler::Status FSR2::VulkanEvaluate() {
 
     FfxCommandList commandList = ffxGetCommandListVK(state.commandBuffer);
 
-    // clang-format off
-    // const FfxFsr2UpscalerGenerateReactiveDescription generateReactiveDescription {
-    //     .commandList = commandList,
-    //     .colorOpaqueOnly = opaqueColor,
-    //     .colorPreUpscale = color,
-    //     .outReactive = reactiveMask,
-    //     .renderSize = {
-    //         .width = color.description.width,
-    //         .height = color.description.height
-    //     },
-    //     .scale = settings.reactiveScale,
-    //     .cutoffThreshold = settings.reactiveMax,
-    //     .binaryValue = 1.0F,
-    //     .flags = 0
-    // };
-
     const FfxFsr2DispatchDescription dispatchDescription {
       .commandList                = commandList,
       .color                      = color,
       .depth                      = depth,
       .motionVectors              = motion,
-      .exposure                   = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .exposure                   = FfxResource({}),
+      .reactive                   = settings.autoReactive ? reactiveMask : FfxResource({}),
+      .transparencyAndComposition = FfxResource({}),
       .output                     = output,
       .jitterOffset               = {
             settings.jitter.x,
             settings.jitter.y
       },
       .motionVectorScale = {
-            -static_cast<float>(motion.description.width),
-            -static_cast<float>(motion.description.height)
+            -static_cast<float>(color.description.width),
+            -static_cast<float>(color.description.height)
       },
       .renderSize = {
             color.description.width,
@@ -180,15 +164,13 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
       .viewSpaceToMetersFactor = 1.0F,
       .enableAutoReactive      = settings.autoReactive,
-      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceVK(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : FfxResource({}),
       .autoTcThreshold         = settings.tcThreshold,
       .autoTcScale             = settings.tcScale,
       .autoReactiveScale       = settings.reactiveScale,
       .autoReactiveMax         = settings.reactiveMax,
     };
-    // clang-format on
 
-    // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
     return Success;
 }
@@ -246,38 +228,22 @@ Upscaler::Status FSR2::DX12Evaluate() {
 
     FfxCommandList commandList = ffxGetCommandListDX12(state.commandList);
 
-    // clang-format off
-    // const FfxFsr2UpscalerGenerateReactiveDescription generateReactiveDescription {
-    //     .commandList = commandList,
-    //     .colorOpaqueOnly = opaqueColor,
-    //     .colorPreUpscale = color,
-    //     .outReactive = reactiveMask,
-    //     .renderSize = {
-    //         .width = color.description.width,
-    //         .height = color.description.height
-    //     },
-    //     .scale = settings.reactiveScale,
-    //     .cutoffThreshold = settings.reactiveMax,
-    //     .binaryValue = 1.0F,
-    //     .flags = 0
-    // };
-
     const FfxFsr2DispatchDescription dispatchDescription{
       .commandList                = commandList,
       .color                      = color,
       .depth                      = depth,
       .motionVectors              = motion,
-      .exposure                   = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"Exposure").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .reactive                   = settings.autoReactive ? reactiveMask : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Reactive Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
-      .transparencyAndComposition = ffxGetResourceDX12(nullptr, FfxResourceDescription{}, std::wstring(L"T/C Mask").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .exposure                   = FfxResource({}),
+      .reactive                   = settings.autoReactive ? reactiveMask : FfxResource({}),
+      .transparencyAndComposition = FfxResource({}),
       .output                     = output,
       .jitterOffset               = {
            settings.jitter.x,
            settings.jitter.y
       },
       .motionVectorScale = {
-          -static_cast<float>(motion.description.width),
-          -static_cast<float>(motion.description.height)
+          -static_cast<float>(color.description.width),
+          -static_cast<float>(color.description.height)
       },
       .renderSize = {
           color.description.width,
@@ -293,15 +259,13 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .cameraFovAngleVertical  = settings.camera.verticalFOV * (FFX_PI / 180.0F),
       .viewSpaceToMetersFactor = 1.0F,
       .enableAutoReactive      = settings.autoReactive,
-      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : ffxGetResourceDX12(VK_NULL_HANDLE, FfxResourceDescription{}, std::wstring(L"Opaque Color").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+      .colorOpaqueOnly         = settings.autoReactive ? opaqueColor : FfxResource({}),
       .autoTcThreshold         = settings.tcThreshold,
       .autoTcScale             = settings.tcScale,
       .autoReactiveScale       = settings.reactiveScale,
       .autoReactiveMax         = settings.reactiveMax,
     };
-    // clang-format on
 
-    // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
     return Success;
 }

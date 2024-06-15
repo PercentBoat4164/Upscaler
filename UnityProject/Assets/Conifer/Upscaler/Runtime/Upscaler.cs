@@ -33,7 +33,7 @@ namespace Conifer.Upscaler
             DeepLearningSuperSampling,
             /// AMD's FidelityFX Super Resolution upscaler.
             FidelityFXSuperResolution2,
-            /// Intel's Xe Super Sampling upscaler.
+            /// Intel's X<sup>e</sup> Super Sampling upscaler.
             XeSuperSampling
         }
 
@@ -216,7 +216,7 @@ namespace Conifer.Upscaler
         public Quality quality;
         private Quality _quality;
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
-        [FormerlySerializedAs("upscaler")] public Technique technique;
+        public Technique technique = GetBestSupportedTechnique();
         private Technique _technique;
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
@@ -233,6 +233,22 @@ namespace Conifer.Upscaler
         public float reactiveScale = 5.0f;
         /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
         public float reactiveMax = 0.9f;
+
+        /**
+         * <summary>Request the 'best' technique that is supported by this environment.</summary>
+         *
+         *<returns>Returns the 'best' supported technique.</returns>
+         *
+         * <remarks>Selects the first supported technique as they appear in the following list:
+         * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
+         * <see cref="Technique.FidelityFXSuperResolution2"/></remarks>
+         */
+        public static Technique GetBestSupportedTechnique()
+        {
+            if (IsSupported(Technique.DeepLearningSuperSampling)) return Technique.DeepLearningSuperSampling;
+            if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
+            return IsSupported(Technique.FidelityFXSuperResolution2) ? Technique.FidelityFXSuperResolution2 : Technique.None;
+        }
 
         /**
          * <summary>Tells the <see cref="Technique"/> to reset the pixel history this frame.</summary>
@@ -363,7 +379,7 @@ namespace Conifer.Upscaler
 
             NativeInterface ??= new NativeInterface();
 
-            if (!IsSupported(technique)) technique = Technique.None;
+            if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
             ApplySettings();
         }
 
