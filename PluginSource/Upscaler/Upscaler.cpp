@@ -12,11 +12,11 @@
 void (*Upscaler::logCallback)(const char* msg){nullptr};
 
 bool Upscaler::success(const Status t_status) {
-    return t_status <= NO_UPSCALER_SET;
+    return t_status == Success;
 }
 
 bool Upscaler::failure(const Status t_status) {
-    return t_status > NO_UPSCALER_SET;
+    return !success(t_status);
 }
 
 bool Upscaler::recoverable(const Status t_status) {
@@ -98,9 +98,8 @@ void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
 }
 
 Upscaler::Status Upscaler::useImage(const Plugin::ImageID imageID, const UnityTextureID unityID) {
-    RETURN_ON_FAILURE(setStatusIf(imageID >= Plugin::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to set image with ID greater than IMAGE_ID_MAX_ENUM."));
     textureIDs.at(imageID) = unityID;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status Upscaler::getStatus() const {
@@ -125,10 +124,10 @@ Upscaler::Status Upscaler::setStatusIf(const bool t_shouldApplyError, const Stat
 
 bool Upscaler::resetStatus() {
     if (recoverable(status)) {
-        status = SUCCESS;
+        status = Success;
         statusMessage.clear();
     }
-    return status == SUCCESS;
+    return status == Success;
 }
 
 void Upscaler::forceStatus(const Status newStatus, std::string message) {

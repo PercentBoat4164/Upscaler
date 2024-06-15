@@ -21,8 +21,8 @@ NoUpscaler::NoUpscaler() {
     (void)resetStatus();
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
-    settings.renderingResolution = resolution;
+Upscaler::Status NoUpscaler::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
+    settings.recommendedInputResolution    = resolution;
     settings.outputResolution = resolution;
     settings.dynamicMaximumInputResolution = resolution;
     settings.dynamicMinimumInputResolution = resolution;
@@ -46,6 +46,6 @@ Upscaler::Status NoUpscaler::shutdown() {
 }
 
 bool NoUpscaler::resetStatus() {
-    forceStatus(NO_UPSCALER_SET, getName() + " is currently active.");
+    forceStatus(Success, getName() + " is currently active.");
     return true;
 }

@@ -56,7 +56,7 @@ namespace Conifer.Upscaler
         internal static extern Settings.Resolution GetMinimumResolution(uint camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        internal static extern Upscaler.Status SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
+        internal static extern void SetPerFrameData(uint camera, float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
         internal static extern Settings.Jitter GetJitter(uint camera, bool advance);
@@ -147,13 +147,13 @@ namespace Conifer.Upscaler
 
         internal static bool IsSupported(Settings.Upscaler type, Settings.Quality mode) => Loaded && Native.IsSupported(type, mode);
 
-        internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.SoftwareError;
+        internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
 
-        internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "";
+        internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
 
         internal Upscaler.Status SetPerFeatureSettings(Settings.Resolution resolution, Settings.Upscaler upscaler, Settings.DLSSPreset preset, Settings.Quality quality, float sharpness, bool hdr)
         {
-            if (!Loaded) return Upscaler.Status.SoftwareError;
+            if (!Loaded) return Upscaler.Status.FatalRuntimeError;
             var status = Native.SetPerFeatureSettings(_cameraID, resolution, upscaler, preset, quality, sharpness, hdr);
             if (Upscaler.Failure(status)) return status;
             Graphics.ExecuteCommandBuffer(_prepareCommandBuffer);
@@ -166,14 +166,16 @@ namespace Conifer.Upscaler
 
         internal Settings.Resolution GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : new Settings.Resolution();
 
-        internal Upscaler.Status SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax) => Loaded ? Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo, autoReactive, tcThreshold, tcScale, reactiveScale, reactiveMax) : Upscaler.Status.SoftwareError;
+        internal void SetPerFrameData(float frameTime, float sharpness, Settings.CameraInfo cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax)
+        {
+            if (!Loaded) Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo, autoReactive, tcThreshold, tcScale, reactiveScale, reactiveMax);
+        }
 
         internal Settings.Jitter GetJitter(bool advance) => Loaded ? Native.GetJitter(_cameraID, advance) : new Settings.Jitter();
 
         internal void ResetHistory()
         {
-            if (!Loaded) return;
-            Native.ResetHistory(_cameraID);
+            if (!Loaded) Native.ResetHistory(_cameraID);
         }
     }
 }

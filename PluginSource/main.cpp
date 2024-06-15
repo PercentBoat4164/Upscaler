@@ -76,18 +76,17 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const uint16_t                         camera,
   const Upscaler::Settings::Resolution   resolution,
   const Upscaler::Type                   type,
-  const Upscaler::Settings::Preset       preset,
+  const Upscaler::Settings::DLSSPreset   preset,
   const enum Upscaler::Settings::Quality quality,
   const bool                             hdr
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    if (type >= Upscaler::TYPE_MAX_ENUM) return upscaler->setStatus(Upscaler::SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE, std::to_string(type) + " is not a valid Upscaler enum value.");
     if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
     return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(const uint16_t camera) {
-    return upscalers[camera]->settings.renderingResolution;
+    return upscalers[camera]->settings.recommendedInputResolution;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMaximumCameraResolution(const uint16_t camera) {
@@ -98,7 +97,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(
   const uint16_t                       camera,
   const float                          frameTime,
   const float                          sharpness,
@@ -109,21 +108,15 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const float                          reactiveScale,
   const float                          reactiveMax
 ) {
-    const std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    upscaler->setStatusIf(sharpness < 0.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too small. Expected a value between 0 and 1 inclusive.");
-    const Upscaler::Status status = upscaler->setStatusIf(sharpness > 1.F, Upscaler::SETTINGS_ERROR_INVALID_SHARPNESS_VALUE, "The sharpness value of " + std::to_string(sharpness) + " is too big. Expected a value between 0 and 1 inclusive.");
-    if (Upscaler::failure(status)) return status;
-
-    Upscaler::Settings& settings = upscaler->settings;
+    Upscaler::Settings& settings = upscalers[camera]->settings;
     settings.frameTime           = frameTime;
-    settings.sharpness           = sharpness;
+    settings.sharpness           = std::min(std::max(sharpness, 0.0F), 1.0F);
     settings.camera              = cameraInfo;
     settings.autoReactive        = autoReactive;
     settings.tcThreshold         = tcThreshold;
     settings.tcScale             = tcScale;
     settings.reactiveScale       = reactiveScale;
     settings.reactiveMax         = reactiveMax;
-    return Upscaler::SUCCESS;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera, const bool advance) {

@@ -161,69 +161,33 @@ namespace Conifer.Upscaler
     [RequireComponent(typeof(Camera))]
     public class Upscaler : MonoBehaviour
     {
-        private const byte ErrorTypeOffset = 29;
-        private const byte ErrorCodeOffset = 16;
-        private const uint ErrorRecoverable = 1;
+        private const byte ErrorRecoverable = 1 << 7;
 
         /**
          * The possible <see cref="Status"/> values that can be reported by an <see cref="Settings.Upscaler"/>. See
          * <see cref="Upscaler.Success"/>, <see cref="Upscaler.Failure"/>, and <see cref="Upscaler.Recoverable"/> to
          * extract information from a particular <see cref="Status"/>.
          */
-        public enum Status : uint
+        public enum Status : byte
         {
             /// The success signal sent by non-<see cref="Settings.Upscaler.None"/> <see cref="Settings.Upscaler"/>s.
-            Success                                            =                  0U,
-            /// The success signal sent by the <see cref="Settings.Upscaler.None"/> <see cref="Settings.Upscaler"/>.
-            NoUpscalerSet                                      =                  2U,
-            /// A generic hardware level error. It should be treated as fatal for the <see cref="Settings.Upscaler"/> that reports it
-            HardwareError                                      =                  1U << ErrorTypeOffset,
-            /// The GPU does not support the required Vulkan device extensions.
-            HardwareErrorDeviceExtensionsNotSupported          = HardwareError | (1U << ErrorCodeOffset),
-            /// The GPU does not support the <see cref="Settings.Upscaler"/> that reports this.
-            HardwareErrorDeviceNotSupported                    = HardwareError | (2U << ErrorCodeOffset),
-            /// A generic system level error. It should be treated as fatal for the <see cref="Settings.Upscaler"/> that reports it.
-            SoftwareError                                      =                  2U << ErrorTypeOffset,
-            /// This system does not support the required Vulkan instance extensions.
-            SoftwareErrorInstanceExtensionsNotSupported        = SoftwareError | (1U << ErrorCodeOffset),
-            /// The GPU drivers are out of date. Tell the user to update them.
-            SoftwareErrorDeviceDriversOutOfDate                = SoftwareError | (2U << ErrorCodeOffset),
+            Success                     = 0 | ErrorRecoverable,
+            /// The GPU does not support the <see cref="Settings.Upscaler"/> that reports this. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            DeviceNotSupported          = 1,
+            /// The GPU drivers are out of date. Tell the user to update them. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            DriversOutOfDate            = 2,
+            /// The current <see cref="Settings.Upscaler"/> does not support the current Graphics API. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            UnsupportedGraphicsApi      = 3,
             /// This operating system is not supported. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
-            SoftwareErrorOperatingSystemNotSupported           = SoftwareError | (3U << ErrorCodeOffset),
-            /// The application is running in an environment that does not allow it to write to disk.
-            SoftwareErrorInvalidWritePermissions               = SoftwareError | (4U << ErrorCodeOffset),
-            /// NVIDIA has denied this application the <see cref="Settings.Upscaler.DeepLearningSuperSampling"/> feature.
-            SoftwareErrorFeatureDenied                         = SoftwareError | (5U << ErrorCodeOffset),
-            /// Not enough free VRAM exists to perform the requested operation. 
-            SoftwareErrorOutOfGPUMemory                        = SoftwareError | (6U << ErrorCodeOffset)  | ErrorRecoverable,
-            /// Not enough free RAM exists to perform the requested operation.
-            SoftwareErrorOutOfSystemMemory                     = SoftwareError | (7U << ErrorCodeOffset)  | ErrorRecoverable,
-            /// The safest solution to handling this error is to stop using the <see cref="Settings.Upscaler"/>. It may still work, but all guarantees are void.
-            SoftwareErrorCriticalInternalWarning               = SoftwareError | (8U << ErrorCodeOffset),
-            /// This is an internal error that may have been caused by the user forgetting to call some function. Typically one or more of the initialization functions.
-            SoftwareErrorRecoverableInternalWarning            = SoftwareError | (9U << ErrorCodeOffset) | ErrorRecoverable,
-            /// The current <see cref="Settings.Upscaler"/> does not support the current Graphics API. This error can be avoided by performing a call to <see cref="Upscaler.IsSupported(Conifer.Upscaler.Settings.Upscaler)"/> beforehand.
-            SoftwareErrorUnsupportedGraphicsAPI                = SoftwareError | (10U << ErrorCodeOffset),
-            /// A generic settings level error. This is a recoverable error for the <see cref="Settings.Upscaler"/> that reports it. Try changing the settings and trying again.
-            SettingsError                                      =                 (3U << ErrorTypeOffset)  | ErrorRecoverable,
-            /// The input resolution is unusable by the current <see cref="Settings.Upscaler"/>. The input resolution must fall within the bounds set by the <see cref="Settings.Upscaler"/>. Use <see cref="Upscaler.MinRenderResolution"/> and <see cref="Upscaler.MaxRenderResolution"/> as the lower and upper input resolution bounds respectively. See the accompanying status message for more information.
-            SettingsErrorInvalidInputResolution                = SettingsError | (1U << ErrorCodeOffset),
-            /// The output resolution is unusable by the current <see cref="Settings.Upscaler"/>. <see cref="Settings.Upscaler.DeepLearningSuperSampling"/> requires at least a 32x32 output resolution. See the accompanying status message for more information.
-            SettingsErrorInvalidOutputResolution               = SettingsError | (2U << ErrorCodeOffset),
-            /// The sharpness value is unusable by the current <see cref="Settings.Upscaler"/>. Sharpness values must be between <c>0.0f</c> and <c>1.0f</c>. See the accompanying status message for more information.
-            SettingsErrorInvalidSharpnessValue                 = SettingsError | (3U << ErrorCodeOffset),
-            /// The <see cref="Settings.Quality"/> mode is unusable by the current <see cref="Settings.Upscaler"/>. See the accompanying status message for more information.
-            SettingsErrorQualityModeNotAvailable               = SettingsError | (4U << ErrorCodeOffset),
-            /// The <see cref="Settings.DLSSPreset"/> is unusable by <see cref="Settings.Upscaler.DeepLearningSuperSampling"/>. See the accompanying status message for more information.
-            SettingsErrorPresetNotAvailable                    = SettingsError | (5U << ErrorCodeOffset),
-            /// An invalid <see cref="Settings.Upscaler"/> was provided.
-            SettingsErrorUpscalerNotAvailable                  = SettingsError | (6U << ErrorCodeOffset),
-            /// A GenericError* is thrown when a most likely cause has been found, but it is not certain. A plain <see cref="GenericError"/> is thrown when there are many possible known errors. Threat this as fatal for the <see cref="Settings.Upscaler"/> that reports it.
-            GenericError                                       =                  4U << ErrorTypeOffset,
-            /// Either the GPU does not support the required Vulkan device extensions or the system does not support the required Vulkan instance extensions. Treat this as fatal for the <see cref="Settings.Upscaler"/> that reports it.
-            GenericErrorDeviceOrInstanceExtensionsNotSupported = GenericError  | (1U << ErrorCodeOffset),
-            /// The cause of the error is unknown. Treat this as fatal for the <see cref="Settings.Upscaler"/> that reports it.
-            UnknownError                                       =                  0xFFFFFFFF              & ~ErrorRecoverable
+            OperatingSystemNotSupported = 4,
+            /// NVIDIA has denied this application the <see cref="Settings.Upscaler.DeepLearningSuperSampling"/> feature. This is a permanently fatal error for the <see cref="Settings.Upscaler"/> that reports this.
+            FeatureDenied               = 5,
+            /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory then try again.
+            OutOfMemory                 = 6 | ErrorRecoverable,
+            /// This is an error that may have been caused by an invalid configuration (e.g. output resolution too small). Restore a valid configuration then try again.
+            RecoverableRuntimeError     = 7 | ErrorRecoverable,
+            /// This error should result only from a bug in Upscaler or in Unity itself.
+            FatalRuntimeError           = 8,
         }
 
         /**
@@ -237,7 +201,7 @@ namespace Conifer.Upscaler
          * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Success"/> <see cref="Status"/> means that the
          * <see cref="Settings.Upscaler"/> in question is usable in its current state.</remarks>
          */
-        public static bool Success(Status status) => status <= Status.NoUpscalerSet;
+        public static bool Success(Status status) => status == Status.Success;
 
         /**
          * <summary>Does a <see cref="Status"/> represent a fail state?</summary>
@@ -246,12 +210,12 @@ namespace Conifer.Upscaler
          *
          * <returns><c>true</c> if the <see cref="Status"/> is an error and <c>false</c> if not.</returns>
          *
-         * <remarks>This returns <c>true</c> for all <see cref="Status"/>es that are not <see cref="Status.Success"/> or
-         * <see cref="Status.NoUpscalerSet"/>. Being a <see cref="Failure"/> <see cref="Status"/> means that the
-         * <see cref="Settings.Upscaler"/> in question is not usable in its current state. See <see cref="Recoverable"/>
-         * to determine if fixing the problem is possible.</remarks>
+         * <remarks>This returns <c>true</c> for all <see cref="Status"/>es that are not <see cref="Status.Success"/>.
+         * Being a <see cref="Failure"/> <see cref="Status"/> means that the <see cref="Settings.Upscaler"/> in question
+         * is not usable in its current state. See <see cref="Recoverable"/> to determine if fixing the problem is
+         * possible.</remarks>
          */
-        public static bool Failure(Status status) => status > Status.NoUpscalerSet;
+        public static bool Failure(Status status) => status != Status.Success;
 
         /**
          * <summary>Is a <see cref="Status"/> recoverable from?</summary>
@@ -502,9 +466,8 @@ namespace Conifer.Upscaler
 
             if (forceHistoryResetEveryFrame) ResetHistory();
 
-            status = NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
-            if (Failure(status)) return;
-            RenderResolution = Vector2Int.Min(NativeInterface.GetMaximumResolution().ToVector2Int(), Vector2Int.Max(NativeInterface.GetMinimumResolution().ToVector2Int(), RenderResolution));
+            NativeInterface.SetPerFrameData(Settings.FrameTime, settings.sharpness, new Settings.CameraInfo(_camera), settings.useReactiveMask, settings.tcThreshold, settings.tcScale, settings.reactiveScale, settings.reactiveMax);
+            RenderResolution = RenderResolution;
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();

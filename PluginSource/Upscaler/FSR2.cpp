@@ -24,7 +24,7 @@ FfxInterface* FSR2::ffxInterface{nullptr};
 Upscaler::Status (FSR2::*FSR2::fpInitialize)(){&FSR2::safeFail};
 Upscaler::Status (FSR2::*FSR2::fpEvaluate)(){&FSR2::safeFail};
 
-Upscaler::SupportState FSR2::supported{UNTESTED};
+Upscaler::SupportState FSR2::supported{Untested};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR2::VulkanInitialize() {
@@ -37,12 +37,12 @@ Upscaler::Status FSR2::VulkanInitialize() {
     };
     device                  = ffxGetDeviceVK(&deviceContext);
     const size_t bufferSize = ffxGetScratchMemorySizeVK(instance.physicalDevice, 1);
-    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
+    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, FatalRuntimeError, getName() + " does not work in this environment (OS, graphics API, device, or drivers)."));
     void *buffer = calloc(bufferSize, 1);
-    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, OutOfMemory, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
     ffxInterface = new FfxInterface;
     RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
-    return SUCCESS;
+    return Success;
 }
 
 FfxSurfaceFormat getFormat(const VkFormat format) {
@@ -87,8 +87,6 @@ FfxSurfaceFormat getFormat(const VkFormat format) {
 }
 
 Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::ImageID imageID) {
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
-
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
     VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
@@ -102,7 +100,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
 
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
-    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
+    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
 
     const FfxResourceDescription description {
       .type=FFX_RESOURCE_TYPE_TEXTURE2D,
@@ -114,9 +112,8 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
       .flags=FFX_RESOURCE_FLAGS_NONE,
       .usage=resourceUsage,
     };
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(description.format == FFX_SURFACE_FORMAT_UNKNOWN, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The given image format is not compatible with " + getName() + ". Please select a different image format."));
     resource = ffxGetResourceVK(image.image, description, std::wstring(L"").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::VulkanEvaluate() {
@@ -130,14 +127,9 @@ Upscaler::Status FSR2::VulkanEvaluate() {
         RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
 
-    RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
-
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     FfxCommandList commandList = ffxGetCommandListVK(state.commandBuffer);
 
@@ -198,7 +190,7 @@ Upscaler::Status FSR2::VulkanEvaluate() {
 
     // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
-    return SUCCESS;
+    return Success;
 }
 #    endif
 
@@ -207,23 +199,21 @@ Upscaler::Status FSR2::DX12Initialize() {
     delete ffxInterface;
     device                      = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
     const size_t bufferSize     = ffxGetScratchMemorySizeDX12(1);
-    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, getName() + " does not work in this environment."));
+    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, FatalRuntimeError, getName() + " does not work in this environment."));
     void *buffer = calloc(bufferSize, 1);
-    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, OutOfMemory, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
     ffxInterface = new FfxInterface;
     RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::ImageID imageID) {
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a FFX resource from a nonexistent image."));
-
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
     if (imageID == Plugin::ImageID::Depth) {
         resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
     }
     ID3D12Resource*           image            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
-    RETURN_ON_FAILURE(setStatusIf(image == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `nullptr` image."));
+    RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 
     const FfxResourceDescription description {
@@ -237,7 +227,7 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
       .usage=resourceUsage,
     };
     resource = ffxGetResourceDX12(image, description, std::wstring(L"").data(), FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::DX12Evaluate() {
@@ -251,13 +241,8 @@ Upscaler::Status FSR2::DX12Evaluate() {
         RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
     }
 
-    RETURN_ON_FAILURE(setStatusIf(color.description.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(color.description.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(color.description.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(color.description.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(color.description.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(color.description.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
-
     UnityGraphicsD3D12RecordingState state{};
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     FfxCommandList commandList = ffxGetCommandListDX12(state.commandList);
 
@@ -318,29 +303,29 @@ Upscaler::Status FSR2::DX12Evaluate() {
 
     // RETURN_ON_FAILURE(setStatus(ffxFsr2UpscalerContextGenerateReactiveMask(context, &generateReactiveDescription), "Failed to generate reactive mask."));
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
-    return SUCCESS;
+    return Success;
 }
 #    endif
 
 Upscaler::Status FSR2::setStatus(const FfxErrorCode t_error, const std::string &t_msg) {
     switch (t_error) {
-        case static_cast<int>(FFX_OK): return Upscaler::setStatus(SUCCESS, t_msg + " | FFX_OK");
-        case static_cast<int>(FFX_ERROR_INVALID_POINTER): return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | FFX_ERROR_INVALID_POINTER");
-        case static_cast<int>(FFX_ERROR_INVALID_ALIGNMENT): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ALIGNMENT");
-        case static_cast<int>(FFX_ERROR_INVALID_SIZE): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_SIZE");
-        case static_cast<int>(FFX_EOF): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_EOF");
-        case static_cast<int>(FFX_ERROR_INVALID_PATH): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_PATH");
-        case static_cast<int>(FFX_ERROR_EOF): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_EOF");
-        case static_cast<int>(FFX_ERROR_MALFORMED_DATA): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_MALFORMED_DATA");
-        case static_cast<int>(FFX_ERROR_OUT_OF_MEMORY): return Upscaler::setStatus(SOFTWARE_ERROR_OUT_OF_GPU_MEMORY, t_msg + " | FFX_ERROR_OUT_OF_MEMORY");
-        case static_cast<int>(FFX_ERROR_INCOMPLETE_INTERFACE): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INCOMPLETE_INTERFACE");
-        case static_cast<int>(FFX_ERROR_INVALID_ENUM): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ENUM");
-        case static_cast<int>(FFX_ERROR_INVALID_ARGUMENT): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_INVALID_ARGUMENT");
-        case static_cast<int>(FFX_ERROR_OUT_OF_RANGE): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_OUT_OF_RANGE");
-        case static_cast<int>(FFX_ERROR_NULL_DEVICE): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_NULL_DEVICE");
-        case static_cast<int>(FFX_ERROR_BACKEND_API_ERROR): return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | FFX_ERROR_BACKEND_API_ERROR");
-        case static_cast<int>(FFX_ERROR_INSUFFICIENT_MEMORY): return Upscaler::setStatus(SOFTWARE_ERROR_OUT_OF_GPU_MEMORY, t_msg + " | FFX_ERROR_INSUFFICIENT_MEMORY");
-        default: return Upscaler::setStatus(UNKNOWN_ERROR, t_msg + " | Unknown");
+        case static_cast<int>(FFX_OK): return Upscaler::setStatus(Success, t_msg + " | FFX_OK");
+        case static_cast<int>(FFX_ERROR_INVALID_POINTER): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_INVALID_POINTER");
+        case static_cast<int>(FFX_ERROR_INVALID_ALIGNMENT): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_INVALID_ALIGNMENT");
+        case static_cast<int>(FFX_ERROR_INVALID_SIZE): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_INVALID_SIZE");
+        case static_cast<int>(FFX_EOF): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_EOF");
+        case static_cast<int>(FFX_ERROR_INVALID_PATH): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_INVALID_PATH");
+        case static_cast<int>(FFX_ERROR_EOF): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_EOF");
+        case static_cast<int>(FFX_ERROR_MALFORMED_DATA): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_MALFORMED_DATA");
+        case static_cast<int>(FFX_ERROR_OUT_OF_MEMORY): return Upscaler::setStatus(OutOfMemory, t_msg + " | FFX_ERROR_OUT_OF_MEMORY");
+        case static_cast<int>(FFX_ERROR_INCOMPLETE_INTERFACE): return Upscaler::setStatus(RecoverableRuntimeError, t_msg + " | FFX_ERROR_INCOMPLETE_INTERFACE");
+        case static_cast<int>(FFX_ERROR_INVALID_ENUM): return Upscaler::setStatus(RecoverableRuntimeError, t_msg + " | FFX_ERROR_INVALID_ENUM");
+        case static_cast<int>(FFX_ERROR_INVALID_ARGUMENT): return Upscaler::setStatus(RecoverableRuntimeError, t_msg + " | FFX_ERROR_INVALID_ARGUMENT");
+        case static_cast<int>(FFX_ERROR_OUT_OF_RANGE): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_OUT_OF_RANGE");
+        case static_cast<int>(FFX_ERROR_NULL_DEVICE): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_NULL_DEVICE");
+        case static_cast<int>(FFX_ERROR_BACKEND_API_ERROR): return Upscaler::setStatus(FatalRuntimeError, t_msg + " | FFX_ERROR_BACKEND_API_ERROR");
+        case static_cast<int>(FFX_ERROR_INSUFFICIENT_MEMORY): return Upscaler::setStatus(OutOfMemory, t_msg + " | FFX_ERROR_INSUFFICIENT_MEMORY");
+        default: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | Unknown");
     }
 }
 
@@ -357,10 +342,10 @@ void FSR2::log(const FfxMsgType type, const wchar_t *t_msg) {
 }
 
 bool FSR2::isSupported() {
-    if (supported != UNTESTED)
-        return supported == SUPPORTED;
+    if (supported != Untested)
+        return supported == Supported;
     const FSR2 fsr2(GraphicsAPI::getType());
-    return (supported = success(fsr2.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    return (supported = success(fsr2.getStatus()) ? Supported : Unsupported) == Supported;
 }
 
 bool FSR2::isSupported(const enum Settings::Quality mode) {
@@ -408,21 +393,17 @@ FSR2::~FSR2() {
     shutdown();
 }
 
-Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
-    RETURN_ON_FAILURE(setStatusIf(mode >= Upscaler::Settings::QUALITY_MODE_MAX_ENUM, SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, "The selected quality mode is unavailable or invalid."));
-
+Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
-    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
-    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
+    RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.recommendedInputResolution.width, &optimalSettings.recommendedInputResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
     optimalSettings.dynamicMaximumInputResolution = resolution;
 
     settings = optimalSettings;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::initialize() {
@@ -430,11 +411,10 @@ Upscaler::Status FSR2::initialize() {
         RETURN_ON_FAILURE((this->*fpInitialize)());
         ++users;
     }
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::create() {
-    RETURN_ON_FAILURE(setStatusIf(ffxInterface == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Tried to create " + getName() + " context without a valid interface."));
     if (context != nullptr) {
         ++users;  // Corrected by `shutdown()`. Also prevents the interface from being destroyed.
         RETURN_ON_FAILURE(shutdown());
@@ -460,14 +440,13 @@ Upscaler::Status FSR2::create() {
 
     context = new FfxFsr2Context;
     RETURN_ON_FAILURE(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."));
-    RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " context."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::evaluate() {
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status FSR2::shutdown() {
@@ -481,6 +460,6 @@ Upscaler::Status FSR2::shutdown() {
         delete ffxInterface;
         ffxInterface = nullptr;
     }
-    return SUCCESS;
+    return Success;
 }
 #endif

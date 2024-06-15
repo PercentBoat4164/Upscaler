@@ -66,10 +66,10 @@ Upscaler::Status (DLSS::*DLSS::fpEvaluate)(){&DLSS::safeFail};
 Upscaler::Status (DLSS::*DLSS::fpRelease)(){&DLSS::safeFail};
 Upscaler::Status (DLSS::*DLSS::fpShutdown)(){&DLSS::safeFail};
 
-Upscaler::SupportState DLSS::supported{UNTESTED};
+Upscaler::SupportState DLSS::supported{Untested};
 #    ifdef ENABLE_VULKAN
-Upscaler::SupportState DLSS::instanceExtensionsSupported{UNTESTED};
-Upscaler::SupportState DLSS::deviceExtensionsSupported{UNTESTED};
+Upscaler::SupportState DLSS::instanceExtensionsSupported{Untested};
+Upscaler::SupportState DLSS::deviceExtensionsSupported{Untested};
 #    endif
 
 uint32_t DLSS::users{};
@@ -79,24 +79,19 @@ Upscaler::Status DLSS::VulkanInitialize() {
     const UnityVulkanInstance vulkanInstance = Vulkan::getGraphicsInterface()->Instance();
 
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], vulkanInstance.instance, vulkanInstance.physicalDevice, vulkanInstance.device), "Failed to initialize the NGX instance."));
-    RETURN_ON_FAILURE(setStatusIf(parameters != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters already exist!"));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_GetCapabilityParameters(&parameters), "Failed to get the " + getName() + " compatibility parameters."));
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Parameters are invalid after attempting to build them."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::VulkanCreate() {
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
-
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(NGX_VULKAN_CREATE_DLSS_EXT1(Vulkan::getGraphicsInterface()->Instance().device, state.commandBuffer, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, const Plugin::ImageID imageID) {
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(imageID >= Plugin::ImageID::IMAGE_ID_MAX_ENUM, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Attempted to get a NGX resource from a nonexistent image."));
-
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
     VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
     if (imageID == Plugin::ImageID::OutputColor) {
@@ -107,12 +102,12 @@ Upscaler::Status DLSS::VulkanUpdateResource(RAII_NGXVulkanResource* resource, co
 
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
-    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Unity provided a `VK_NULL_HANDLE` image."));
+    RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
 
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
-    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create a valid `VkImageView`."));
+    RETURN_ON_FAILURE(setStatusIf(view == VK_NULL_HANDLE, FatalRuntimeError, "Failed to create a valid `VkImageView`."));
     resource->ChangeResource(view, image.image, image.aspect, image.format, {image.extent.width, image.extent.height});
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::VulkanEvaluate() {
@@ -125,11 +120,6 @@ Upscaler::Status DLSS::VulkanEvaluate() {
     const Settings::Resolution inputResolution{colorResource.Resource.ImageViewInfo.Width, colorResource.Resource.ImageViewInfo.Height};
     NVSDK_NGX_Resource_VK&     motionResource = motion->GetResource();
     const Settings::Resolution motionResolution{motionResource.Resource.ImageViewInfo.Width, motionResource.Resource.ImageViewInfo.Height};
-
-    RETURN_ON_FAILURE(setStatusIf(inputResolution.width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inputResolution.width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inputResolution.height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inputResolution.height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    RETURN_ON_FAILURE(setStatusIf(inputResolution.width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inputResolution.width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inputResolution.height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inputResolution.height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_VK_DLSS_Eval_Params DLSSEvalParameters {
@@ -157,17 +147,16 @@ Upscaler::Status DLSS::VulkanEvaluate() {
 
     UnityVulkanRecordingState state{};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     RETURN_ON_FAILURE(setStatus(NGX_VULKAN_EVALUATE_DLSS_EXT(state.commandBuffer, featureHandle, parameters, &DLSSEvalParameters), "Failed to evaluate the " + getName() + " feature."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::VulkanRelease() {
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature has already been released."));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature."));
     featureHandle = nullptr;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::VulkanShutdown() {
@@ -186,25 +175,22 @@ Upscaler::Status DLSS::VulkanShutdown() {
     if (--users == 0)
         RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Shutdown1(Vulkan::getGraphicsInterface()->Instance().device), "Failed to shutdown the NGX instance."));
 
-    return SUCCESS;
+    return Success;
 }
 #    endif
 
 #    ifdef ENABLE_DX12
 Upscaler::Status DLSS::DX12Initialize() {
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX12::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
-    RETURN_ON_FAILURE(setStatusIf(parameters != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters already exist!"));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_GetCapabilityParameters(&parameters), "Failed to get the " + getName() + " compatibility parameters"));
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Parameters are invalid after attempting to build them."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX12Create() {
     UnityGraphicsD3D12RecordingState state{};
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
-
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(NGX_D3D12_CREATE_DLSS_EXT(state.commandList, 1U, 1U, &featureHandle, parameters, &DLSSCreateParams), "Failed to create the " + getName() + " feature."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX12Evaluate() {
@@ -212,11 +198,6 @@ Upscaler::Status DLSS::DX12Evaluate() {
     const D3D12_RESOURCE_DESC  inColorDescription = inColor->GetDesc();
     ID3D12Resource* motion = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
     const D3D12_RESOURCE_DESC  motionDescription = motion->GetDesc();
-
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inColorDescription.Width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inColorDescription.Height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inColorDescription.Width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inColorDescription.Height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
@@ -243,16 +224,15 @@ Upscaler::Status DLSS::DX12Evaluate() {
     // clang-format on
 
     UnityGraphicsD3D12RecordingState state{};
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(NGX_D3D12_EVALUATE_DLSS_EXT(state.commandList, featureHandle, parameters, &DLSSEvalParameters), "Failed to evaluate the " + getName() + " feature."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX12Release() {
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature has already been released."));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature."));
     featureHandle = nullptr;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX12Shutdown() {
@@ -265,17 +245,15 @@ Upscaler::Status DLSS::DX12Shutdown() {
 
     if (--users == 0)
         RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Shutdown1(DX12::getGraphicsInterface()->GetDevice()), "Failed to shutdown the NGX instance."));
-    return SUCCESS;
+    return Success;
 }
 #    endif
 
 #    ifdef ENABLE_DX11
 Upscaler::Status DLSS::DX11Initialize() {
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX11::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
-    RETURN_ON_FAILURE(setStatusIf(parameters != nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters already exist!"));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_GetCapabilityParameters(&parameters), "Failed to get the " + getName() + " compatibility parameters"));
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Parameters are invalid after attempting to build them."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX11Create() {
@@ -285,20 +263,15 @@ Upscaler::Status DLSS::DX11Create() {
 Upscaler::Status DLSS::DX11Evaluate() {
     ID3D11Resource*  inColor = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
     ID3D11Texture2D* tex     = nullptr;
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(inColor->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, FatalRuntimeError, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC inColorDescription;
     tex->GetDesc(&inColorDescription);
 
     ID3D11Resource* motion = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]);
     tex                    = nullptr;
-    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(motion->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "The data passed as color input was not a texture."));
+    RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(motion->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, FatalRuntimeError, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC motionDescription;
     tex->GetDesc(&motionDescription);
-
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width < settings.dynamicMinimumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too small. " + std::to_string(inColorDescription.Width) + " < " + std::to_string(settings.dynamicMinimumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height < settings.dynamicMinimumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too small. " + std::to_string(inColorDescription.Height) + " < " + std::to_string(settings.dynamicMinimumInputResolution.height)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Width > settings.dynamicMaximumInputResolution.width, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width is too big. " + std::to_string(inColorDescription.Width) + " > " + std::to_string(settings.dynamicMaximumInputResolution.width)));
-    RETURN_ON_FAILURE(setStatusIf(inColorDescription.Height > settings.dynamicMaximumInputResolution.height, SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height is too big. " + std::to_string(inColorDescription.Height) + " > " + std::to_string(settings.dynamicMaximumInputResolution.height)));
 
     // clang-format off
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
@@ -325,14 +298,13 @@ Upscaler::Status DLSS::DX11Evaluate() {
     // clang-format on
 
     RETURN_ON_FAILURE(setStatus(NGX_D3D11_EVALUATE_DLSS_EXT(DX11::getOneTimeSubmitContext(), featureHandle, parameters, &DLSSEvalParams), "Failed to evaluate the " + getName() + " feature."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX11Release() {
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature has already been released."));
     RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_ReleaseFeature(featureHandle), "Failed to release the " + getName() + " feature."));
     featureHandle = nullptr;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::DX11Shutdown() {
@@ -345,7 +317,7 @@ Upscaler::Status DLSS::DX11Shutdown() {
 
     if (--users == 0)
         RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Shutdown1(DX11::getGraphicsInterface()->GetDevice()), "Failed to shutdown the NGX instance."));
-    return SUCCESS;
+    return Success;
 }
 #    endif
 
@@ -354,28 +326,28 @@ Upscaler::Status DLSS::setStatus(const NVSDK_NGX_Result t_error, std::string t_m
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
     t_msg += " | " + msg;
-    Status error = SUCCESS;
+    Status error = Success;
     switch (t_error) {
         case NVSDK_NGX_Result_Success: return getStatus();
-        case NVSDK_NGX_Result_Fail: error = UNKNOWN_ERROR; break;
-        case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = HARDWARE_ERROR_DEVICE_NOT_SUPPORTED; break;
-        case NVSDK_NGX_Result_FAIL_PlatformError: error = SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED; break;
-        case NVSDK_NGX_Result_FAIL_FeatureAlreadyExists: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_FeatureNotFound: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
-        case NVSDK_NGX_Result_FAIL_InvalidParameter: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_ScratchBufferTooSmall: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
+        case NVSDK_NGX_Result_Fail: error = FatalRuntimeError; break;
+        case NVSDK_NGX_Result_FAIL_FeatureNotSupported: error = DeviceNotSupported; break;
+        case NVSDK_NGX_Result_FAIL_PlatformError: error = OperatingSystemNotSupported; break;
+        case NVSDK_NGX_Result_FAIL_FeatureAlreadyExists: return getStatus();
+        case NVSDK_NGX_Result_FAIL_FeatureNotFound: error = FatalRuntimeError; break;
+        case NVSDK_NGX_Result_FAIL_InvalidParameter: error = RecoverableRuntimeError; break;
+        case NVSDK_NGX_Result_FAIL_ScratchBufferTooSmall:
         case NVSDK_NGX_Result_FAIL_NotInitialized:
         case NVSDK_NGX_Result_FAIL_UnsupportedInputFormat:
         case NVSDK_NGX_Result_FAIL_RWFlagMissing:
         case NVSDK_NGX_Result_FAIL_MissingInput:
-        case NVSDK_NGX_Result_FAIL_UnableToInitializeFeature: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_OutOfDate: error = SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE; break;
-        case NVSDK_NGX_Result_FAIL_OutOfGPUMemory: error = SOFTWARE_ERROR_OUT_OF_GPU_MEMORY; break;
-        case NVSDK_NGX_Result_FAIL_UnsupportedFormat: error = SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING; break;
-        case NVSDK_NGX_Result_FAIL_UnableToWriteToAppDataPath: error = SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS; break;
-        case NVSDK_NGX_Result_FAIL_UnsupportedParameter: error = SETTINGS_ERROR; break;
-        case NVSDK_NGX_Result_FAIL_Denied: error = SOFTWARE_ERROR_FEATURE_DENIED; break;
-        case NVSDK_NGX_Result_FAIL_NotImplemented: error = SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR; break;
+        case NVSDK_NGX_Result_FAIL_UnableToInitializeFeature: error = FatalRuntimeError; break;
+        case NVSDK_NGX_Result_FAIL_OutOfDate: error = DriversOutOfDate; break;
+        case NVSDK_NGX_Result_FAIL_OutOfGPUMemory: error = OutOfMemory; break;
+        case NVSDK_NGX_Result_FAIL_UnsupportedFormat:
+        case NVSDK_NGX_Result_FAIL_UnableToWriteToAppDataPath:
+        case NVSDK_NGX_Result_FAIL_UnsupportedParameter: error = FatalRuntimeError; break;
+        case NVSDK_NGX_Result_FAIL_Denied: error = FeatureDenied; break;
+        case NVSDK_NGX_Result_FAIL_NotImplemented: error = FatalRuntimeError; break;
     }
     return Upscaler::setStatus(error, t_msg);
 }
@@ -403,11 +375,11 @@ std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector
         if (std::ranges::find_if(supportedExtensions, [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
             requestedExtensions.emplace_back(extensionName);
         } else {
-            instanceExtensionsSupported = UNSUPPORTED;
+            instanceExtensionsSupported = Unsupported;
             return {};
         }
     }
-    instanceExtensionsSupported = SUPPORTED;
+    instanceExtensionsSupported = Supported;
     return requestedExtensions;
 }
 
@@ -422,26 +394,26 @@ std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance
         if (std::ranges::find_if(supportedExtensions, [&extensionName](const std::string& str) { return strcmp(str.c_str(), extensionName) == 0; }) != supportedExtensions.end()) {
             requestedExtensions.emplace_back(extensionName);
         } else {
-            deviceExtensionsSupported = UNSUPPORTED;
+            deviceExtensionsSupported = Unsupported;
             return {};
         }
     }
-    deviceExtensionsSupported = SUPPORTED;
+    deviceExtensionsSupported = Supported;
     return requestedExtensions;
 }
 #    endif
 
 bool DLSS::isSupported() {
-    if (supported != UNTESTED)
-        return supported == SUPPORTED;
+    if (supported != Untested)
+        return supported == Supported;
 #    ifdef ENABLE_VULKAN
-    if (instanceExtensionsSupported == UNSUPPORTED || deviceExtensionsSupported == UNSUPPORTED) {
-        supported = UNSUPPORTED;
+    if (instanceExtensionsSupported == Unsupported || deviceExtensionsSupported == Unsupported) {
+        supported = Unsupported;
         return false;
     }
 #    endif
     const DLSS dlss(GraphicsAPI::getType());
-    return (supported = success(dlss.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    return (supported = success(dlss.getStatus()) ? Supported : Unsupported) == Supported;
 }
 
 bool DLSS::isSupported(const enum Settings::Quality mode) {
@@ -509,22 +481,14 @@ DLSS::~DLSS() {
     shutdown();
 }
 
-Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::Preset preset, const enum Settings::Quality mode, const bool hdr) {
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
-    RETURN_ON_FAILURE(setStatusIf(resolution.height < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in height."));
-    RETURN_ON_FAILURE(setStatusIf(resolution.width < 32, SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION, "The output resolution must be more than 32 pixels in width."));
-    RETURN_ON_FAILURE(setStatusIf(mode >= Upscaler::Settings::QUALITY_MODE_MAX_ENUM, SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE, "The selected quality mode is unavailable or invalid."));
-    RETURN_ON_FAILURE(setStatusIf(preset >= Upscaler::Settings::PRESET_MAX_ENUM, SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected DLSS preset is unavailable or invalid."));
-
+Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution, const Settings::DLSSPreset preset, const enum Settings::Quality mode, const bool hdr) {
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
     optimalSettings.preset           = preset;
 
-    RETURN_ON_FAILURE(setStatus(NGX_DLSS_GET_OPTIMAL_SETTINGS(parameters, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::DLSS>(), &optimalSettings.renderingResolution.width, &optimalSettings.renderingResolution.height, &optimalSettings.dynamicMaximumInputResolution.width, &optimalSettings.dynamicMaximumInputResolution.height, &optimalSettings.dynamicMinimumInputResolution.width, &optimalSettings.dynamicMinimumInputResolution.height, &optimalSettings.sharpness), "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the output resolution, sharpness is between 0.0 and 1.0, and that the Quality setting is a valid enum value."));
-    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.width == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's width cannot be zero."));
-    RETURN_ON_FAILURE(setStatusIf(optimalSettings.renderingResolution.height == 0, Upscaler::Status::SETTINGS_ERROR_INVALID_INPUT_RESOLUTION, "The input resolution's height cannot be zero."));
+    RETURN_ON_FAILURE(setStatus(NGX_DLSS_GET_OPTIMAL_SETTINGS(parameters, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::DLSS>(), &optimalSettings.recommendedInputResolution.width, &optimalSettings.recommendedInputResolution.height, &optimalSettings.dynamicMaximumInputResolution.width, &optimalSettings.dynamicMaximumInputResolution.height, &optimalSettings.dynamicMinimumInputResolution.width, &optimalSettings.dynamicMinimumInputResolution.height, &optimalSettings.sharpness), "Some invalid setting was set. Ensure that the current input resolution is within allowed bounds given the output resolution, sharpness is between 0.0 and 1.0, and that the Quality setting is a valid enum value."));
 
     switch (preset) {
         case Settings::Default:
@@ -555,11 +519,11 @@ Upscaler::Status DLSS::getOptimalSettings(const Settings::Resolution resolution,
             NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, NVSDK_NGX_DLSS_Hint_Render_Preset_B);
             NVSDK_NGX_Parameter_SetUI(parameters, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, NVSDK_NGX_DLSS_Hint_Render_Preset_C);
             break;
-        default: RETURN_ON_FAILURE(Upscaler::setStatus(SETTINGS_ERROR_PRESET_NOT_AVAILABLE, "The selected preset does not exist."));
+        default: break;
     }
 
     settings = optimalSettings;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::initialize() {
@@ -573,26 +537,25 @@ Upscaler::Status DLSS::initialize() {
         RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMajor, &requiredMajorDriverVersion), "Failed to query the major version of the minimum " + getName() + " supported driver for the selected graphics device. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
         int requiredMinorDriverVersion{};
         RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_MinDriverVersionMinor, &requiredMinorDriverVersion), "Failed to query the minor version of the minimum " + getName() + " supported driver for the selected graphics device. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
-        return Upscaler::setStatus(SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE, "The selected device's drivers are out-of-date. They must be (" + std::to_string(requiredMajorDriverVersion) + "." + std::to_string(requiredMinorDriverVersion) + ") at a minimum.");
+        return Upscaler::setStatus(DriversOutOfDate, "The selected device's drivers are out-of-date. They must be (" + std::to_string(requiredMajorDriverVersion) + "." + std::to_string(requiredMinorDriverVersion) + ") at a minimum.");
     }
     int DLSSSupported{};
     RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSSSupported), "Failed to query status of " + getName() + " support for the selected graphics device. This may result from outdated an driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
-    RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED, getName() + " is not supported on the selected graphics device. If you are certain that you have a DLSS compatible device, please ensure that it is being used by Unity for rendering."));
+    RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, DeviceNotSupported, getName() + " is not supported on the selected graphics device. If you are certain that you have a DLSS compatible device, please ensure that it is being used by Unity for rendering."));
     RETURN_ON_FAILURE(setStatus(parameters->Get(NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, &DLSSSupported), "Failed to query the major version of the minimum " + getName() + " supported driver for the selected graphics device. This may result from outdated driver, unsupported GPUs, a failure to initialize NGX, or a failure to get the " + getName() + " compatibility parameters."));
-    RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, SOFTWARE_ERROR_FEATURE_DENIED, getName() + " has been denied for this application. Consult an NVIDIA representative for more information."));
+    RETURN_ON_FAILURE(setStatusIf(DLSSSupported == 0, FeatureDenied, getName() + " has been denied for this application. Consult an NVIDIA representative for more information."));
 
     users += 1;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::create() {
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
     if (featureHandle != nullptr) RETURN_ON_FAILURE((this->*fpRelease)());
     // clang-format off
     DLSSCreateParams = {
       .Feature = {
-        .InWidth            = settings.renderingResolution.width,
-        .InHeight           = settings.renderingResolution.height,
+        .InWidth            = settings.recommendedInputResolution.width,
+        .InHeight           = settings.recommendedInputResolution.height,
         .InTargetWidth      = settings.outputResolution.width,
         .InTargetHeight     = settings.outputResolution.height,
         .InPerfQualityValue = settings.getQuality<Upscaler::DLSS>(),
@@ -608,22 +571,19 @@ Upscaler::Status DLSS::create() {
     // clang-format on
 
     RETURN_ON_FAILURE((this->*fpCreate)());
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Failed to create the " + getName() + " feature. The handle `nullptr`."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::evaluate() {
-    RETURN_ON_FAILURE(setStatusIf(parameters == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Parameters do not exist!"));
-    RETURN_ON_FAILURE(setStatusIf(featureHandle == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, "Feature does not exist!"));
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status DLSS::shutdown() {
     if (parameters != nullptr)
         NVSDK_NGX_Parameter_SetI(parameters, NVSDK_NGX_Parameter_FreeMemOnReleaseFeature, 1);
     RETURN_ON_FAILURE((this->*fpShutdown)());
-    return SUCCESS;
+    return Success;
 }
 #endif

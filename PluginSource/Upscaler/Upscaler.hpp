@@ -54,7 +54,7 @@ struct alignas(128) UpscalerBase {
             QUALITY_MODE_MAX_ENUM
         } quality{};
 
-        enum Preset : uint8_t {
+        enum DLSSPreset : uint8_t {
             Default,
             Stable,
             FastPaced,
@@ -65,7 +65,7 @@ struct alignas(128) UpscalerBase {
         struct alignas(8) Resolution {
             uint32_t width;
             uint32_t height;
-        } renderingResolution{}, dynamicMaximumInputResolution{}, dynamicMinimumInputResolution{}, outputResolution{};
+        } recommendedInputResolution{}, dynamicMaximumInputResolution{}, dynamicMinimumInputResolution{}, outputResolution{};
 
         struct alignas(8) Jitter {
             float x;
@@ -115,7 +115,7 @@ struct alignas(128) UpscalerBase {
                 }
             } x{2U}, y{3U};
 
-            const float scalingFactor = static_cast<float>(outputResolution.width) / static_cast<float>(renderingResolution.width);
+            const float scalingFactor = static_cast<float>(outputResolution.width) / static_cast<float>(recommendedInputResolution.width);
             const auto  jitterSamples = static_cast<uint32_t>(std::ceil(static_cast<float>(SamplesPerPixel) * scalingFactor * scalingFactor));
             jitter                    = {x.advance(jitterSamples), y.advance(jitterSamples)};
             return jitter;
@@ -191,74 +191,44 @@ protected:
 };
 
 class Upscaler : public UpscalerBase {
-    constexpr static uint8_t ERROR_TYPE_OFFSET = 29U;
-    constexpr static uint8_t ERROR_CODE_OFFSET = 16U;
-    constexpr static uint8_t ERROR_RECOVERABLE = 1U;
+    constexpr static uint8_t ERROR_RECOVERABLE = 1U << 7U;
 
 public:
-    // clang-format off
-
-    // bit range = meaning
-    // =======================
-    // [31-29]   = Error type
-    // [28-16]   = Error code
-    // [15-2]    = RESERVED
-    // [1]       = Attempting to use a Dummy Upscaler
-    // [0]       = Recoverable
-    enum Status : uint32_t {
-        SUCCESS                                                   =                  0U,
-        NO_UPSCALER_SET                                           =                  2U,
-        HARDWARE_ERROR                                            =                  1U  << ERROR_TYPE_OFFSET,
-        HARDWARE_ERROR_DEVICE_EXTENSIONS_NOT_SUPPORTED            = HARDWARE_ERROR | 1U  << ERROR_CODE_OFFSET,
-        HARDWARE_ERROR_DEVICE_NOT_SUPPORTED                       = HARDWARE_ERROR | 2U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR                                            =                  2U  << ERROR_TYPE_OFFSET,
-        SOFTWARE_ERROR_INSTANCE_EXTENSIONS_NOT_SUPPORTED          = SOFTWARE_ERROR | 1U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE                 = SOFTWARE_ERROR | 2U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_OPERATING_SYSTEM_NOT_SUPPORTED             = SOFTWARE_ERROR | 3U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_INVALID_WRITE_PERMISSIONS                  = SOFTWARE_ERROR | 4U  << ERROR_CODE_OFFSET,  // Should be marked as recoverable?
-        SOFTWARE_ERROR_FEATURE_DENIED                             = SOFTWARE_ERROR | 5U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_OUT_OF_GPU_MEMORY                          = SOFTWARE_ERROR | 6U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
-        SOFTWARE_ERROR_OUT_OF_SYSTEM_MEMORY                       = SOFTWARE_ERROR | 7U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
-        SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR                    = SOFTWARE_ERROR | 8U  << ERROR_CODE_OFFSET,
-        SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING               = SOFTWARE_ERROR | 9U  << ERROR_CODE_OFFSET | ERROR_RECOVERABLE,
-        SOFTWARE_ERROR_UNSUPPORTED_GRAPHICS_API                   = SOFTWARE_ERROR | 10U << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR                                            =                  3U  << ERROR_TYPE_OFFSET | ERROR_RECOVERABLE,
-        SETTINGS_ERROR_INVALID_INPUT_RESOLUTION                   = SETTINGS_ERROR | 1U  << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_INVALID_OUTPUT_RESOLUTION                  = SETTINGS_ERROR | 2U  << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_INVALID_SHARPNESS_VALUE                    = SETTINGS_ERROR | 3U  << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_QUALITY_MODE_NOT_AVAILABLE                 = SETTINGS_ERROR | 4U  << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_PRESET_NOT_AVAILABLE                       = SETTINGS_ERROR | 5U  << ERROR_CODE_OFFSET,
-        SETTINGS_ERROR_UPSCALER_NOT_AVAILABLE                     = SETTINGS_ERROR | 6U  << ERROR_CODE_OFFSET,
-        GENERIC_ERROR                                             =                  4U  << ERROR_TYPE_OFFSET,
-        GENERIC_ERROR_DEVICE_OR_INSTANCE_EXTENSIONS_NOT_SUPPORTED = GENERIC_ERROR  | 1U  << ERROR_CODE_OFFSET,
-        UNKNOWN_ERROR                                             =                  0xFFFFFFFE,
+    enum Status : uint8_t {
+        Success                     = 0U | ERROR_RECOVERABLE,
+        DeviceNotSupported          = 1U,
+        DriversOutOfDate            = 2U,
+        UnsupportedGraphicsApi      = 3U,
+        OperatingSystemNotSupported = 4U,
+        FeatureDenied               = 5U,
+        OutOfMemory                 = 6U | ERROR_RECOVERABLE,
+        RecoverableRuntimeError     = 7U | ERROR_RECOVERABLE,
+        FatalRuntimeError           = 8U,
     };
-
-    // clang-format on
 
     static bool success(Status);
     static bool failure(Status);
     static bool recoverable(Status);
 
     enum SupportState {
-        UNTESTED,
-        UNSUPPORTED,
-        SUPPORTED
+        Untested,
+        Unsupported,
+        Supported
     };
 
 private:
-    Status      status{SUCCESS};
+    Status      status{Success};
     std::string statusMessage;
 
 protected:
     template<typename... Args>
     constexpr Status safeFail(Args... /*unused*/) {
-        return setStatus(UNKNOWN_ERROR, "`safeFail` was called!");
+        return setStatus(RecoverableRuntimeError, "This graphics API is not supported or graphics initialization failed: `safeFail` was called!");
     }
 
     template<typename... Args>
     constexpr Status invalidGraphicsAPIFail(Args... /*unused*/) {
-        return setStatus(SOFTWARE_ERROR_UNSUPPORTED_GRAPHICS_API, getName() + " does not support the current graphics API.");
+        return setStatus(UnsupportedGraphicsApi, getName() + " does not support the current graphics API.");
     }
 
     static void (*logCallback)(const char* msg);
@@ -283,7 +253,7 @@ public:
 
     constexpr virtual Type        getType()                                                                                = 0;
     constexpr virtual std::string getName()                                                                                = 0;
-    virtual Status                getOptimalSettings(Settings::Resolution, Settings::Preset, enum Settings::Quality, bool) = 0;
+    virtual Status                getOptimalSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
 
     virtual Status initialize() = 0;
     virtual Status create()     = 0;

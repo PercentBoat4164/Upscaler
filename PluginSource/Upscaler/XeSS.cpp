@@ -16,7 +16,7 @@ Upscaler::Status (XeSS::*XeSS::fpInitialize)(){&XeSS::safeFail};
 Upscaler::Status (XeSS::*XeSS::fpCreate)(){&XeSS::safeFail};
 Upscaler::Status (XeSS::*XeSS::fpEvaluate)(){&XeSS::safeFail};
 
-Upscaler::SupportState XeSS::supported{UNTESTED};
+Upscaler::SupportState XeSS::supported{Untested};
 
 #    ifdef ENABLE_DX12
 Upscaler::Status XeSS::DX12Initialize() {
@@ -33,7 +33,7 @@ Upscaler::Status XeSS::DX12Create() {
             (settings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
     RETURN_ON_FAILURE(setStatus(xessD3D12Init(context, &params), "Failed to initialize the " + getName() + " context."));
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
@@ -55,31 +55,31 @@ Upscaler::Status XeSS::DX12Evaluate() {
         .inputHeight = static_cast<uint32_t>(inColorDescription.Height),
     };
     UnityGraphicsD3D12RecordingState state{};
-    RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
     RETURN_ON_FAILURE(setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + "."));
-    return SUCCESS;
+    return Success;
 }
 #endif
 
 Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {
-        case XESS_RESULT_WARNING_NONEXISTING_FOLDER: return Upscaler::setStatus(SUCCESS, t_msg + " | XESS_RESULT_WARNING_NONEXISTING_FOLDER");
-        case XESS_RESULT_WARNING_OLD_DRIVER: return Upscaler::setStatus(SUCCESS, t_msg + " | XESS_RESULT_WARNING_OLD_DRIVER");
-        case XESS_RESULT_SUCCESS: return Upscaler::setStatus(SUCCESS, t_msg + " | XESS_RESULT_SUCCESS");
-        case XESS_RESULT_ERROR_UNSUPPORTED_DEVICE: return Upscaler::setStatus(HARDWARE_ERROR_DEVICE_NOT_SUPPORTED, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED_DEVICE");
-        case XESS_RESULT_ERROR_UNSUPPORTED_DRIVER: return Upscaler::setStatus(SOFTWARE_ERROR_DEVICE_DRIVERS_OUT_OF_DATE, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED_DRIVER");
-        case XESS_RESULT_ERROR_UNINITIALIZED: return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | XESS_RESULT_ERROR_UNINITIALIZED");
-        case XESS_RESULT_ERROR_INVALID_ARGUMENT: return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | XESS_RESULT_ERROR_INVALID_ARGUMENT");
-        case XESS_RESULT_ERROR_DEVICE_OUT_OF_MEMORY: return Upscaler::setStatus(SOFTWARE_ERROR_OUT_OF_GPU_MEMORY, t_msg + " | XESS_RESULT_ERROR_DEVICE_OUT_OF_MEMORY");
-        case XESS_RESULT_ERROR_DEVICE: return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | XESS_RESULT_ERROR_DEVICE");
-        case XESS_RESULT_ERROR_NOT_IMPLEMENTED: return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | XESS_RESULT_ERROR_NOT_IMPLEMENTED");
-        case XESS_RESULT_ERROR_INVALID_CONTEXT: return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | XESS_RESULT_ERROR_INVALID_CONTEXT");
-        case XESS_RESULT_ERROR_OPERATION_IN_PROGRESS: return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | XESS_RESULT_ERROR_OPERATION_IN_PROGRESS");
-        case XESS_RESULT_ERROR_UNSUPPORTED: return Upscaler::setStatus(SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED");
-        case XESS_RESULT_ERROR_CANT_LOAD_LIBRARY: return Upscaler::setStatus(SOFTWARE_ERROR_CRITICAL_INTERNAL_ERROR, t_msg + " | XESS_RESULT_ERROR_CANT_LOAD_LIBRARY");
-        case XESS_RESULT_ERROR_UNKNOWN: return Upscaler::setStatus(UNKNOWN_ERROR, t_msg + " | XESS_RESULT_ERROR_UNKNOWN");
-        default: return Upscaler::setStatus(UNKNOWN_ERROR, t_msg + " | Unknown");
+        case XESS_RESULT_WARNING_NONEXISTING_FOLDER: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_WARNING_NONEXISTING_FOLDER");
+        case XESS_RESULT_WARNING_OLD_DRIVER: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_WARNING_OLD_DRIVER");
+        case XESS_RESULT_SUCCESS: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_SUCCESS");
+        case XESS_RESULT_ERROR_UNSUPPORTED_DEVICE: return Upscaler::setStatus(DeviceNotSupported, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED_DEVICE");
+        case XESS_RESULT_ERROR_UNSUPPORTED_DRIVER: return Upscaler::setStatus(DriversOutOfDate, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED_DRIVER");
+        case XESS_RESULT_ERROR_UNINITIALIZED: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_UNINITIALIZED");
+        case XESS_RESULT_ERROR_INVALID_ARGUMENT: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_INVALID_ARGUMENT");
+        case XESS_RESULT_ERROR_DEVICE_OUT_OF_MEMORY: return Upscaler::setStatus(OutOfMemory, t_msg + " | XESS_RESULT_ERROR_DEVICE_OUT_OF_MEMORY");
+        case XESS_RESULT_ERROR_DEVICE: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_DEVICE");
+        case XESS_RESULT_ERROR_NOT_IMPLEMENTED: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_NOT_IMPLEMENTED");
+        case XESS_RESULT_ERROR_INVALID_CONTEXT: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_INVALID_CONTEXT");
+        case XESS_RESULT_ERROR_OPERATION_IN_PROGRESS: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_OPERATION_IN_PROGRESS");
+        case XESS_RESULT_ERROR_UNSUPPORTED: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_UNSUPPORTED");
+        case XESS_RESULT_ERROR_CANT_LOAD_LIBRARY: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_CANT_LOAD_LIBRARY");
+        case XESS_RESULT_ERROR_UNKNOWN: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | XESS_RESULT_ERROR_UNKNOWN");
+        default: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | Unknown");
     }
 }
 
@@ -96,10 +96,10 @@ void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
 }
 
 bool XeSS::isSupported() {
-    if (supported != UNTESTED)
-        return supported == SUPPORTED;
+    if (supported != Untested)
+        return supported == Supported;
     const XeSS xess(GraphicsAPI::getType());
-    return (supported = success(xess.getStatus()) ? SUPPORTED : UNSUPPORTED) == SUPPORTED;
+    return (supported = success(xess.getStatus()) ? Supported : Unsupported) == Supported;
 }
 
 bool XeSS::isSupported(const enum Settings::Quality mode){
@@ -152,7 +152,7 @@ XeSS::~XeSS() {
     shutdown();
 }
 
-Upscaler::Status XeSS::getOptimalSettings(const Settings::Resolution resolution, Settings::Preset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status XeSS::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     settings.outputResolution              = resolution;
     settings.quality                       = mode;
     settings.hdr                           = hdr;
@@ -162,10 +162,10 @@ Upscaler::Status XeSS::getOptimalSettings(const Settings::Resolution resolution,
     };
     xess_2d_t optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &params, settings.getQuality<XESS>(), &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
-    settings.renderingResolution = {optimal.x, optimal.y};
+    settings.recommendedInputResolution    = {optimal.x, optimal.y};
     settings.dynamicMinimumInputResolution = {min.x, min.y};
     settings.dynamicMaximumInputResolution = {max.x, max.y};
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status XeSS::initialize() {
@@ -176,26 +176,24 @@ Upscaler::Status XeSS::initialize() {
 #    else
     RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."));
 #    endif
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status XeSS::create() {
-    RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, getName() + " context does not exist."));
     RETURN_ON_FAILURE((this->*fpCreate)());
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status XeSS::evaluate() {
-    RETURN_ON_FAILURE(setStatusIf(context == nullptr, SOFTWARE_ERROR_RECOVERABLE_INTERNAL_WARNING, getName() + " context does not exist."));
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
-    return SUCCESS;
+    return Success;
 }
 
 Upscaler::Status XeSS::shutdown() {
-    if (context == nullptr) return SUCCESS;
+    if (context == nullptr) return Success;
     RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the " + getName() + " context."));
     context = nullptr;
-    return SUCCESS;
+    return Success;
 }
 #endif
