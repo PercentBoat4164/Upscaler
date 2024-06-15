@@ -25,7 +25,6 @@ void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int eventID, void
         upscalers[params->userData & 0x0000FFFFU]->useImage(static_cast<Plugin::ImageID>(params->userData >> 16U), params->textureID);
     } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Prepare) {
         const std::unique_ptr<Upscaler>& upscaler = upscalers[reinterpret_cast<uint64_t>(data)];
-        upscaler->resetStatus();
         upscaler->create();
     } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) {
         upscalers[reinterpret_cast<uint64_t>(data)]->evaluate();
@@ -72,6 +71,10 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_ResetCameraU
     return upscalers[camera]->resetStatus();
 }
 
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraUpscalerStatus(const uint16_t camera, Upscaler::Status status, const char* message) {
+    return upscalers[camera]->setStatus(status, message);
+}
+
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFeatureSettings(
   const uint16_t                         camera,
   const Upscaler::Settings::Resolution   resolution,
@@ -81,6 +84,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const bool                             hdr
 ) {
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
+    upscaler->resetStatus();
     if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
     return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
 }

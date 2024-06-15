@@ -27,7 +27,7 @@ namespace Conifer.Upscaler.Demo
                 _upscaler.quality = (Upscaler.Quality)(((int)_upscaler.quality + 1) % 5);
 
             if (Input.GetKeyDown(KeyCode.E))
-                _upscaler.technique = (Upscaler.Technique)6;
+                _upscaler.quality = (Upscaler.Quality)11;
 
             // Does nothing if settings have not changed.
             _upscaler.ApplySettings();  // Be sure to handle errors here or have an error handler registered.

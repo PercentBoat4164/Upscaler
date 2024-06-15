@@ -51,7 +51,7 @@ namespace Conifer.Upscaler.URP
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var cb = CommandBufferPool.Get("SetMipBias");
-                var mipBias = (float)Math.Log((float)_upscaler.RenderResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
+                var mipBias = (float)Math.Log((float)_upscaler.InputResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
                 cb.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
@@ -73,8 +73,8 @@ namespace Conifer.Upscaler.URP
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 var cameraTextureDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                cameraTextureDescriptor.width = _upscaler.RenderResolution.x;
-                cameraTextureDescriptor.height = _upscaler.RenderResolution.y;
+                cameraTextureDescriptor.width = _upscaler.InputResolution.x;
+                cameraTextureDescriptor.height = _upscaler.InputResolution.y;
                 var colorDescriptor = cameraTextureDescriptor;
                 colorDescriptor.depthStencilFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
@@ -87,7 +87,7 @@ namespace Conifer.Upscaler.URP
                 _cameraOutputResolutionDepthTarget = renderingData.cameraData.renderer.cameraDepthTargetHandle;
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraRenderResolutionColorTarget, _cameraRenderResolutionDepthTarget);
 
-                var mipBias = (float)Math.Log((float)_upscaler.RenderResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
+                var mipBias = (float)Math.Log((float)_upscaler.InputResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
                 cmd.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
             }
 
@@ -98,8 +98,8 @@ namespace Conifer.Upscaler.URP
                 outputDescriptor.depthStencilFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref Output, outputDescriptor, name: "Conifer_UpscalerOutput");
                 var inputDescriptor = cameraTextureDescriptor;
-                inputDescriptor.width = _upscaler.RenderResolution.x;
-                inputDescriptor.height = _upscaler.RenderResolution.y;
+                inputDescriptor.width = _upscaler.InputResolution.x;
+                inputDescriptor.height = _upscaler.InputResolution.y;
                 inputDescriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
                 inputDescriptor.depthStencilFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref Motion, inputDescriptor, name: "Conifer_UpscalerMotion");

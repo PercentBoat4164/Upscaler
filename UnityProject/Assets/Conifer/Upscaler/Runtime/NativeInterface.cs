@@ -43,6 +43,12 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatusMessage")]
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraUpscalerStatus")]
+        internal static extern IntPtr ResetStatus(ushort camera);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraUpscalerStatus")]
+        internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFeatureSettings")]
         internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr);
 
@@ -150,6 +156,13 @@ namespace Conifer.Upscaler
         internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
 
         internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
+
+        internal void ResetStatus()
+        {
+            if (Loaded) Native.ResetStatus(_cameraID);
+        }
+
+        internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message)) : Upscaler.Status.Success;
 
         internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr)
         {

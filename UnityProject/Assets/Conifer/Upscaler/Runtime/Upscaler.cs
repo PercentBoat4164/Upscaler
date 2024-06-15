@@ -167,32 +167,32 @@ namespace Conifer.Upscaler
         public Vector2Int OutputResolution { get; private set; }
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
-        /// of <see cref="MaxRenderResolution"/> and <see cref="MinRenderResolution"/>. It is also set to the
-        /// <see cref="RecommendedRenderingResolution"/> whenever the <see cref="technique"/> or
+        /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
+        /// <see cref="RecommendedInputResolution"/> whenever the <see cref="technique"/> or
         /// <see cref="quality"/> are changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>.
         /// When the <see cref="Technique"/> has a
         /// <see cref="Status"/> error or the <see cref="Technique"/> is
         /// <see cref="Technique.None"/> it will be the same as <see cref="OutputResolution"/>.
-        public Vector2Int RenderResolution
+        public Vector2Int InputResolution
         {
-            get => _renderResolution;
-            set => _renderResolution = Vector2Int.Max(MinRenderResolution, Vector2Int.Min(MaxRenderResolution, value));
+            get => _inputResolution;
+            set => _inputResolution = Vector2Int.Max(MinInputResolution, Vector2Int.Min(MaxInputResolution, value));
         }
-        private Vector2Int _renderResolution;
+        private Vector2Int _inputResolution;
 
         /// The recommended resolution for this quality mode as given by the selected <see cref="Technique"/>.
         /// This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int RecommendedRenderingResolution { get; private set; }
+        public Vector2Int RecommendedInputResolution { get; private set; }
 
         /// The maximum dynamic resolution for this quality mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MaxRenderResolution { get; private set; }
+        public Vector2Int MaxInputResolution { get; private set; }
 
         /// The minimum dynamic resolution for this quality mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
         /// enabled.
-        public Vector2Int MinRenderResolution { get; private set; }
+        public Vector2Int MinInputResolution { get; private set; }
 
         /**
          * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws.</summary>
@@ -314,7 +314,7 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Use the new settings. This does not need to be called when adjusting dynamic resolution. Simply
-         * change <see cref="RenderResolution"/>.</summary>
+         * change <see cref="InputResolution"/>.</summary>
          *
          * <param name="force">Should the settings be applied even if they are the same as before? Defaults to <c>false</c></param>
          *
@@ -322,29 +322,37 @@ namespace Conifer.Upscaler
          *
          * <remarks>This method is very slow when the settings have changed, or if force is set to
          * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/> and
-         * <see cref="RenderResolution"/> based on queries of the new <see cref="Technique"/>.</remarks>
+         * <see cref="InputResolution"/> based on queries of the new <see cref="Technique"/>.</remarks>
          *
          * <example><code>upscaler.ApplySettings();</code></example>
          */
         public Status ApplySettings(bool force = false)
         {
-            if (Application.isPlaying && (force || quality != _quality || dlssPreset != _dlssPreset || technique != _technique || OutputResolution != _camera.pixelRect.size || _hdr != _camera.allowHDR))
-            {
-                OutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
-                _hdr = _camera.allowHDR;
-                
-                // Validate settings
+            if (!Application.isPlaying || NativeInterface is null) return Status.Success;
+            if (!force && quality == _quality && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _camera.pixelRect.size && _hdr == _camera.allowHDR) return NativeInterface.GetStatus();
 
-                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, _hdr);
-                if (Failure(CurrentStatus)) return CurrentStatus;
-                RecommendedRenderingResolution = NativeInterface.GetRecommendedResolution();
-                MaxRenderResolution = NativeInterface.GetMaximumResolution();
-                MinRenderResolution = NativeInterface.GetMinimumResolution();
-                if (technique != _technique || quality != _quality || force) RenderResolution = RecommendedRenderingResolution;
-                _quality = quality;
-                _dlssPreset = dlssPreset;
-                _technique = technique;
+            OutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
+            _hdr = _camera.allowHDR;
+
+            if (!force)
+            {
+                if (!Enum.IsDefined(typeof(Quality), quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not a valid Quality.");
+                if (!Enum.IsDefined(typeof(DlssPreset), dlssPreset)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`dlssPreset`(" + dlssPreset + ") is not a valid DlssPreset.");
+                if (!Enum.IsDefined(typeof(Technique), technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not a valid Technique.");
+                if (!IsSupported(technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not supported.");
+                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(OutputResolution, new Vector2Int(32, 32)) != OutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (32, 32).");
+                if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
+
+            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, _hdr);
+            if (Failure(CurrentStatus)) return CurrentStatus;
+            RecommendedInputResolution = NativeInterface.GetRecommendedResolution();
+            MaxInputResolution = NativeInterface.GetMaximumResolution();
+            MinInputResolution = NativeInterface.GetMinimumResolution();
+            if (technique != _technique || quality != _quality || force) InputResolution = RecommendedInputResolution;
+            _quality = quality;
+            _dlssPreset = dlssPreset;
+            _technique = technique;
             return CurrentStatus;
         }
 
@@ -356,48 +364,46 @@ namespace Conifer.Upscaler
             NativeInterface ??= new NativeInterface();
 
             if (!IsSupported(technique)) technique = Technique.None;
-            ApplySettings(true);
+            ApplySettings();
         }
 
         protected void Update()
         {
             if (!Application.isPlaying) return;
-            CurrentStatus = NativeInterface.GetStatus();
+            CurrentStatus = ApplySettings();
             if (Failure(CurrentStatus))
             {
-                void HandleError(Status reason, string message)
+                void HandleError()
                 {
-                    Debug.LogWarning(reason + " | " + message);
+                    Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
                     technique = Technique.None;
+                    quality = Quality.Auto;
+                    dlssPreset = DlssPreset.Default;
                     ApplySettings(true);
                 }
 
-                if (ErrorCallback is null) HandleError(CurrentStatus, NativeInterface.GetStatusMessage());
+                if (ErrorCallback is null) HandleError();
                 else
                 {
                     ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
                     CurrentStatus = NativeInterface.GetStatus();
-                    if (Failure(CurrentStatus))
-                    {
-                        Debug.LogError("The registered error handler failed to rectify the following error.");
-                        HandleError(CurrentStatus, NativeInterface.GetStatusMessage());
-                    }
+                    if (!Failure(CurrentStatus)) return;
+                    Debug.LogError("The registered error handler failed to rectify the following error.");
+                    HandleError();
                 }
             }
-
-            CurrentStatus = ApplySettings();
 
             if (technique == Technique.None) return;
 
             if (forceHistoryResetEveryFrame) ResetHistory();
 
             NativeInterface.SetPerFrameData(Time.deltaTime * 1000.0F, sharpness, new Vector3(_camera.farClipPlane, _camera.nearClipPlane, _camera.fieldOfView), useReactiveMask, tcThreshold, tcScale, reactiveScale, reactiveMax);
-            RenderResolution = RenderResolution;
+            InputResolution = InputResolution;
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = NativeInterface.GetJitter(true) / RenderResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter(true) / InputResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
@@ -418,8 +424,8 @@ namespace Conifer.Upscaler
         private void OnGUI()
         {
             if (technique == Technique.None || !showRenderingAreaOverlay) return;
-            var scale = (float)RenderResolution.x / OutputResolution.x;
-            GUI.Box(new Rect(0, OutputResolution.y - RenderResolution.y, RenderResolution.x, RenderResolution.y),
+            var scale = (float)InputResolution.x / OutputResolution.x;
+            GUI.Box(new Rect(0, OutputResolution.y - InputResolution.y, InputResolution.x, InputResolution.y),
                 Math.Ceiling(scale * 100) + "% per-axis\n" + Math.Ceiling(scale * scale * 100) + "% total");
         }
     }

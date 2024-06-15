@@ -99,7 +99,7 @@ namespace Conifer.Upscaler.Editor
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
                 upscaler.quality, x => upscaler.technique == Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Quality)x), false);
 
-            var dynamicResolutionSupported = !Equals(upscaler.MaxRenderResolution, upscaler.MinRenderResolution) || !Application.isPlaying;
+            var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution) || !Application.isPlaying;
             if (upscaler.technique != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
@@ -158,9 +158,9 @@ namespace Conifer.Upscaler.Editor
                     {
                         var resolution = EditorGUILayout.Slider(
                             new GUIContent("Dynamic Resolution", "Sets the dynamic resolution values."),
-                            upscaler.RenderResolution.x, upscaler.MinRenderResolution.x,
-                            upscaler.MaxRenderResolution.x);
-                        upscaler.RenderResolution = new Vector2Int((int)Math.Ceiling(resolution),
+                            upscaler.InputResolution.x, upscaler.MinInputResolution.x,
+                            upscaler.MaxInputResolution.x);
+                        upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
                             (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                     }
                 }
