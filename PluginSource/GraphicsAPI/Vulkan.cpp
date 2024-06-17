@@ -161,7 +161,6 @@ bool Vulkan::unregisterUnityInterfaces() {
 }
 
 VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) {
-    // clang-format off
     const VkImageViewCreateInfo createInfo {
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
@@ -181,7 +180,6 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
         .layerCount     = 1U,
       },
     };
-    // clang-format on
 
     VkImageView view{VK_NULL_HANDLE};
     m_vkCreateImageView(graphicsInterface->Instance().device, &createInfo, nullptr, &view);

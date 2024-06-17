@@ -9,7 +9,6 @@ static int eventIDBase;
 }  // namespace Unity
 
 enum Event {
-    Prepare,
     Upscale,
 };
 

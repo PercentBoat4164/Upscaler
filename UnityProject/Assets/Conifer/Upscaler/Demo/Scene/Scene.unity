@@ -459,18 +459,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  settings:
-    quality: 0
-    upscaler: 1
-    DLSSpreset: 0
-    sharpness: 0
-    useReactiveMask: 0
-    tcThreshold: 0.05
-    tcScale: 1
-    reactiveScale: 5
-    reactiveMax: 0.9
-    showRenderingAreaOverlay: 0
-  status: 0
+  showRenderingAreaOverlay: 0
+  forceHistoryResetEveryFrame: 0
+  quality: 7
+  technique: 3
+  dlssPreset: 0
+  sharpness: 0
+  useReactiveMask: 0
+  tcThreshold: 0.05
+  tcScale: 1
+  reactiveScale: 5
+  reactiveMax: 0.9
 --- !u!1 &1308310398
 GameObject:
   m_ObjectHideFlags: 0

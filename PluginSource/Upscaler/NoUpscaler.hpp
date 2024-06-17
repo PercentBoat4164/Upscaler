@@ -27,12 +27,8 @@ public:
         return "Dummy upscaler";
     }
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) override;
-
-    Status initialize() override;
-    Status create() override;
+    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) override;
     Status evaluate() override;
-    Status shutdown() override;
 
     bool resetStatus() override;
 };

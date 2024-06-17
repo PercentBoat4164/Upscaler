@@ -23,12 +23,13 @@
 #include <string>
 #include <vector>
 
-#define RETURN_ON_FAILURE(x)        \
+#define RETURN_ON_FAILURE(x)            \
 {                                       \
     Upscaler::Status _ = x;             \
     if (Upscaler::failure(_)) return _; \
 }                                       \
 0
+#define RETURN_VOID_ON_FAILURE(x) if (Upscaler::failure(x)) return
 
 struct alignas(128) UpscalerBase {
     constexpr static uint8_t SamplesPerPixel = 8U;
@@ -51,7 +52,6 @@ struct alignas(128) UpscalerBase {
             Balanced,
             Performance,
             UltraPerformance,
-            QUALITY_MODE_MAX_ENUM
         } quality{};
 
         enum DLSSPreset : uint8_t {
@@ -59,7 +59,6 @@ struct alignas(128) UpscalerBase {
             Stable,
             FastPaced,
             AnitGhosting,
-            PRESET_MAX_ENUM
         } preset{};
 
         struct alignas(8) Resolution {
@@ -95,12 +94,13 @@ struct alignas(128) UpscalerBase {
                 uint8_t  base{};
                 uint32_t n = 0U;
                 uint32_t d = 1U;
-                uint32_t iterations{};
+                uint32_t iterations{-1U};
 
                 float advance(const uint32_t maxIterations) {
-                    if (iterations >= maxIterations) {
+                    if (++iterations >= maxIterations) {
                         n = 0U;
                         d = 1U;
+                        iterations = -1U;
                     }
                     const uint32_t x = d - n;
                     if (x == 1U) {
@@ -248,13 +248,10 @@ public:
 
     constexpr virtual Type        getType()                                                                                = 0;
     constexpr virtual std::string getName()                                                                                = 0;
-    virtual Status                getOptimalSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
 
-    virtual Status initialize() = 0;
-    virtual Status create()     = 0;
+    virtual Status                useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
     Status         useImage(Plugin::ImageID imageID, UnityTextureID unityID);
     virtual Status evaluate() = 0;
-    virtual Status shutdown() = 0;
 
     [[nodiscard]] Status getStatus() const;
     std::string&         getErrorMessage();

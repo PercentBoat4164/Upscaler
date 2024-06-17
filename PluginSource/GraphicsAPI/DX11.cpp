@@ -9,6 +9,7 @@ ID3D11DeviceContext* DX11::oneTimeSubmitContext{nullptr};
 IUnityGraphicsD3D11* DX11::graphicsInterface{nullptr};
 
 void DX11::createOneTimeSubmitContext() {
+    /**@todo Can this be done every frame?*/
     graphicsInterface->GetDevice()->GetImmediateContext(&oneTimeSubmitContext);
 }
 

@@ -5,20 +5,18 @@
 
 #    include <xess/xess.h>
 
-struct ID3D12Resource;
+using xess_d3d12_init_params_t = struct _xess_d3d12_init_params_t;
 
 class XeSS final : public Upscaler {
-    xess_context_handle_t context{};
+    xess_context_handle_t context{nullptr};
 
-    static Status (XeSS::*fpInitialize)();
-    static Status (XeSS::*fpCreate)();
+    static Status (XeSS::*fpCreate)(const xess_d3d12_init_params_t*);
     static Status (XeSS::*fpEvaluate)();
 
     static SupportState supported;
 
 #    ifdef ENABLE_DX12
-    Status DX12Initialize();
-    Status DX12Create();
+    Status DX12Create(const xess_d3d12_init_params_t*);
     Status DX12Evaluate();
 #    endif
 
@@ -45,11 +43,8 @@ public:
         return "Intel Xe Super Sampling";
     }
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
+    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
 
-    Status initialize() override;
-    Status create() override;
     Status evaluate() override;
-    Status shutdown() override;
 };
 #endif

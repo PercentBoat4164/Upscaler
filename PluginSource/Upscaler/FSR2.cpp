@@ -27,24 +27,6 @@ Upscaler::Status (FSR2::*FSR2::fpEvaluate)(){&FSR2::safeFail};
 Upscaler::SupportState FSR2::supported{Untested};
 
 #    ifdef ENABLE_VULKAN
-Upscaler::Status FSR2::VulkanInitialize() {
-    delete ffxInterface;
-    const UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
-    VkDeviceContext deviceContext{
-          .vkDevice=instance.device,
-          .vkPhysicalDevice=instance.physicalDevice,
-          .vkDeviceProcAddr=Vulkan::getDeviceProcAddr()
-    };
-    device                  = ffxGetDeviceVK(&deviceContext);
-    const size_t bufferSize = ffxGetScratchMemorySizeVK(instance.physicalDevice, 1);
-    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, FatalRuntimeError, getName() + " does not work in this environment (OS, graphics API, device, or drivers)."));
-    void *buffer = calloc(bufferSize, 1);
-    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, OutOfMemory, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
-    ffxInterface = new FfxInterface;
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface."));
-    return Success;
-}
-
 FfxSurfaceFormat getFormat(const VkFormat format) {
     switch(format) {
         case VK_FORMAT_R8_UNORM: return FFX_SURFACE_FORMAT_R8_UNORM;
@@ -86,6 +68,24 @@ FfxSurfaceFormat getFormat(const VkFormat format) {
     }
 }
 
+Upscaler::Status FSR2::VulkanInitialize() {
+    delete ffxInterface;
+    ffxInterface = nullptr;
+    const UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
+    VkDeviceContext deviceContext{
+          .vkDevice=instance.device,
+          .vkPhysicalDevice=instance.physicalDevice,
+          .vkDeviceProcAddr=Vulkan::getDeviceProcAddr()
+    };
+    device                  = ffxGetDeviceVK(&deviceContext);
+    const size_t bufferSize = ffxGetScratchMemorySizeVK(instance.physicalDevice, 1);
+    RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, FatalRuntimeError, getName() + " does not work in this environment (OS, graphics API, device, or drivers)."));
+    void *buffer = calloc(bufferSize, 1);
+    RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, OutOfMemory, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
+    ffxInterface = new FfxInterface;
+    return setStatus(ffxGetInterfaceVK(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the FSR2 interface.");
+}
+
 Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::ImageID imageID) {
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
@@ -94,9 +94,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
         accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
         layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         resourceUsage = FFX_RESOURCE_USAGE_UAV;
-    }
-    if (imageID == Plugin::ImageID::Depth)
-        layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+    } else if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
 
     UnityVulkanImage image{};
     Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
@@ -171,36 +169,33 @@ Upscaler::Status FSR2::VulkanEvaluate() {
       .autoReactiveMax         = settings.reactiveMax,
     };
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
-    return Success;
+    return setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + ".");
 }
 #    endif
 
 #    ifdef ENABLE_DX12
 Upscaler::Status FSR2::DX12Initialize() {
     delete ffxInterface;
+    ffxInterface = nullptr;
     device                      = ffxGetDeviceDX12(DX12::getGraphicsInterface()->GetDevice());
     const size_t bufferSize     = ffxGetScratchMemorySizeDX12(1);
     RETURN_ON_FAILURE(setStatusIf(bufferSize == 0, FatalRuntimeError, getName() + " does not work in this environment."));
     void *buffer = calloc(bufferSize, 1);
     RETURN_ON_FAILURE(setStatusIf(buffer == nullptr, OutOfMemory, getName() + " requires at least " + std::to_string(bufferSize) + " of contiguous system memory."));
     ffxInterface = new FfxInterface;
-    RETURN_ON_FAILURE(setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface."));
-    return Success;
+    return setStatus(ffxGetInterfaceDX12(ffxInterface, device, buffer, bufferSize, 1), "Upscaler is unable to get the " + getName() + " interface.");
 }
 
 Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::ImageID imageID) {
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
-    if (imageID == Plugin::ImageID::Depth) {
-        resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
-    }
-    ID3D12Resource*           image            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
+    if (imageID == Plugin::ImageID::Depth) resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
+    ID3D12Resource* image = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
     RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 
     const FfxResourceDescription description {
       .type=FFX_RESOURCE_TYPE_TEXTURE2D,
-      .format= ffxGetSurfaceFormatDX12(imageDescription.Format),
+      .format=ffxGetSurfaceFormatDX12(imageDescription.Format),
       .width=static_cast<uint32_t>(imageDescription.Width),
       .height=static_cast<uint32_t>(imageDescription.Height),
       .alignment=static_cast<uint32_t>(imageDescription.Alignment),
@@ -266,8 +261,7 @@ Upscaler::Status FSR2::DX12Evaluate() {
       .autoReactiveMax         = settings.reactiveMax,
     };
 
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + "."));
-    return Success;
+    return setStatus(ffxFsr2ContextDispatch(context, &dispatchDescription), "Failed to dispatch " + getName() + ".");
 }
 #    endif
 
@@ -306,10 +300,9 @@ void FSR2::log(const FfxMsgType type, const wchar_t *t_msg) {
 }
 
 bool FSR2::isSupported() {
-    if (supported != Untested)
-        return supported == Supported;
-    const FSR2 fsr2(GraphicsAPI::getType());
-    return (supported = success(fsr2.getStatus()) ? Supported : Unsupported) == Supported;
+    if (supported != Untested) return supported == Supported;
+    FSR2 fsr2(GraphicsAPI::getType());
+    return (supported = success(fsr2.useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
 bool FSR2::isSupported(const enum Settings::Quality mode) {
@@ -319,8 +312,8 @@ bool FSR2::isSupported(const enum Settings::Quality mode) {
 FSR2::FSR2(const GraphicsAPI::Type type) {
     switch (type) {
         case GraphicsAPI::NONE: {
-            fpInitialize       = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
+            fpInitialize       = &FSR2::invalidGraphicsAPIFail;
+            fpEvaluate         = &FSR2::invalidGraphicsAPIFail;
             break;
         }
 #    ifdef ENABLE_VULKAN
@@ -345,85 +338,70 @@ FSR2::FSR2(const GraphicsAPI::Type type) {
         }
 #    endif
         default: {
-            fpInitialize       = &FSR2::safeFail;
-            fpEvaluate         = &FSR2::safeFail;
+            fpInitialize       = &FSR2::invalidGraphicsAPIFail;
+            fpEvaluate         = &FSR2::invalidGraphicsAPIFail;
             break;
         }
     }
-    initialize();
+
+    if (++users == 1 && Upscaler::failure((this->*fpInitialize)())) {
+        delete ffxInterface;
+        ffxInterface = nullptr;
+    };
 }
 
 FSR2::~FSR2() {
-    shutdown();
+    --users;
+    if (context != nullptr) setStatus(ffxFsr2ContextDestroy(context), "Failed to destroy the " + getName() + " context.");
+    delete context;
+    context = nullptr;
+    if (ffxInterface != nullptr && users == 0) {
+        operator delete(ffxInterface->scratchBuffer, ffxInterface->scratchBufferSize);
+        delete ffxInterface;
+        ffxInterface = nullptr;
+    }
 }
 
-Upscaler::Status FSR2::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status FSR2::useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) {
+    RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
     optimalSettings.quality          = mode;
-
     RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.recommendedInputResolution.width, &optimalSettings.recommendedInputResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
     optimalSettings.dynamicMaximumInputResolution = resolution;
-
+    if (optimalSettings.outputResolution.width != settings.outputResolution.width || optimalSettings.outputResolution.height != settings.outputResolution.height) {
+        if (context != nullptr) ffxFsr2ContextDestroy(context);
+        delete context;
+        const FfxFsr2ContextDescription description {
+          .flags =
+#    ifndef NDEBUG
+            static_cast<unsigned>(FFX_FSR2_ENABLE_DEBUG_CHECKING) |
+#    endif
+            static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
+            static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
+            static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
+            (optimalSettings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
+          .maxRenderSize    = {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height},
+          .displaySize      = {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height},
+          .backendInterface = *ffxInterface,
+#    ifndef NDEBUG
+          .fpMessage = &FSR2::log
+#    endif
+        };
+        context = new FfxFsr2Context;
+        if (Upscaler::failure(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."))) {
+            delete context;
+            context = nullptr;
+        }
+    }
     settings = optimalSettings;
-    return Success;
-}
-
-Upscaler::Status FSR2::initialize() {
-    if (ffxInterface == nullptr) {
-        RETURN_ON_FAILURE((this->*fpInitialize)());
-        ++users;
-    }
-    return Success;
-}
-
-Upscaler::Status FSR2::create() {
-    if (context != nullptr) {
-        ++users;  // Corrected by `shutdown()`. Also prevents the interface from being destroyed.
-        RETURN_ON_FAILURE(shutdown());
-    }
-    // clang-format off
-    const FfxFsr2ContextDescription description{
-      .flags =
-#    ifndef NDEBUG
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DEBUG_CHECKING) |
-#    endif
-        static_cast<unsigned>(FFX_FSR2_ENABLE_AUTO_EXPOSURE) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DEPTH_INVERTED) |
-        static_cast<unsigned>(FFX_FSR2_ENABLE_DYNAMIC_RESOLUTION) |
-        (settings.hdr ? FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
-      .maxRenderSize = {settings.outputResolution.width, settings.outputResolution.height},
-      .displaySize   = {settings.outputResolution.width, settings.outputResolution.height},
-      .backendInterface = *ffxInterface,
-#    ifndef NDEBUG
-      .fpMessage = &FSR2::log
-#    endif
-    };
-    // clang-format on
-
-    context = new FfxFsr2Context;
-    RETURN_ON_FAILURE(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."));
     return Success;
 }
 
 Upscaler::Status FSR2::evaluate() {
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
-    return Success;
-}
-
-Upscaler::Status FSR2::shutdown() {
-    if (context != nullptr) {
-        RETURN_ON_FAILURE(setStatus(ffxFsr2ContextDestroy(context), "Failed to destroy the " + getName() + " context."));
-        delete context;
-        context = nullptr;
-    }
-    if (ffxInterface != nullptr && --users == 0) {
-        operator delete(ffxInterface->scratchBuffer, ffxInterface->scratchBufferSize);
-        delete ffxInterface;
-        ffxInterface = nullptr;
-    }
     return Success;
 }
 #endif

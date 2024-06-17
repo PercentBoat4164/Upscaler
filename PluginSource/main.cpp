@@ -12,23 +12,23 @@
 #endif
 
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
+static std::mutex pluginLock;
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
+static std::vector<std::unique_ptr<std::mutex>> locks = {};
 
-void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int eventID, void* data) {
-    if (eventID == kUnityRenderingExtEventUpdateTextureBeginV2) {
+void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int event, void* data) {
+    uint16_t                    camera{};
+    std::lock_guard<std::mutex> lock{*locks[camera]};
+    if (event == kUnityRenderingExtEventUpdateTextureBeginV2) {
         const auto* params = static_cast<UnityRenderingExtTextureUpdateParamsV2*>(data);
-        upscalers[params->userData & 0x0000FFFFU]->useImage(static_cast<Plugin::ImageID>(params->userData >> 16U), params->textureID);
-    } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Prepare) {
-        const std::unique_ptr<Upscaler>& upscaler = upscalers[reinterpret_cast<uint64_t>(data)];
-        upscaler->create();
-    } else if (eventID - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) {
-        upscalers[reinterpret_cast<uint64_t>(data)]->evaluate();
-    }
+        upscalers[camera]->useImage(static_cast<Plugin::ImageID>(params->userData >> 16U), params->textureID);
+    } else if (event - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) upscalers[camera]->evaluate();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
@@ -52,10 +52,17 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsQualitySup
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
+    std::lock_guard<std::mutex> lock{pluginLock};
     const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
-    const uint16_t id   = iter - upscalers.begin();
-    if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
-    else *iter = Upscaler::fromType(Upscaler::NONE);
+    const uint16_t id = std::distance(upscalers.begin(), iter);
+    if (iter == upscalers.end()) {
+        upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
+        locks.emplace_back(std::make_unique<std::mutex>());
+    }
+    else {
+        *iter = Upscaler::fromType(Upscaler::NONE);
+        locks[id] = std::make_unique<std::mutex>();
+    }
     return id;
 }
 
@@ -83,10 +90,11 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const enum Upscaler::Settings::Quality quality,
   const bool                             hdr
 ) {
+    std::lock_guard<std::mutex> lock{*locks[camera]};
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    upscaler->resetStatus();
     if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
-    return upscaler->getOptimalSettings(resolution, preset, quality, hdr);
+    else upscaler->resetStatus();
+    return upscaler->useSettings(resolution, preset, quality, hdr);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(const uint16_t camera) {
@@ -112,6 +120,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetCameraPer
   const float                          reactiveScale,
   const float                          reactiveMax
 ) {
+    std::lock_guard<std::mutex> lock{*locks[camera]};
     Upscaler::Settings& settings = upscalers[camera]->settings;
     settings.frameTime           = frameTime;
     settings.sharpness           = std::min(std::max(sharpness, 0.0F), 1.0F);
@@ -123,9 +132,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetCameraPer
     settings.reactiveMax         = reactiveMax;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera, const bool advance) {
-    if (advance) return upscalers[camera]->settings.getNextJitter();
-    return upscalers[camera]->settings.jitter;
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera) {
+    return upscalers[camera]->settings.getNextJitter();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {
@@ -133,6 +141,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraH
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {
+    std::lock_guard<std::mutex> lock{pluginLock};
+    std::lock_guard<std::mutex> cameraLock{*locks[camera]};
     if (upscalers.size() > camera) upscalers[camera].reset();
 }
 
@@ -158,7 +168,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
     GraphicsAPI::registerUnityInterfaces(unityInterfaces);
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
     Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
-    Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(2);
+    Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(1);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {

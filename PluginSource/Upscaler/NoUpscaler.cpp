@@ -21,27 +21,15 @@ NoUpscaler::NoUpscaler() {
     (void)resetStatus();
 }
 
-Upscaler::Status NoUpscaler::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, const bool /*unused*/) {
+Upscaler::Status NoUpscaler::useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) {
     settings.recommendedInputResolution    = resolution;
-    settings.outputResolution = resolution;
+    settings.outputResolution              = resolution;
     settings.dynamicMaximumInputResolution = resolution;
     settings.dynamicMinimumInputResolution = resolution;
     return getStatus();
 }
 
-Upscaler::Status NoUpscaler::initialize() {
-    return getStatus();
-}
-
-Upscaler::Status NoUpscaler::create() {
-    return getStatus();
-}
-
 Upscaler::Status NoUpscaler::evaluate() {
-    return getStatus();
-}
-
-Upscaler::Status NoUpscaler::shutdown() {
     return getStatus();
 }
 

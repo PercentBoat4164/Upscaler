@@ -10,6 +10,7 @@
 using System;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
 namespace Conifer.Upscaler
@@ -157,14 +158,17 @@ namespace Conifer.Upscaler
         public bool forceHistoryResetEveryFrame;
 
         private Camera _camera;
-        private bool _hdr;
 
         internal NativeInterface NativeInterface;
 
-        /// The current output resolution. This will be updated to match the <see cref="UnityEngine.Camera"/>'s
-        /// <see cref="UnityEngine.Camera.pixelRect"/> whenever it resizes. Upscaler does not control the output
-        /// resolution but rather adapts to whatever output resolution Unity requests.
-        public Vector2Int OutputResolution { get; private set; }
+        /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
+        /// upscaling. It will have a value of <c>false</c> otherwise.
+        public bool HDR { get; private set; }
+
+        /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
+        /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
+        public Vector2Int OutputResolution => Vector2Int.RoundToInt(_camera.pixelRect.size);
+        private Vector2Int _outputResolution = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
@@ -332,23 +336,26 @@ namespace Conifer.Upscaler
          * <summary>Use the new settings. This does not need to be called when adjusting dynamic resolution. Simply
          * change <see cref="InputResolution"/>.</summary>
          *
-         * <param name="force">Should the settings be applied even if they are the same as before? Defaults to <c>false</c></param>
+         * <param name="force">Should the settings be applied even if they are the same as before? Defaults to
+         * <c>false</c>. <b>USE WITH DISCRETION.</b></param>
          *
          * <returns>The <see cref="Status"/> of the upscaler after attempting to apply settings.</returns>
          *
-         * <remarks>This method is very slow when the settings have changed, or if force is set to
-         * <c>true</c>. When that is the case it will update the <see cref="OutputResolution"/> and
-         * <see cref="InputResolution"/> based on queries of the new <see cref="Technique"/>.</remarks>
+         * <remarks>This method is very slow when the settings have changed, or if <see cref="force"/> is set to
+         * <c>true</c>. When that is the case it will update the <see cref="InputResolution"/> based on a query of the
+         * new <see cref="Technique"/>. An important thing to note is that when <see cref="force"/> is set to
+         * <c>true</c> all settings validation is disabled. This is done to ensure that the settings are pushed to the
+         * upscaler, but does mean that using this option <em>can</em> crash Unity.</remarks>
          *
          * <example><code>upscaler.ApplySettings();</code></example>
          */
         public Status ApplySettings(bool force = false)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == _quality && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _camera.pixelRect.size && _hdr == _camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == _quality && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == _camera.allowHDR) return NativeInterface.GetStatus();
 
-            OutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
-            _hdr = _camera.allowHDR;
+            var newOutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
+            HDR = _camera.allowHDR;
 
             if (!force)
             {
@@ -356,16 +363,17 @@ namespace Conifer.Upscaler
                 if (!Enum.IsDefined(typeof(DlssPreset), dlssPreset)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`dlssPreset`(" + dlssPreset + ") is not a valid DlssPreset.");
                 if (!Enum.IsDefined(typeof(Technique), technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not a valid Technique.");
                 if (!IsSupported(technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not supported.");
-                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(OutputResolution, new Vector2Int(32, 32)) != OutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (32, 32).");
+                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(newOutputResolution, new Vector2Int(32, 32)) != newOutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (32, 32).");
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
-            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, _hdr);
+            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
+            RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
+            MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
+            MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
+            if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force) InputResolution = RecommendedInputResolution;
+            _outputResolution = OutputResolution;
             if (Failure(CurrentStatus)) return CurrentStatus;
-            RecommendedInputResolution = NativeInterface.GetRecommendedResolution();
-            MaxInputResolution = NativeInterface.GetMaximumResolution();
-            MinInputResolution = NativeInterface.GetMinimumResolution();
-            if (technique != _technique || quality != _quality || force) InputResolution = RecommendedInputResolution;
             _quality = quality;
             _dlssPreset = dlssPreset;
             _technique = technique;
@@ -410,26 +418,32 @@ namespace Conifer.Upscaler
             }
 
             if (technique == Technique.None) return;
-
             if (forceHistoryResetEveryFrame) ResetHistory();
-
             NativeInterface.SetPerFrameData(Time.deltaTime * 1000.0F, sharpness, new Vector3(_camera.farClipPlane, _camera.nearClipPlane, _camera.fieldOfView), useReactiveMask, tcThreshold, tcScale, reactiveScale, reactiveMax);
             InputResolution = InputResolution;
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = NativeInterface.GetJitter(true) / InputResolution * 2;
+            var clipSpaceJitter = NativeInterface.GetJitter() / InputResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
-                projectionMatrix.m03 += clipSpaceJitter.x;
-                projectionMatrix.m13 += clipSpaceJitter.y;
+                projectionMatrix.m03 -= clipSpaceJitter.x;
+                projectionMatrix.m13 -= clipSpaceJitter.y;
             }
             else
             {
-                projectionMatrix.m02 += -clipSpaceJitter.x;
-                projectionMatrix.m12 += -clipSpaceJitter.y;
+                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
+                {
+                    projectionMatrix.m02 -= clipSpaceJitter.x;
+                    projectionMatrix.m12 -= clipSpaceJitter.y;
+                }
+                else
+                {
+                    projectionMatrix.m02 += clipSpaceJitter.x;
+                    projectionMatrix.m12 += clipSpaceJitter.y;
+                }
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;

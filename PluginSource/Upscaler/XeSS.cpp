@@ -12,34 +12,20 @@
 #        include <xess/xess_d3d12.h>
 #    endif
 
-Upscaler::Status (XeSS::*XeSS::fpInitialize)(){&XeSS::safeFail};
-Upscaler::Status (XeSS::*XeSS::fpCreate)(){&XeSS::safeFail};
+Upscaler::Status (XeSS::*XeSS::fpCreate)(const xess_d3d12_init_params_t*){&XeSS::safeFail};
 Upscaler::Status (XeSS::*XeSS::fpEvaluate)(){&XeSS::safeFail};
 
 Upscaler::SupportState XeSS::supported{Untested};
 
 #    ifdef ENABLE_DX12
-Upscaler::Status XeSS::DX12Initialize() {
-    return setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the " + getName() + " context.");
-}
-
-Upscaler::Status XeSS::DX12Create() {
-    const xess_d3d12_init_params_t params {
-        .outputResolution = {.x = settings.outputResolution.width, .y = settings.outputResolution.height},
-        .qualitySetting = settings.getQuality<XESS>(),
-        .initFlags =
-            static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
-            static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
-            (settings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
-    };
-    RETURN_ON_FAILURE(setStatus(xessD3D12Init(context, &params), "Failed to initialize the " + getName() + " context."));
-    return Success;
+Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
+    RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the " + getName() + " context."));
+    return setStatus(xessD3D12Init(context, params), "Failed to initialize the " + getName() + " context.");
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
     ID3D12Resource*           color              = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
     const D3D12_RESOURCE_DESC colorDescription   = color->GetDesc();
-
     const xess_d3d12_execute_params_t params {
         .pColorTexture = color,
         .pVelocityTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
@@ -55,8 +41,7 @@ Upscaler::Status XeSS::DX12Evaluate() {
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(colorDescription.Width), -static_cast<float>(colorDescription.Height)), "Failed to set motion scale"));
-    RETURN_ON_FAILURE(setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + "."));
-    return Success;
+    return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + ".");
 }
 #endif
 
@@ -94,10 +79,9 @@ void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
 }
 
 bool XeSS::isSupported() {
-    if (supported != Untested)
-        return supported == Supported;
-    const XeSS xess(GraphicsAPI::getType());
-    return (supported = success(xess.getStatus()) ? Supported : Unsupported) == Supported;
+    if (supported != Untested) return supported == Supported;
+    XeSS xess(GraphicsAPI::getType());
+    return (supported = success(xess.useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
 bool XeSS::isSupported(const enum Settings::Quality mode){
@@ -107,14 +91,12 @@ bool XeSS::isSupported(const enum Settings::Quality mode){
 XeSS::XeSS(const GraphicsAPI::Type type) {
     switch (type) {
         case GraphicsAPI::NONE: {
-            fpInitialize = &XeSS::safeFail;
-            fpCreate     = &XeSS::safeFail;
-            fpEvaluate   = &XeSS::safeFail;
+            fpCreate     = &XeSS::invalidGraphicsAPIFail;
+            fpEvaluate   = &XeSS::invalidGraphicsAPIFail;
             break;
         }
 #    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
-            fpInitialize = &XeSS::invalidGraphicsAPIFail;
             fpCreate     = &XeSS::invalidGraphicsAPIFail;
             fpEvaluate   = &XeSS::invalidGraphicsAPIFail;
             break;
@@ -122,76 +104,72 @@ XeSS::XeSS(const GraphicsAPI::Type type) {
 #    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpInitialize = &XeSS::DX12Initialize;
             fpCreate     = &XeSS::DX12Create;
             fpEvaluate   = &XeSS::DX12Evaluate;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX11
-        case GraphicsAPI::DX11: {
-            fpInitialize = &XeSS::invalidGraphicsAPIFail;
+        case GraphicsAPI::DX11:
+#    endif
+        default: {
             fpCreate     = &XeSS::invalidGraphicsAPIFail;
             fpEvaluate   = &XeSS::invalidGraphicsAPIFail;
             break;
         }
-#    endif
-        default: {
-            fpInitialize = &XeSS::safeFail;
-            fpCreate     = &XeSS::safeFail;
-            fpEvaluate   = &XeSS::safeFail;
-            break;
-        }
     }
-    initialize();
 }
 
 XeSS::~XeSS() {
-    shutdown();
+    if (context != nullptr) setStatus(xessDestroyContext(context), "Failed to destroy the " + getName() + " context.");
+    context = nullptr;
 }
 
-Upscaler::Status XeSS::getOptimalSettings(const Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
-    settings.outputResolution              = resolution;
-    settings.quality                       = mode;
-    settings.hdr                           = hdr;
-    const xess_2d_t params {
-        .x = resolution.width,
-        .y = resolution.height
+Upscaler::Status XeSS::useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) {
+    RETURN_ON_FAILURE(getStatus());
+    Settings optimalSettings;
+    optimalSettings.outputResolution              = resolution;
+    optimalSettings.quality                       = mode;
+    optimalSettings.hdr                           = hdr;
+    const xess_d3d12_init_params_t params {
+      .outputResolution = {.x = optimalSettings.outputResolution.width, .y = optimalSettings.outputResolution.height},
+      .qualitySetting = optimalSettings.getQuality<XESS>(),
+      .initFlags =
+        static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
+        static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
+        (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
-    xess_2d_t optimal, min, max;
-    RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &params, settings.getQuality<XESS>(), &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
-    settings.recommendedInputResolution    = {optimal.x, optimal.y};
-    settings.dynamicMinimumInputResolution = {min.x, min.y};
-    settings.dynamicMaximumInputResolution = {max.x, max.y};
-    return Success;
-}
-
-Upscaler::Status XeSS::initialize() {
-    if (!resetStatus()) return getStatus();
-    RETURN_ON_FAILURE((this->*fpInitialize)());
+    if (Upscaler::failure((this->*fpCreate)(&params))) {
+        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
+        context = nullptr;
+        return status;
+    }
 #    ifndef NDEBUG
-    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."));
+    if (Upscaler::failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
+        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
+        context = nullptr;
+        return status;
+    }
 #    else
-    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."));
+    if (Upscaler::failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."))) {
+        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
+        context = nullptr;
+        return status;
+    }
 #    endif
-    return Success;
-}
-
-Upscaler::Status XeSS::create() {
-    RETURN_ON_FAILURE((this->*fpCreate)());
+    const xess_2d_t inputResolution{resolution.width, resolution.height};
+    xess_2d_t optimal, min, max;
+    RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, optimalSettings.getQuality<XESS>(), &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
+    optimalSettings.recommendedInputResolution    = {optimal.x, optimal.y};
+    optimalSettings.dynamicMinimumInputResolution = {min.x, min.y};
+    optimalSettings.dynamicMaximumInputResolution = {max.x, max.y};
+    settings = optimalSettings;
     return Success;
 }
 
 Upscaler::Status XeSS::evaluate() {
     RETURN_ON_FAILURE((this->*fpEvaluate)());
     settings.resetHistory = false;
-    return Success;
-}
-
-Upscaler::Status XeSS::shutdown() {
-    if (context == nullptr) return Success;
-    RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the " + getName() + " context."));
-    context = nullptr;
     return Success;
 }
 #endif

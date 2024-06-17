@@ -51,11 +51,7 @@ public:
         return "AMD FidelityFX Super Resolution";
     }
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
-
-    Status initialize() override;
-    Status create() override;
+    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
     Status evaluate() override;
-    Status shutdown() override;
 };
 #endif

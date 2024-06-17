@@ -4,14 +4,12 @@
 #    include "Plugin.hpp"
 #    include "Upscaler.hpp"
 
-#    include <nvsdk_ngx_helpers.h>
-#    ifdef ENABLE_VULKAN
-#        include <nvsdk_ngx_helpers_vk.h>
-#    endif
+struct NVSDK_NGX_Resource_VK;
+struct NVSDK_NGX_Parameter;
+struct NVSDK_NGX_DLSS_Create_Params;
 
 class DLSS final : public Upscaler {
     static struct alignas(128) Application {
-        // clang-format off
         NVSDK_NGX_Application_Identifier ngxIdentifier {
           .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
           .v              = {
@@ -43,64 +41,43 @@ class DLSS final : public Upscaler {
           .ApplicationDataPath = L"./",
           .FeatureInfo         = &featureCommonInfo,
         };
-        // clang-format on
     } applicationInfo;
 
-#    ifdef ENABLE_VULKAN
-    struct alignas(64) RAII_NGXVulkanResource {
-        explicit RAII_NGXVulkanResource()                                      = default;
-        RAII_NGXVulkanResource(const RAII_NGXVulkanResource& other)            = default;
-        RAII_NGXVulkanResource(RAII_NGXVulkanResource&& other)                 = default;
-        RAII_NGXVulkanResource& operator=(const RAII_NGXVulkanResource& other) = default;
-        RAII_NGXVulkanResource& operator=(RAII_NGXVulkanResource&& other)      = default;
-        ~RAII_NGXVulkanResource();
-
-        void                   ChangeResource(VkImageView view, VkImage image, VkImageAspectFlags aspect, VkFormat format, Settings::Resolution resolution);
-        NVSDK_NGX_Resource_VK& GetResource();
-
-    private:
-        NVSDK_NGX_Resource_VK resource{};
-    } *color{nullptr}, *depth{nullptr}, *motion{nullptr}, *output{nullptr};
-#    endif
-
-    NVSDK_NGX_Handle*            featureHandle{};
+    NVSDK_NGX_Handle*            handle{};
     NVSDK_NGX_Parameter*         parameters{};
-    NVSDK_NGX_DLSS_Create_Params DLSSCreateParams{};
 
     static Status (DLSS::*fpInitialize)();
-    static Status (DLSS::*fpCreate)();
+    static Status (DLSS::*fpCreate)(NVSDK_NGX_DLSS_Create_Params*);
     static Status (DLSS::*fpEvaluate)();
-    static Status (DLSS::*fpRelease)();
+    static Status (DLSS::*fpGetParameters)();
     static Status (DLSS::*fpShutdown)();
 
     static SupportState supported;
-#    ifdef ENABLE_VULKAN
-    static SupportState instanceExtensionsSupported;
-    static SupportState deviceExtensionsSupported;
-#    endif
-
-    static uint32_t users;
+    static std::atomic<uint32_t> users;
 
 #    ifdef ENABLE_VULKAN
+    Status VulkanGetParameters();
     Status VulkanInitialize();
-    Status VulkanCreate();
-    Status VulkanUpdateResource(RAII_NGXVulkanResource* resource, Plugin::ImageID imageID);
+    Status VulkanCreate(NVSDK_NGX_DLSS_Create_Params* createParams);
+    Status VulkanGetResource(NVSDK_NGX_Resource_VK& resource, Plugin::ImageID imageID);
     Status VulkanEvaluate();
     Status VulkanRelease();
     Status VulkanShutdown();
 #    endif
 
 #    ifdef ENABLE_DX12
+    Status DX12GetParameters();
     Status DX12Initialize();
-    Status DX12Create();
+    Status DX12Create(NVSDK_NGX_DLSS_Create_Params* createParams);
     Status DX12Evaluate();
     Status DX12Release();
     Status DX12Shutdown();
 #    endif
 
 #    ifdef ENABLE_DX11
+    Status DX11GetParameters();
     Status DX11Initialize();
-    Status DX11Create();
+    Status DX11Create(NVSDK_NGX_DLSS_Create_Params* createParams);
     Status DX11Evaluate();
     Status DX11Release();
     Status DX11Shutdown();
@@ -136,11 +113,7 @@ public:
         return "NVIDIA Deep Learning Super Sampling";
     }
 
-    Status getOptimalSettings(Settings::Resolution resolution, Settings::DLSSPreset preset, enum Settings::Quality mode, bool hdr) override;
-
-    Status initialize() override;
-    Status create() override;
+    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset preset, enum Settings::Quality mode, bool hdr) override;
     Status evaluate() override;
-    Status shutdown() override;
 };
 #endif
