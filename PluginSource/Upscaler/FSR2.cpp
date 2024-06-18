@@ -97,7 +97,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
     } else if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
 
     UnityVulkanImage image{};
-    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    Vulkan::getGraphicsInterface()->AccessTexture(textures.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
     RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
 
     const FfxResourceDescription description {
@@ -189,7 +189,7 @@ Upscaler::Status FSR2::DX12Initialize() {
 Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::ImageID imageID) {
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
     if (imageID == Plugin::ImageID::Depth) resourceUsage = FFX_RESOURCE_USAGE_DEPTHTARGET;
-    ID3D12Resource* image = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs.at(imageID));
+    auto* image = static_cast<ID3D12Resource*>(textures.at(imageID));
     RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
 

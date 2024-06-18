@@ -24,13 +24,13 @@ Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
-    ID3D12Resource*           color              = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    auto*                     color              = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::SourceColor]);
     const D3D12_RESOURCE_DESC colorDescription   = color->GetDesc();
     const xess_d3d12_execute_params_t params {
         .pColorTexture = color,
-        .pVelocityTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
-        .pDepthTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
-        .pOutputTexture = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
+        .pVelocityTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion]),
+        .pDepthTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Depth]),
+        .pOutputTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::OutputColor]),
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .exposureScale = 1.0F,

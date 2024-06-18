@@ -22,13 +22,39 @@ static std::mutex pluginLock;
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
 static std::vector<std::unique_ptr<std::mutex>> locks = {};
 
-void UNITY_INTERFACE_API INTERNAL_RenderingEventCallback(const int event, void* data) {
-    uint16_t                    camera{};
-    std::lock_guard<std::mutex> lock{*locks[camera]};
-    if (event == kUnityRenderingExtEventUpdateTextureBeginV2) {
-        const auto* params = static_cast<UnityRenderingExtTextureUpdateParamsV2*>(data);
-        upscalers[camera]->useImage(static_cast<Plugin::ImageID>(params->userData >> 16U), params->textureID);
-    } else if (event - Plugin::Unity::eventIDBase == Plugin::Event::Upscale) upscalers[camera]->evaluate();
+struct UpscalingData {
+    void* color;
+    void* depth;
+    void* motion;
+    void* output;
+    void* reactive;
+    void* opaque;
+    float frameTime;
+    float sharpness;
+    float tcThreshold;
+    float tcScale;
+    float reactiveScale;
+    float reactiveMax;
+    Upscaler::Settings::Camera cameraInfo;
+    uint16_t camera;
+    bool autoReactive;
+};
+
+void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
+    if (d == nullptr) return;
+    UpscalingData& data = *static_cast<UpscalingData*>(d);
+    std::lock_guard<std::mutex> lock{*locks[data.camera]};
+    Upscaler& upscaler = *upscalers[data.camera];
+    upscaler.settings.camera = data.cameraInfo;
+    upscaler.settings.frameTime = data.frameTime;
+    upscaler.settings.sharpness = data.sharpness;
+    upscaler.settings.tcThreshold = data.tcThreshold;
+    upscaler.settings.tcScale = data.tcScale;
+    upscaler.settings.reactiveScale = data.reactiveScale;
+    upscaler.settings.reactiveMax = data.reactiveMax;
+    upscaler.settings.autoReactive = data.autoReactive;
+    upscaler.useImages({data.color, data.depth, data.motion, data.output, data.reactive, data.opaque});
+    upscaler.evaluate();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
@@ -36,7 +62,7 @@ extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBas
 }
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
-    return INTERNAL_RenderingEventCallback;
+    return INTERNAL_UpscaleCallback;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RegisterGlobalLogCallback(void(logCallback)(const char*)) {
@@ -74,10 +100,6 @@ extern "C" UNITY_INTERFACE_EXPORT const char* UNITY_INTERFACE_API Upscaler_GetCa
     return upscalers[camera]->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_ResetCameraUpscalerStatus(const uint16_t camera) {
-    return upscalers[camera]->resetStatus();
-}
-
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraUpscalerStatus(const uint16_t camera, Upscaler::Status status, const char* message) {
     return upscalers[camera]->setStatus(status, message);
 }
@@ -107,29 +129,6 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetCameraPerFrameData(
-  const uint16_t                       camera,
-  const float                          frameTime,
-  const float                          sharpness,
-  const Upscaler::Settings::Camera     cameraInfo,
-  const bool                           autoReactive,
-  const float                          tcThreshold,
-  const float                          tcScale,
-  const float                          reactiveScale,
-  const float                          reactiveMax
-) {
-    std::lock_guard<std::mutex> lock{*locks[camera]};
-    Upscaler::Settings& settings = upscalers[camera]->settings;
-    settings.frameTime           = frameTime;
-    settings.sharpness           = std::min(std::max(sharpness, 0.0F), 1.0F);
-    settings.camera              = cameraInfo;
-    settings.autoReactive        = autoReactive;
-    settings.tcThreshold         = tcThreshold;
-    settings.tcScale             = tcScale;
-    settings.reactiveScale       = reactiveScale;
-    settings.reactiveMax         = reactiveMax;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera) {

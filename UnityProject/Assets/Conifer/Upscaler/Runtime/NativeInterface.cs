@@ -43,9 +43,6 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatusMessage")]
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraUpscalerStatus")]
-        internal static extern IntPtr ResetStatus(ushort camera);
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraUpscalerStatus")]
         internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
 
@@ -60,9 +57,6 @@ namespace Conifer.Upscaler
         
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFrameData")]
-        internal static extern void SetPerFrameData(ushort camera, float frameTime, float sharpness, Vector3 cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
         internal static extern Vector2 GetJitter(ushort camera);
@@ -81,30 +75,21 @@ namespace Conifer.Upscaler
         private readonly ushort _cameraID;
         private static readonly int EventIDBase;
         private readonly IntPtr _renderingEventCallback;
-
-        private enum Event
-        {
-            Upscale,
-        }
-
-        private enum ImageID
-        {
-            SourceColor,
-            Depth,
-            Motion,
-            OutputColor,
-            ReactiveMask,
-            TcMask,
-            OpaqueColor
-        }
+        private readonly IntPtr _dataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
 
         [MonoPInvokeCallback(typeof(LogCallbackDelegate))]
         internal static void InternalLogCallback(IntPtr msg) => Debug.Log(Marshal.PtrToStringAnsi(msg));
 
         private struct UpscaleData
         {
-            internal UpscaleData(Upscaler upscaler, ushort cameraID)
+            internal UpscaleData(Upscaler upscaler, ushort cameraID, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
             {
+                _color = color;
+                _depth = depth;
+                _motion = motion;
+                _output = output;
+                _reactive = reactive;
+                _opaque = opaque;
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
                 _tcThreshold = upscaler.tcThreshold;
@@ -117,6 +102,12 @@ namespace Conifer.Upscaler
                 _autoReactive = upscaler.useReactiveMask;
             }
 
+            private IntPtr _color;
+            private IntPtr _depth;
+            private IntPtr _motion;
+            private IntPtr _output;
+            private IntPtr _reactive;
+            private IntPtr _opaque;
             private float _frameTime;
             private float _sharpness;
             private float _tcThreshold;
@@ -151,25 +142,13 @@ namespace Conifer.Upscaler
 
         ~NativeInterface()
         {
-            if (!Loaded) return;
-            Native.UnregisterCamera(_cameraID);
+            if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal void SetReactiveImages(CommandBuffer cb, Texture reactiveMask, Texture opaqueColor)
+        internal void Upscale(CommandBuffer cb, Upscaler upscaler, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
         {
-            if (!Loaded || reactiveMask is null || opaqueColor is null) return;
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, reactiveMask, ((uint)ImageID.ReactiveMask << 16) | _cameraID);
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, opaqueColor,  ((uint)ImageID.OpaqueColor  << 16) | _cameraID);
-        }
-
-        internal void Upscale(CommandBuffer cb, Texture sourceColor, Texture depth, Texture motion, Texture outputColor)
-        {
-            if (!Loaded || sourceColor is null || depth is null || motion is null || outputColor is null) return;
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, sourceColor, ((uint)ImageID.SourceColor << 16) | _cameraID);
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, depth,       ((uint)ImageID.Depth       << 16) | _cameraID);
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, motion,      ((uint)ImageID.Motion      << 16) | _cameraID);
-            cb.IssuePluginCustomTextureUpdateV2(_renderingEventCallback, outputColor, ((uint)ImageID.OutputColor << 16) | _cameraID);
-            cb.IssuePluginEventAndData(_renderingEventCallback, (int)Event.Upscale + EventIDBase, new IntPtr(_cameraID));
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, color, depth, motion, output, reactive, opaque), _dataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, EventIDBase, _dataPtr);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
@@ -189,11 +168,6 @@ namespace Conifer.Upscaler
         internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
-
-        internal void SetPerFrameData(float frameTime, float sharpness, Vector3 cameraInfo, bool autoReactive, float tcThreshold, float tcScale, float reactiveScale, float reactiveMax)
-        {
-            if (Loaded) Native.SetPerFrameData(_cameraID, frameTime, sharpness, cameraInfo, autoReactive, tcThreshold, tcScale, reactiveScale, reactiveMax);
-        }
 
         internal Vector2 GetJitter() => Loaded ? Native.GetJitter(_cameraID) : Vector2.zero;
 

@@ -97,8 +97,8 @@ void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
     logCallback = pFunction;
 }
 
-Upscaler::Status Upscaler::useImage(const Plugin::ImageID imageID, const UnityTextureID unityID) {
-    textureIDs.at(imageID) = unityID;
+Upscaler::Status Upscaler::useImages(std::array<void*, Plugin::IMAGE_ID_MAX_ENUM> images) {
+    textures = images;
     return Success;
 }
 

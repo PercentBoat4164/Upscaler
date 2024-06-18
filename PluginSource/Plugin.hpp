@@ -8,17 +8,12 @@ static IUnityGraphics* graphicsInterface;
 static int eventIDBase;
 }  // namespace Unity
 
-enum Event {
-    Upscale,
-};
-
 enum ImageID : uint16_t {
     SourceColor,
     Depth,
     Motion,
     OutputColor,
     ReactiveMask,
-    TcMask,
     OpaqueColor,
     IMAGE_ID_MAX_ENUM
 };

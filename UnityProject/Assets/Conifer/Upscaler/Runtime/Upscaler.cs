@@ -419,8 +419,7 @@ namespace Conifer.Upscaler
 
             if (technique == Technique.None) return;
             if (forceHistoryResetEveryFrame) ResetHistory();
-            NativeInterface.SetPerFrameData(Time.deltaTime * 1000.0F, sharpness, new Vector3(_camera.farClipPlane, _camera.nearClipPlane, _camera.fieldOfView), useReactiveMask, tcThreshold, tcScale, reactiveScale, reactiveMax);
-            InputResolution = InputResolution;
+            // InputResolution = InputResolution;
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();

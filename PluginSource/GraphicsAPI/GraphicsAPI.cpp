@@ -31,7 +31,7 @@ void GraphicsAPI::set(const UnityGfxRenderer renderer) {
               .graphicsQueueAccess = kUnityVulkanGraphicsQueueAccess_DontCare,
               .flags = 0
             };
-            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Event::Upscale, &vulkanEventConfig);
+            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &vulkanEventConfig);
             type = VULKAN;
             break;
         }
@@ -43,7 +43,7 @@ void GraphicsAPI::set(const UnityGfxRenderer renderer) {
               .flags = 0U,
               .ensureActiveRenderTextureIsBound = false
             };
-            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Event::Upscale, &d3d12EventConfig);
+            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &d3d12EventConfig);
             type = DX12;
             break;
         }

@@ -68,7 +68,7 @@ Upscaler::Status DLSS::VulkanGetResource(NVSDK_NGX_Resource_VK& resource, const 
     if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
 
     UnityVulkanImage image{};
-    Vulkan::getGraphicsInterface()->AccessTextureByID(textureIDs.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    Vulkan::getGraphicsInterface()->AccessTexture(textures.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
     RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
 
     VkImageView view = Vulkan::createImageView(image.image, image.format, image.aspect);
@@ -169,16 +169,16 @@ Upscaler::Status DLSS::DX12Create(NVSDK_NGX_DLSS_Create_Params* createParams) {
 }
 
 Upscaler::Status DLSS::DX12Evaluate() {
-    ID3D12Resource*           color            = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    auto*                     color            = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::SourceColor]);
     const D3D12_RESOURCE_DESC colorDescription = color->GetDesc();
 
     NVSDK_NGX_D3D12_DLSS_Eval_Params DLSSEvalParameters {
       .Feature = {
         .pInColor = color,
-        .pInOutput = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
+        .pInOutput = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::OutputColor]),
       },
-      .pInDepth                  = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
-      .pInMotionVectors          = DX12::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
+      .pInDepth                  = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Depth]),
+      .pInMotionVectors          = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion]),
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
@@ -235,7 +235,7 @@ Upscaler::Status DLSS::DX11Create(NVSDK_NGX_DLSS_Create_Params* createParams) {
 }
 
 Upscaler::Status DLSS::DX11Evaluate() {
-    ID3D11Resource*  color   = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::SourceColor]);
+    auto*            color   = static_cast<ID3D11Resource*>(textures[Plugin::ImageID::SourceColor]);
     ID3D11Texture2D* tex     = nullptr;
     RETURN_ON_FAILURE(Upscaler::setStatusIf(FAILED(color->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&tex))) || tex == nullptr, FatalRuntimeError, "The data passed as color input was not a texture."));
     D3D11_TEXTURE2D_DESC colorDescription;
@@ -244,10 +244,10 @@ Upscaler::Status DLSS::DX11Evaluate() {
     NVSDK_NGX_D3D11_DLSS_Eval_Params DLSSEvalParams {
       .Feature = {
         .pInColor = color,
-        .pInOutput = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::OutputColor]),
+        .pInOutput = static_cast<ID3D11Resource*>(textures[Plugin::ImageID::OutputColor]),
       },
-      .pInDepth                  = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Depth]),
-      .pInMotionVectors          = DX11::getGraphicsInterface()->TextureFromNativeTexture(textureIDs[Plugin::ImageID::Motion]),
+      .pInDepth                  = static_cast<ID3D11Resource*>(textures[Plugin::ImageID::Depth]),
+      .pInMotionVectors          = static_cast<ID3D11Resource*>(textures[Plugin::ImageID::Motion]),
       .InJitterOffsetX           = settings.jitter.x,
       .InJitterOffsetY           = settings.jitter.y,
       .InRenderSubrectDimensions = {
