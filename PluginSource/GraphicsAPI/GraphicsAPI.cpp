@@ -16,40 +16,59 @@
 #endif
 #ifdef ENABLE_DX11
 #    include "DX11.hpp"
-
-#    include "IUnityGraphicsD3D11.h"
 #endif
 
 GraphicsAPI::Type GraphicsAPI::type = NONE;
 
-void GraphicsAPI::set(const UnityGfxRenderer renderer) {
+void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
     switch (renderer) {
 #ifdef ENABLE_VULKAN
         case kUnityGfxRendererVulkan: {
-            UnityVulkanPluginEventConfig vulkanEventConfig {
+            constexpr UnityVulkanPluginEventConfig vulkanEventConfig{
               .renderPassPrecondition = kUnityVulkanRenderPass_DontCare,
-              .graphicsQueueAccess = kUnityVulkanGraphicsQueueAccess_DontCare,
-              .flags = 0
+              .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
+              .flags                  = 0
             };
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &vulkanEventConfig);
+            (void)Vulkan::initializeOneTimeSubmits();  /**@todo Should set all Upscalers to have permanent badness.*/
             type = VULKAN;
             break;
         }
 #endif
 #ifdef ENABLE_DX12
         case kUnityGfxRendererD3D12: {
-            UnityD3D12PluginEventConfig d3d12EventConfig {
-              .graphicsQueueAccess = kUnityD3D12GraphicsQueueAccess_DontCare,
-              .flags = 0U,
+            constexpr UnityD3D12PluginEventConfig d3d12EventConfig{
+              .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
+              .flags                            = 0U,
               .ensureActiveRenderTextureIsBound = false
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &d3d12EventConfig);
+            (void)DX12::initializeOneTimeSubmits();  /**@todo Should set all Upscalers to have permanent badness.*/
             type = DX12;
             break;
         }
 #endif
 #ifdef ENABLE_DX11
-        case kUnityGfxRendererD3D11: type = DX11; break;
+        case kUnityGfxRendererD3D11: {
+            DX11::createOneTimeSubmitContext();
+            type = DX11;
+            break;
+        }
+#endif
+        default: type = NONE; break;
+    }
+}
+
+void GraphicsAPI::shutdown() {
+    switch (type) {
+#ifdef ENABLE_VULKAN
+        case VULKAN: Vulkan::shutdownOneTimeSubmits(); break;
+#endif
+#ifdef ENABLE_DX12
+        case DX12: (void)DX12::shutdownOneTimeSubmits(); break;
+#endif
+#ifdef ENABLE_DX11
+        case DX11: DX11::destroyOneTimeSubmitContext(); break;
 #endif
         default: type = NONE; break;
     }

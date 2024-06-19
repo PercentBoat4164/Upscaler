@@ -42,8 +42,8 @@ struct UpscalingData {
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     if (d == nullptr) return;
-    UpscalingData& data = *static_cast<UpscalingData*>(d);
-    std::lock_guard<std::mutex> lock{*locks[data.camera]};
+    const UpscalingData& data = *static_cast<UpscalingData*>(d);
+    std::lock_guard lock{*locks[data.camera]};
     Upscaler& upscaler = *upscalers[data.camera];
     upscaler.settings.camera = data.cameraInfo;
     upscaler.settings.frameTime = data.frameTime;
@@ -78,7 +78,7 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsQualitySup
 }
 
 extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
-    std::lock_guard<std::mutex> lock{pluginLock};
+    std::lock_guard lock{pluginLock};
     const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
     const uint16_t id = std::distance(upscalers.begin(), iter);
     if (iter == upscalers.end()) {
@@ -112,7 +112,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
   const enum Upscaler::Settings::Quality quality,
   const bool                             hdr
 ) {
-    std::lock_guard<std::mutex> lock{*locks[camera]};
+    std::lock_guard lock{*locks[camera]};
     std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
     if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
     else upscaler->resetStatus();
@@ -140,24 +140,20 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraH
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {
-    std::lock_guard<std::mutex> lock{pluginLock};
-    std::lock_guard<std::mutex> cameraLock{*locks[camera]};
+    std::lock_guard lock{pluginLock};
     if (upscalers.size() > camera) upscalers[camera].reset();
+    if (locks.size() > camera) locks[camera].reset();
 }
 
 static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize:
-            GraphicsAPI::set(Plugin::Unity::graphicsInterface->GetRenderer());
-#ifdef ENABLE_DX11
-            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11) DX11::createOneTimeSubmitContext();
-#endif
+            GraphicsAPI::initialize(Plugin::Unity::graphicsInterface->GetRenderer());
             break;
         case kUnityGfxDeviceEventShutdown:
             upscalers.clear();
-#ifdef ENABLE_DX11
-            if (GraphicsAPI::getType() == GraphicsAPI::Type::DX11) DX11::destroyOneTimeSubmitContext();
-#endif
+            locks.clear();
+            GraphicsAPI::shutdown();
             break;
         default: break;
     }

@@ -90,7 +90,7 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
     VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
     FfxResourceUsage resourceUsage{FFX_RESOURCE_USAGE_READ_ONLY};
     VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-    if (imageID == Plugin::ImageID::OutputColor) {
+    if (imageID == Plugin::ImageID::Output) {
         accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
         layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         resourceUsage = FFX_RESOURCE_USAGE_UAV;
@@ -116,10 +116,10 @@ Upscaler::Status FSR2::VulkanGetResource(FfxResource& resource, const Plugin::Im
 
 Upscaler::Status FSR2::VulkanEvaluate() {
     FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
-    RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::SourceColor));
+    RETURN_ON_FAILURE(VulkanGetResource(color, Plugin::ImageID::Color));
     RETURN_ON_FAILURE(VulkanGetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(VulkanGetResource(motion, Plugin::ImageID::Motion));
-    RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::OutputColor));
+    RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::Output));
     if (settings.autoReactive) {
         RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
@@ -145,8 +145,8 @@ Upscaler::Status FSR2::VulkanEvaluate() {
             settings.jitter.y
       },
       .motionVectorScale = {
-            -static_cast<float>(color.description.width),
-            -static_cast<float>(color.description.height)
+            -static_cast<float>(motion.description.width),
+            -static_cast<float>(motion.description.height)
       },
       .renderSize = {
             color.description.width,
@@ -209,10 +209,10 @@ Upscaler::Status FSR2::DX12GetResource(FfxResource& resource, const Plugin::Imag
 
 Upscaler::Status FSR2::DX12Evaluate() {
     FfxResource color, depth, motion, output, reactiveMask, opaqueColor;
-    RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::SourceColor));
+    RETURN_ON_FAILURE(DX12GetResource(color, Plugin::ImageID::Color));
     RETURN_ON_FAILURE(DX12GetResource(depth, Plugin::ImageID::Depth));
     RETURN_ON_FAILURE(DX12GetResource(motion, Plugin::ImageID::Motion));
-    RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::OutputColor));
+    RETURN_ON_FAILURE(DX12GetResource(output, Plugin::ImageID::Output));
     if (settings.autoReactive) {
         RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
         RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
@@ -237,8 +237,8 @@ Upscaler::Status FSR2::DX12Evaluate() {
            settings.jitter.y
       },
       .motionVectorScale = {
-          -static_cast<float>(color.description.width),
-          -static_cast<float>(color.description.height)
+          -static_cast<float>(motion.description.width),
+          -static_cast<float>(motion.description.height)
       },
       .renderSize = {
           color.description.width,
@@ -344,10 +344,10 @@ FSR2::FSR2(const GraphicsAPI::Type type) {
         }
     }
 
-    if (++users == 1 && Upscaler::failure((this->*fpInitialize)())) {
+    if (++users == 1 && failure((this->*fpInitialize)())) {
         delete ffxInterface;
         ffxInterface = nullptr;
-    };
+    }
 }
 
 FSR2::~FSR2() {
@@ -362,7 +362,7 @@ FSR2::~FSR2() {
     }
 }
 
-Upscaler::Status FSR2::useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) {
+Upscaler::Status FSR2::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
@@ -371,8 +371,6 @@ Upscaler::Status FSR2::useSettings(Settings::Resolution resolution, Settings::DL
     RETURN_ON_FAILURE(setStatus(ffxFsr2GetRenderResolutionFromQualityMode(&optimalSettings.recommendedInputResolution.width, &optimalSettings.recommendedInputResolution.height, optimalSettings.outputResolution.width, optimalSettings.outputResolution.height, optimalSettings.getQuality<Upscaler::FSR2>()), "Some invalid setting was set. Ensure that the sharpness is between 0F and 1F, and that the QualityMode setting is a valid enum value."));
     optimalSettings.dynamicMaximumInputResolution = resolution;
     if (optimalSettings.outputResolution.width != settings.outputResolution.width || optimalSettings.outputResolution.height != settings.outputResolution.height) {
-        if (context != nullptr) ffxFsr2ContextDestroy(context);
-        delete context;
         const FfxFsr2ContextDescription description {
           .flags =
 #    ifndef NDEBUG
@@ -389,8 +387,10 @@ Upscaler::Status FSR2::useSettings(Settings::Resolution resolution, Settings::DL
           .fpMessage = &FSR2::log
 #    endif
         };
+        if (context != nullptr) ffxFsr2ContextDestroy(context);
+        delete context;
         context = new FfxFsr2Context;
-        if (Upscaler::failure(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."))) {
+        if (failure(setStatus(ffxFsr2ContextCreate(context, &description), "Failed to create the " + getName() + " context."))) {
             delete context;
             context = nullptr;
         }

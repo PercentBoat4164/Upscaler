@@ -23,7 +23,7 @@ namespace Conifer.Upscaler
     public class Upscaler : MonoBehaviour
     {
         /**
-         * The <see cref="Technique"/>s that Upscaler supports.
+         * The upscaling solutions from various vendors that Upscaler supports.
          */
         [Serializable]
         public enum Technique
@@ -363,7 +363,7 @@ namespace Conifer.Upscaler
                 if (!Enum.IsDefined(typeof(DlssPreset), dlssPreset)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`dlssPreset`(" + dlssPreset + ") is not a valid DlssPreset.");
                 if (!Enum.IsDefined(typeof(Technique), technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not a valid Technique.");
                 if (!IsSupported(technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not supported.");
-                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(newOutputResolution, new Vector2Int(32, 32)) != newOutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (32, 32).");
+                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(newOutputResolution, new Vector2Int(64, 32)) != newOutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (64, 32).");
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
@@ -377,6 +377,7 @@ namespace Conifer.Upscaler
             _quality = quality;
             _dlssPreset = dlssPreset;
             _technique = technique;
+            if (technique == Technique.None) _camera.ResetProjectionMatrix();
             return CurrentStatus;
         }
 
@@ -419,30 +420,21 @@ namespace Conifer.Upscaler
 
             if (technique == Technique.None) return;
             if (forceHistoryResetEveryFrame) ResetHistory();
-            // InputResolution = InputResolution;
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = NativeInterface.GetJitter() / InputResolution * 2;
+            var clipSpaceJitter = -NativeInterface.GetJitter() / InputResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
-                projectionMatrix.m03 -= clipSpaceJitter.x;
-                projectionMatrix.m13 -= clipSpaceJitter.y;
+                projectionMatrix.m03 += clipSpaceJitter.x;
+                projectionMatrix.m13 += clipSpaceJitter.y;
             }
             else
             {
-                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
-                {
-                    projectionMatrix.m02 -= clipSpaceJitter.x;
-                    projectionMatrix.m12 -= clipSpaceJitter.y;
-                }
-                else
-                {
-                    projectionMatrix.m02 += clipSpaceJitter.x;
-                    projectionMatrix.m12 += clipSpaceJitter.y;
-                }
+                projectionMatrix.m02 += clipSpaceJitter.x;
+                projectionMatrix.m12 += clipSpaceJitter.y;
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;

@@ -6,7 +6,7 @@
 
 #    include <IUnityRenderingExtensions.h>
 
-#    include <sstream>
+#    include <string>
 #    include <vector>
 
 struct IUnityGraphicsVulkanV2;
@@ -21,10 +21,21 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkCreateDevice                         m_vkCreateDevice;
     static PFN_vkEnumerateDeviceExtensionProperties   m_vkEnumerateDeviceExtensionProperties;
 
-    static PFN_vkCreateImageView  m_vkCreateImageView;
-    static PFN_vkDestroyImageView m_vkDestroyImageView;
+    static PFN_vkCreateImageView        m_vkCreateImageView;
+    static PFN_vkDestroyImageView       m_vkDestroyImageView;
+    static PFN_vkCreateCommandPool      m_vkCreateCommandPool;
+    static PFN_vkAllocateCommandBuffers m_vkAllocateCommandBuffers;
+    static PFN_vkBeginCommandBuffer     m_vkBeginCommandBuffer;
+    static PFN_vkEndCommandBuffer       m_vkEndCommandBuffer;
+    static PFN_vkQueueSubmit            m_vkQueueSubmit;
+    static PFN_vkCreateFence            m_vkCreateFence;
+    static PFN_vkWaitForFences          m_vkWaitForFences;
+    static PFN_vkFreeCommandBuffers     m_vkFreeCommandBuffers;
+    static PFN_vkDestroyCommandPool     m_vkDestroyCommandPool;
 
     static IUnityGraphicsVulkanV2* graphicsInterface;
+
+    static VkCommandPool commandPool;
 
     static void loadEarlyFunctionPointers();
     static void loadInstanceFunctionPointers(VkInstance instance);
@@ -65,6 +76,13 @@ public:
 
     static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void        destroyImageView(VkImageView viewToDestroy);
+
+    [[nodiscard]] static bool initializeOneTimeSubmits();
+    [[nodiscard]] static VkCommandBuffer getOneTimeSubmitCommandBuffer();
+    static void _submitOneTimeCommandBuffer(int /*unused*/, void* data);
+    [[nodiscard]] static bool submitOneTimeSubmitCommandBuffer(VkCommandBuffer commandBuffer);
+    static void shutdownOneTimeSubmits();
+
     static PFN_vkGetDeviceProcAddr getDeviceProcAddr();
 };
 #endif

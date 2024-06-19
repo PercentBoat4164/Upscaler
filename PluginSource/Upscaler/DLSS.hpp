@@ -50,6 +50,7 @@ class DLSS final : public Upscaler {
     static Status (DLSS::*fpCreate)(NVSDK_NGX_DLSS_Create_Params*);
     static Status (DLSS::*fpEvaluate)();
     static Status (DLSS::*fpGetParameters)();
+    static Status (DLSS::*fpRelease)();
     static Status (DLSS::*fpShutdown)();
 
     static SupportState supported;

@@ -56,6 +56,7 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
+            if (!Upscaler.IsSupported(upscaler.technique)) upscaler.technique = Upscaler.GetBestSupportedTechnique();
             upscaler.technique = (Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), upscaler.technique, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
 
             if (upscaler.technique != Upscaler.Technique.None)
@@ -93,6 +94,8 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
                     FOpaqueDownsampling.SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
             }
+
+            if (!upscaler.IsSupported(upscaler.quality)) upscaler.quality = Upscaler.Quality.Auto;
             upscaler.quality = (Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +

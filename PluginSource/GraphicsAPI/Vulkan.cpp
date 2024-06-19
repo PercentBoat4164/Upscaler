@@ -16,10 +16,21 @@ PFN_vkEnumerateInstanceExtensionProperties Vulkan::m_vkEnumerateInstanceExtensio
 PFN_vkCreateDevice                         Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
 PFN_vkEnumerateDeviceExtensionProperties   Vulkan::m_vkEnumerateDeviceExtensionProperties{VK_NULL_HANDLE};
 
-PFN_vkCreateImageView  Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
-PFN_vkDestroyImageView Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
+PFN_vkCreateImageView        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
+PFN_vkDestroyImageView       Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
+PFN_vkCreateCommandPool      Vulkan::m_vkCreateCommandPool{VK_NULL_HANDLE};
+PFN_vkAllocateCommandBuffers Vulkan::m_vkAllocateCommandBuffers{VK_NULL_HANDLE};
+PFN_vkBeginCommandBuffer     Vulkan::m_vkBeginCommandBuffer{VK_NULL_HANDLE};
+PFN_vkEndCommandBuffer       Vulkan::m_vkEndCommandBuffer{VK_NULL_HANDLE};
+PFN_vkQueueSubmit            Vulkan::m_vkQueueSubmit{VK_NULL_HANDLE};
+PFN_vkCreateFence            Vulkan::m_vkCreateFence{VK_NULL_HANDLE};
+PFN_vkWaitForFences          Vulkan::m_vkWaitForFences{VK_NULL_HANDLE};
+PFN_vkFreeCommandBuffers     Vulkan::m_vkFreeCommandBuffers{VK_NULL_HANDLE};
+PFN_vkDestroyCommandPool     Vulkan::m_vkDestroyCommandPool{VK_NULL_HANDLE};
 
 IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
+
+VkCommandPool Vulkan::commandPool{VK_NULL_HANDLE};
 
 void Vulkan::loadEarlyFunctionPointers() {
     m_vkCreateInstance                       = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
@@ -35,6 +46,15 @@ void Vulkan::loadInstanceFunctionPointers(VkInstance instance) {
 void Vulkan::loadDeviceFunctionPointers(VkDevice device) {
     m_vkCreateImageView  = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, "vkCreateImageView"));
     m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, "vkDestroyImageView"));
+    m_vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(m_vkGetDeviceProcAddr(device, "vkCreateCommandPool"));
+    m_vkAllocateCommandBuffers = reinterpret_cast<PFN_vkAllocateCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkAllocateCommandBuffers"));
+    m_vkBeginCommandBuffer = reinterpret_cast<PFN_vkBeginCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkBeginCommandBuffer"));
+    m_vkEndCommandBuffer = reinterpret_cast<PFN_vkEndCommandBuffer>(m_vkGetDeviceProcAddr(device, "vkEndCommandBuffer"));
+    m_vkQueueSubmit = reinterpret_cast<PFN_vkQueueSubmit>(m_vkGetDeviceProcAddr(device, "vkQueueSubmit"));
+    m_vkCreateFence = reinterpret_cast<PFN_vkCreateFence>(m_vkGetDeviceProcAddr(device, "vkCreateFence"));
+    m_vkWaitForFences = reinterpret_cast<PFN_vkWaitForFences>(m_vkGetDeviceProcAddr(device, "vkWaitForFences"));
+    m_vkFreeCommandBuffers = reinterpret_cast<PFN_vkFreeCommandBuffers>(m_vkGetDeviceProcAddr(device, "vkFreeCommandBuffers"));
+    m_vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(m_vkGetDeviceProcAddr(device, "vkDestroyCommandPool"));
 }
 
 std::vector<std::string> Vulkan::getSupportedInstanceExtensions() {
@@ -191,6 +211,78 @@ void Vulkan::destroyImageView(VkImageView viewToDestroy) {
         m_vkDestroyImageView(graphicsInterface->Instance().device, viewToDestroy, nullptr);
         viewToDestroy = VK_NULL_HANDLE;
     }
+}
+
+bool Vulkan::initializeOneTimeSubmits() {
+    const VkCommandPoolCreateInfo commandPoolCreateInfo{
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .pNext            = nullptr,
+      .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+      .queueFamilyIndex = graphicsInterface->Instance().queueFamilyIndex
+    };
+    return m_vkCreateCommandPool(graphicsInterface->Instance().device, &commandPoolCreateInfo, nullptr, &commandPool) == VK_SUCCESS;
+}
+
+VkCommandBuffer Vulkan::getOneTimeSubmitCommandBuffer() {
+    const VkCommandBufferAllocateInfo commandBufferAllocateInfo {
+      .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      .pNext              = nullptr,
+      .commandPool        = commandPool,
+      .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      .commandBufferCount = 1
+    };
+    VkCommandBuffer buffer{VK_NULL_HANDLE};
+    VkResult result = m_vkAllocateCommandBuffers(graphicsInterface->Instance().device, &commandBufferAllocateInfo, &buffer);
+    if (result != VK_SUCCESS) return VK_NULL_HANDLE;
+    constexpr VkCommandBufferBeginInfo commandBufferBeginInfo {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .pNext            = nullptr,
+      .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      .pInheritanceInfo = nullptr
+    };
+    return m_vkBeginCommandBuffer(buffer, &commandBufferBeginInfo) == VK_SUCCESS ? buffer : VK_NULL_HANDLE;
+}
+
+struct alignas(16) QueueAccessData {
+    VkCommandBuffer commandBuffer;
+    bool success;
+};
+
+void Vulkan::_submitOneTimeCommandBuffer(int /*unused*/, void* data) {
+    auto*          qData = static_cast<QueueAccessData*>(data);
+    const VkDevice device = graphicsInterface->Instance().device;
+    qData->success = m_vkEndCommandBuffer(qData->commandBuffer) == VK_SUCCESS;
+    if (!qData->success) return;
+    constexpr VkFenceCreateInfo fenceCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0
+      };
+    VkFence fence{VK_NULL_HANDLE};
+    qData->success = m_vkCreateFence(device, &fenceCreateInfo, nullptr, &fence) == VK_SUCCESS;
+    if (!qData->success) return;
+    const VkSubmitInfo submitInfo{
+        .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext              = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers    = &qData->commandBuffer
+      };
+    qData->success = m_vkQueueSubmit(graphicsInterface->Instance().graphicsQueue, 1, &submitInfo, fence) == VK_SUCCESS;
+    if (!qData->success) return;
+    qData->success = m_vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+    if (!qData->success) return;
+    m_vkFreeCommandBuffers(device, commandPool, 1, &qData->commandBuffer);
+}
+
+bool Vulkan::submitOneTimeSubmitCommandBuffer(VkCommandBuffer commandBuffer) {
+    QueueAccessData data {commandBuffer, false};
+    graphicsInterface->AccessQueue(&_submitOneTimeCommandBuffer, 0, &data, true);
+    return data.success;
+}
+
+void Vulkan::shutdownOneTimeSubmits() {
+    m_vkDestroyCommandPool(graphicsInterface->Instance().device, commandPool, nullptr);
+    commandPool = VK_NULL_HANDLE;
 }
 
 PFN_vkGetDeviceProcAddr Vulkan::getDeviceProcAddr() {

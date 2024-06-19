@@ -24,13 +24,13 @@ Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
-    auto*                     color              = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::SourceColor]);
-    const D3D12_RESOURCE_DESC colorDescription   = color->GetDesc();
+    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Color])->GetDesc();
+    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion])->GetDesc();
     const xess_d3d12_execute_params_t params {
-        .pColorTexture = color,
+        .pColorTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Color]),
         .pVelocityTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion]),
         .pDepthTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Depth]),
-        .pOutputTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::OutputColor]),
+        .pOutputTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Output]),
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .exposureScale = 1.0F,
@@ -40,7 +40,7 @@ Upscaler::Status XeSS::DX12Evaluate() {
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
-    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(colorDescription.Width), -static_cast<float>(colorDescription.Height)), "Failed to set motion scale"));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
     return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute " + getName() + ".");
 }
 #endif
@@ -125,7 +125,7 @@ XeSS::~XeSS() {
     context = nullptr;
 }
 
-Upscaler::Status XeSS::useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) {
+Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings;
     optimalSettings.outputResolution              = resolution;
@@ -139,19 +139,20 @@ Upscaler::Status XeSS::useSettings(Settings::Resolution resolution, Settings::DL
         static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
         (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
-    if (Upscaler::failure((this->*fpCreate)(&params))) {
+    if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the " + getName() + " context."));
+    if (failure((this->*fpCreate)(&params))) {
         Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
         context = nullptr;
         return status;
     }
 #    ifndef NDEBUG
-    if (Upscaler::failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
+    if (failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
         Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
         context = nullptr;
         return status;
     }
 #    else
-    if (Upscaler::failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."))) {
+    if (failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."))) {
         Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
         context = nullptr;
         return status;

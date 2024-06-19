@@ -9,10 +9,10 @@ static int eventIDBase;
 }  // namespace Unity
 
 enum ImageID : uint16_t {
-    SourceColor,
+    Color,
     Depth,
     Motion,
-    OutputColor,
+    Output,
     ReactiveMask,
     OpaqueColor,
     IMAGE_ID_MAX_ENUM
