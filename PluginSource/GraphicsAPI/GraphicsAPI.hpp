@@ -22,7 +22,8 @@ public:
     GraphicsAPI& operator=(GraphicsAPI&&)      = delete;
     ~GraphicsAPI()                             = default;
 
-    static void set(UnityGfxRenderer);
+    static void initialize(UnityGfxRenderer);
+    static void shutdown();
     static Type getType();
 
     static bool registerUnityInterfaces(IUnityInterfaces* interfaces);
