@@ -38,7 +38,7 @@ namespace Conifer.Upscaler.Demo
             }
 
             // Does nothing if settings have not changed.
-            _upscaler.ApplySettings();  // Be sure to handle errors here or have an error handler registered.
+            _upscaler.ApplySettings();  // Optional, be sure to handle errors here.
         }
     }
 }

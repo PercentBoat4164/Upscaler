@@ -8,16 +8,13 @@
  **************************************************/
 
 using System;
-using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Serialization;
 
 namespace Conifer.Upscaler
 {
     /**
-     * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on
-     * a <see cref="UnityEngine.Camera"/> object.
+     * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
+     * <see cref="UnityEngine.Camera"/> object.
      */
     [RequireComponent(typeof(Camera))]
     public class Upscaler : MonoBehaviour
@@ -39,10 +36,8 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * The <see cref="Quality"/> modes that the <see cref="Technique"/>s support. Query support for
-         * a particular mode using
-         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Quality)"/> and
-         * <see cref="Conifer.Upscaler.Upscaler.IsSupported(Technique, Quality)"/>
+         * The <see cref="Quality"/> modes that the <see cref="Technique"/>s support. Query support for a particular
+         * mode using <see cref="IsSupported(Quality)"/> and <see cref="IsSupported(Technique, Quality)"/>
          */
         [Serializable]
         public enum Quality
@@ -85,8 +80,8 @@ namespace Conifer.Upscaler
 
         /**
          * The possible <see cref="Status"/> values that can be reported by an <see cref="Technique"/>. See
-         * <see cref="Success"/>, <see cref="Failure"/>, and <see cref="Recoverable"/> to
-         * extract information from a particular <see cref="Status"/>.
+         * <see cref="Success"/>, <see cref="Failure"/>, and <see cref="Recoverable"/> to extract information from a
+         * particular <see cref="Status"/>.
          */
         public enum Status : byte
         {
@@ -172,11 +167,10 @@ namespace Conifer.Upscaler
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
-        /// <see cref="RecommendedInputResolution"/> whenever the <see cref="technique"/> or
-        /// <see cref="quality"/> are changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>.
-        /// When the <see cref="Technique"/> has a
-        /// <see cref="Status"/> error or the <see cref="Technique"/> is
-        /// <see cref="Technique.None"/> it will be the same as <see cref="OutputResolution"/>.
+        /// <see cref="RecommendedInputResolution"/> whenever the <see cref="technique"/> or <see cref="quality"/> are
+        /// changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>. When the <see cref="Technique"/> has a
+        /// <see cref="Status"/> error or the <see cref="Technique"/> is <see cref="Technique.None"/> it will be the
+        /// same as <see cref="OutputResolution"/>.
         public Vector2Int InputResolution
         {
             get => _inputResolution;
@@ -184,18 +178,16 @@ namespace Conifer.Upscaler
         }
         private Vector2Int _inputResolution;
 
-        /// The recommended resolution for this quality mode as given by the selected <see cref="Technique"/>.
-        /// This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        /// The recommended resolution for this quality mode as given by the selected <see cref="Technique"/>. This
+        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int RecommendedInputResolution { get; private set; }
 
-        /// The maximum dynamic resolution for this quality mode as given by the selected
-        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
-        /// enabled.
+        /// The maximum dynamic resolution for this quality mode as given by the selected <see cref="Technique"/>. This
+        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int MaxInputResolution { get; private set; }
 
-        /// The minimum dynamic resolution for this quality mode as given by the selected
-        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be
-        /// enabled.
+        /// The minimum dynamic resolution for this quality mode as given by the selected <see cref="Technique"/>. This
+        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int MinInputResolution { get; private set; }
 
         /**
@@ -206,13 +198,12 @@ namespace Conifer.Upscaler
          *
          * <remarks>This callback is only ever called if an error occurs. When that happens it will be called from the
          * <see cref="Update"/> method during the next frame. If this callback fails to bring the
-         * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the
-         * default error handler will reset the current <see cref="Technique"/> to the default
-         * <see cref="Technique.None"/>.</remarks>
+         * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the default error
+         * handler will reset the current <see cref="Technique"/> to the default <see cref="Technique.None"/>.</remarks>
          *
          * <example><code>upscaler.ErrorCallback = (status, message) => { };</code></example>
          */
-        [NonSerialized][CanBeNull] public Action<Status, string> ErrorCallback;
+        [NonSerialized] public Action<Status, string> ErrorCallback;
 
         /// The current <see cref="Status"/> for the managed <see cref="Technique"/>.
         public Status CurrentStatus { get; private set; }
@@ -245,7 +236,7 @@ namespace Conifer.Upscaler
          *
          * <remarks>Selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
-         * <see cref="Technique.FidelityFXSuperResolution2"/></remarks>
+         * <see cref="Technique.FidelityFXSuperResolution2"/>, <see cref="Technique.None"/></remarks>
          */
         public static Technique GetBestSupportedTechnique()
         {
@@ -257,10 +248,12 @@ namespace Conifer.Upscaler
         /**
          * <summary>Tells the <see cref="Technique"/> to reset the pixel history this frame.</summary>
          *
-         * <remarks>This method is fast. It will set a flag that tells the <see cref="Technique"/> to reset the
-         * pixel history this frame.This flag is automatically cleared at the end of each frame. This should be only
-         * called everytime there is no correlation between what the camera saw last frame and what it sees this frame.
-         * </remarks>
+         * <remarks>This method is fast. It will set a flag that tells the <see cref="Technique"/> to reset the pixel
+         * history this frame.This flag is automatically cleared at the end of each frame. This should be only called
+         * everytime there is no correlation between what the camera saw last frame and what it sees this frame.
+         *
+         * This method is called whenever the <c>resetHistory</c> flag is on in the <c>UniversalAdditionalCameraData</c>
+         * .</remarks>
          *
          * <example><code>
          * CameraJumpCut(newLocation);
@@ -274,15 +267,14 @@ namespace Conifer.Upscaler
          *
          * <param name="type">The <see cref="Technique"/> to query support for.</param>
          *
-         * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.
-         * </returns>
+         * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.</returns>
          *
-         * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast
-         * every time after that. Support for the <see cref="Technique"/> requested is computed then cached. Any
-         * future calls with the same <see cref="Technique"/> will use the cached value.</remarks>
+         * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast every time
+         * after that. Support for the <see cref="Technique"/> requested is computed then cached. Any future calls with
+         * the same <see cref="Technique"/> will use the cached value.</remarks>
          *
-         * <example><code>bool DLSSSupported = Upscaler.IsSupported(Settings.Upscaler.DeepLearningSuperSampling);</code>
-         * </example>
+         * <example><code>bool DLSSSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
+         * </code></example>
          */
         public static bool IsSupported(Technique type) => NativeInterface.IsSupported(type);
 
@@ -293,32 +285,33 @@ namespace Conifer.Upscaler
          * <param name="type">The <see cref="Technique"/> to query.</param>
          * <param name="mode">The <see cref="Quality"/> mode to query support for.</param>
          *
-         * <returns><c>true</c> if the <see cref="Technique"/> supports the requested
-         * <see cref="Quality"/> mode and <c>false</c> if it does not.</returns>
+         * <returns><c>true</c> if the <see cref="Technique"/> supports the requested <see cref="Quality"/> mode and
+         * <c>false</c> if it does not.</returns>
          *
-         * <remarks>This method is always fast. Every non-<see cref="Technique.None"/>
-         * <see cref="Technique"/> will return <c>true</c> for the <see cref="Quality.Auto"/>
-         * <see cref="Quality"/> mode.</remarks>
+         * <remarks>This method is always fast. Every non-<see cref="Technique.None"/> <see cref="Technique"/> will
+         * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode.</remarks>
          *
-         * <example><code>bool supportsAA = upscaler.IsSupported(Settings.Quality.AntiAliasing);</code></example>
+         * <example><code>bool supportsAA = upscaler.IsSupported(
+         *   Upscaler.Technique.DeepLearningSuperSampling,
+         *   Upscaler.Quality.AntiAliasing
+         * );</code></example>
          */
         public static bool IsSupported(Technique type, Quality mode) => NativeInterface.IsSupported(type, mode);
 
         /**
-         * <summary>Check if a <see cref="Quality"/> mode is supported by the current
-         * <see cref="Technique"/>.</summary>
+         * <summary>Check if a <see cref="Quality"/> mode is supported by the current <see cref="Technique"/>.</summary>
          *
-         * <param name="mode">The <see cref="Quality"/> mode to query the current
-         * <see cref="Technique"/> for support of.</param>
+         * <param name="mode">The <see cref="Quality"/> mode to query the current <see cref="Technique"/> for support of
+         * .</param>
          *
-         * <returns><c>true</c> if the current <see cref="Technique"/> supports the requested
-         * <see cref="Quality"/> mode and <c>false</c> if it does not.</returns>
+         * <returns><c>true</c> if the current <see cref="Technique"/> supports the requested <see cref="Quality"/> mode
+         * and <c>false</c> if it does not.</returns>
          *
          * <remarks>This method is always fast. This is a convenience method for
-         * <see cref="IsSupported(Technique, Quality)"/> that uses
-         * this upscaler's <see cref="Technique"/> as the first argument. </remarks>
+         * <see cref="IsSupported(Technique, Quality)"/> that uses this upscaler's <see cref="Technique"/> as the first
+         * argument. </remarks>
          *
-         * <example><code>bool supportsAA = upscaler.IsSupported(Settings.Quality.AntiAliasing);</code></example>
+         * <example><code>bool supportsAA = upscaler.IsSupported(Upscaler.Quality.AntiAliasing);</code></example>
          */
         public bool IsSupported(Quality mode) => IsSupported(technique, mode);
 
