@@ -444,7 +444,7 @@ DLSS::DLSS(const GraphicsAPI::Type type) {
 }
 
 DLSS::~DLSS() {
-    NVSDK_NGX_Parameter_SetI(parameters, NVSDK_NGX_Parameter_FreeMemOnReleaseFeature, 1);
+    if (parameters != nullptr) NVSDK_NGX_Parameter_SetI(parameters, NVSDK_NGX_Parameter_FreeMemOnReleaseFeature, 1);
     (this->*fpShutdown)();
 }
 
