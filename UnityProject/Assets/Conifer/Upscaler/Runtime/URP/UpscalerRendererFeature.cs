@@ -142,12 +142,11 @@ namespace Conifer.Upscaler.URP
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraOutputResolutionColorTarget, _cameraOutputResolutionDepthTarget);
                 return;
 
-                IntPtr UpdateCachedNativeTexturePtrFromTexture(Texture current, ref Texture old, ref IntPtr currentPtr)
+                void UpdateCachedNativeTexturePtrFromTexture(Texture current, ref Texture old, ref IntPtr currentPtr)
                 {
-                    if (current == old) return currentPtr;
+                    if (current == old) return;
                     old = current;
                     currentPtr = current.GetNativeTexturePtr();
-                    return currentPtr;
                 }
 
                 IntPtr UpdateCachedNativeTexturePtrFromRTHandle(RTHandle current, ref RTHandle old, ref IntPtr currentPtr)
