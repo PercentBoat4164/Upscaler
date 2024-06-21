@@ -25,6 +25,7 @@
 #    include "nvsdk_ngx_helpers.h"
 
 #    include <algorithm>
+#    include <atomic>
 #    include <cstring>
 
 DLSS::Application DLSS::applicationInfo;
