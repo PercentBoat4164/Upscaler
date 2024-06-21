@@ -22,13 +22,13 @@
 #        include <IUnityGraphicsVulkan.h>
 #    endif
 
-#    include "nvsdk_ngx_helpers.h"
+#    include <nvsdk_ngx_helpers.h>
 
 #    include <algorithm>
 #    include <atomic>
 #    include <cstring>
 
-DLSS::Application DLSS::applicationInfo;
+uint64_t DLSS::applicationID{0xDC98EECU};
 
 Upscaler::Status (DLSS::*DLSS::fpInitialize)(){&DLSS::safeFail};
 Upscaler::Status (DLSS::*DLSS::fpCreate)(NVSDK_NGX_DLSS_Create_Params*){&DLSS::safeFail};
@@ -47,7 +47,7 @@ Upscaler::Status DLSS::VulkanGetParameters() {
 
 Upscaler::Status DLSS::VulkanInitialize() {
     const UnityVulkanInstance vulkanInstance = Vulkan::getGraphicsInterface()->Instance();
-    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], vulkanInstance.instance, vulkanInstance.physicalDevice, vulkanInstance.device), "Failed to initialize the NGX instance."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_VULKAN_Init(applicationID, L".", vulkanInstance.instance, vulkanInstance.physicalDevice, vulkanInstance.device), "Failed to initialize the NGX instance."));
     return VulkanGetParameters();
 }
 
@@ -155,7 +155,7 @@ Upscaler::Status DLSS::DX12GetParameters() {
 }
 
 Upscaler::Status DLSS::DX12Initialize() {
-    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX12::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D12_Init(applicationID, L".", DX12::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
     return DX12GetParameters();
 }
 
@@ -220,7 +220,7 @@ Upscaler::Status DLSS::DX11GetParameters() {
 }
 
 Upscaler::Status DLSS::DX11Initialize() {
-    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Init(applicationInfo.ngxIdentifier.v.ApplicationId, applicationInfo.featureCommonInfo.PathListInfo.Path[0], DX11::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
+    RETURN_ON_FAILURE(setStatus(NVSDK_NGX_D3D11_Init(applicationID, L".", DX11::getGraphicsInterface()->GetDevice()), "Failed to initialize the NGX instance."));
     return DX11GetParameters();
 }
 
@@ -323,10 +323,21 @@ void DLSS::log(const char* message, const NVSDK_NGX_Logging_Level loggingLevel, 
 
 #    ifdef ENABLE_VULKAN
 std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
-    uint32_t                 extensionCount{};
-    std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*   extensionProperties{};
-    NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
+    uint32_t                              extensionCount{};
+    std::vector<std::string>              requestedExtensions{};
+    VkExtensionProperties*                extensionProperties{};
+    const NVSDK_NGX_FeatureDiscoveryInfo  featureDiscoveryInfo {
+        .SDKVersion          = NVSDK_NGX_Version_API,
+        .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
+        .Identifier          = {
+            .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
+            .v              = {
+                .ApplicationId = applicationID,
+            }
+        },
+        .ApplicationDataPath = L".",
+    };
+    NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequirements(&featureDiscoveryInfo, &extensionCount, &extensionProperties);
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
         const char* extensionName = extensionProperties[i].extensionName;
@@ -341,10 +352,21 @@ std::vector<std::string> DLSS::requestVulkanInstanceExtensions(const std::vector
 }
 
 std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
-    uint32_t                 extensionCount{};
-    std::vector<std::string> requestedExtensions{};
-    VkExtensionProperties*   extensionProperties{};
-    NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &applicationInfo.featureDiscoveryInfo, &extensionCount, &extensionProperties);
+    uint32_t                              extensionCount{};
+    std::vector<std::string>              requestedExtensions{};
+    VkExtensionProperties*                extensionProperties{};
+    const NVSDK_NGX_FeatureDiscoveryInfo  featureDiscoveryInfo {
+        .SDKVersion          = NVSDK_NGX_Version_API,
+        .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
+        .Identifier          = {
+            .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
+            .v              = {
+                .ApplicationId = applicationID,
+            }
+        },
+        .ApplicationDataPath = L".",
+    };
+    NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequirements(instance, physicalDevice, &featureDiscoveryInfo, &extensionCount, &extensionProperties);
     requestedExtensions.reserve(extensionCount);
     for (uint32_t i{}; i < extensionCount; ++i) {
         const char* extensionName = extensionProperties[i].extensionName;

@@ -250,7 +250,7 @@ public:
     constexpr virtual std::string getName()                                                                                = 0;
 
     virtual Status                useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
-    Status         useImages(std::array<void*, Plugin::IMAGE_ID_MAX_ENUM> images);
+    Status         useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>&images);
     virtual Status evaluate() = 0;
 
     [[nodiscard]] Status getStatus() const;

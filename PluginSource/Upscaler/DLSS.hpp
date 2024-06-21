@@ -9,39 +9,7 @@ struct NVSDK_NGX_Parameter;
 struct NVSDK_NGX_DLSS_Create_Params;
 
 class DLSS final : public Upscaler {
-    static struct alignas(128) Application {
-        NVSDK_NGX_Application_Identifier ngxIdentifier {
-          .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
-          .v              = {
-            .ApplicationId = 0xDC98EECU,
-          }
-        };
-        NVSDK_NGX_FeatureCommonInfo featureCommonInfo{
-          .PathListInfo {
-            .Path   = new const wchar_t *{L"./Assets/Plugins"},
-            .Length = 1U,
-          },
-          .InternalData = nullptr,
-          .LoggingInfo {
-#   ifndef NDEBUG
-            .LoggingCallback = &DLSS::log,
-            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_VERBOSE,
-            .DisableOtherLoggingSinks = false,
-#   else
-            .LoggingCallback = nullptr,
-            .MinimumLoggingLevel      = NVSDK_NGX_LOGGING_LEVEL_OFF,
-            .DisableOtherLoggingSinks = true,
-#   endif
-          }
-        };
-        NVSDK_NGX_FeatureDiscoveryInfo featureDiscoveryInfo {
-          .SDKVersion          = NVSDK_NGX_Version_API,
-          .FeatureID           = NVSDK_NGX_Feature_SuperSampling,
-          .Identifier          = ngxIdentifier,
-          .ApplicationDataPath = L"./",
-          .FeatureInfo         = &featureCommonInfo,
-        };
-    } applicationInfo;
+    static uint64_t applicationID;
 
     NVSDK_NGX_Handle*            handle{};
     NVSDK_NGX_Parameter*         parameters{};
@@ -84,8 +52,6 @@ class DLSS final : public Upscaler {
     Status DX11Shutdown();
 #    endif
 
-    /// Sets current status to the status represented by t_error if there is no current status. Use resetStatus to
-    /// clear the current status.
     Status setStatus(NVSDK_NGX_Result t_error, std::string t_msg);
 
     static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);

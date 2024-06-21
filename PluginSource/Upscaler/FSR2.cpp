@@ -356,7 +356,7 @@ FSR2::~FSR2() {
     delete context;
     context = nullptr;
     if (ffxInterface != nullptr && users == 0) {
-        operator delete(ffxInterface->scratchBuffer, ffxInterface->scratchBufferSize);
+        free(ffxInterface->scratchBuffer);
         delete ffxInterface;
         ffxInterface = nullptr;
     }

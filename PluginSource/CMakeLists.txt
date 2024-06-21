@@ -29,7 +29,7 @@ cmake_dependent_option(ENABLE_DX12 "Compiles with DX12 support. Value is only re
 cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
 
 # At least one upscaler must be enabled.
-cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT APPLE" OFF)
+cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT UNIX" OFF)
 option(ENABLE_FSR2 "Compiles with FSR2 support." ON)
 cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
 

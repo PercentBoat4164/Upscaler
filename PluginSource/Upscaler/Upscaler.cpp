@@ -55,7 +55,7 @@ bool Upscaler::isSupported(const Type type) {
 #ifdef ENABLE_XESS
         case XESS: return XeSS::isSupported();
 #endif
-        case TYPE_MAX_ENUM: return false;
+        default: return false;
     }
     return false;
 }
@@ -72,24 +72,24 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
 #ifdef ENABLE_XESS
         case XESS: return XeSS::isSupported(mode);
 #endif
-        case TYPE_MAX_ENUM: return false;
+        default: return false;
     }
     return false;
 }
 
 std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     switch (type) {
-        case NONE: return std::make_unique<NoUpscaler>(); break;
+        case NONE: return std::make_unique<NoUpscaler>();
 #ifdef ENABLE_DLSS
-        case DLSS: return std::make_unique<class DLSS>(GraphicsAPI::getType()); break;
+        case DLSS: return std::make_unique<class DLSS>(GraphicsAPI::getType());
 #endif
 #ifdef ENABLE_FSR2
-        case FSR2: return std::make_unique<class FSR2>(GraphicsAPI::getType()); break;
+        case FSR2: return std::make_unique<class FSR2>(GraphicsAPI::getType());
 #endif
 #ifdef ENABLE_XESS
         case XESS: return std::make_unique<XeSS>(GraphicsAPI::getType());
 #endif
-        default: return std::make_unique<NoUpscaler>(); break;
+        default: return std::make_unique<NoUpscaler>();
     }
 }
 
@@ -97,7 +97,7 @@ void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
     logCallback = pFunction;
 }
 
-Upscaler::Status Upscaler::useImages(std::array<void*, Plugin::IMAGE_ID_MAX_ENUM> images) {
+Upscaler::Status Upscaler::useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>& images) {
     textures = images;
     return Success;
 }

@@ -41,19 +41,19 @@ struct UpscalingData {
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
-    if (d == nullptr) return;
-    const UpscalingData& data = *static_cast<UpscalingData*>(d);
-    std::lock_guard lock{*locks[data.camera]};
-    Upscaler& upscaler = *upscalers[data.camera];
-    upscaler.settings.camera = data.cameraInfo;
-    upscaler.settings.frameTime = data.frameTime;
-    upscaler.settings.sharpness = data.sharpness;
-    upscaler.settings.tcThreshold = data.tcThreshold;
-    upscaler.settings.tcScale = data.tcScale;
-    upscaler.settings.reactiveScale = data.reactiveScale;
-    upscaler.settings.reactiveMax = data.reactiveMax;
-    upscaler.settings.autoReactive = data.autoReactive;
-    upscaler.useImages({data.color, data.depth, data.motion, data.output, data.reactive, data.opaque});
+    if (d == nullptr || event != Plugin::Unity::eventIDBase) return;
+    const auto& [color, depth, motion, output, reactive, opaque, frameTime, sharpness, tcThreshold, tcScale, reactiveScale, reactiveMax, cameraInfo, camera, autoReactive] = *static_cast<UpscalingData*>(d);
+    std::lock_guard lock{*locks[camera]};
+    Upscaler&       upscaler        = *upscalers[camera];
+    upscaler.settings.camera        = cameraInfo;
+    upscaler.settings.frameTime     = frameTime;
+    upscaler.settings.sharpness     = sharpness;
+    upscaler.settings.tcThreshold   = tcThreshold;
+    upscaler.settings.tcScale       = tcScale;
+    upscaler.settings.reactiveScale = reactiveScale;
+    upscaler.settings.reactiveMax   = reactiveMax;
+    upscaler.settings.autoReactive  = autoReactive;
+    upscaler.useImages({color, depth, motion, output, reactive, opaque});
     upscaler.evaluate();
 }
 
