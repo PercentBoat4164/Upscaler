@@ -4,8 +4,9 @@
 
 using System;
 using System.Linq;
+using System.Net;
 using System.Reflection;
-#if UPSCALER_USE_URP
+using System.IO;
 using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
@@ -17,18 +18,74 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
+        private bool _installationFoldout;
         private bool _advancedSettingsFoldout;
         private bool _debugSettingsFoldout;
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly string[] LibraryPaths = {Application.dataPath + "/Plugins/nvngx_dlss.dll", Application.dataPath + "/Plugins/libnvidia-ngx-dlss.so.3.7.10", Application.dataPath + "/Plugins/libxess.dll"};
+        private static bool _needsRestart;
 
         public override void OnInspectorGUI()
         {
+            EditorGUI.indentLevel += 1;
+            _installationFoldout = EditorGUILayout.Foldout(_installationFoldout, "Third-party Library Installation and Licenses");
+            if (_installationFoldout)
+            {
+                var client = new WebClient();
+                EditorGUILayout.HelpBox("AMD FSR is included with Upscaler and is provided under the MIT license.", MessageType.Info);
+                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license."))
+                {
+                    Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
+                }
+                if (File.Exists(LibraryPaths[0]) || File.Exists(LibraryPaths[1])) {
+                    EditorGUILayout.HelpBox("You have agreed to the NVIDIA RTX license.", MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("By clicking the below buttons you agree to the above NVIDIA RTX license.", MessageType.Info);
+                }
+
+                if (!File.Exists(LibraryPaths[0]) && GUILayout.Button("Install DLSS Windows library"))
+                {
+                    client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", LibraryPaths[0]);
+                    _needsRestart = true;
+                }
+                if (!File.Exists(LibraryPaths[1]) && GUILayout.Button("Install DLSS Linux library"))
+                {
+                    client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Linux_x86_64/rel/libnvidia-ngx-dlss.so.3.7.10", LibraryPaths[1]);
+                    _needsRestart = true;
+                }
+
+                if (EditorGUILayout.LinkButton("See the Intel XeSS license."))
+                {
+                    Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
+                }
+                if (!File.Exists(LibraryPaths[2]))
+                {
+                    EditorGUILayout.HelpBox("By clicking the below button you agree to the above Intel XeSS license.",
+                        MessageType.Info);
+                    if (GUILayout.Button("Install XeSS Windows library"))
+                    {
+                        client.DownloadFile("https://github.com/intel/xess/blob/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[2]);
+                        _needsRestart = true;
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("You have agreed to the Intel XeSS license.", MessageType.Info);
+                }
+            }
+            EditorGUI.indentLevel -= 1;
+            if (_needsRestart)
+            {
+                EditorGUILayout.HelpBox("You must restart Unity to load the third-party libraries.", MessageType.Warning);
+            }
+
             if (!Upscaler.PluginLoaded())
             {
-                EditorGUILayout.HelpBox("You must restart Unity to load the Upscaler Native Plugin.",
-                    MessageType.Error);
+                EditorGUILayout.HelpBox("You may need to restart Unity to load the Upscaler Native Plugin.", MessageType.Error);
                 return;
             }
 
@@ -175,4 +232,3 @@ namespace Conifer.Upscaler.Editor
         }
     }
 }
-#endif

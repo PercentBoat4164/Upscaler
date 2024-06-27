@@ -7,7 +7,6 @@
  * See the OfflineManual.pdf for more information *
  **************************************************/
 
-#if UPSCALER_USE_URP
 using System;
 using System.Reflection;
 using UnityEngine;
@@ -201,4 +200,3 @@ namespace Conifer.Upscaler.URP
         }
     }
 }
-#endif
