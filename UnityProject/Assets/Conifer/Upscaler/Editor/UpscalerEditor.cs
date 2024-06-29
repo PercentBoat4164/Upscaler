@@ -18,7 +18,7 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
-        private bool _installationFoldout;
+        private bool _installationFoldout = !Upscaler.PluginLoaded();
         private bool _advancedSettingsFoldout;
         private bool _debugSettingsFoldout;
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
@@ -49,12 +49,12 @@ namespace Conifer.Upscaler.Editor
 
                 if (!File.Exists(LibraryPaths[0]) && GUILayout.Button("Install DLSS Windows library"))
                 {
-                    client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", LibraryPaths[0]);
+                    client.DownloadFile("https://github.com/NVIDIA/DLSS/raw/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", LibraryPaths[0]);
                     _needsRestart = true;
                 }
                 if (!File.Exists(LibraryPaths[1]) && GUILayout.Button("Install DLSS Linux library"))
                 {
-                    client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Linux_x86_64/rel/libnvidia-ngx-dlss.so.3.7.10", LibraryPaths[1]);
+                    client.DownloadFile("https://github.com/NVIDIA/DLSS/raw/ec405c6443583977a50d5842b244d3e498728f86/lib/Linux_x86_64/rel/libnvidia-ngx-dlss.so.3.7.10", LibraryPaths[1]);
                     _needsRestart = true;
                 }
 
@@ -68,9 +68,10 @@ namespace Conifer.Upscaler.Editor
                         MessageType.Info);
                     if (GUILayout.Button("Install XeSS Windows library"))
                     {
-                        client.DownloadFile("https://github.com/intel/xess/blob/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[2]);
+                        client.DownloadFile("https://github.com/intel/xess/raw/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[2]);
                         _needsRestart = true;
                     }
+                    EditorGUILayout.HelpBox("The Intel XeSS library is required for Upscaler to load.", MessageType.Warning);
                 }
                 else
                 {
