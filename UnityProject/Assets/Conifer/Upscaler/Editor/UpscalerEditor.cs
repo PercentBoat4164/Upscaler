@@ -24,7 +24,7 @@ namespace Conifer.Upscaler.Editor
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly string[] LibraryPaths = {Application.dataPath + "/Plugins/nvngx_dlss.dll", Application.dataPath + "/Plugins/libnvidia-ngx-dlss.so.3.7.10", Application.dataPath + "/Plugins/libxess.dll"};
+        private static readonly string[] LibraryPaths = {Application.dataPath + "/Plugins/nvngx_dlss.dll", Application.dataPath + "/Plugins/libxess.dll"};
         private static bool _needsRestart;
 
         public override void OnInspectorGUI()
@@ -52,23 +52,18 @@ namespace Conifer.Upscaler.Editor
                     client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", LibraryPaths[0]);
                     _needsRestart = true;
                 }
-                if (!File.Exists(LibraryPaths[1]) && GUILayout.Button("Install DLSS Linux library"))
-                {
-                    client.DownloadFile("https://github.com/NVIDIA/DLSS/blob/ec405c6443583977a50d5842b244d3e498728f86/lib/Linux_x86_64/rel/libnvidia-ngx-dlss.so.3.7.10", LibraryPaths[1]);
-                    _needsRestart = true;
-                }
 
                 if (EditorGUILayout.LinkButton("See the Intel XeSS license."))
                 {
                     Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
                 }
-                if (!File.Exists(LibraryPaths[2]))
+                if (!File.Exists(LibraryPaths[1]))
                 {
                     EditorGUILayout.HelpBox("By clicking the below button you agree to the above Intel XeSS license.",
                         MessageType.Info);
                     if (GUILayout.Button("Install XeSS Windows library"))
                     {
-                        client.DownloadFile("https://github.com/intel/xess/blob/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[2]);
+                        client.DownloadFile("https://github.com/intel/xess/blob/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[1]);
                         _needsRestart = true;
                     }
                 }
