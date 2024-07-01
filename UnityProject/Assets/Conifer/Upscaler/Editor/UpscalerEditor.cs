@@ -66,7 +66,7 @@ namespace Conifer.Upscaler.Editor
                         client.DownloadFile("https://github.com/intel/xess/raw/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[1]);
                         _needsRestart = true;
                     }
-                    EditorGUILayout.HelpBox("The Intel XeSS library is required for Upscaler to load.", MessageType.Warning);
+                    EditorGUILayout.HelpBox("The Intel XeSS library is required for Upscaler to load on Windows.", MessageType.Warning);
                 }
                 else
                 {
