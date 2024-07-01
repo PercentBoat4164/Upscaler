@@ -53,13 +53,13 @@ namespace Conifer.Upscaler.Editor
                     _needsRestart = true;
                 }
 
-                if (EditorGUILayout.LinkButton("See the Intel XeSS license."))
+                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License."))
                 {
                     Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
                 }
                 if (!File.Exists(LibraryPaths[1]))
                 {
-                    EditorGUILayout.HelpBox("By clicking the below button you agree to the above Intel XeSS license.",
+                    EditorGUILayout.HelpBox("By clicking the below button you agree to the above Intel Simplified Software License.",
                         MessageType.Info);
                     if (GUILayout.Button("Install XeSS Windows library"))
                     {
@@ -70,7 +70,7 @@ namespace Conifer.Upscaler.Editor
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox("You have agreed to the Intel XeSS license.", MessageType.Info);
+                    EditorGUILayout.HelpBox("You have agreed to the Intel Simplified Software License.", MessageType.Info);
                 }
             }
             EditorGUI.indentLevel -= 1;
