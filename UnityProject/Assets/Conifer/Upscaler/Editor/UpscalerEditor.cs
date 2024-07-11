@@ -169,7 +169,7 @@ namespace Conifer.Upscaler.Editor
                     {
                         switch (upscaler.technique)
                         {
-                            case Upscaler.Technique.FidelityFXSuperResolution2:
+                            case Upscaler.Technique.FidelityFXSuperResolution:
                             {
                                 upscaler.sharpness = EditorGUILayout.Slider(
                                     new GUIContent("Sharpness"), upscaler.sharpness, 0f, 1f);

@@ -5,13 +5,26 @@
 
 #    include <xess/xess.h>
 
+#    include <windows.h>
+
 using xess_d3d12_init_params_t = struct _xess_d3d12_init_params_t;
 
 class XeSS final : public Upscaler {
     xess_context_handle_t context{nullptr};
 
+    static HMODULE library;
+    static std::atomic<uint32_t> users;
+
     static Status (XeSS::*fpCreate)(const xess_d3d12_init_params_t*);
     static Status (XeSS::*fpEvaluate)();
+
+    static void* xessGetOptimalInputResolution;
+    static void* xessDestroyContext;
+    static void* xessSetVelocityScale;
+    static void* xessSetLoggingCallback;
+    static void* xessD3D12CreateContext;
+    static void* xessD3D12Init;
+    static void* xessD3D12Execute;
 
     static SupportState supported;
 
@@ -27,8 +40,9 @@ class XeSS final : public Upscaler {
 public:
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
+    static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    explicit XeSS(GraphicsAPI::Type type);
+    XeSS();
     XeSS(const XeSS&)            = delete;
     XeSS(XeSS&&)                 = delete;
     XeSS& operator=(const XeSS&) = delete;

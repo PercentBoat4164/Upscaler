@@ -383,25 +383,15 @@ std::vector<std::string> DLSS::requestVulkanDeviceExtensions(VkInstance instance
 
 bool DLSS::isSupported() {
     if (supported != Untested) return supported == Supported;
-    DLSS dlss(GraphicsAPI::getType());
-    return (supported = success(dlss.useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
+    return (supported = success(DLSS().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
 bool DLSS::isSupported(const enum Settings::Quality mode) {
     return mode == Settings::Auto || mode == Settings::AntiAliasing || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
-DLSS::DLSS(const GraphicsAPI::Type type) {
+void DLSS::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
-        case GraphicsAPI::NONE: {
-            fpInitialize    = &DLSS::invalidGraphicsAPIFail;
-            fpCreate        = &DLSS::invalidGraphicsAPIFail;
-            fpEvaluate      = &DLSS::invalidGraphicsAPIFail;
-            fpGetParameters = &DLSS::invalidGraphicsAPIFail;
-            fpRelease       = &DLSS::invalidGraphicsAPIFail;
-            fpShutdown      = &DLSS::invalidGraphicsAPIFail;
-            break;
-        }
 #    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
             fpInitialize    = &DLSS::VulkanInitialize;
@@ -445,6 +435,9 @@ DLSS::DLSS(const GraphicsAPI::Type type) {
             break;
         }
     }
+}
+
+DLSS::DLSS() {
     if (++users == 1) {
         RETURN_VOID_ON_FAILURE((this->*fpInitialize)());
         int needsUpdatedDriver{};

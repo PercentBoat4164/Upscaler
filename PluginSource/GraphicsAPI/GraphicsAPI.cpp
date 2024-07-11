@@ -18,6 +18,8 @@
 #    include "DX11.hpp"
 #endif
 
+#include <Upscaler/Upscaler.hpp>
+
 GraphicsAPI::Type GraphicsAPI::type = NONE;
 
 void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
@@ -57,6 +59,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
 #endif
         default: type = NONE; break;
     }
+    Upscaler::useGraphicsAPI(type);
 }
 
 void GraphicsAPI::shutdown() {

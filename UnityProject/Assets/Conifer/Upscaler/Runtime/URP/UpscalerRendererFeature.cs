@@ -109,7 +109,7 @@ namespace Conifer.Upscaler.URP
                 inputDescriptor.depthStencilFormat = GraphicsFormat.None;
                 if (RenderingUtils.ReAllocateIfNeeded(ref _motion, inputDescriptor, name: "Conifer_UpscalerMotion")) _motionPtr = _motion.rt.GetNativeTexturePtr();
 
-                if (_upscaler.technique != Upscaler.Technique.FidelityFXSuperResolution2) return;
+                if (_upscaler.technique != Upscaler.Technique.FidelityFXSuperResolution) return;
                 inputDescriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
                 inputDescriptor.depthStencilFormat = GraphicsFormat.None;
                 if (RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, inputDescriptor, name: "Conifer_UpscalerReactiveMask")) _reactiveMaskPtr = _reactiveMask.rt.GetNativeTexturePtr();
@@ -122,7 +122,7 @@ namespace Conifer.Upscaler.URP
             {
                 IntPtr depthPtr;
                 var cb = CommandBufferPool.Get("Upscale");
-                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution2)
+                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
                 {
                     UpdateCachedNativeTexturePtrFromTexture(Shader.GetGlobalTexture(OpaqueID), ref _lastOpaque, ref _opaquePtr);
                     BlitDepth(cb, _cameraRenderResolutionDepthTarget, _upscalerDepth);

@@ -1,7 +1,7 @@
 #include "Upscaler.hpp"
 
 #include "DLSS.hpp"
-#include "FSR2.hpp"
+#include "FSR3.hpp"
 #include "GraphicsAPI/GraphicsAPI.hpp"
 #include "NoUpscaler.hpp"
 #include "XeSS.hpp"
@@ -49,8 +49,8 @@ bool Upscaler::isSupported(const Type type) {
 #ifdef ENABLE_DLSS
         case DLSS: return DLSS::isSupported();
 #endif
-#ifdef ENABLE_FSR2
-        case FSR2: return FSR2::isSupported();
+#ifdef ENABLE_FSR3
+        case FSR3: return FSR3::isSupported();
 #endif
 #ifdef ENABLE_XESS
         case XESS: return XeSS::isSupported();
@@ -66,8 +66,8 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
 #ifdef ENABLE_DLSS
         case DLSS: return DLSS::isSupported(mode);
 #endif
-#ifdef ENABLE_FSR2
-        case FSR2: return FSR2::isSupported(mode);
+#ifdef ENABLE_FSR3
+        case FSR3: return FSR3::isSupported(mode);
 #endif
 #ifdef ENABLE_XESS
         case XESS: return XeSS::isSupported(mode);
@@ -81,13 +81,13 @@ std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     switch (type) {
         case NONE: return std::make_unique<NoUpscaler>();
 #ifdef ENABLE_DLSS
-        case DLSS: return std::make_unique<class DLSS>(GraphicsAPI::getType());
+        case DLSS: return std::make_unique<class DLSS>();
 #endif
-#ifdef ENABLE_FSR2
-        case FSR2: return std::make_unique<class FSR2>(GraphicsAPI::getType());
+#ifdef ENABLE_FSR3
+        case FSR3: return std::make_unique<class FSR3>();
 #endif
 #ifdef ENABLE_XESS
-        case XESS: return std::make_unique<XeSS>(GraphicsAPI::getType());
+        case XESS: return std::make_unique<XeSS>();
 #endif
         default: return std::make_unique<NoUpscaler>();
     }
@@ -95,6 +95,18 @@ std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
 
 void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
     logCallback = pFunction;
+}
+
+void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
+#ifdef ENABLE_DLSS
+    DLSS::useGraphicsAPI(type);
+#endif
+#ifdef ENABLE_FSR3
+    FSR3::useGraphicsAPI(type);
+#endif
+#ifdef ENABLE_XESS
+    XeSS::useGraphicsAPI(type);
+#endif
 }
 
 Upscaler::Status Upscaler::useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>& images) {

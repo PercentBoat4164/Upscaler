@@ -30,7 +30,7 @@ namespace Conifer.Upscaler
             /// NVIDIA's Deep Learning Super Sampling upscaler.
             DeepLearningSuperSampling,
             /// AMD's FidelityFX Super Resolution upscaler.
-            FidelityFXSuperResolution2,
+            FidelityFXSuperResolution,
             /// Intel's X<sup>e</sup> Super Sampling upscaler.
             XeSuperSampling
         }
@@ -99,10 +99,12 @@ namespace Conifer.Upscaler
             FeatureDenied               = 5,
             /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory then try again.
             OutOfMemory                 = 6 | ErrorRecoverable,
+            /// The library required by this <see cref="Technique"/> were not loaded. Ensure that they have been installed.
+            LibraryNotLoaded            = 7,
             /// This is an error that may have been caused by an invalid configuration (e.g. output resolution too small). Restore a valid configuration then try again.
-            RecoverableRuntimeError     = 7 | ErrorRecoverable,
+            RecoverableRuntimeError     = 8 | ErrorRecoverable,
             /// This error should result only from a bug in Upscaler or in Unity itself.
-            FatalRuntimeError           = 8,
+            FatalRuntimeError           = 9,
         }
 
         /**
@@ -216,17 +218,17 @@ namespace Conifer.Upscaler
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
         private DlssPreset _dlssPreset;
-        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float sharpness;
-        /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution2"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask;
-        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float tcThreshold = 0.05f;
-        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float tcScale = 1.0f;
-        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveScale = 5.0f;
-        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution2"/>.
+        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveMax = 0.9f;
 
         /**
@@ -236,13 +238,13 @@ namespace Conifer.Upscaler
          *
          * <remarks>Selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
-         * <see cref="Technique.FidelityFXSuperResolution2"/>, <see cref="Technique.None"/></remarks>
+         * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
          */
         public static Technique GetBestSupportedTechnique()
         {
             if (IsSupported(Technique.DeepLearningSuperSampling)) return Technique.DeepLearningSuperSampling;
             if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
-            return IsSupported(Technique.FidelityFXSuperResolution2) ? Technique.FidelityFXSuperResolution2 : Technique.None;
+            return IsSupported(Technique.FidelityFXSuperResolution) ? Technique.FidelityFXSuperResolution : Technique.None;
         }
 
         /**

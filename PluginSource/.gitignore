@@ -1,6 +1,4 @@
-# For legal reasons
-DLSS-*
-Streamline-*
-XeSS_SDK-*
-# Project exclude paths
+# Build results
 *-build-*
+# Old SDK versions
+*_old

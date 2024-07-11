@@ -22,7 +22,7 @@ namespace Conifer.Upscaler.Demo
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1)) _upscaler.technique = Upscaler.Technique.None;
                 if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.technique = Upscaler.Technique.DeepLearningSuperSampling;
-                if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.technique = Upscaler.Technique.FidelityFXSuperResolution2;
+                if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.technique = Upscaler.Technique.FidelityFXSuperResolution;
                 if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.technique = Upscaler.Technique.XeSuperSampling;
             }
             else if (Input.GetKey(KeyCode.Q))
