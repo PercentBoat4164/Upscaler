@@ -13,8 +13,8 @@ enum ImageID : uint16_t {
     Depth,
     Motion,
     Output,
-    ReactiveMask,
-    OpaqueColor,
+    Reactive,
+    Opaque,
     IMAGE_ID_MAX_ENUM
 };
 }  // namespace Plugin

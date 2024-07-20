@@ -461,8 +461,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 7
-  technique: 3
+  quality: 0
+  technique: 0
   dlssPreset: 0
   sharpness: 0
   useReactiveMask: 0

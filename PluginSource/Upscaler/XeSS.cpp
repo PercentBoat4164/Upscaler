@@ -6,6 +6,7 @@
 #        include "GraphicsAPI/DX12.hpp"
 
 #        include <d3d12compatibility.h>
+
 #        include <d3d12.h>
 
 #        include <IUnityGraphicsD3D12.h>

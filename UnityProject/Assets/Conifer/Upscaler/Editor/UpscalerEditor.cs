@@ -18,7 +18,7 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
-        private bool _installationFoldout = !Upscaler.PluginLoaded();
+        private static bool _installationFoldout = !Upscaler.PluginLoaded();
         private bool _advancedSettingsFoldout;
         private bool _debugSettingsFoldout;
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
@@ -64,7 +64,6 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Install XeSS Windows library"))
                     {
                         client.DownloadFile("https://github.com/intel/xess/raw/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[1]);
-                        _needsRestart = true;
                     }
                     EditorGUILayout.HelpBox("The Intel XeSS library is required for Upscaler to load on Windows.", MessageType.Warning);
                 }
@@ -76,7 +75,7 @@ namespace Conifer.Upscaler.Editor
             EditorGUI.indentLevel -= 1;
             if (_needsRestart)
             {
-                EditorGUILayout.HelpBox("You must restart Unity to load the third-party libraries.", MessageType.Warning);
+                EditorGUILayout.HelpBox("You must restart Unity to load the DLSS library.", MessageType.Warning);
             }
 
             if (!Upscaler.PluginLoaded())
@@ -177,14 +176,9 @@ namespace Conifer.Upscaler.Editor
                                     EditorGUILayout.Toggle("Use Reactive Mask", upscaler.useReactiveMask);
                                 if (upscaler.useReactiveMask)
                                 {
-                                    upscaler.tcThreshold = EditorGUILayout.Slider("T/C Threshold",
-                                        upscaler.tcThreshold, 0, 1.0f);
-                                    upscaler.tcScale =
-                                        EditorGUILayout.Slider("T/C Scale", upscaler.tcScale, 0, 5.0f);
-                                    upscaler.reactiveScale = EditorGUILayout.Slider("Reactivity Scale",
-                                        upscaler.reactiveScale, 0, 10.0f);
-                                    upscaler.reactiveMax = EditorGUILayout.Slider("Reactivity Max",
-                                        upscaler.reactiveMax, 0, 1.0f);
+                                    upscaler.reactiveValue = EditorGUILayout.Slider("Reactivity Value", upscaler.reactiveValue, 0, 1.0f);
+                                    upscaler.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", upscaler.reactiveScale, 0, 1.0f);
+                                    upscaler.reactiveThreshold = EditorGUILayout.Slider("Reactivity Threshold", upscaler.reactiveThreshold, 0, 1.0f);
                                 }
                                 break;
                             }

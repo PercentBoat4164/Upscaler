@@ -164,7 +164,7 @@ namespace Conifer.Upscaler
 
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
         /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
-        public Vector2Int OutputResolution => Vector2Int.RoundToInt(_camera.pixelRect.size);
+        public Vector2Int OutputResolution => _camera ? Vector2Int.RoundToInt(_camera.pixelRect.size) : Vector2Int.one;
         private Vector2Int _outputResolution = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
@@ -222,14 +222,12 @@ namespace Conifer.Upscaler
         public float sharpness;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask;
-        /// Setting this value too small will cause visual instability. Larger values can cause ghosting. Defaults to <c>0.05f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float tcThreshold = 0.05f;
-        /// Value used to scale transparency and composition mask after generation. Smaller values increase stability at the hard edges of translucent objects. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float tcScale = 1.0f;
-        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>5.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveScale = 5.0f;
-        /// Maximum value reactivity can reach. AMD recommends values of 0.9f and below. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveMax = 0.9f;
+        /// Maximum reactive value. AMD recommends a value of <c>&lt;= 0.9f</c>. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveValue = 0.9f;
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveScale = 1.0f;
+        /// Minimum reactive threshold. Defaults to <c>0.2f</c>. Increase to make more of the image reactive. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveThreshold = 0.2f;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>

@@ -61,20 +61,18 @@ namespace Conifer.Upscaler.URP
         {
             private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
             private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
-            private static RTHandle _output;
-            private static IntPtr _outputPtr;
-            private static RTHandle _upscalerDepth;
-            private static IntPtr _upscalerDepthPtr;
-            private static RTHandle _inputDepth;
-            private static IntPtr _inputDepthPtr;
-            private static RTHandle _reactiveMask;
-            private static IntPtr _reactiveMaskPtr;
+            private static IntPtr _colorPtr;
+            private static IntPtr _depthPtr;
             private static RTHandle _motion;
             private static IntPtr _motionPtr;
-            private static Texture _lastOpaque;
+            private static RTHandle _output;
+            private static IntPtr _outputPtr;
+            private static RTHandle _copiedDepth;
+            private static IntPtr _copiedDepthPtr;
+            private static RTHandle _reactive;
+            private static IntPtr _reactivePtr;
+            private static RTHandle _opaque;
             private static IntPtr _opaquePtr;
-            private static RTHandle _lastColor;
-            private static IntPtr _colorPtr;
 
             public Upscale() => renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
@@ -85,10 +83,10 @@ namespace Conifer.Upscaler.URP
                 cameraTextureDescriptor.height = _upscaler.InputResolution.y;
                 var colorDescriptor = cameraTextureDescriptor;
                 colorDescriptor.depthStencilFormat = GraphicsFormat.None;
-                RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
+                if (RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget")) _colorPtr = _cameraRenderResolutionColorTarget.rt.GetNativeTexturePtr();
                 var depthDescriptor = cameraTextureDescriptor;
                 depthDescriptor.colorFormat = RenderTextureFormat.Depth;
-                RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, name: "Conifer_CameraDepthTarget");
+                if (RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, name: "Conifer_CameraDepthTarget")) _depthPtr = _cameraRenderResolutionDepthTarget.rt.GetNativeTexturePtr();
                 BlitDepth(cmd, Texture2D.blackTexture, _cameraRenderResolutionDepthTarget);
 
                 _cameraOutputResolutionColorTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
@@ -110,12 +108,19 @@ namespace Conifer.Upscaler.URP
                 if (RenderingUtils.ReAllocateIfNeeded(ref _motion, inputDescriptor, name: "Conifer_UpscalerMotion")) _motionPtr = _motion.rt.GetNativeTexturePtr();
 
                 if (_upscaler.technique != Upscaler.Technique.FidelityFXSuperResolution) return;
-                inputDescriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
-                inputDescriptor.depthStencilFormat = GraphicsFormat.None;
-                if (RenderingUtils.ReAllocateIfNeeded(ref _reactiveMask, inputDescriptor, name: "Conifer_UpscalerReactiveMask")) _reactiveMaskPtr = _reactiveMask.rt.GetNativeTexturePtr();
                 inputDescriptor.graphicsFormat = GraphicsFormat.None;
                 inputDescriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
-                if (RenderingUtils.ReAllocateIfNeeded(ref _upscalerDepth, inputDescriptor, name: "Conifer_UpscalerInputDepth")) _upscalerDepthPtr = _upscalerDepth.rt.GetNativeDepthBufferPtr();
+                if (RenderingUtils.ReAllocateIfNeeded(ref _copiedDepth, inputDescriptor, name: "Conifer_UpscalerInputDepth")) _copiedDepthPtr = _copiedDepth.rt.GetNativeDepthBufferPtr();
+
+                if (!_upscaler.useReactiveMask) return;
+                inputDescriptor.graphicsFormat = GraphicsFormat.R8_UNorm;
+                inputDescriptor.depthStencilFormat = GraphicsFormat.None;
+                inputDescriptor.enableRandomWrite = true;
+                if (RenderingUtils.ReAllocateIfNeeded(ref _reactive, inputDescriptor, name: "Conifer_UpscalerReactiveMask")) _reactivePtr = _reactive.rt.GetNativeTexturePtr();
+                inputDescriptor.enableRandomWrite = false;
+                inputDescriptor.graphicsFormat = cameraTextureDescriptor.graphicsFormat;
+                inputDescriptor.depthStencilFormat = GraphicsFormat.None;
+                if (RenderingUtils.ReAllocateIfNeeded(ref _opaque, inputDescriptor, name: "Conifer_UpscalerOpaque")) _opaquePtr = _opaque.rt.GetNativeTexturePtr();
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -124,14 +129,14 @@ namespace Conifer.Upscaler.URP
                 var cb = CommandBufferPool.Get("Upscale");
                 if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
                 {
-                    UpdateCachedNativeTexturePtrFromTexture(Shader.GetGlobalTexture(OpaqueID), ref _lastOpaque, ref _opaquePtr);
-                    BlitDepth(cb, _cameraRenderResolutionDepthTarget, _upscalerDepth);
-                    depthPtr = _upscalerDepthPtr;
+                    if (_upscaler.useReactiveMask && Shader.GetGlobalTexture(OpaqueID) is not null)
+                        cb.CopyTexture(OpaqueID, 0, 0, 0, 0, _opaque.rt.width, _opaque.rt.height, _opaque.rt, 0, 0, 0, 0);
+                    BlitDepth(cb, _cameraRenderResolutionDepthTarget, _copiedDepth);
+                    depthPtr = _copiedDepthPtr;
                 }
-                else depthPtr = UpdateCachedNativeTexturePtrFromRTHandle(_cameraRenderResolutionDepthTarget, ref _inputDepth, ref _inputDepthPtr);
+                else depthPtr = _depthPtr;
                 cb.Blit(Shader.GetGlobalTexture(MotionID), _motion);
-                UpdateCachedNativeTexturePtrFromRTHandle(_cameraRenderResolutionColorTarget, ref _lastColor, ref _colorPtr);
-                _upscaler.NativeInterface.Upscale(cb, _upscaler, _colorPtr, depthPtr, _motionPtr, _outputPtr, _reactiveMaskPtr, _opaquePtr);
+                _upscaler.NativeInterface.Upscale(cb, _upscaler, _colorPtr, depthPtr, _motionPtr, _outputPtr, _reactivePtr, _opaquePtr);
                 cb.CopyTexture(_output, _cameraOutputResolutionColorTarget);
                 BlitDepth(cb, _cameraRenderResolutionDepthTarget, _cameraOutputResolutionDepthTarget);
 
@@ -139,22 +144,6 @@ namespace Conifer.Upscaler.URP
                 CommandBufferPool.Release(cb);
 
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraOutputResolutionColorTarget, _cameraOutputResolutionDepthTarget);
-                return;
-
-                void UpdateCachedNativeTexturePtrFromTexture(Texture current, ref Texture old, ref IntPtr currentPtr)
-                {
-                    if (current == old) return;
-                    old = current;
-                    currentPtr = current.GetNativeTexturePtr();
-                }
-
-                IntPtr UpdateCachedNativeTexturePtrFromRTHandle(RTHandle current, ref RTHandle old, ref IntPtr currentPtr)
-                {
-                    if (current == old) return currentPtr;
-                    old = current;
-                    currentPtr = current.rt.GetNativeTexturePtr();
-                    return currentPtr;
-                }
             }
         }
 

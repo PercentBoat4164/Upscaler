@@ -32,7 +32,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
               .flags                  = 0
             };
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &vulkanEventConfig);
-            (void)Vulkan::initializeOneTimeSubmits();  /**@todo Should set all Upscalers to have permanent badness.*/
+            (void)Vulkan::initializeOneTimeSubmits();
             type = VULKAN;
             break;
         }
@@ -41,11 +41,11 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererD3D12: {
             constexpr UnityD3D12PluginEventConfig d3d12EventConfig{
               .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
-              .flags                            = 0U,
+              .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
               .ensureActiveRenderTextureIsBound = false
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &d3d12EventConfig);
-            (void)DX12::initializeOneTimeSubmits();  /**@todo Should set all Upscalers to have permanent badness.*/
+            (void)DX12::initializeOneTimeSubmits();
             type = DX12;
             break;
         }

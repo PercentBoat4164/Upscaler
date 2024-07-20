@@ -40,17 +40,16 @@ Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContext
 }
 
 Upscaler::Status FSR3::VulkanGetResource(FfxApiResource& resource, const Plugin::ImageID imageID) {
-    VkAccessFlags accessFlags{VK_ACCESS_MEMORY_READ_BIT};
+    VkAccessFlags      accessFlags{VK_ACCESS_SHADER_READ_BIT};
     FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
-    VkImageLayout layout{VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-    if (imageID == Plugin::ImageID::Output) {
-        accessFlags = VK_ACCESS_MEMORY_WRITE_BIT;
-        layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    if (imageID == Plugin::ImageID::Depth) resourceUsage = FFX_API_RESOURCE_USAGE_DEPTHTARGET;
+    if (imageID == Plugin::ImageID::Output || imageID == Plugin::ImageID::Reactive) {
+        accessFlags = VK_ACCESS_SHADER_WRITE_BIT;
         resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
-    } else if (imageID == Plugin::ImageID::Depth) layout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+    }
 
     UnityVulkanImage image{};
-    Vulkan::getGraphicsInterface()->AccessTexture(textures.at(imageID), UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+    Vulkan::getGraphicsInterface()->AccessTexture(textures.at(imageID), UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
     RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
 
     const FfxApiResourceDescription description {
@@ -60,10 +59,10 @@ Upscaler::Status FSR3::VulkanGetResource(FfxApiResource& resource, const Plugin:
       .height=image.extent.height,
       .depth=image.extent.depth,
       .mipCount=1U,
-      .flags=FFX_API_RESOURCE_FLAGS_NONE,
+      .flags=FFX_API_RESOURCE_FLAGS_ALIASABLE,
       .usage=static_cast<uint32_t>(resourceUsage),
     };
-    resource = {image.image, description, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ};
+    resource = {image.image, description, static_cast<uint32_t>(resourceUsage == FFX_API_RESOURCE_USAGE_UAV ? FFX_API_RESOURCE_STATE_UNORDERED_ACCESS : FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ)};
     return Success;
 }
 
@@ -79,16 +78,21 @@ Upscaler::Status FSR3::VulkanEvaluate() {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     if (settings.autoReactive) {
-        RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
-        RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
+        RETURN_ON_FAILURE(VulkanGetResource(reactiveMask, Plugin::ImageID::Reactive));
+        RETURN_ON_FAILURE(VulkanGetResource(opaqueColor, Plugin::ImageID::Opaque));
         ffx::DispatchDescUpscaleGenerateReactiveMask dispatchDescUpscaleGenerateReactiveMask;
         dispatchDescUpscaleGenerateReactiveMask.commandList     = state.commandBuffer;
         dispatchDescUpscaleGenerateReactiveMask.colorOpaqueOnly = opaqueColor;
         dispatchDescUpscaleGenerateReactiveMask.colorPreUpscale = color;
         dispatchDescUpscaleGenerateReactiveMask.outReactive     = reactiveMask;
-        dispatchDescUpscaleGenerateReactiveMask.renderSize      = {color.description.width, color.description.height};
+        dispatchDescUpscaleGenerateReactiveMask.renderSize      = {reactiveMask.description.width, reactiveMask.description.height};
         dispatchDescUpscaleGenerateReactiveMask.scale           = settings.reactiveScale;
-        dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveMax;
+        dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveThreshold;
+        dispatchDescUpscaleGenerateReactiveMask.binaryValue     = settings.reactiveValue;
+        dispatchDescUpscaleGenerateReactiveMask.flags           =
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_TONEMAP) |
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_THRESHOLD) |
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_USE_COMPONENTS_MAX);
 
         RETURN_ON_FAILURE(setStatus(Dispatch(context, dispatchDescUpscaleGenerateReactiveMask), "Failed to dispatch reactive mask generation commands."));
     }
@@ -131,6 +135,8 @@ Upscaler::Status FSR3::DX12Create(ffx::CreateContextDescUpscale& createContextDe
 Upscaler::Status FSR3::DX12GetResource(FfxApiResource& resource, const Plugin::ImageID imageID) {
     FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
     if (imageID == Plugin::ImageID::Depth) resourceUsage = FFX_API_RESOURCE_USAGE_DEPTHTARGET;
+    if (imageID == Plugin::ImageID::Output || imageID == Plugin::ImageID::Reactive) resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
+
     auto* image = static_cast<ID3D12Resource*>(textures.at(imageID));
     RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
     const D3D12_RESOURCE_DESC imageDescription = image->GetDesc();
@@ -142,10 +148,10 @@ Upscaler::Status FSR3::DX12GetResource(FfxApiResource& resource, const Plugin::I
       .height=static_cast<uint32_t>(imageDescription.Height),
       .alignment=static_cast<uint32_t>(imageDescription.Alignment),
       .mipCount=1U,
-      .flags=FFX_API_RESOURCE_FLAGS_NONE,
+      .flags=FFX_API_RESOURCE_FLAGS_ALIASABLE,
       .usage=static_cast<uint32_t>(resourceUsage),
     };
-    resource = {image, description, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ};
+    resource = {image, description, static_cast<uint32_t>(resourceUsage == FFX_API_RESOURCE_USAGE_UAV ? FFX_API_RESOURCE_STATE_UNORDERED_ACCESS : FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ)};
     return Success;
 }
 
@@ -160,16 +166,21 @@ Upscaler::Status FSR3::DX12Evaluate() {
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     if (settings.autoReactive) {
-        RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::ReactiveMask));
-        RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::OpaqueColor));
+        RETURN_ON_FAILURE(DX12GetResource(reactiveMask, Plugin::ImageID::Reactive));
+        RETURN_ON_FAILURE(DX12GetResource(opaqueColor, Plugin::ImageID::Opaque));
         ffx::DispatchDescUpscaleGenerateReactiveMask dispatchDescUpscaleGenerateReactiveMask;
-        dispatchDescUpscaleGenerateReactiveMask.commandList = state.commandList;
+        dispatchDescUpscaleGenerateReactiveMask.commandList     = state.commandList;
         dispatchDescUpscaleGenerateReactiveMask.colorOpaqueOnly = opaqueColor;
         dispatchDescUpscaleGenerateReactiveMask.colorPreUpscale = color;
-        dispatchDescUpscaleGenerateReactiveMask.outReactive = reactiveMask;
-        dispatchDescUpscaleGenerateReactiveMask.renderSize = {color.description.width, color.description.height};
-        dispatchDescUpscaleGenerateReactiveMask.scale = settings.reactiveScale;
-        dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveMax;
+        dispatchDescUpscaleGenerateReactiveMask.outReactive     = reactiveMask;
+        dispatchDescUpscaleGenerateReactiveMask.renderSize      = {reactiveMask.description.width, reactiveMask.description.height};
+        dispatchDescUpscaleGenerateReactiveMask.scale           = settings.reactiveScale;
+        dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveThreshold;
+        dispatchDescUpscaleGenerateReactiveMask.binaryValue     = settings.reactiveValue;
+        dispatchDescUpscaleGenerateReactiveMask.flags           =
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_TONEMAP) |
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_THRESHOLD) |
+            static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_USE_COMPONENTS_MAX);
 
         RETURN_ON_FAILURE(setStatus(Dispatch(context, dispatchDescUpscaleGenerateReactiveMask), "Failed to dispatch reactive mask generation commands."));
     }
@@ -294,8 +305,8 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayWidth     = optimalSettings.outputResolution.width;
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayHeight    = optimalSettings.outputResolution.height;
     queryDescUpscaleGetRenderResolutionFromQualityMode.qualityMode      = optimalSettings.getQuality<Upscaler::FSR3>();
-    queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderHeight = &optimalSettings.recommendedInputResolution.width;
-    queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderWidth  = &optimalSettings.recommendedInputResolution.height;
+    queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderWidth  = &optimalSettings.recommendedInputResolution.width;
+    queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderHeight = &optimalSettings.recommendedInputResolution.height;
     RETURN_ON_FAILURE(setStatus(ffx::Query(queryDescUpscaleGetRenderResolutionFromQualityMode), "Failed to query render resolution from quality mode. Ensure that the QualityMode setting is a valid enum value."));
     optimalSettings.dynamicMaximumInputResolution = resolution;
 

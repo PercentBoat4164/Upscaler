@@ -22,7 +22,7 @@ static std::mutex pluginLock;
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
 static std::vector<std::unique_ptr<std::mutex>> locks = {};
 
-struct UpscalingData {
+struct alignas(128) UpscalingData {
     void* color;
     void* depth;
     void* motion;
@@ -31,28 +31,26 @@ struct UpscalingData {
     void* opaque;
     float frameTime;
     float sharpness;
-    float tcThreshold;
-    float tcScale;
+    float reactiveValue;
     float reactiveScale;
-    float reactiveMax;
+    float reactiveThreshold;
     Upscaler::Settings::Camera cameraInfo;
     uint16_t camera;
-    bool autoReactive;
+    int autoReactive;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     if (d == nullptr || event != Plugin::Unity::eventIDBase) return;
-    const auto& [color, depth, motion, output, reactive, opaque, frameTime, sharpness, tcThreshold, tcScale, reactiveScale, reactiveMax, cameraInfo, camera, autoReactive] = *static_cast<UpscalingData*>(d);
+    const auto& [color, depth, motion, output, reactive, opaque, frameTime, sharpness, reactiveValue, reactiveScale, reactiveThreshold, cameraInfo, camera, autoReactive] = *static_cast<UpscalingData*>(d);
     std::lock_guard lock{*locks[camera]};
-    Upscaler&       upscaler        = *upscalers[camera];
-    upscaler.settings.camera        = cameraInfo;
-    upscaler.settings.frameTime     = frameTime;
-    upscaler.settings.sharpness     = sharpness;
-    upscaler.settings.tcThreshold   = tcThreshold;
-    upscaler.settings.tcScale       = tcScale;
-    upscaler.settings.reactiveScale = reactiveScale;
-    upscaler.settings.reactiveMax   = reactiveMax;
-    upscaler.settings.autoReactive  = autoReactive;
+    Upscaler&       upscaler            = *upscalers[camera];
+    upscaler.settings.camera            = cameraInfo;
+    upscaler.settings.frameTime         = frameTime;
+    upscaler.settings.sharpness         = sharpness;
+    upscaler.settings.reactiveValue     = reactiveValue;
+    upscaler.settings.reactiveScale     = reactiveScale;
+    upscaler.settings.reactiveThreshold = reactiveThreshold;
+    upscaler.settings.autoReactive      = autoReactive > 0;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
     upscaler.evaluate();
 }

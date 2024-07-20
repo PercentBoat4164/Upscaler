@@ -92,14 +92,13 @@ namespace Conifer.Upscaler
                 _opaque = opaque;
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
-                _tcThreshold = upscaler.tcThreshold;
-                _tcScale = upscaler.tcScale;
+                _reactiveValue = upscaler.reactiveValue;
                 _reactiveScale = upscaler.reactiveScale;
-                _reactiveMax = upscaler.reactiveMax;
+                _reactiveThreshold = upscaler.reactiveThreshold;
                 var camera = upscaler.GetComponent<Camera>();
                 _cameraInfo = new Vector3(camera.farClipPlane, camera.nearClipPlane, camera.fieldOfView);
                 _camera = cameraID;
-                _autoReactive = upscaler.useReactiveMask;
+                _autoReactive = upscaler.useReactiveMask ? 1 : 0;
             }
 
             private IntPtr _color;
@@ -110,13 +109,12 @@ namespace Conifer.Upscaler
             private IntPtr _opaque;
             private float _frameTime;
             private float _sharpness;
-            private float _tcThreshold;
-            private float _tcScale;
+            private float _reactiveValue;
             private float _reactiveScale;
-            private float _reactiveMax;
+            private float _reactiveThreshold;
             private Vector3 _cameraInfo;
             private ushort _camera;
-            private bool _autoReactive;
+            private int _autoReactive;
         }
 
         static NativeInterface()

@@ -80,10 +80,9 @@ struct alignas(128) UpscalerBase {
             float verticalFOV;
         } camera;
 
-        float tcThreshold{};
-        float tcScale{};
+        float reactiveValue{};
         float reactiveScale{};
-        float reactiveMax{};
+        float reactiveThreshold{};
         float sharpness{};
         float frameTime{};
         bool  autoReactive{};
