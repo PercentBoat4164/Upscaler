@@ -1,67 +1,60 @@
 #pragma once
 #ifdef ENABLE_DLSS
 #    include "GraphicsAPI/GraphicsAPI.hpp"
-#    include "Plugin.hpp"
 #    include "Upscaler.hpp"
+
+#    include <Windows.h>
 
 struct NVSDK_NGX_Resource_VK;
 struct NVSDK_NGX_Parameter;
 struct NVSDK_NGX_DLSS_Create_Params;
 
 class DLSS final : public Upscaler {
+    static HMODULE library;
+    static uint32_t users;
+    static SupportState supported;
+
     static uint64_t applicationID;
 
-    NVSDK_NGX_Handle*            handle{};
-    NVSDK_NGX_Parameter*         parameters{};
+    static Status (DLSS::*fpSetDevice)();
+    static Status (DLSS::*fpGetResources)(std::array<sl::Resource, 4>&, void*&);
 
-    static Status (DLSS::*fpInitialize)();
-    static Status (DLSS::*fpCreate)(NVSDK_NGX_DLSS_Create_Params*);
-    static Status (DLSS::*fpEvaluate)();
-    static Status (DLSS::*fpGetParameters)();
-    static Status (DLSS::*fpRelease)();
-    static Status (DLSS::*fpShutdown)();
+    sl::ViewportHandle handle{0};
 
-    static SupportState supported;
-    static std::atomic<uint32_t> users;
+    static decltype(&slInit)                   slInit;
+    static decltype(&slSetD3DDevice)           slSetD3DDevice;
+    static decltype(&slSetFeatureLoaded)       slSetFeatureLoaded;
+    static decltype(&slGetFeatureFunction)     slGetFeatureFunction;
+    static decltype(&slDLSSGetOptimalSettings) slDLSSGetOptimalSettings;
+    static decltype(&slDLSSSetOptions)         slDLSSSetOptions;
+    static decltype(&slSetTag)                 slSetTag;
+    static decltype(&slGetNewFrameToken)       slGetNewFrameToken;
+    static decltype(&slSetConstants)           slSetConstants;
+    static decltype(&slEvaluateFeature)        slEvaluateFeature;
+    static decltype(&slFreeResources)          slFreeResources;
+    static decltype(&slShutdown)               slShutdown;
+
+    Status setStatus(sl::Result t_error, const std::string& t_msg);
+
+    static void log(sl::LogType type, const char* msg);
 
 #    ifdef ENABLE_VULKAN
-    Status VulkanGetParameters();
-    Status VulkanInitialize();
-    Status VulkanCreate(NVSDK_NGX_DLSS_Create_Params* createParams);
-    Status VulkanGetResource(NVSDK_NGX_Resource_VK& resource, Plugin::ImageID imageID);
-    Status VulkanEvaluate();
-    Status VulkanRelease();
-    Status VulkanShutdown();
+    Status VulkanGetResources(std::array<sl::Resource, 4>& resources, void*& commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
-    Status DX12GetParameters();
-    Status DX12Initialize();
-    Status DX12Create(NVSDK_NGX_DLSS_Create_Params* createParams);
-    Status DX12Evaluate();
-    Status DX12Release();
-    Status DX12Shutdown();
+    Status DX12GetResources(std::array<sl::Resource, 4>& resources, void*& commandList);
+    Status DX12SetDevice();
 #    endif
 
 #    ifdef ENABLE_DX11
-    Status DX11GetParameters();
-    Status DX11Initialize();
-    Status DX11Create(NVSDK_NGX_DLSS_Create_Params* createParams);
-    Status DX11Evaluate();
-    Status DX11Release();
-    Status DX11Shutdown();
+    Status DX11GetResources(std::array<sl::Resource, 4>& resources, void*& deviceContext);
+    Status DX11SetDevice();
 #    endif
-
-    Status setStatus(NVSDK_NGX_Result t_error, std::string t_msg);
-
-    static void log(const char* message, NVSDK_NGX_Logging_Level loggingLevel, NVSDK_NGX_Feature sourceComponent);
 
 public:
-#    ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions);
-#    endif
-
+    static void load(void*& vkGetProcAddrFunc, GraphicsAPI::Type);
+    static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);

@@ -222,12 +222,12 @@ namespace Conifer.Upscaler
         public float sharpness;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask;
-        /// Maximum reactive value. AMD recommends a value of <c>&lt;= 0.9f</c>. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveValue = 0.9f;
-        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Defaults to <c>1.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveScale = 1.0f;
-        /// Minimum reactive threshold. Defaults to <c>0.2f</c>. Increase to make more of the image reactive. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveThreshold = 0.2f;
+        /// Maximum reactive value. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveValue = 0.6f;
+        /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Conifer has found that <c>0.9f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveScale = 0.9f;
+        /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveThreshold = 0.3f;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>

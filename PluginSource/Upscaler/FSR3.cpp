@@ -22,12 +22,11 @@
 #    include <algorithm>
 
 HMODULE FSR3::library{nullptr};
-std::atomic<uint32_t> FSR3::users{};
+uint32_t FSR3::users{};
+Upscaler::SupportState FSR3::supported{Untested};
 
 Upscaler::Status (FSR3::*FSR3::fpCreate)(ffx::CreateContextDescUpscale&){&FSR3::safeFail};
 Upscaler::Status (FSR3::*FSR3::fpEvaluate)(){&FSR3::safeFail};
-
-Upscaler::SupportState FSR3::supported{Untested};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale) {
@@ -36,7 +35,7 @@ Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContext
     createBackendVKDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
     createBackendVKDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
 
-    return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendVKDesc), "Failed to create the " + getName() + " context.");
+    return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendVKDesc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
 Upscaler::Status FSR3::VulkanGetResource(FfxApiResource& resource, const Plugin::ImageID imageID) {
@@ -74,7 +73,6 @@ Upscaler::Status FSR3::VulkanEvaluate() {
     RETURN_ON_FAILURE(VulkanGetResource(output, Plugin::ImageID::Output));
 
     UnityVulkanRecordingState state{};
-    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
 
     if (settings.autoReactive) {
@@ -120,7 +118,7 @@ Upscaler::Status FSR3::VulkanEvaluate() {
     dispatchDescUpscale.cameraFovAngleVertical     = settings.camera.verticalFOV * (3.1415926535897932384626433F / 180.0F);
     dispatchDescUpscale.viewSpaceToMetersFactor    = 1.0F;
 
-    return setStatus(Dispatch(context, dispatchDescUpscale), "Failed to dispatch " + getName() + " commands.");
+    return setStatus(Dispatch(context, dispatchDescUpscale), "Failed to dispatch AMD FidelityFx Super Resolution commands.");
 }
 #    endif
 
@@ -129,7 +127,7 @@ Upscaler::Status FSR3::DX12Create(ffx::CreateContextDescUpscale& createContextDe
     ffx::CreateBackendDX12Desc createBackendDX12Desc;
     createBackendDX12Desc.device = DX12::getGraphicsInterface()->GetDevice();
 
-    return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendDX12Desc), "Failed to create the " + getName() + " context.");
+    return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendDX12Desc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
 Upscaler::Status FSR3::DX12GetResource(FfxApiResource& resource, const Plugin::ImageID imageID) {
@@ -208,7 +206,7 @@ Upscaler::Status FSR3::DX12Evaluate() {
     dispatchDescUpscale.cameraFovAngleVertical     = settings.camera.verticalFOV * (3.1415926535897932384626433F / 180.0F);
     dispatchDescUpscale.viewSpaceToMetersFactor    = 1.0F;
 
-    return setStatus(Dispatch(context, dispatchDescUpscale), "Failed to dispatch " + getName() + " commands.");
+    return setStatus(Dispatch(context, dispatchDescUpscale), "Failed to dispatch AMD FidelityFx Super Resolution commands.");
 }
 #    endif
 
@@ -219,7 +217,7 @@ Upscaler::Status FSR3::setStatus(const ffx::ReturnCode t_error, const std::strin
         case ffx::ReturnCode::ErrorUnknownDesctype: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | ErrorUnknownDesctype");
         case ffx::ReturnCode::ErrorRuntimeError: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | ErrorRuntimeError");
         case ffx::ReturnCode::ErrorNoProvider: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | ErrorNoProvider");
-        case ffx::ReturnCode::ErrorMemory: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | ErrorMemory");
+        case ffx::ReturnCode::ErrorMemory: return Upscaler::setStatus(OutOfMemory, t_msg + " | ErrorMemory");
         case ffx::ReturnCode::ErrorParameter: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | ErrorParameter");
         default: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | Unknown");
     }
@@ -229,11 +227,6 @@ void FSR3::log(const FfxApiMsgType type, const wchar_t *t_msg) {
     std::wstring message(t_msg);
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
-    switch (type) {
-        case FFX_API_MESSAGE_TYPE_ERROR: msg = "FSR3 Error ---> " + msg; break;
-        case FFX_API_MESSAGE_TYPE_WARNING: msg = "FSR3 Warning -> " + msg; break;
-        case FFX_API_MESSAGE_TYPE_COUNT: break;
-    }
     if (logCallback != nullptr) logCallback(msg.c_str());
 }
 
@@ -288,7 +281,7 @@ FSR3::FSR3() {
 }
 
 FSR3::~FSR3() {
-    if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy the " + getName() + " context.");
+    if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy the AMD FidelityFx Super Resolution context.");
     context = nullptr;
     if (--users == 0 && library != nullptr) FreeLibrary(library);
     library = nullptr;
@@ -299,12 +292,11 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
-    optimalSettings.quality          = mode;
 
     ffx::QueryDescUpscaleGetRenderResolutionFromQualityMode queryDescUpscaleGetRenderResolutionFromQualityMode;
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayWidth     = optimalSettings.outputResolution.width;
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayHeight    = optimalSettings.outputResolution.height;
-    queryDescUpscaleGetRenderResolutionFromQualityMode.qualityMode      = optimalSettings.getQuality<Upscaler::FSR3>();
+    queryDescUpscaleGetRenderResolutionFromQualityMode.qualityMode      = optimalSettings.getQuality<Upscaler::FSR3>(mode);
     queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderWidth  = &optimalSettings.recommendedInputResolution.width;
     queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderHeight = &optimalSettings.recommendedInputResolution.height;
     RETURN_ON_FAILURE(setStatus(ffx::Query(queryDescUpscaleGetRenderResolutionFromQualityMode), "Failed to query render resolution from quality mode. Ensure that the QualityMode setting is a valid enum value."));
@@ -325,7 +317,7 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR3::log);
 #    endif
 
-    if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy " + getName() + " context");
+    if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy AMD FidelityFx Super Resolution context");
     context = nullptr;
     RETURN_ON_FAILURE((this->*fpCreate)(createContextDescUpscale));
     settings = optimalSettings;
@@ -333,8 +325,6 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
 }
 
 Upscaler::Status FSR3::evaluate() {
-    RETURN_ON_FAILURE((this->*fpEvaluate)());
-    settings.resetHistory = false;
-    return Success;
+    return (this->*fpEvaluate)();
 }
 #endif

@@ -5,17 +5,21 @@
 #ifdef ENABLE_VULKAN
 #    include "Vulkan.hpp"
 
-#    include "IUnityGraphicsVulkan.h"
+#    include <IUnityGraphicsVulkan.h>
 #endif
 #ifdef ENABLE_DX12
 #    include "DX12.hpp"
 
-#    include "d3d12compatibility.h"
+#    include <d3d12compatibility.h>
 
-#    include "IUnityGraphicsD3D12.h"
+#    include <IUnityGraphicsD3D12.h>
 #endif
 #ifdef ENABLE_DX11
 #    include "DX11.hpp"
+#endif
+
+#ifdef ENABLE_DLSS
+#    include <Upscaler/DLSS.hpp>
 #endif
 
 #include <Upscaler/Upscaler.hpp>
@@ -26,33 +30,38 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
     switch (renderer) {
 #ifdef ENABLE_VULKAN
         case kUnityGfxRendererVulkan: {
-            constexpr UnityVulkanPluginEventConfig vulkanEventConfig{
-              .renderPassPrecondition = kUnityVulkanRenderPass_DontCare,
+            constexpr UnityVulkanPluginEventConfig eventConfig{
+              .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
-              .flags                  = 0
+              .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };
-            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &vulkanEventConfig);
-            (void)Vulkan::initializeOneTimeSubmits();
+            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
             type = VULKAN;
             break;
         }
 #endif
 #ifdef ENABLE_DX12
         case kUnityGfxRendererD3D12: {
-            constexpr UnityD3D12PluginEventConfig d3d12EventConfig{
+            constexpr UnityD3D12PluginEventConfig eventConfig{
               .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
               .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
               .ensureActiveRenderTextureIsBound = false
             };
-            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &d3d12EventConfig);
-            (void)DX12::initializeOneTimeSubmits();
+            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
+#    ifdef ENABLE_DLSS
+            void* f{nullptr};
+            DLSS::load(f, DX12);
+#    endif
             type = DX12;
             break;
         }
 #endif
 #ifdef ENABLE_DX11
         case kUnityGfxRendererD3D11: {
-            DX11::createOneTimeSubmitContext();
+#    ifdef ENABLE_DLSS
+            void* f{nullptr};
+            DLSS::load(f, DX11);
+#    endif
             type = DX11;
             break;
         }
@@ -63,18 +72,10 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
 }
 
 void GraphicsAPI::shutdown() {
-    switch (type) {
-#ifdef ENABLE_VULKAN
-        case VULKAN: Vulkan::shutdownOneTimeSubmits(); break;
+#ifdef ENABLE_DLSS
+    DLSS::unload();
 #endif
-#ifdef ENABLE_DX12
-        case DX12: (void)DX12::shutdownOneTimeSubmits(); break;
-#endif
-#ifdef ENABLE_DX11
-        case DX11: DX11::destroyOneTimeSubmitContext(); break;
-#endif
-        default: type = NONE; break;
-    }
+    type = NONE;
 }
 
 GraphicsAPI::Type GraphicsAPI::getType() {

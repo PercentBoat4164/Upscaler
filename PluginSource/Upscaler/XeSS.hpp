@@ -4,6 +4,9 @@
 #    include "Upscaler.hpp"
 
 #    include <xess/xess.h>
+#    ifdef ENABLE_DX12
+#        include <xess/xess_d3d12.h>
+#    endif
 
 #    include <windows.h>
 
@@ -18,13 +21,13 @@ class XeSS final : public Upscaler {
     static Status (XeSS::*fpCreate)(const xess_d3d12_init_params_t*);
     static Status (XeSS::*fpEvaluate)();
 
-    static void* xessGetOptimalInputResolution;
-    static void* xessDestroyContext;
-    static void* xessSetVelocityScale;
-    static void* xessSetLoggingCallback;
-    static void* xessD3D12CreateContext;
-    static void* xessD3D12Init;
-    static void* xessD3D12Execute;
+    static decltype(&xessGetOptimalInputResolution) xessGetOptimalInputResolution;
+    static decltype(&xessDestroyContext) xessDestroyContext;
+    static decltype(&xessSetVelocityScale) xessSetVelocityScale;
+    static decltype(&xessSetLoggingCallback) xessSetLoggingCallback;
+    static decltype(&xessD3D12CreateContext) xessD3D12CreateContext;
+    static decltype(&xessD3D12Init) xessD3D12Init;
+    static decltype(&xessD3D12Execute) xessD3D12Execute;
 
     static SupportState supported;
 

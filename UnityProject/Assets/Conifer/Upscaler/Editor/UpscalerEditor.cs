@@ -24,8 +24,13 @@ namespace Conifer.Upscaler.Editor
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly string[] LibraryPaths = {Application.dataPath + "/Plugins/nvngx_dlss.dll", Application.dataPath + "/Plugins/libxess.dll"};
         private static bool _needsRestart;
+        private static readonly string DlssLibraryPath = Application.dataPath + "/Plugins/nvngx_dlss.dll";
+        [SerializeField] private static uint _dlssUpdateNumber;
+        private const uint ThisDlssUpdateNumber = 1;
+        private static readonly string XessLibraryPath = Application.dataPath + "/Plugins/libxess.dll";
+        [SerializeField] private static uint _xessUpdateNumber;
+        private const uint ThisXessUpdateNumber = 1;
 
         public override void OnInspectorGUI()
         {
@@ -33,50 +38,29 @@ namespace Conifer.Upscaler.Editor
             _installationFoldout = EditorGUILayout.Foldout(_installationFoldout, "Third-party Library Installation and Licenses");
             if (_installationFoldout)
             {
-                var client = new WebClient();
                 EditorGUILayout.HelpBox("AMD FSR is included with Upscaler and is provided under the MIT license.", MessageType.Info);
-                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license."))
+                EditorGUILayout.Separator();
+                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license.")) Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
+                var dlssInstalled = File.Exists(DlssLibraryPath);
+                EditorGUILayout.HelpBox(dlssInstalled ? "You have agreed to the NVIDIA RTX license." : "By clicking the below buttons you agree to the above NVIDIA RTX license.", MessageType.Info);
+                if (_dlssUpdateNumber != ThisDlssUpdateNumber && GUILayout.Button((dlssInstalled ? "Update" : "Install") + " DLSS Windows library"))
                 {
-                    Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
-                }
-                if (File.Exists(LibraryPaths[0]) || File.Exists(LibraryPaths[1])) {
-                    EditorGUILayout.HelpBox("You have agreed to the NVIDIA RTX license.", MessageType.Info);
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("By clicking the below buttons you agree to the above NVIDIA RTX license.", MessageType.Info);
-                }
-
-                if (!File.Exists(LibraryPaths[0]) && GUILayout.Button("Install DLSS Windows library"))
-                {
-                    client.DownloadFile("https://github.com/NVIDIA/DLSS/raw/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", LibraryPaths[0]);
+                    new WebClient().DownloadFile("https://github.com/NVIDIA/DLSS/raw/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", DlssLibraryPath);
+                    _dlssUpdateNumber = ThisDlssUpdateNumber;
                     _needsRestart = true;
                 }
-
-                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License."))
+                EditorGUILayout.Separator();
+                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License.")) Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
+                var xessInstalled = File.Exists(XessLibraryPath);
+                EditorGUILayout.HelpBox(xessInstalled ? "You have agreed to the Intel Simplified Software License." : "By clicking the below button you agree to the above Intel Simplified Software License.", MessageType.Info);
+                if (_xessUpdateNumber != ThisXessUpdateNumber && GUILayout.Button((xessInstalled ? "Update" : "Install") + " XeSS Windows library"))
                 {
-                    Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
-                }
-                if (!File.Exists(LibraryPaths[1]))
-                {
-                    EditorGUILayout.HelpBox("By clicking the below button you agree to the above Intel Simplified Software License.",
-                        MessageType.Info);
-                    if (GUILayout.Button("Install XeSS Windows library"))
-                    {
-                        client.DownloadFile("https://github.com/intel/xess/raw/420343044ea2f586373a5aeda428d883a649cbcc/bin/libxess.dll", LibraryPaths[1]);
-                    }
-                    EditorGUILayout.HelpBox("The Intel XeSS library is required for Upscaler to load on Windows.", MessageType.Warning);
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("You have agreed to the Intel Simplified Software License.", MessageType.Info);
+                    new WebClient().DownloadFile("https://github.com/intel/xess/raw/1d593fd8a2634a06d0d812bd574aa3031313ded0/bin/libxess.dll", XessLibraryPath);
+                    _xessUpdateNumber = ThisXessUpdateNumber;
                 }
             }
             EditorGUI.indentLevel -= 1;
-            if (_needsRestart)
-            {
-                EditorGUILayout.HelpBox("You must restart Unity to load the DLSS library.", MessageType.Warning);
-            }
+            if (_needsRestart) EditorGUILayout.HelpBox("You must restart Unity to load the DLSS library.", MessageType.Warning);
 
             if (!Upscaler.PluginLoaded())
             {
@@ -157,9 +141,9 @@ namespace Conifer.Upscaler.Editor
             var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution) || !Application.isPlaying;
             if (upscaler.technique != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
-
             if (upscaler.technique != Upscaler.Technique.None)
             {
+                EditorGUILayout.Separator();
                 EditorGUI.indentLevel += 1;
                 if (upscaler.technique != Upscaler.Technique.XeSuperSampling)
                 {
@@ -169,7 +153,6 @@ namespace Conifer.Upscaler.Editor
                         switch (upscaler.technique)
                         {
                             case Upscaler.Technique.FidelityFXSuperResolution:
-                            {
                                 upscaler.sharpness = EditorGUILayout.Slider(
                                     new GUIContent("Sharpness"), upscaler.sharpness, 0f, 1f);
                                 upscaler.useReactiveMask =
@@ -181,7 +164,6 @@ namespace Conifer.Upscaler.Editor
                                     upscaler.reactiveThreshold = EditorGUILayout.Slider("Reactivity Threshold", upscaler.reactiveThreshold, 0, 1.0f);
                                 }
                                 break;
-                            }
                             case Upscaler.Technique.DeepLearningSuperSampling:
                                 upscaler.dlssPreset = (Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
                                     new GUIContent("DLSS Preset"), upscaler.dlssPreset);
@@ -192,7 +174,7 @@ namespace Conifer.Upscaler.Editor
                         }
                     }
                 }
-
+                EditorGUILayout.Separator();
                 _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
                 if (_debugSettingsFoldout)
                 {

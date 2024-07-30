@@ -7,8 +7,6 @@
 
 #        include <d3d12compatibility.h>
 
-#        include <d3d12.h>
-
 #        include <IUnityGraphicsD3D12.h>
 
 #        include <xess/xess_d3d12.h>
@@ -20,20 +18,20 @@ std::atomic<uint32_t> XeSS::users{};
 Upscaler::Status (XeSS::*XeSS::fpCreate)(const xess_d3d12_init_params_t*){&XeSS::safeFail};
 Upscaler::Status (XeSS::*XeSS::fpEvaluate)(){&XeSS::safeFail};
 
-void* XeSS::xessGetOptimalInputResolution{nullptr};
-void* XeSS::xessDestroyContext{nullptr};
-void* XeSS::xessSetVelocityScale{nullptr};
-void* XeSS::xessSetLoggingCallback{nullptr};
-void* XeSS::xessD3D12CreateContext{nullptr};
-void* XeSS::xessD3D12Init{nullptr};
-void* XeSS::xessD3D12Execute{nullptr};
+decltype(&xessGetOptimalInputResolution) XeSS::xessGetOptimalInputResolution{nullptr};
+decltype(&xessDestroyContext) XeSS::xessDestroyContext{nullptr};
+decltype(&xessSetVelocityScale) XeSS::xessSetVelocityScale{nullptr};
+decltype(&xessSetLoggingCallback) XeSS::xessSetLoggingCallback{nullptr};
+decltype(&xessD3D12CreateContext) XeSS::xessD3D12CreateContext{nullptr};
+decltype(&xessD3D12Init) XeSS::xessD3D12Init{nullptr};
+decltype(&xessD3D12Execute) XeSS::xessD3D12Execute{nullptr};
 
 Upscaler::SupportState XeSS::supported{Untested};
 
 #    ifdef ENABLE_DX12
 Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
-    RETURN_ON_FAILURE(setStatus(static_cast<decltype(&::xessD3D12CreateContext)>(xessD3D12CreateContext)(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the " + getName() + " context."));
-    return setStatus(static_cast<decltype(&::xessD3D12Init)>(xessD3D12Init)(context, params), "Failed to initialize the " + getName() + " context.");
+    RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
+    return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
@@ -53,8 +51,8 @@ Upscaler::Status XeSS::DX12Evaluate() {
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
-    RETURN_ON_FAILURE(setStatus(static_cast<decltype(&::xessSetVelocityScale)>(xessSetVelocityScale)(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
-    return setStatus(static_cast<decltype(&::xessD3D12Execute)>(xessD3D12Execute)(context, state.commandList, &params), "Failed to execute " + getName() + ".");
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
+    return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute Intel Xe Super Sampling.");
 }
 #endif
 
@@ -81,14 +79,7 @@ Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string&
 
 
 void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
-    std::string msg;
-    switch (loggingLevel) {
-        case XESS_LOGGING_LEVEL_DEBUG: msg = "XeSS Debug ---> "; break;
-        case XESS_LOGGING_LEVEL_INFO: msg = "XeSS Info ----> "; break;
-        case XESS_LOGGING_LEVEL_WARNING: msg = "XeSS Warning -> "; break;
-        case XESS_LOGGING_LEVEL_ERROR: msg = "XeSS Error ---> "; break;
-    }
-    if (logCallback != nullptr) logCallback((msg + message).c_str());
+    if (logCallback != nullptr) logCallback(message);
 }
 
 bool XeSS::isSupported() {
@@ -123,18 +114,18 @@ XeSS::XeSS() {
     library = LoadLibrary("libxess.dll");
     if (library == nullptr) library = LoadLibrary("Assets\\Plugins\\libxess.dll");
     RETURN_VOID_ON_FAILURE(setStatusIf(library == nullptr, LibraryNotLoaded, "Failed to load 'libxess.dll'"));
-    xessGetOptimalInputResolution = GetProcAddress(library, "xessGetOptimalInputResolution");
-    xessDestroyContext            = GetProcAddress(library, "xessDestroyContext");
-    xessSetVelocityScale          = GetProcAddress(library, "xessSetVelocityScale");
-    xessSetLoggingCallback        = GetProcAddress(library, "xessSetLoggingCallback");
-    xessD3D12CreateContext        = GetProcAddress(library, "xessD3D12CreateContext");
-    xessD3D12Init                 = GetProcAddress(library, "xessD3D12Init");
-    xessD3D12Execute              = GetProcAddress(library, "xessD3D12Execute");
+    xessGetOptimalInputResolution = reinterpret_cast<decltype(xessGetOptimalInputResolution)>(GetProcAddress(library, "xessGetOptimalInputResolution"));
+    xessDestroyContext            = reinterpret_cast<decltype(xessDestroyContext)>(GetProcAddress(library, "xessDestroyContext"));
+    xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
+    xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
+    xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
+    xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
+    xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
     setStatusIf(xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr, LibraryNotLoaded, "'libxess.dll' had missing symbols.");
 }
 
 XeSS::~XeSS() {
-    if (context != nullptr) setStatus(static_cast<decltype(&::xessDestroyContext)>(xessDestroyContext)(context), "Failed to destroy the " + getName() + " context.");
+    if (context != nullptr) setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context.");
     context = nullptr;
     if (--users == 0 && library != nullptr) FreeLibrary(library);
     library = nullptr;
@@ -144,25 +135,25 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings;
     optimalSettings.outputResolution              = resolution;
-    optimalSettings.quality                       = mode;
     optimalSettings.hdr                           = hdr;
+
     const xess_d3d12_init_params_t params {
       .outputResolution = {.x = optimalSettings.outputResolution.width, .y = optimalSettings.outputResolution.height},
-      .qualitySetting = optimalSettings.getQuality<XESS>(),
+      .qualitySetting = optimalSettings.getQuality<XESS>(mode),
       .initFlags =
         static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
         static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
         (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
-    if (context != nullptr) RETURN_ON_FAILURE(setStatus(static_cast<decltype(&::xessDestroyContext)>(xessDestroyContext)(context), "Failed to destroy the " + getName() + " context."));
+    if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
     if (failure((this->*fpCreate)(&params))) {
-        Status status = setStatus(static_cast<decltype(&::xessDestroyContext)>(xessDestroyContext)(context), "Failed to destroy XeSS context that failed to create.");
+        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
         context = nullptr;
         return status;
     }
 #    ifndef NDEBUG
-    if (failure(setStatus(static_cast<decltype(&::xessSetLoggingCallback)>(xessSetLoggingCallback)(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
-        Status status = setStatus(static_cast<decltype(&::xessDestroyContext)>(xessDestroyContext)(context), "Failed to destroy XeSS context that failed to create.");
+    if (failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
+        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
         context = nullptr;
         return status;
     }
@@ -175,7 +166,7 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
 #    endif
     const xess_2d_t inputResolution{resolution.width, resolution.height};
     xess_2d_t optimal, min, max;
-    RETURN_ON_FAILURE(setStatus(static_cast<decltype(&::xessGetOptimalInputResolution)>(xessGetOptimalInputResolution)(context, &inputResolution, optimalSettings.getQuality<XESS>(), &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
+    RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
     optimalSettings.recommendedInputResolution    = {optimal.x, optimal.y};
     optimalSettings.dynamicMinimumInputResolution = {min.x, min.y};
     optimalSettings.dynamicMaximumInputResolution = {max.x, max.y};
@@ -184,8 +175,6 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
 }
 
 Upscaler::Status XeSS::evaluate() {
-    RETURN_ON_FAILURE((this->*fpEvaluate)());
-    settings.resetHistory = false;
-    return Success;
+    return (this->*fpEvaluate)();
 }
 #endif

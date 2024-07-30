@@ -5,21 +5,20 @@
 
 #    include <ffx_api/ffx_api.hpp>
 
-#    include <windows.h>
+#    include <Windows.h>
 
 namespace ffx { struct CreateContextDescUpscale; }  // namespace ffx
 struct FfxApiResource;
 
 class FSR3 final : public Upscaler {
-    ffx::Context   context{};
-
     static HMODULE library;
-    static std::atomic<uint32_t> users;
+    static uint32_t users;
+    static SupportState supported;
 
     static Status (FSR3::*fpCreate)(ffx::CreateContextDescUpscale&);
     static Status (FSR3::*fpEvaluate)();
 
-    static SupportState supported;
+    ffx::Context context{};
 
 #    ifdef ENABLE_VULKAN
     Status VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale);
@@ -54,7 +53,7 @@ public:
     }
 
     constexpr std::string getName() override {
-        return "AMD FidelityFX Super Resolution";
+        return "AMD FidelityFx Super Resolution";
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;

@@ -2,12 +2,15 @@
 
 #include "Plugin.hpp"
 
+#include "GraphicsAPI/GraphicsAPI.hpp"
+
 #ifdef ENABLE_VULKAN
 #    include <vulkan/vulkan.h>
 #endif
 
 #ifdef ENABLE_DLSS
-#    include <nvsdk_ngx_defs.h>
+#    include <sl.h>
+#    include <sl_dlss.h>
 #endif
 #ifdef ENABLE_FSR3
 #    include <ffx_api/ffx_upscale.h>
@@ -22,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <GraphicsAPI/GraphicsAPI.hpp>
 
 #define RETURN_ON_FAILURE(x)            \
 {                                       \
@@ -44,6 +46,13 @@ struct alignas(128) UpscalerBase {
     };
 
     struct alignas(128) Settings final {
+        enum DLSSPreset : uint8_t {
+            Default,
+            Stable,
+            FastPaced,
+            AnitGhosting,
+        };
+
         enum Quality : uint8_t {
             Auto,
             AntiAliasing,
@@ -53,14 +62,7 @@ struct alignas(128) UpscalerBase {
             Balanced,
             Performance,
             UltraPerformance,
-        } quality{};
-
-        enum DLSSPreset : uint8_t {
-            Default,
-            Stable,
-            FastPaced,
-            AnitGhosting,
-        } preset{};
+        };
 
         struct alignas(8) Resolution {
             uint32_t width;
@@ -123,26 +125,26 @@ struct alignas(128) UpscalerBase {
 
 #ifdef ENABLE_DLSS
         template<Type T, typename = std::enable_if_t<T == DLSS>>
-        [[nodiscard]] NVSDK_NGX_PerfQuality_Value getQuality() const {
+        [[nodiscard]] sl::DLSSMode getQuality(const enum Quality quality) const {
             switch (quality) {
                 case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U) return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                    if (pixelCount <= 3840U * 2160U) return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                    return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
+                    if (pixelCount <= 2560U * 1440U) return sl::DLSSMode::eMaxQuality;
+                    if (pixelCount <= 3840U * 2160U) return sl::DLSSMode::eMaxPerformance;
+                    return sl::DLSSMode::eUltraPerformance;
                 }
-                case AntiAliasing: return NVSDK_NGX_PerfQuality_Value_DLAA;
-                case Quality: return NVSDK_NGX_PerfQuality_Value_MaxQuality;
-                case Balanced: return NVSDK_NGX_PerfQuality_Value_Balanced;
-                case Performance: return NVSDK_NGX_PerfQuality_Value_MaxPerf;
-                case UltraPerformance: return NVSDK_NGX_PerfQuality_Value_UltraPerformance;
-                default: return static_cast<NVSDK_NGX_PerfQuality_Value>(-1);
+                case AntiAliasing: return sl::DLSSMode::eDLAA;
+                case Quality: return sl::DLSSMode::eMaxQuality;
+                case Balanced: return sl::DLSSMode::eBalanced;
+                case Performance: return sl::DLSSMode::eMaxPerformance;
+                case UltraPerformance: return sl::DLSSMode::eUltraPerformance;
+                default: return static_cast<sl::DLSSMode>(-1);
             }
         }
 #endif
 #ifdef ENABLE_FSR3
         template<Type T, typename = std::enable_if_t<T == FSR3>>
-        [[nodiscard]] FfxApiUpscaleQualityMode getQuality() const {
+        [[nodiscard]] FfxApiUpscaleQualityMode getQuality(const enum Quality quality) const {
             switch (quality) {
                 case Auto: {
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
@@ -161,7 +163,7 @@ struct alignas(128) UpscalerBase {
 #endif
 #ifdef ENABLE_XESS
         template<Type T, typename = std::enable_if_t<T == XESS>>
-        [[nodiscard]] xess_quality_settings_t getQuality() const {
+        [[nodiscard]] xess_quality_settings_t getQuality(const enum Quality quality) const {
             switch (quality) {
                 case Auto: {
                     const uint32_t pixelCount {outputResolution.width * outputResolution.height};
@@ -228,6 +230,11 @@ protected:
         return setStatus(UnsupportedGraphicsApi, getName() + " does not support the current graphics API.");
     }
 
+    template<typename... Args>
+    constexpr Status Succeed(Args... /*unused*/) {
+        return Success;
+    }
+
     static void (*logCallback)(const char* msg);
 
 public:
@@ -252,7 +259,7 @@ public:
     constexpr virtual Type        getType()                                                                                = 0;
     constexpr virtual std::string getName()                                                                                = 0;
 
-    virtual Status                useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
+    virtual Status useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
     Status         useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>&images);
     virtual Status evaluate() = 0;
 

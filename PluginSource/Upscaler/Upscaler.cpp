@@ -23,26 +23,6 @@ bool Upscaler::recoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == ERROR_RECOVERABLE;
 }
 
-#ifdef ENABLE_VULKAN
-std::vector<std::string> Upscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& supportedExtensions) {
-    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanInstanceExtensions(supportedExtensions);
-#    ifdef ENABLE_DLSS
-    for (auto& extension : DLSS::requestVulkanInstanceExtensions(supportedExtensions))
-        requestedExtensions.push_back(extension);
-#    endif
-    return requestedExtensions;
-}
-
-std::vector<std::string> Upscaler::requestVulkanDeviceExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, const std::vector<std::string>& supportedExtensions) {
-    std::vector<std::string> requestedExtensions = NoUpscaler::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions);
-#    ifdef ENABLE_DLSS
-    for (auto& extension : DLSS::requestVulkanDeviceExtensions(instance, physicalDevice, supportedExtensions))
-        requestedExtensions.push_back(extension);
-#    endif
-    return requestedExtensions;
-}
-#endif
-
 bool Upscaler::isSupported(const Type type) {
     switch (type) {
         case NONE: return NoUpscaler::isSupported();
@@ -57,7 +37,6 @@ bool Upscaler::isSupported(const Type type) {
 #endif
         default: return false;
     }
-    return false;
 }
 
 bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
@@ -74,7 +53,6 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
 #endif
         default: return false;
     }
-    return false;
 }
 
 std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
