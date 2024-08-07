@@ -1,6 +1,8 @@
 #ifdef ENABLE_DX12
 #    include "DX12.hpp"
 
+#    include <d3d12compatibility.h>
+
 #    include <IUnityGraphicsD3D12.h>
 
 IUnityGraphicsD3D12v7* DX12::graphicsInterface{nullptr};

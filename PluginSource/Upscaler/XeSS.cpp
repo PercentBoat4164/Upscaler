@@ -146,25 +146,14 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
         (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
     };
     if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
-    if (failure((this->*fpCreate)(&params))) {
-        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
-        context = nullptr;
-        return status;
-    }
+    context = nullptr;
+    RETURN_ON_FAILURE((this->*fpCreate)(&params));
 #    ifndef NDEBUG
-    if (failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."))) {
-        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
-        context = nullptr;
-        return status;
-    }
+    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."));
 #    else
-    if (failure(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."))) {
-        Status status = setStatus(xessDestroyContext(context), "Failed to destroy XeSS context that failed to create.");
-        context = nullptr;
-        return status;
-    }
+    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."));
 #    endif
-    const xess_2d_t inputResolution{resolution.width, resolution.height};
+    const xess_2d_t inputResolution {resolution.width, resolution.height};
     xess_2d_t optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
     optimalSettings.recommendedInputResolution    = {optimal.x, optimal.y};

@@ -16,19 +16,20 @@ class FSR3 final : public Upscaler {
     static SupportState supported;
 
     static Status (FSR3::*fpCreate)(ffx::CreateContextDescUpscale&);
-    static Status (FSR3::*fpEvaluate)();
+    static Status (FSR3::*fpGetResources)(std::array<FfxApiResource, 6>&, void*&);
 
     ffx::Context context{};
 
 #    ifdef ENABLE_VULKAN
     Status VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale);
     Status VulkanGetResource(FfxApiResource& resource, Plugin::ImageID imageID);
+    Status VulkanGetResources(std::array<FfxApiResource, 6>& resources, void*& commandBuffer);
     Status VulkanEvaluate();
 #    endif
 
 #    ifdef ENABLE_DX12
     Status DX12Create(ffx::CreateContextDescUpscale& createContextDescUpscale);
-    Status DX12GetResource(FfxApiResource& resource, Plugin::ImageID imageID);
+    Status DX12GetResources(std::array<FfxApiResource, 6>& resources, void*& commandList);
     Status DX12Evaluate();
 #    endif
 

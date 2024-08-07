@@ -2,6 +2,7 @@
 #include "Upscaler/Upscaler.hpp"
 
 #include <memory>
+#include <vector>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
@@ -20,23 +21,40 @@ struct alignas(128) UpscalingData {
     float reactiveValue;
     float reactiveScale;
     float reactiveThreshold;
-    Upscaler::Settings::Camera cameraInfo;
     uint16_t camera;
-    int autoReactive;
+    float viewToClip[16];
+    float clipToView[16];
+    float clipToPrevClip[16];
+    float prevClipToClip[16];
+    Upscaler::Settings::Camera cameraInfo;
+    float position[3];
+    float up[3];
+    float right[3];
+    float forward[3];
+    unsigned autoReactive_orthographic;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     if (d == nullptr || event != Plugin::Unity::eventIDBase) return;
-    const auto& [color, depth, motion, output, reactive, opaque, frameTime, sharpness, reactiveValue, reactiveScale, reactiveThreshold, cameraInfo, camera, autoReactive] = *static_cast<UpscalingData*>(d);
-    Upscaler&       upscaler            = *upscalers[camera];
-    upscaler.settings.camera            = cameraInfo;
-    upscaler.settings.frameTime         = frameTime;
-    upscaler.settings.sharpness         = sharpness;
-    upscaler.settings.reactiveValue     = reactiveValue;
-    upscaler.settings.reactiveScale     = reactiveScale;
-    upscaler.settings.reactiveThreshold = reactiveThreshold;
-    upscaler.settings.autoReactive      = autoReactive > 0;
-    upscaler.useImages({color, depth, motion, output, reactive, opaque});
+    const auto& data = *static_cast<UpscalingData*>(d);
+    Upscaler&       upscaler            = *upscalers[data.camera];
+    upscaler.settings.camera            = data.cameraInfo;
+    std::ranges::copy(data.viewToClip, upscaler.settings.viewToClip.begin());
+    std::ranges::copy(data.clipToView, upscaler.settings.clipToView.begin());
+    std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
+    std::ranges::copy(data.prevClipToClip, upscaler.settings.prevClipToClip.begin());
+    std::ranges::copy(data.position, upscaler.settings.position.begin());
+    std::ranges::copy(data.up, upscaler.settings.up.begin());
+    std::ranges::copy(data.right, upscaler.settings.right.begin());
+    std::ranges::copy(data.forward, upscaler.settings.forward.begin());
+    upscaler.settings.frameTime         = data.frameTime;
+    upscaler.settings.sharpness         = data.sharpness;
+    upscaler.settings.reactiveValue     = data.reactiveValue;
+    upscaler.settings.reactiveScale     = data.reactiveScale;
+    upscaler.settings.reactiveThreshold = data.reactiveThreshold;
+    upscaler.settings.autoReactive      = (data.autoReactive_orthographic & 0b1U) != 0U;
+    upscaler.settings.orthographic      = (data.autoReactive_orthographic & 0b10U) != 0U;
+    upscaler.useImages({data.color, data.depth, data.motion, data.output, data.reactive, data.opaque});
     upscaler.evaluate();
     upscaler.settings.resetHistory = false;
 }

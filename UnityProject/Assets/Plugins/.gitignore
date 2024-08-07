@@ -1,4 +1,4 @@
 *
 !.gitignore
-!Conifer/GfxPluginUpscaler.dll
-!Conifer/libGluginUpscaler.so
+!GfxPluginUpscaler.dll
+!libGluginUpscaler.so

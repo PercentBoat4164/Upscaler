@@ -10,8 +10,6 @@
 
 #    include <windows.h>
 
-using xess_d3d12_init_params_t = struct _xess_d3d12_init_params_t;
-
 class XeSS final : public Upscaler {
     xess_context_handle_t context{nullptr};
 

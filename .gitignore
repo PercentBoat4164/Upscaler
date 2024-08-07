@@ -1,6 +1,7 @@
 # IDE project files
 .idea
 .vscode
+.vs
 
 # Build files
 /BuildResults/

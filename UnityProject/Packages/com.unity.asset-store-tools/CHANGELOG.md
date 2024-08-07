@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this package will be documented in this file.
 
+## [11.4.3] - 2024-08-01
+
+### Validator Changes
+- Hotfix: Remove non-ascii characters from the demo scene validation
+
 ## [11.4.2] - 2024-07-30
 
 ### Validator Changes
@@ -12,6 +17,9 @@ All notable changes to this package will be documented in this file.
 
 ### Exporter Changes
 - Fixed an issue with bundled plugin folder contents not being exported
+
+### Other
+- Miscellaneous internal changes
 
 ## [11.4.0] - 2024-01-23
 

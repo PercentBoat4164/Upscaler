@@ -87,7 +87,16 @@ struct alignas(128) UpscalerBase {
         float reactiveThreshold{};
         float sharpness{};
         float frameTime{};
+        std::array<float, 16> viewToClip;
+        std::array<float, 16> clipToView;
+        std::array<float, 16> clipToPrevClip;
+        std::array<float, 16> prevClipToClip;
+        std::array<float, 3> position;
+        std::array<float, 3> up;
+        std::array<float, 3> right;
+        std::array<float, 3> forward;
         bool  autoReactive{};
+        bool  orthographic{};
         bool  hdr{};
         bool  resetHistory{};
 
@@ -220,20 +229,10 @@ private:
     std::string statusMessage;
 
 protected:
-    template<typename... Args>
-    constexpr Status safeFail(Args... /*unused*/) {
-        return setStatus(RecoverableRuntimeError, "Graphics initialization failed: `safeFail` was called!");
-    }
-
-    template<typename... Args>
-    constexpr Status invalidGraphicsAPIFail(Args... /*unused*/) {
-        return setStatus(UnsupportedGraphicsApi, getName() + " does not support the current graphics API.");
-    }
-
-    template<typename... Args>
-    constexpr Status Succeed(Args... /*unused*/) {
-        return Success;
-    }
+    template<typename... Args> constexpr Status safeFail(Args... /*unused*/) {return setStatus(RecoverableRuntimeError, "Graphics initialization failed: `safeFail` was called!");}
+    template<typename... Args> constexpr Status invalidGraphicsAPIFail(Args... /*unused*/) {return setStatus(UnsupportedGraphicsApi, getName() + " does not support the current graphics API.");}
+    template<typename... Args> constexpr Status succeed(Args... /*unused*/) {return Success;}
+    template<typename T, typename... Args> static constexpr T nullFunc(Args... /*unused*/) {return {};}
 
     static void (*logCallback)(const char* msg);
 

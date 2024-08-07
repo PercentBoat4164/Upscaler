@@ -96,9 +96,21 @@ namespace Conifer.Upscaler
                 _reactiveScale = upscaler.reactiveScale;
                 _reactiveThreshold = upscaler.reactiveThreshold;
                 var camera = upscaler.GetComponent<Camera>();
-                _cameraInfo = new Vector3(camera.farClipPlane, camera.nearClipPlane, camera.fieldOfView);
+                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
+                _cameraInfo = new Vector3(planes.zFar, planes.zNear, 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI);
                 _camera = cameraID;
-                _autoReactive = upscaler.useReactiveMask ? 1 : 0;
+                _viewToClip = GL.GetGPUProjectionMatrix(camera.nonJitteredProjectionMatrix, true).inverse;
+                _clipToView = _viewToClip.inverse;
+                var cameraToWorld = GL.GetGPUProjectionMatrix(camera.worldToCameraMatrix, true).inverse;
+                _clipToPrevClip = _clipToView * cameraToWorld * upscaler.LastWorldToCamera * upscaler.LastViewToClip;
+                _prevClipToClip = _clipToPrevClip.inverse;
+                _position = camera.transform.position;
+                _up = camera.transform.up;
+                _right = camera.transform.right;
+                _forward = camera.transform.forward;
+                _autoReactive_orthographic = (camera.orthographic ? 0b10U : 0b0U) | (upscaler.useReactiveMask ? 0b1U : 0b0U);
+                upscaler.LastViewToClip = _viewToClip;
+                upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
 
             private IntPtr _color;
@@ -112,9 +124,17 @@ namespace Conifer.Upscaler
             private float _reactiveValue;
             private float _reactiveScale;
             private float _reactiveThreshold;
-            private Vector3 _cameraInfo;
             private ushort _camera;
-            private int _autoReactive;
+            private Matrix4x4 _viewToClip;
+            private Matrix4x4 _clipToView;
+            private Matrix4x4 _clipToPrevClip;
+            private Matrix4x4 _prevClipToClip;
+            private Vector3 _cameraInfo;
+            private Vector3 _position;
+            private Vector3 _up;
+            private Vector3 _right;
+            private Vector3 _forward;
+            private uint _autoReactive_orthographic;
         }
 
         static NativeInterface()

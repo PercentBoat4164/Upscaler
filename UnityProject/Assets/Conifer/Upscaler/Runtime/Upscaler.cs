@@ -155,6 +155,8 @@ namespace Conifer.Upscaler
         public bool forceHistoryResetEveryFrame;
 
         private Camera _camera;
+        internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
+        internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
 
         internal NativeInterface NativeInterface;
 

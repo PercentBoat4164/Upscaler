@@ -30,45 +30,49 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
     switch (renderer) {
 #ifdef ENABLE_VULKAN
         case kUnityGfxRendererVulkan: {
-            constexpr UnityVulkanPluginEventConfig eventConfig{
+            type = VULKAN;
+            Upscaler::useGraphicsAPI(type);
+            constexpr UnityVulkanPluginEventConfig eventConfig {
               .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
               .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
-            type = VULKAN;
             break;
         }
 #endif
 #ifdef ENABLE_DX12
         case kUnityGfxRendererD3D12: {
-            constexpr UnityD3D12PluginEventConfig eventConfig{
+            type = DX12;
+            Upscaler::useGraphicsAPI(type);
+            constexpr UnityD3D12PluginEventConfig eventConfig {
               .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
               .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
               .ensureActiveRenderTextureIsBound = false
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
 #    ifdef ENABLE_DLSS
-            void* f{nullptr};
-            DLSS::load(f, DX12);
+            DLSS::load(DX12);
 #    endif
-            type = DX12;
             break;
         }
 #endif
 #ifdef ENABLE_DX11
         case kUnityGfxRendererD3D11: {
-#    ifdef ENABLE_DLSS
-            void* f{nullptr};
-            DLSS::load(f, DX11);
-#    endif
             type = DX11;
+            Upscaler::useGraphicsAPI(type);
+#    ifdef ENABLE_DLSS
+            DLSS::load(DX11);
+#    endif
             break;
         }
 #endif
-        default: type = NONE; break;
+        default: {
+            type = NONE;
+            Upscaler::useGraphicsAPI(type);
+            break;
+        }
     }
-    Upscaler::useGraphicsAPI(type);
 }
 
 void GraphicsAPI::shutdown() {

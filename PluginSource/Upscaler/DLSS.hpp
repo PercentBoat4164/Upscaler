@@ -16,8 +16,8 @@ class DLSS final : public Upscaler {
 
     static uint64_t applicationID;
 
-    static Status (DLSS::*fpSetDevice)();
-    static Status (DLSS::*fpGetResources)(std::array<sl::Resource, 4>&, void*&);
+    static void* (*fpGetDevice)();
+    static Status (DLSS::*fpGetResources)(std::array<sl::Resource, 4>&, void**);
 
     sl::ViewportHandle handle{0};
 
@@ -39,21 +39,21 @@ class DLSS final : public Upscaler {
     static void log(sl::LogType type, const char* msg);
 
 #    ifdef ENABLE_VULKAN
-    Status VulkanGetResources(std::array<sl::Resource, 4>& resources, void*& commandBuffer);
+    Status VulkanGetResources(std::array<sl::Resource, 4>& resources, void** commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
-    Status DX12GetResources(std::array<sl::Resource, 4>& resources, void*& commandList);
-    Status DX12SetDevice();
+    Status       DX12GetResources(std::array<sl::Resource, 4>& resources, void** commandList);
+    static void* DX12GetDevice();
 #    endif
 
 #    ifdef ENABLE_DX11
-    Status DX11GetResources(std::array<sl::Resource, 4>& resources, void*& deviceContext);
-    Status DX11SetDevice();
+    Status       DX11GetResources(std::array<sl::Resource, 4>& resources, void** deviceContext);
+    static void* DX11GetDevice();
 #    endif
 
 public:
-    static void load(void*& vkGetProcAddrFunc, GraphicsAPI::Type);
+    static void load(GraphicsAPI::Type, const void** vkGetProcAddrFunc=nullptr);
     static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);

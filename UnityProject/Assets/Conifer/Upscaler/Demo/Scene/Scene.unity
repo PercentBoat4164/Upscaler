@@ -462,14 +462,13 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 0
+  technique: 1
   dlssPreset: 0
   sharpness: 0
   useReactiveMask: 0
-  tcThreshold: 0.05
-  tcScale: 1
+  reactiveValue: 0.6
   reactiveScale: 5
-  reactiveMax: 0.9
+  reactiveThreshold: 0.3
 --- !u!1 &1308310398
 GameObject:
   m_ObjectHideFlags: 0

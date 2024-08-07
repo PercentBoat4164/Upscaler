@@ -38,8 +38,10 @@ namespace AssetStoreTools.Validator.TestMethods
             if (demoSceneScanResult.HybridScenePaths.Count > 0)
             {
                 result.Result = TestResult.ResultStatus.Pass;
-                var upmSampleSceneList = string.Join("\n•", demoSceneScanResult.HybridScenePaths);
-                upmSampleSceneList = upmSampleSceneList.Insert(0, "•");
+
+                var upmSampleSceneList = string.Join("\n-", demoSceneScanResult.HybridScenePaths);
+                upmSampleSceneList = upmSampleSceneList.Insert(0, "-");
+
                 result.AddMessage($"Demo scenes found:\n{upmSampleSceneList}");
                 return result;
             }
