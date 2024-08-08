@@ -419,7 +419,7 @@ namespace Conifer.Upscaler
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = -NativeInterface.GetJitter() / InputResolution * 2;
+            var clipSpaceJitter = -NativeInterface.GetJitter(InputResolution) / InputResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {

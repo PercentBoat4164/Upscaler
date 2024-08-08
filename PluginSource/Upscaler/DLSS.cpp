@@ -367,9 +367,9 @@ Upscaler::Status DLSS::evaluate() {
     std::ranges::copy(settings.forward, reinterpret_cast<float*>(&constants.cameraFwd));
     constants.jitterOffset         = sl::float2 {settings.jitter.x, settings.jitter.y};
     constants.mvecScale            = sl::float2 {-1.0F, -1.0F};
-    constants.cameraNear           = settings.camera.nearPlane;
-    constants.cameraFar            = settings.camera.farPlane;
-    constants.cameraFOV            = settings.camera.verticalFOV * (3.1415926535897932384626433F / 180.0F);
+    constants.cameraNear           = settings.nearPlane;
+    constants.cameraFar            = settings.farPlane;
+    constants.cameraFOV            = settings.verticalFOV * (3.1415926535897932384626433F / 180.0F);
     constants.cameraAspectRatio    = static_cast<float>(settings.outputResolution.width) / static_cast<float>(settings.outputResolution.height);
     constants.reset                = settings.resetHistory ? sl::eTrue : sl::eFalse;
     constants.depthInverted        = sl::eTrue;

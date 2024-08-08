@@ -204,8 +204,8 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
         static_cast<unsigned>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
         static_cast<unsigned>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |
         (optimalSettings.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U);
-    createContextDescUpscale.maxRenderSize = {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
-    createContextDescUpscale.maxUpscaleSize = {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
+    createContextDescUpscale.maxRenderSize  = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
+    createContextDescUpscale.maxUpscaleSize = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
 #    ifndef NDEBUG
     createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR3::log);
 #    endif
@@ -228,7 +228,7 @@ Upscaler::Status FSR3::evaluate() {
         dispatchDescUpscaleGenerateReactiveMask.colorOpaqueOnly = resources.at(Plugin::ImageID::Opaque);
         dispatchDescUpscaleGenerateReactiveMask.colorPreUpscale = resources.at(Plugin::ImageID::Color);
         dispatchDescUpscaleGenerateReactiveMask.outReactive     = resources.at(Plugin::ImageID::Reactive);
-        dispatchDescUpscaleGenerateReactiveMask.renderSize      = {resources.at(Plugin::ImageID::Reactive).description.width, resources.at(Plugin::ImageID::Reactive).description.height};
+        dispatchDescUpscaleGenerateReactiveMask.renderSize      = FfxApiDimensions2D {resources.at(Plugin::ImageID::Reactive).description.width, resources.at(Plugin::ImageID::Reactive).description.height};
         dispatchDescUpscaleGenerateReactiveMask.scale           = settings.reactiveScale;
         dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveThreshold;
         dispatchDescUpscaleGenerateReactiveMask.binaryValue     = settings.reactiveValue;
@@ -243,22 +243,22 @@ Upscaler::Status FSR3::evaluate() {
     dispatchDescUpscale.color                      = resources.at(Plugin::ImageID::Color);
     dispatchDescUpscale.depth                      = resources.at(Plugin::ImageID::Depth);
     dispatchDescUpscale.motionVectors              = resources.at(Plugin::ImageID::Motion);
-    dispatchDescUpscale.exposure                   = {};
+    dispatchDescUpscale.exposure                   = FfxApiResource {};
     dispatchDescUpscale.reactive                   = resources.at(Plugin::ImageID::Reactive);
-    dispatchDescUpscale.transparencyAndComposition = {};
+    dispatchDescUpscale.transparencyAndComposition = FfxApiResource {};
     dispatchDescUpscale.output                     = resources.at(Plugin::ImageID::Output);
-    dispatchDescUpscale.jitterOffset               = {settings.jitter.x, settings.jitter.y};
-    dispatchDescUpscale.motionVectorScale          = {-static_cast<float>(resources.at(Plugin::ImageID::Motion).description.width), -static_cast<float>(resources.at(Plugin::ImageID::Motion).description.height)};
-    dispatchDescUpscale.renderSize                 = {resources.at(Plugin::ImageID::Color).description.width, resources.at(Plugin::ImageID::Color).description.height};
-    dispatchDescUpscale.upscaleSize                = {resources.at(Plugin::ImageID::Output).description.width, resources.at(Plugin::ImageID::Output).description.height};
+    dispatchDescUpscale.jitterOffset               = FfxApiFloatCoords2D {settings.jitter.x, settings.jitter.y};
+    dispatchDescUpscale.motionVectorScale          = FfxApiFloatCoords2D {-static_cast<float>(resources.at(Plugin::ImageID::Motion).description.width), -static_cast<float>(resources.at(Plugin::ImageID::Motion).description.height)};
+    dispatchDescUpscale.renderSize                 = FfxApiDimensions2D {resources.at(Plugin::ImageID::Color).description.width, resources.at(Plugin::ImageID::Color).description.height};
+    dispatchDescUpscale.upscaleSize                = FfxApiDimensions2D {resources.at(Plugin::ImageID::Output).description.width, resources.at(Plugin::ImageID::Output).description.height};
     dispatchDescUpscale.enableSharpening           = settings.sharpness > 0.0F;
     dispatchDescUpscale.sharpness                  = settings.sharpness;
     dispatchDescUpscale.frameTimeDelta             = settings.frameTime;
     dispatchDescUpscale.preExposure                = 1.0F;
     dispatchDescUpscale.reset                      = settings.resetHistory;
-    dispatchDescUpscale.cameraNear                 = settings.camera.farPlane;
-    dispatchDescUpscale.cameraFar                  = settings.camera.nearPlane;  // Switched because depth is inverted
-    dispatchDescUpscale.cameraFovAngleVertical     = settings.camera.verticalFOV * (3.1415926535897932384626433F / 180.0F);
+    dispatchDescUpscale.cameraNear                 = settings.farPlane;
+    dispatchDescUpscale.cameraFar                  = settings.nearPlane;  // Switched because depth is inverted
+    dispatchDescUpscale.cameraFovAngleVertical     = settings.verticalFOV * (3.1415926535897932384626433F / 180.0F);
     dispatchDescUpscale.viewSpaceToMetersFactor    = 1.0F;
     return setStatus(Dispatch(context, dispatchDescUpscale), "Failed to dispatch AMD FidelityFx Super Resolution upscale commands.");
 }

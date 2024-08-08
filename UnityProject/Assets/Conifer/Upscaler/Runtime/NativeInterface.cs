@@ -59,7 +59,7 @@ namespace Conifer.Upscaler
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
-        internal static extern Vector2 GetJitter(ushort camera);
+        internal static extern Vector2 GetJitter(ushort camera, float inputWidth);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
         internal static extern void ResetHistory(ushort camera);
@@ -95,15 +95,17 @@ namespace Conifer.Upscaler
                 _reactiveValue = upscaler.reactiveValue;
                 _reactiveScale = upscaler.reactiveScale;
                 _reactiveThreshold = upscaler.reactiveThreshold;
-                var camera = upscaler.GetComponent<Camera>();
-                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
-                _cameraInfo = new Vector3(planes.zFar, planes.zNear, 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI);
                 _camera = cameraID;
+                var camera = upscaler.GetComponent<Camera>();
                 _viewToClip = GL.GetGPUProjectionMatrix(camera.nonJitteredProjectionMatrix, true).inverse;
                 _clipToView = _viewToClip.inverse;
                 var cameraToWorld = GL.GetGPUProjectionMatrix(camera.worldToCameraMatrix, true).inverse;
                 _clipToPrevClip = _clipToView * cameraToWorld * upscaler.LastWorldToCamera * upscaler.LastViewToClip;
                 _prevClipToClip = _clipToPrevClip.inverse;
+                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
+                _farPlane = planes.zFar;
+                _nearPlane = planes.zNear;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
                 _position = camera.transform.position;
                 _up = camera.transform.up;
                 _right = camera.transform.right;
@@ -129,7 +131,9 @@ namespace Conifer.Upscaler
             private Matrix4x4 _clipToView;
             private Matrix4x4 _clipToPrevClip;
             private Matrix4x4 _prevClipToClip;
-            private Vector3 _cameraInfo;
+            private float _farPlane;
+            private float _nearPlane;
+            private float _verticalFOV;
             private Vector3 _position;
             private Vector3 _up;
             private Vector3 _right;
@@ -187,7 +191,7 @@ namespace Conifer.Upscaler
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal Vector2 GetJitter() => Loaded ? Native.GetJitter(_cameraID) : Vector2.zero;
+        internal Vector2 GetJitter(Vector2Int inputResolution) => Loaded ? Native.GetJitter(_cameraID, (float)inputResolution.x) : Vector2.zero;
 
         internal void ResetHistory()
         {

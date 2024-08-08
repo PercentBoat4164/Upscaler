@@ -11,6 +11,31 @@
 
 void (*Upscaler::logCallback)(const char* msg){nullptr};
 
+float UpscalerBase::Settings::JitterState::advance(const uint32_t maxIterations) {
+    if (++iterations >= maxIterations) {
+        n          = 0U;
+        d          = 1U;
+        iterations = -1U;
+    }
+    const uint32_t x = d - n;
+    if (x == 1U) {
+        n = 1U;
+        d *= base;
+    } else {
+        uint32_t y = d / base;
+        while (x <= y) y /= base;
+        n = (base + 1U) * y - x;
+    }
+    return static_cast<float>(n) / static_cast<float>(d) - 0.5F;
+}
+
+UpscalerBase::Settings::Jitter& UpscalerBase::Settings::getNextJitter(const float inputWidth) {
+    const float scalingFactor = static_cast<float>(outputResolution.width) / inputWidth;
+    const auto  jitterSamples = static_cast<uint32_t>(std::ceil(static_cast<float>(SamplesPerPixel) * scalingFactor * scalingFactor));
+    jitter                    = Jitter {x.advance(jitterSamples), y.advance(jitterSamples)};
+    return jitter;
+}
+
 bool Upscaler::success(const Status t_status) {
     return t_status == Success;
 }

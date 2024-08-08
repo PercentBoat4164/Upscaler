@@ -26,7 +26,9 @@ struct alignas(128) UpscalingData {
     float clipToView[16];
     float clipToPrevClip[16];
     float prevClipToClip[16];
-    Upscaler::Settings::Camera cameraInfo;
+    float farPlane;
+    float nearPlane;
+    float verticalFOV;
     float position[3];
     float up[3];
     float right[3];
@@ -36,9 +38,11 @@ struct alignas(128) UpscalingData {
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     if (d == nullptr || event != Plugin::Unity::eventIDBase) return;
-    const auto& data = *static_cast<UpscalingData*>(d);
-    Upscaler&       upscaler            = *upscalers[data.camera];
-    upscaler.settings.camera            = data.cameraInfo;
+    const auto& data              = *static_cast<UpscalingData*>(d);
+    Upscaler&   upscaler          = *upscalers[data.camera];
+    upscaler.settings.farPlane    = data.farPlane;
+    upscaler.settings.nearPlane   = data.nearPlane;
+    upscaler.settings.verticalFOV = data.verticalFOV;
     std::ranges::copy(data.viewToClip, upscaler.settings.viewToClip.begin());
     std::ranges::copy(data.clipToView, upscaler.settings.clipToView.begin());
     std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
@@ -125,8 +129,8 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera) {
-    return upscalers[camera]->settings.getNextJitter();
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera, const float inputWidth) {
+    return upscalers[camera]->settings.getNextJitter(inputWidth);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {

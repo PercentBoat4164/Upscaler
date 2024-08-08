@@ -67,26 +67,29 @@ struct alignas(128) UpscalerBase {
         struct alignas(8) Resolution {
             uint32_t width;
             uint32_t height;
-        } recommendedInputResolution{}, dynamicMaximumInputResolution{}, dynamicMinimumInputResolution{}, outputResolution{};
+        } recommendedInputResolution, dynamicMaximumInputResolution, dynamicMinimumInputResolution, outputResolution;
+
+        struct alignas(16) JitterState {
+            uint8_t  base{};
+            uint32_t n = 0U;
+            uint32_t d = 1U;
+            uint32_t iterations{-1U};
+
+            float advance(uint32_t maxIterations);
+        } x{2U}, y{3U};
 
         struct alignas(8) Jitter {
-            float x;
-            float y;
-        } jitter{};
-
-        // DO NOT CHANGE THE ALIGNMENT FROM 4!
-        // This breaks Release mode builds.
-        struct alignas(4) Camera {
-            float farPlane;
-            float nearPlane;
-            float verticalFOV;
-        } camera;
+            float x, y;
+        } jitter;
 
         float reactiveValue{};
         float reactiveScale{};
         float reactiveThreshold{};
         float sharpness{};
         float frameTime{};
+        float farPlane;
+        float nearPlane;
+        float verticalFOV;
         std::array<float, 16> viewToClip;
         std::array<float, 16> clipToView;
         std::array<float, 16> clipToPrevClip;
@@ -100,37 +103,7 @@ struct alignas(128) UpscalerBase {
         bool  hdr{};
         bool  resetHistory{};
 
-        Jitter getNextJitter() {
-            static struct alignas(16) JitterState {
-                uint8_t  base{};
-                uint32_t n = 0U;
-                uint32_t d = 1U;
-                uint32_t iterations{-1U};
-
-                float advance(const uint32_t maxIterations) {
-                    if (++iterations >= maxIterations) {
-                        n = 0U;
-                        d = 1U;
-                        iterations = -1U;
-                    }
-                    const uint32_t x = d - n;
-                    if (x == 1U) {
-                        n = 1U;
-                        d *= base;
-                    } else {
-                        uint32_t y = d / base;
-                        while (x <= y) y /= base;
-                        n = (base + 1U) * y - x;
-                    }
-                    return static_cast<float>(n) / static_cast<float>(d) - 0.5F;
-                }
-            } x{2U}, y{3U};
-
-            const float scalingFactor = static_cast<float>(outputResolution.width) / static_cast<float>(recommendedInputResolution.width);
-            const auto  jitterSamples = static_cast<uint32_t>(std::ceil(static_cast<float>(SamplesPerPixel) * scalingFactor * scalingFactor));
-            jitter                    = {x.advance(jitterSamples), y.advance(jitterSamples)};
-            return jitter;
-        }
+        Jitter& getNextJitter(const float inputWidth);
 
 #ifdef ENABLE_DLSS
         template<Type T, typename = std::enable_if_t<T == DLSS>>
