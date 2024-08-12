@@ -59,6 +59,7 @@ class DLSS final : public Upscaler {
 
 public:
     static void load(GraphicsAPI::Type, const void** vkGetProcAddrFunc=nullptr);
+    static void shutdown();
     static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);

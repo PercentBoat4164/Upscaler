@@ -235,8 +235,13 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
         supported = Unsupported;
 }
 
-void DLSS::unload() {
+void DLSS::shutdown() {
     if (slShutdown != nullptr) slShutdown();
+}
+
+void DLSS::unload() {
+    if (library != nullptr) FreeLibrary(library);
+    library              = nullptr;
     slInit               = nullptr;
     slSetD3DDevice       = nullptr;
     slSetFeatureLoaded   = nullptr;
@@ -247,8 +252,6 @@ void DLSS::unload() {
     slEvaluateFeature    = nullptr;
     slFreeResources      = nullptr;
     slShutdown           = nullptr;
-    if (library != nullptr) FreeLibrary(library);
-    library = nullptr;
 }
 
 bool DLSS::isSupported() {

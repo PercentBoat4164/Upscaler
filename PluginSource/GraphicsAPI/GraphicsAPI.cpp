@@ -77,7 +77,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
 
 void GraphicsAPI::shutdown() {
 #ifdef ENABLE_DLSS
-    DLSS::unload();
+    DLSS::shutdown();
 #endif
     type = NONE;
 }
@@ -110,6 +110,9 @@ bool GraphicsAPI::unregisterUnityInterfaces() {
 #endif
 #ifdef ENABLE_DX11
     result &= DX11::unregisterUnityInterfaces();
+#endif
+#ifdef ENABLE_DLSS
+    DLSS::unload();
 #endif
     return result;
 }
