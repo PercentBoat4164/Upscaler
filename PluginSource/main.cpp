@@ -10,12 +10,6 @@
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
 
 struct alignas(128) UpscalingData {
-    void* color;
-    void* depth;
-    void* motion;
-    void* output;
-    void* reactive;
-    void* opaque;
     float frameTime;
     float sharpness;
     float reactiveValue;
@@ -33,7 +27,7 @@ struct alignas(128) UpscalingData {
     float up[3];
     float right[3];
     float forward[3];
-    unsigned autoReactive_orthographic;
+    unsigned orthographic;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
@@ -56,9 +50,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     upscaler.settings.reactiveValue     = data.reactiveValue;
     upscaler.settings.reactiveScale     = data.reactiveScale;
     upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-    upscaler.settings.autoReactive      = (data.autoReactive_orthographic & 0b1U) != 0U;
-    upscaler.settings.orthographic      = (data.autoReactive_orthographic & 0b10U) != 0U;
-    upscaler.useImages({data.color, data.depth, data.motion, data.output, data.reactive, data.opaque});
+    upscaler.settings.orthographic      = (data.orthographic & 0b1U) != 0U;
     upscaler.evaluate();
     upscaler.settings.resetHistory = false;
 }
@@ -135,6 +127,12 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {
     upscalers[camera]->settings.resetHistory = true;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
+    Upscaler& upscaler = *upscalers[camera];
+    upscaler.settings.autoReactive = useReactiveMask;
+    upscaler.useImages({color, depth, motion, output, reactive, opaque});
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {

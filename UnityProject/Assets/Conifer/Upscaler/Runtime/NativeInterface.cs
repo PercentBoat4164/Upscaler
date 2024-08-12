@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.0.0                                *
+ * Upscaler v1.1.0                                *
  * See the OfflineManual.pdf for more information *
  **************************************************/
 
@@ -51,10 +51,10 @@ namespace Conifer.Upscaler
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedCameraResolution")]
         internal static extern Vector2Int GetRecommendedResolution(ushort camera);
-        
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumCameraResolution")]
         internal static extern Vector2Int GetMaximumResolution(ushort camera);
-        
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
@@ -63,6 +63,9 @@ namespace Conifer.Upscaler
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
         internal static extern void ResetHistory(ushort camera);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetImages")]
+        internal static extern void SetImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
         internal static extern void UnregisterCamera(ushort camera);
@@ -82,14 +85,8 @@ namespace Conifer.Upscaler
 
         private struct UpscaleData
         {
-            internal UpscaleData(Upscaler upscaler, ushort cameraID, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
+            internal UpscaleData(Upscaler upscaler, ushort cameraID)
             {
-                _color = color;
-                _depth = depth;
-                _motion = motion;
-                _output = output;
-                _reactive = reactive;
-                _opaque = opaque;
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
                 _reactiveValue = upscaler.reactiveValue;
@@ -105,22 +102,17 @@ namespace Conifer.Upscaler
                 var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
-                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f /
+                               (float)Math.PI;
                 _position = camera.transform.position;
                 _up = camera.transform.up;
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
-                _autoReactive_orthographic = (camera.orthographic ? 0b10U : 0b0U) | (upscaler.useReactiveMask ? 0b1U : 0b0U);
+                _orthographic = (camera.orthographic ? 0b10U : 0b0U) | (upscaler.useReactiveMask ? 0b1U : 0b0U);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
 
-            private IntPtr _color;
-            private IntPtr _depth;
-            private IntPtr _motion;
-            private IntPtr _output;
-            private IntPtr _reactive;
-            private IntPtr _opaque;
             private float _frameTime;
             private float _sharpness;
             private float _reactiveValue;
@@ -138,7 +130,7 @@ namespace Conifer.Upscaler
             private Vector3 _up;
             private Vector3 _right;
             private Vector3 _forward;
-            private uint _autoReactive_orthographic;
+            private uint _orthographic;
         }
 
         static NativeInterface()
@@ -151,6 +143,7 @@ namespace Conifer.Upscaler
             {
                 return;
             }
+
             Loaded = true;
             Native.RegisterLogCallback(InternalLogCallback);
         }
@@ -167,35 +160,51 @@ namespace Conifer.Upscaler
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal void Upscale(CommandBuffer cb, Upscaler upscaler, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
+        internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, color, depth, motion, output, reactive, opaque), _dataPtr, true);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _dataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, EventIDBase, _dataPtr);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
 
-        internal static bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode) => Loaded && Native.IsSupported(type, mode);
+        internal static bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode) =>
+            Loaded && Native.IsSupported(type, mode);
 
-        internal Upscaler.Status GetStatus() => Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
+        internal Upscaler.Status GetStatus() =>
+            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
 
-        internal string GetStatusMessage() => Loaded ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID)) : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
+        internal string GetStatusMessage() => Loaded
+            ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID))
+            : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
 
-        internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message)) : Upscaler.Status.Success;
+        internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
+            ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))
+            : Upscaler.Status.Success;
 
-        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr) => Loaded ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr) : Upscaler.Status.FatalRuntimeError;
+        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique,
+            Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr) => Loaded
+            ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr)
+            : Upscaler.Status.FatalRuntimeError;
 
-        internal Vector2Int GetRecommendedResolution() => Loaded ? Native.GetRecommendedResolution(_cameraID) : Vector2Int.zero;
+        internal Vector2Int GetRecommendedResolution() =>
+            Loaded ? Native.GetRecommendedResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal Vector2 GetJitter(Vector2Int inputResolution) => Loaded ? Native.GetJitter(_cameraID, (float)inputResolution.x) : Vector2.zero;
+        internal Vector2 GetJitter(Vector2Int inputResolution) =>
+            Loaded ? Native.GetJitter(_cameraID, inputResolution.x) : Vector2.zero;
 
         internal void ResetHistory()
         {
             if (Loaded) Native.ResetHistory(_cameraID);
+        }
+
+        internal void SetImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
+        {
+            if (Loaded) Native.SetImages(_cameraID, color, depth, motion, output, reactive, opaque, autoReactive);
         }
     }
 }

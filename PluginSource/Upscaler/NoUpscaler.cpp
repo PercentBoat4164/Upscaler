@@ -1,13 +1,4 @@
 #include "NoUpscaler.hpp"
-#ifdef ENABLE_VULKAN
-std::vector<std::string> NoUpscaler::requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/) {
-    return {};
-}
-
-std::vector<std::string> NoUpscaler::requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/) {
-    return {};
-}
-#endif
 
 bool NoUpscaler::isSupported() {
     return true;
@@ -29,11 +20,15 @@ Upscaler::Status NoUpscaler::useSettings(const Settings::Resolution resolution, 
     return getStatus();
 }
 
+Upscaler::Status NoUpscaler::useImages(const std::array<void*, Plugin::NumImages>& /*unused*/) {
+    return Success;
+}
+
 Upscaler::Status NoUpscaler::evaluate() {
     return getStatus();
 }
 
 bool NoUpscaler::resetStatus() {
-    forceStatus(Success, getName() + " is currently active.");
+    forceStatus(Success, "No upscaler is currently active.");
     return true;
 }

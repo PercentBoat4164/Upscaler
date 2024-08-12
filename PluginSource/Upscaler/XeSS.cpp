@@ -35,13 +35,13 @@ Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
 }
 
 Upscaler::Status XeSS::DX12Evaluate() {
-    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Color])->GetDesc();
-    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion])->GetDesc();
+    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Color])->GetDesc();
+    const D3D12_RESOURCE_DESC motionDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Motion])->GetDesc();
     const xess_d3d12_execute_params_t params {
-        .pColorTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Color]),
-        .pVelocityTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Motion]),
-        .pDepthTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Depth]),
-        .pOutputTexture = static_cast<ID3D12Resource*>(textures[Plugin::ImageID::Output]),
+        .pColorTexture = static_cast<ID3D12Resource*>(resources[Plugin::Color]),
+        .pVelocityTexture = static_cast<ID3D12Resource*>(resources[Plugin::Motion]),
+        .pDepthTexture = static_cast<ID3D12Resource*>(resources[Plugin::Depth]),
+        .pOutputTexture = static_cast<ID3D12Resource*>(resources[Plugin::Output]),
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .exposureScale = 1.0F,
@@ -134,16 +134,17 @@ XeSS::~XeSS() {
 Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings;
-    optimalSettings.outputResolution              = resolution;
-    optimalSettings.hdr                           = hdr;
+    optimalSettings.outputResolution = resolution;
+    optimalSettings.hdr              = hdr;
 
-    const xess_d3d12_init_params_t params {
+    const xess_d3d12_init_params_t params{
       .outputResolution = {.x = optimalSettings.outputResolution.width, .y = optimalSettings.outputResolution.height},
-      .qualitySetting = optimalSettings.getQuality<XESS>(mode),
+      .qualitySetting   = optimalSettings.getQuality<XESS>(mode),
       .initFlags =
-        static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
         static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
-        (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR),
+        static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
+        static_cast<uint32_t>(XESS_INIT_FLAG_HIGH_RES_MV) |
+        (optimalSettings.hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR)
     };
     if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
     context = nullptr;
@@ -154,12 +155,17 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
     RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."));
 #    endif
     const xess_2d_t inputResolution {resolution.width, resolution.height};
-    xess_2d_t optimal, min, max;
+    xess_2d_t       optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
-    optimalSettings.recommendedInputResolution    = {optimal.x, optimal.y};
-    optimalSettings.dynamicMinimumInputResolution = {min.x, min.y};
-    optimalSettings.dynamicMaximumInputResolution = {max.x, max.y};
-    settings = optimalSettings;
+    optimalSettings.recommendedInputResolution    = Settings::Resolution {optimal.x, optimal.y};
+    optimalSettings.dynamicMinimumInputResolution = Settings::Resolution {min.x, min.y};
+    optimalSettings.dynamicMaximumInputResolution = Settings::Resolution {max.x, max.y};
+    settings                                      = optimalSettings;
+    return Success;
+}
+
+Upscaler::Status XeSS::useImages(const std::array<void*, Plugin::NumImages>& images) {
+    std::copy_n(images.begin(), Plugin::NumBaseImages, resources.begin());
     return Success;
 }
 

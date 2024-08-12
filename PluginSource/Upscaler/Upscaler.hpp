@@ -165,9 +165,6 @@ struct alignas(128) UpscalerBase {
         }
 #endif
     } settings;
-
-protected:
-    std::array<void*, Plugin::IMAGE_ID_MAX_ENUM> textures{};
 };
 
 class Upscaler : public UpscalerBase {
@@ -232,8 +229,8 @@ public:
     constexpr virtual std::string getName()                                                                                = 0;
 
     virtual Status useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
-    Status         useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>&images);
-    virtual Status evaluate() = 0;
+    virtual Status useImages(const std::array<void*, Plugin::NumImages>&)                                = 0;
+    virtual Status evaluate()                                                                            = 0;
 
     [[nodiscard]] Status getStatus() const;
     std::string&         getErrorMessage();

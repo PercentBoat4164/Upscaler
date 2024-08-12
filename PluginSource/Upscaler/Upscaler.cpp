@@ -112,11 +112,6 @@ void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 #endif
 }
 
-Upscaler::Status Upscaler::useImages(const std::array<void*, Plugin::IMAGE_ID_MAX_ENUM>& images) {
-    textures = images;
-    return Success;
-}
-
 Upscaler::Status Upscaler::getStatus() const {
     return status;
 }

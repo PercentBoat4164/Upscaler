@@ -1,5 +1,7 @@
 #pragma once
 #include <IUnityGraphics.h>
+
+#include <cstddef>
 #include <cstdint>
 
 namespace Plugin {
@@ -8,13 +10,15 @@ static IUnityGraphics* graphicsInterface;
 static int eventIDBase;
 }  // namespace Unity
 
-enum ImageID : uint16_t {
+enum ImageID : uint8_t {
     Color,
     Depth,
     Motion,
     Output,
     Reactive,
-    Opaque,
-    IMAGE_ID_MAX_ENUM
+    Opaque
 };
+
+constexpr std::size_t NumBaseImages = 4;
+constexpr std::size_t NumImages = 6;
 }  // namespace Plugin

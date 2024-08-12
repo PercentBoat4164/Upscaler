@@ -26,7 +26,8 @@ uint32_t FSR3::users{};
 Upscaler::SupportState FSR3::supported{Untested};
 
 Upscaler::Status (FSR3::*FSR3::fpCreate)(ffx::CreateContextDescUpscale&){&FSR3::safeFail};
-Upscaler::Status (FSR3::*FSR3::fpGetResources)(std::array<FfxApiResource, 6>&, void*&){&FSR3::safeFail};
+Upscaler::Status (FSR3::*FSR3::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&FSR3::safeFail};
+Upscaler::Status (FSR3::*FSR3::fpGetCommandBuffer)(void*&){&FSR3::safeFail};
 
 #    ifdef ENABLE_VULKAN
 Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale) {
@@ -37,16 +38,16 @@ Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContext
     return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendVKDesc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
-Upscaler::Status FSR3::VulkanGetResources(std::array<FfxApiResource, 6>& resources, void*& commandBuffer) {
-    for (Plugin::ImageID id{Plugin::ImageID::Color}; id <= (settings.autoReactive ? Plugin::ImageID::Opaque : Plugin::ImageID::Output); ++reinterpret_cast<uint8_t&>(id)) {
+Upscaler::Status FSR3::VulkanSetResources(const std::array<void*, Plugin::NumImages>& images) {
+    for (Plugin::ImageID id{0}; id < (settings.autoReactive ? Plugin::NumImages : Plugin::NumBaseImages); ++reinterpret_cast<uint8_t&>(id)) {
         VkAccessFlags      accessFlags{VK_ACCESS_SHADER_READ_BIT};
-        FfxApiResorceUsage resourceUsage{id == Plugin::ImageID::Depth ? FFX_API_RESOURCE_USAGE_DEPTHTARGET : FFX_API_RESOURCE_USAGE_READ_ONLY};
-        if (id == Plugin::ImageID::Output || id == Plugin::ImageID::Reactive) {
+        FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
+        if (id == Plugin::Output || id == Plugin::Reactive) {
             accessFlags   = VK_ACCESS_SHADER_WRITE_BIT;
             resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
         }
         UnityVulkanImage image {};
-        Vulkan::getGraphicsInterface()->AccessTexture(textures.at(id), UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        Vulkan::getGraphicsInterface()->AccessTexture(images.at(id), UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, kUnityVulkanResourceAccess_PipelineBarrier, &image);
         auto& [resource, description, state] = resources.at(id);
         resource = image.image;
         RETURN_ON_FAILURE(setStatusIf(resource == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
@@ -62,6 +63,10 @@ Upscaler::Status FSR3::VulkanGetResources(std::array<FfxApiResource, 6>& resourc
         };
         state = static_cast<uint32_t>(resourceUsage == FFX_API_RESOURCE_USAGE_UAV ? FFX_API_RESOURCE_STATE_UNORDERED_ACCESS : FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
+    return Success;
+}
+
+Upscaler::Status FSR3::VulkanGetCommandBuffer(void*& commandBuffer) {
     UnityVulkanRecordingState state {};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
@@ -77,11 +82,13 @@ Upscaler::Status FSR3::DX12Create(ffx::CreateContextDescUpscale& createContextDe
     return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendDX12Desc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
-Upscaler::Status FSR3::DX12GetResources(std::array<FfxApiResource, 6>& resources, void*& commandList) {
-    for (Plugin::ImageID id{Plugin::Color}; id <= (settings.autoReactive ? Plugin::Opaque : Plugin::Output); ++reinterpret_cast<uint8_t&>(id)) {
-        const FfxApiResorceUsage resourceUsage{id == Plugin::Depth ? FFX_API_RESOURCE_USAGE_DEPTHTARGET : id == Plugin::Output || id == Plugin::Reactive ? FFX_API_RESOURCE_USAGE_UAV : FFX_API_RESOURCE_USAGE_READ_ONLY};
+Upscaler::Status FSR3::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
+    for (Plugin::ImageID id{0}; id < (settings.autoReactive ? Plugin::NumImages : Plugin::NumBaseImages); ++reinterpret_cast<uint8_t&>(id)) {
+        FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
+        if (id == Plugin::Output || id == Plugin::Reactive)
+            resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
         auto& [resource, description, state] = resources.at(id);
-        resource = textures.at(id);
+        resource = images.at(id);
         RETURN_ON_FAILURE(setStatusIf(resource == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
         const D3D12_RESOURCE_DESC imageDescription = static_cast<ID3D12Resource*>(resource)->GetDesc();
         description = {
@@ -91,11 +98,15 @@ Upscaler::Status FSR3::DX12GetResources(std::array<FfxApiResource, 6>& resources
             .height=static_cast<uint32_t>(imageDescription.Height),
             .alignment=static_cast<uint32_t>(imageDescription.Alignment),
             .mipCount=1U,
-            .flags=FFX_API_RESOURCE_FLAGS_ALIASABLE,
+            .flags=FFX_API_RESOURCE_FLAGS_NONE,
             .usage=static_cast<uint32_t>(resourceUsage),
-          };
+        };
         state = static_cast<uint32_t>(resourceUsage == FFX_API_RESOURCE_USAGE_UAV ? FFX_API_RESOURCE_STATE_UNORDERED_ACCESS : FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
+    return Success;
+}
+
+Upscaler::Status FSR3::DX12GetCommandBuffer(void*& commandList) {
     UnityGraphicsD3D12RecordingState state {};
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     commandList = state.commandList;
@@ -136,21 +147,24 @@ void FSR3::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
 #    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
-            fpCreate       = &FSR3::VulkanCreate;
-            fpGetResources = &FSR3::VulkanGetResources;
+            fpCreate           = &FSR3::VulkanCreate;
+            fpSetResources     = &FSR3::VulkanSetResources;
+            fpGetCommandBuffer = &FSR3::VulkanGetCommandBuffer;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpCreate       = &FSR3::DX12Create;
-            fpGetResources = &FSR3::DX12GetResources;
+            fpCreate           = &FSR3::DX12Create;
+            fpSetResources     = &FSR3::DX12SetResources;
+            fpGetCommandBuffer = &FSR3::DX12GetCommandBuffer;
             break;
         }
 #    endif
         default: {
-            fpCreate       = &FSR3::invalidGraphicsAPIFail;
-            fpGetResources = &FSR3::invalidGraphicsAPIFail;
+            fpCreate           = &FSR3::invalidGraphicsAPIFail;
+            fpSetResources     = &FSR3::invalidGraphicsAPIFail;
+            fpGetCommandBuffer = &FSR3::invalidGraphicsAPIFail;
             break;
         }
     }
@@ -198,17 +212,16 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     ffx::CreateContextDescUpscale createContextDescUpscale;
     createContextDescUpscale.flags =
 #    ifndef NDEBUG
-        static_cast<unsigned>(FFX_UPSCALE_ENABLE_DEBUG_CHECKING) |
+      static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEBUG_CHECKING) |
 #    endif
-        static_cast<unsigned>(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE) |
-        static_cast<unsigned>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
-        static_cast<unsigned>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |
-        (optimalSettings.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U);
+      static_cast<uint32_t>(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE) |
+      static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
+      static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |
+      static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) |
+      (optimalSettings.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U);
     createContextDescUpscale.maxRenderSize  = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
     createContextDescUpscale.maxUpscaleSize = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
-#    ifndef NDEBUG
     createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR3::log);
-#    endif
 
     if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy AMD FidelityFx Super Resolution context");
     context = nullptr;
@@ -217,18 +230,21 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     return Success;
 }
 
+Upscaler::Status FSR3::useImages(const std::array<void*, Plugin::NumImages>& images) {
+    return (this->*fpSetResources)(images);
+}
+
 Upscaler::Status FSR3::evaluate() {
-    std::array<FfxApiResource, 6> resources {};
     void* commandBuffer {};
-    RETURN_ON_FAILURE((this->*fpGetResources)(resources, commandBuffer));
+    RETURN_ON_FAILURE((this->*fpGetCommandBuffer)(commandBuffer));
 
     if (settings.autoReactive) {
         ffx::DispatchDescUpscaleGenerateReactiveMask dispatchDescUpscaleGenerateReactiveMask;
         dispatchDescUpscaleGenerateReactiveMask.commandList     = commandBuffer;
-        dispatchDescUpscaleGenerateReactiveMask.colorOpaqueOnly = resources.at(Plugin::ImageID::Opaque);
-        dispatchDescUpscaleGenerateReactiveMask.colorPreUpscale = resources.at(Plugin::ImageID::Color);
-        dispatchDescUpscaleGenerateReactiveMask.outReactive     = resources.at(Plugin::ImageID::Reactive);
-        dispatchDescUpscaleGenerateReactiveMask.renderSize      = FfxApiDimensions2D {resources.at(Plugin::ImageID::Reactive).description.width, resources.at(Plugin::ImageID::Reactive).description.height};
+        dispatchDescUpscaleGenerateReactiveMask.colorOpaqueOnly = resources.at(Plugin::Opaque);
+        dispatchDescUpscaleGenerateReactiveMask.colorPreUpscale = resources.at(Plugin::Color);
+        dispatchDescUpscaleGenerateReactiveMask.outReactive     = resources.at(Plugin::Reactive);
+        dispatchDescUpscaleGenerateReactiveMask.renderSize      = FfxApiDimensions2D {resources.at(Plugin::Reactive).description.width, resources.at(Plugin::Reactive).description.height};
         dispatchDescUpscaleGenerateReactiveMask.scale           = settings.reactiveScale;
         dispatchDescUpscaleGenerateReactiveMask.cutoffThreshold = settings.reactiveThreshold;
         dispatchDescUpscaleGenerateReactiveMask.binaryValue     = settings.reactiveValue;
@@ -236,21 +252,21 @@ Upscaler::Status FSR3::evaluate() {
             static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_TONEMAP) |
             static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_APPLY_THRESHOLD) |
             static_cast<unsigned>(FFX_UPSCALE_AUTOREACTIVEFLAGS_USE_COMPONENTS_MAX);
-        RETURN_ON_FAILURE(setStatus(Dispatch(context, dispatchDescUpscaleGenerateReactiveMask), "Failed to dispatch AMD FidelityFx Super Resolution reactive mask generation and upscale commands."));
+        RETURN_ON_FAILURE(setStatus(Dispatch(context, dispatchDescUpscaleGenerateReactiveMask), "Failed to dispatch AMD FidelityFx Super Resolution reactive mask generation commands."));
     }
     ffx::DispatchDescUpscale dispatchDescUpscale;
     dispatchDescUpscale.commandList                = commandBuffer;
-    dispatchDescUpscale.color                      = resources.at(Plugin::ImageID::Color);
-    dispatchDescUpscale.depth                      = resources.at(Plugin::ImageID::Depth);
-    dispatchDescUpscale.motionVectors              = resources.at(Plugin::ImageID::Motion);
+    dispatchDescUpscale.color                      = resources.at(Plugin::Color);
+    dispatchDescUpscale.depth                      = resources.at(Plugin::Depth);
+    dispatchDescUpscale.motionVectors              = resources.at(Plugin::Motion);
     dispatchDescUpscale.exposure                   = FfxApiResource {};
-    dispatchDescUpscale.reactive                   = resources.at(Plugin::ImageID::Reactive);
+    dispatchDescUpscale.reactive                   = settings.autoReactive ? resources.at(Plugin::Reactive) : FfxApiResource {};
     dispatchDescUpscale.transparencyAndComposition = FfxApiResource {};
-    dispatchDescUpscale.output                     = resources.at(Plugin::ImageID::Output);
+    dispatchDescUpscale.output                     = resources.at(Plugin::Output);
     dispatchDescUpscale.jitterOffset               = FfxApiFloatCoords2D {settings.jitter.x, settings.jitter.y};
-    dispatchDescUpscale.motionVectorScale          = FfxApiFloatCoords2D {-static_cast<float>(resources.at(Plugin::ImageID::Motion).description.width), -static_cast<float>(resources.at(Plugin::ImageID::Motion).description.height)};
-    dispatchDescUpscale.renderSize                 = FfxApiDimensions2D {resources.at(Plugin::ImageID::Color).description.width, resources.at(Plugin::ImageID::Color).description.height};
-    dispatchDescUpscale.upscaleSize                = FfxApiDimensions2D {resources.at(Plugin::ImageID::Output).description.width, resources.at(Plugin::ImageID::Output).description.height};
+    dispatchDescUpscale.motionVectorScale          = FfxApiFloatCoords2D {-static_cast<float>(resources.at(Plugin::Motion).description.width), -static_cast<float>(resources.at(Plugin::Motion).description.height)};
+    dispatchDescUpscale.renderSize                 = FfxApiDimensions2D {resources.at(Plugin::Color).description.width, resources.at(Plugin::Color).description.height};
+    dispatchDescUpscale.upscaleSize                = FfxApiDimensions2D {resources.at(Plugin::Output).description.width, resources.at(Plugin::Output).description.height};
     dispatchDescUpscale.enableSharpening           = settings.sharpness > 0.0F;
     dispatchDescUpscale.sharpness                  = settings.sharpness;
     dispatchDescUpscale.frameTimeDelta             = settings.frameTime;

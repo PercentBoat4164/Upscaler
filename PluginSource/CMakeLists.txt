@@ -100,7 +100,7 @@ if (NOT ENABLE_VULKAN AND NOT ENABLE_DX12 AND NOT ENABLE_DX11)
     message(FATAL_ERROR "No graphics API(s) were enabled.")
 endif ()
 
-cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/Streamline-2.4.10")
+cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/Streamline-2.4.11")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/ffx_sdk")
 cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/XeSS_SDK-1.3.1")
 

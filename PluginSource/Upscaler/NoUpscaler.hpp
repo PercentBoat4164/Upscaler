@@ -4,11 +4,6 @@
 
 class NoUpscaler final : public Upscaler {
 public:
-#ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>& /*unused*/);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance /*unused*/, VkPhysicalDevice /*unused*/, const std::vector<std::string>& /*unused*/);
-#endif
-
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
 
@@ -24,10 +19,11 @@ public:
     }
 
     constexpr std::string getName() override {
-        return "Dummy upscaler";
+        return "No upscaler";
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) override;
+    Status useImages(const std::array<void*, Plugin::NumImages>& /*unused*/) override;
     Status evaluate() override;
 
     bool resetStatus() override;

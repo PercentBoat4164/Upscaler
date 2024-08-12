@@ -29,6 +29,8 @@ class XeSS final : public Upscaler {
 
     static SupportState supported;
 
+    std::array<void*, Plugin::NumBaseImages> resources{};
+
 #    ifdef ENABLE_DX12
     Status DX12Create(const xess_d3d12_init_params_t*);
     Status DX12Evaluate();
@@ -59,7 +61,7 @@ public:
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
-
+    Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
     Status evaluate() override;
 };
 #endif

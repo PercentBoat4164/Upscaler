@@ -17,9 +17,11 @@ class DLSS final : public Upscaler {
     static uint64_t applicationID;
 
     static void* (*fpGetDevice)();
-    static Status (DLSS::*fpGetResources)(std::array<sl::Resource, 4>&, void**);
+    static Status (DLSS::*fpSetResources)(const std::array<void*, Plugin::NumImages>& images);
+    static Status (DLSS::*fpGetCommandBuffer)(void*&);
 
     sl::ViewportHandle handle{0};
+    std::array<sl::Resource, Plugin::NumBaseImages> resources{};
 
     static decltype(&slInit)                   slInit;
     static decltype(&slSetD3DDevice)           slSetD3DDevice;
@@ -39,17 +41,20 @@ class DLSS final : public Upscaler {
     static void log(sl::LogType type, const char* msg);
 
 #    ifdef ENABLE_VULKAN
-    Status VulkanGetResources(std::array<sl::Resource, 4>& resources, void** commandBuffer);
+    Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);
+    Status VulkanGetCommandBuffer(void*& commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
-    Status       DX12GetResources(std::array<sl::Resource, 4>& resources, void** commandList);
     static void* DX12GetDevice();
+    Status       DX12SetResources(const std::array<void*, Plugin::NumImages>& images);
+    Status       DX12GetCommandBuffer(void*& commandList);
 #    endif
 
 #    ifdef ENABLE_DX11
-    Status       DX11GetResources(std::array<sl::Resource, 4>& resources, void** deviceContext);
     static void* DX11GetDevice();
+    Status       DX11SetResources(const std::array<void*, Plugin::NumImages>& images);
+    Status       DX11GetCommandBuffer(void*& deviceContext);
 #    endif
 
 public:
@@ -75,6 +80,7 @@ public:
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset preset, enum Settings::Quality mode, bool hdr) override;
+    Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
     Status evaluate() override;
 };
 #endif

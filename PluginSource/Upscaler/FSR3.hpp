@@ -16,21 +16,22 @@ class FSR3 final : public Upscaler {
     static SupportState supported;
 
     static Status (FSR3::*fpCreate)(ffx::CreateContextDescUpscale&);
-    static Status (FSR3::*fpGetResources)(std::array<FfxApiResource, 6>&, void*&);
+    static Status (FSR3::*fpSetResources)(const std::array<void*, Plugin::NumImages>&);
+    static Status (FSR3::*fpGetCommandBuffer)(void*&);
 
     ffx::Context context{};
+    std::array<FfxApiResource, Plugin::NumImages> resources{};
 
 #    ifdef ENABLE_VULKAN
     Status VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale);
-    Status VulkanGetResource(FfxApiResource& resource, Plugin::ImageID imageID);
-    Status VulkanGetResources(std::array<FfxApiResource, 6>& resources, void*& commandBuffer);
-    Status VulkanEvaluate();
+    Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);
+    Status VulkanGetCommandBuffer(void*& commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
     Status DX12Create(ffx::CreateContextDescUpscale& createContextDescUpscale);
-    Status DX12GetResources(std::array<FfxApiResource, 6>& resources, void*& commandList);
-    Status DX12Evaluate();
+    Status DX12SetResources(const std::array<void*, Plugin::NumImages>& images);
+    Status DX12GetCommandBuffer(void*& commandList);
 #    endif
 
     Status setStatus(ffx::ReturnCode t_error, const std::string &t_msg);
@@ -58,6 +59,7 @@ public:
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
+    Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
     Status evaluate() override;
 };
 #endif

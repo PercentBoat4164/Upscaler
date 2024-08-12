@@ -67,6 +67,7 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
 }
 
 void Vulkan::destroyImageView(VkImageView viewToDestroy) {
+    if (m_vkGetDeviceProcAddr == VK_NULL_HANDLE) m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(getGraphicsInterface()->Instance().instance, "vkGetDeviceProcAddr"));
     if (m_vkDestroyImageView == VK_NULL_HANDLE) m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(getGraphicsInterface()->Instance().device, "vkDestroyImageView"));
     if (viewToDestroy != VK_NULL_HANDLE) m_vkDestroyImageView(graphicsInterface->Instance().device, viewToDestroy, nullptr);
     viewToDestroy = VK_NULL_HANDLE;

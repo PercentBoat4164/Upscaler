@@ -2,6 +2,11 @@
  * This software contains source code provided by NVIDIA Corporation. *
  **********************************************************************/
 
+/**************************************************
+ * Upscaler v1.1.0                                *
+ * See the OfflineManual.pdf for more information *
+ **************************************************/
+
 using System;
 using System.Linq;
 using System.Net;
@@ -131,7 +136,6 @@ namespace Conifer.Upscaler.Editor
                     FOpaqueDownsampling.SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
             }
 
-            if (!upscaler.IsSupported(upscaler.quality)) upscaler.quality = Upscaler.Quality.Auto;
             upscaler.quality = (Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
