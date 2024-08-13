@@ -98,10 +98,11 @@ struct alignas(128) UpscalerBase {
         std::array<float, 3> up;
         std::array<float, 3> right;
         std::array<float, 3> forward;
-        bool  autoReactive{};
-        bool  orthographic{};
-        bool  hdr{};
-        bool  resetHistory{};
+        bool autoReactive{};
+        bool orthographic{};
+        bool debugView{};
+        bool hdr{};
+        bool resetHistory{};
 
         Jitter& getNextJitter(const float inputWidth);
 

@@ -125,9 +125,9 @@ namespace Conifer.Upscaler.URP
                 }
                 else
                 {
-                    _reactive?.Release();
-                    _reactive = null;
-                    _reactivePtr = IntPtr.Zero;
+                    // _reactive?.Release();
+                    // _reactive = null;
+                    // _reactivePtr = IntPtr.Zero;
                 }
 
                 if (Time.frameCount == 1) return;
@@ -141,6 +141,7 @@ namespace Conifer.Upscaler.URP
                 _lastMotion = thisMotion;
                 _lastOpaque = thisOpaque;
                 _lastTechnique = _upscaler.technique;
+                _lastReactive = _upscaler.useReactiveMask;
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

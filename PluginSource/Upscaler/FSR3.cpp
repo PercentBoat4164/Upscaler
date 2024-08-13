@@ -255,6 +255,7 @@ Upscaler::Status FSR3::evaluate() {
         RETURN_ON_FAILURE(setStatus(Dispatch(context, dispatchDescUpscaleGenerateReactiveMask), "Failed to dispatch AMD FidelityFx Super Resolution reactive mask generation commands."));
     }
     ffx::DispatchDescUpscale dispatchDescUpscale;
+    dispatchDescUpscale.flags                      = settings.debugView ? FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW : 0U;
     dispatchDescUpscale.commandList                = commandBuffer;
     dispatchDescUpscale.color                      = resources.at(Plugin::Color);
     dispatchDescUpscale.depth                      = resources.at(Plugin::Depth);

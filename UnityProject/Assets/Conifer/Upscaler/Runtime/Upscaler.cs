@@ -8,7 +8,11 @@
  **************************************************/
 
 using System;
+using System.Numerics;
 using UnityEngine;
+using UnityEngine.Rendering;
+using Matrix4x4 = UnityEngine.Matrix4x4;
+using Vector2 = UnityEngine.Vector2;
 
 namespace Conifer.Upscaler
 {
@@ -147,6 +151,9 @@ namespace Conifer.Upscaler
          * </remarks>
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
+
+        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
+        public bool debugView;
 
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
         public bool showRenderingAreaOverlay;

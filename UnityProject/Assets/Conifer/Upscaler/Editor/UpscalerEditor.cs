@@ -182,6 +182,8 @@ namespace Conifer.Upscaler.Editor
                 _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
                 if (_debugSettingsFoldout)
                 {
+                    if (upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
+                        upscaler.debugView = EditorGUILayout.Toggle("View Debug Images", upscaler.debugView);
                     upscaler.showRenderingAreaOverlay = EditorGUILayout.Toggle(
                         new GUIContent("Overlay Rendering Area",
                             "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),

@@ -27,7 +27,7 @@ struct alignas(128) UpscalingData {
     float up[3];
     float right[3];
     float forward[3];
-    unsigned orthographic;
+    unsigned orthographic_debugView;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
@@ -50,7 +50,8 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     upscaler.settings.reactiveValue     = data.reactiveValue;
     upscaler.settings.reactiveScale     = data.reactiveScale;
     upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-    upscaler.settings.orthographic      = (data.orthographic & 0b1U) != 0U;
+    upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
+    upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
     upscaler.evaluate();
     upscaler.settings.resetHistory = false;
 }

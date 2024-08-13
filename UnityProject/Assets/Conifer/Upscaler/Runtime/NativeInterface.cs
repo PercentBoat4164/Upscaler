@@ -108,7 +108,7 @@ namespace Conifer.Upscaler
                 _up = camera.transform.up;
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
-                _orthographic = (camera.orthographic ? 0b10U : 0b0U) | (upscaler.useReactiveMask ? 0b1U : 0b0U);
+                _orthographic_debugView = (camera.orthographic ? 0b1U : 0b0U) | (upscaler.debugView ? 0b10U : 0b0U);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -130,7 +130,7 @@ namespace Conifer.Upscaler
             private Vector3 _up;
             private Vector3 _right;
             private Vector3 _forward;
-            private uint _orthographic;
+            private uint _orthographic_debugView;
         }
 
         static NativeInterface()
