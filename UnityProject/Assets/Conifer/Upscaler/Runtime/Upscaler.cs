@@ -8,11 +8,7 @@
  **************************************************/
 
 using System;
-using System.Numerics;
 using UnityEngine;
-using UnityEngine.Rendering;
-using Matrix4x4 = UnityEngine.Matrix4x4;
-using Vector2 = UnityEngine.Vector2;
 
 namespace Conifer.Upscaler
 {
@@ -20,7 +16,7 @@ namespace Conifer.Upscaler
      * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
      * <see cref="UnityEngine.Camera"/> object.
      */
-    [RequireComponent(typeof(Camera))]
+    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v1.1.0")]
     public class Upscaler : MonoBehaviour
     {
         /**
@@ -65,7 +61,7 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * Passes special instructions to DLSS telling it how to deal with your application's idiosyncrasies.
+         * Uses different DLSS models in an effort to help it to deal with your application's idiosyncrasies.
          */
         [Serializable]
         public enum DlssPreset
@@ -113,11 +109,8 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Does a <see cref="Status"/> represent a success state?</summary>
-         *
          * <param name="status">The <see cref="Status"/> in question.</param>
-         *
          * <returns><c>true</c> if the <see cref="Status"/> is success-y and <c>false</c> if not.</returns>
-         *
          * <remarks>This returns <c>true</c> only for <see cref="Status.Success"/>. Being a <see cref="Success"/>
          * <see cref="Status"/> means that the <see cref="Technique"/> in question is usable in its current state.
          * </remarks>
@@ -126,11 +119,8 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Does a <see cref="Status"/> represent a fail state?</summary>
-         *
          * <param name="status">The <see cref="Status"/> in question.</param>
-         *
          * <returns><c>true</c> if the <see cref="Status"/> is an error and <c>false</c> if not.</returns>
-         *
          * <remarks>This returns <c>true</c> for all <see cref="Status"/>es that are not <see cref="Status.Success"/>.
          * Being a <see cref="Failure"/> <see cref="Status"/> means that the <see cref="Technique"/> in question
          * is not usable in its current state. See <see cref="Recoverable"/> to determine if fixing the problem is
@@ -140,11 +130,8 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Is a <see cref="Status"/> recoverable from?</summary>
-         *
          * <param name="status">The <see cref="Status"/> to determine the recoverability of.</param>
-         *
          * <returns><c>true</c> if the <see cref="Status"/> is recoverable and <c>false</c> if not.</returns>
-         *
          * <remarks><see cref="Success"/> <see cref="Status"/>es are not recoverable. Being <see cref="Recoverable"/>
          * means that it is possible to put the <see cref="Technique"/> back into a <see cref="Success"/> state.
          * Non-recoverable <see cref="Status"/>es are fatal for the <see cref="Technique"/> that reports them.
@@ -154,10 +141,8 @@ namespace Conifer.Upscaler
 
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
         public bool debugView;
-
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
         public bool showRenderingAreaOverlay;
-
         /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame.
         public bool forceHistoryResetEveryFrame;
 
@@ -203,15 +188,12 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws.</summary>
-         *
          * <param name="Status">The <see cref="Status"/> that the <see cref="Technique"/> errored with.</param>
          * <param name="string">A plain English message describing the nature of the issue.</param>
-         *
          * <remarks>This callback is only ever called if an error occurs. When that happens it will be called from the
          * <see cref="Update"/> method during the next frame. If this callback fails to bring the
          * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the default error
          * handler will reset the current <see cref="Technique"/> to the default <see cref="Technique.None"/>.</remarks>
-         *
          * <example><code>upscaler.ErrorCallback = (status, message) => { };</code></example>
          */
         [NonSerialized] public Action<Status, string> ErrorCallback;
@@ -227,12 +209,12 @@ namespace Conifer.Upscaler
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
         private DlssPreset _dlssPreset;
-        /// The current sharpness value. This should always be in the range of <c>0.0</c> to <c>1.0</c>. Defaults to <c>0.0</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float sharpness;
+        /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>3.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float sharpness = 0.3f;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public bool useReactiveMask;
-        /// Maximum reactive value. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float reactiveValue = 0.6f;
+        public bool useReactiveMask = true;
+        /// Maximum reactive value. More reactivity favors newer information. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        public float reactiveMax = 0.6f;
         /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Conifer has found that <c>0.9f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveScale = 0.9f;
         /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
@@ -240,9 +222,7 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
-         *
          *<returns>Returns the 'best' supported technique.</returns>
-         *
          * <remarks>Selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
@@ -256,14 +236,11 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Tells the <see cref="Technique"/> to reset the pixel history this frame.</summary>
-         *
          * <remarks>This method is fast. It will set a flag that tells the <see cref="Technique"/> to reset the pixel
          * history this frame.This flag is automatically cleared at the end of each frame. This should be only called
          * everytime there is no correlation between what the camera saw last frame and what it sees this frame.
-         *
          * This method is called whenever the <c>resetHistory</c> flag is on in the <c>UniversalAdditionalCameraData</c>
          * .</remarks>
-         *
          * <example><code>
          * CameraJumpCut(newLocation);
          * upscaler.ResetHistory();
@@ -273,15 +250,11 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Check if an <see cref="Technique"/> is supported in the current environment.</summary>
-         *
          * <param name="type">The <see cref="Technique"/> to query support for.</param>
-         *
          * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.</returns>
-         *
          * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast every time
          * after that. Support for the <see cref="Technique"/> requested is computed then cached. Any future calls with
          * the same <see cref="Technique"/> will use the cached value.</remarks>
-         *
          * <example><code>bool DLSSSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
          * </code></example>
          */
@@ -290,16 +263,12 @@ namespace Conifer.Upscaler
         /**
          * <summary>Check if a <see cref="Quality"/> mode is supported by a given
          * <see cref="Technique"/>.</summary>
-         *
          * <param name="type">The <see cref="Technique"/> to query.</param>
          * <param name="mode">The <see cref="Quality"/> mode to query support for.</param>
-         *
          * <returns><c>true</c> if the <see cref="Technique"/> supports the requested <see cref="Quality"/> mode and
          * <c>false</c> if it does not.</returns>
-         *
          * <remarks>This method is always fast. Every non-<see cref="Technique.None"/> <see cref="Technique"/> will
          * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode.</remarks>
-         *
          * <example><code>bool supportsAA = upscaler.IsSupported(
          *   Upscaler.Technique.DeepLearningSuperSampling,
          *   Upscaler.Quality.AntiAliasing
@@ -309,46 +278,45 @@ namespace Conifer.Upscaler
 
         /**
          * <summary>Check if a <see cref="Quality"/> mode is supported by the current <see cref="Technique"/>.</summary>
-         *
          * <param name="mode">The <see cref="Quality"/> mode to query the current <see cref="Technique"/> for support of
          * .</param>
-         *
          * <returns><c>true</c> if the current <see cref="Technique"/> supports the requested <see cref="Quality"/> mode
          * and <c>false</c> if it does not.</returns>
-         *
          * <remarks>This method is always fast. This is a convenience method for
          * <see cref="IsSupported(Technique, Quality)"/> that uses this upscaler's <see cref="Technique"/> as the first
          * argument. </remarks>
-         *
          * <example><code>bool supportsAA = upscaler.IsSupported(Upscaler.Quality.AntiAliasing);</code></example>
          */
         public bool IsSupported(Quality mode) => IsSupported(technique, mode);
 
         /**
          * <summary>Check if the <c>GfxPluginUpscaler</c> shared library has been loaded.</summary>
-         *
          * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c>
          * if it has not been.</returns>
-         *
          * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
          */
         public static bool PluginLoaded() => NativeInterface.Loaded;
 
         /**
+         * <summary>Sets the log level filter for the C++ backend.</summary>
+         * <param name="level">The minimum log level that messages must be before they are logged.</param>
+         * <remarks>This applies to all instances of the Upscaler script globally. This method is very fast. The first
+         * time this method is called all previously recorded messages will be filtered, then pushed. This method is
+         * probably first called by Upscaler's Inspector GUI.</remarks>
+         */
+        public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
+
+        /**
          * <summary>Use the new settings. This does not need to be called when adjusting dynamic resolution. Simply
          * change <see cref="InputResolution"/>.</summary>
-         *
          * <param name="force">Should the settings be applied even if they are the same as before? Defaults to
          * <c>false</c>. <b>USE WITH DISCRETION.</b></param>
-         *
          * <returns>The <see cref="Status"/> of the upscaler after attempting to apply settings.</returns>
-         *
          * <remarks>This method is very slow when the settings have changed, or if <see cref="force"/> is set to
          * <c>true</c>. When that is the case it will update the <see cref="InputResolution"/> based on a query of the
          * new <see cref="Technique"/>. An important thing to note is that when <see cref="force"/> is set to
          * <c>true</c> all settings validation is disabled. This is done to ensure that the settings are pushed to the
          * upscaler, but does mean that using this option <em>can</em> crash Unity.</remarks>
-         *
          * <example><code>upscaler.ApplySettings();</code></example>
          */
         public Status ApplySettings(bool force = false)

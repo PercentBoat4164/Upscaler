@@ -42,6 +42,7 @@ public:
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
+    static void setSupported();
 
     FSR3();
     FSR3(const FSR3&)            = delete;

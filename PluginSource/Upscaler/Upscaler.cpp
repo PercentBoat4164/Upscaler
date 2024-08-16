@@ -9,8 +9,6 @@
 #include <memory>
 #include <utility>
 
-void (*Upscaler::logCallback)(const char* msg){nullptr};
-
 float UpscalerBase::Settings::JitterState::advance(const uint32_t maxIterations) {
     if (++iterations >= maxIterations) {
         n          = 0U;
@@ -96,10 +94,6 @@ std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     }
 }
 
-void Upscaler::setLogCallback(void (*pFunction)(const char*)) {
-    logCallback = pFunction;
-}
-
 void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 #ifdef ENABLE_DLSS
     DLSS::useGraphicsAPI(type);
@@ -109,6 +103,18 @@ void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 #endif
 #ifdef ENABLE_XESS
     XeSS::useGraphicsAPI(type);
+#endif
+}
+
+void Upscaler::setSupported() {
+#ifdef ENABLE_DLSS
+    DLSS::setSupported();
+#endif
+#ifdef ENABLE_FSR3
+    FSR3::setSupported();
+#endif
+#ifdef ENABLE_XESS
+    XeSS::setSupported();
 #endif
 }
 

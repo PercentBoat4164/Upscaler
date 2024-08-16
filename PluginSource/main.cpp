@@ -56,16 +56,21 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     upscaler.settings.resetHistory = false;
 }
 
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrectly() {
+    return Plugin::loadedCorrectly;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(const UnityLogType type) {
+    Plugin::logLevel = type;
+    Plugin::log("", type);
+}
+
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
     return Plugin::Unity::eventIDBase;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
     return INTERNAL_UpscaleCallback;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RegisterGlobalLogCallback(void(logCallback)(const char*)) {
-    Upscaler::setLogCallback(logCallback);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSupported(const Upscaler::Type type) {
@@ -143,6 +148,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCa
 static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize:
+            Plugin::loadedCorrectly = true;
+            Upscaler::setSupported();
             GraphicsAPI::initialize(Plugin::Unity::graphicsInterface->GetRenderer());
             break;
         case kUnityGfxDeviceEventShutdown:
@@ -155,6 +162,8 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDev
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {
     GraphicsAPI::registerUnityInterfaces(unityInterfaces);
+    Plugin::Unity::interfaces        = unityInterfaces;
+    Plugin::Unity::logInterface      = unityInterfaces->Get<IUnityLog>();
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
     Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
     Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(1);
@@ -163,4 +172,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     GraphicsAPI::unregisterUnityInterfaces();
     Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
+    Plugin::Unity::interfaces        = nullptr;
+    Plugin::Unity::graphicsInterface = nullptr;
 }

@@ -23,7 +23,7 @@
 
 HMODULE FSR3::library{nullptr};
 uint32_t FSR3::users{};
-Upscaler::SupportState FSR3::supported{Untested};
+Upscaler::SupportState FSR3::supported{Unsupported};
 
 Upscaler::Status (FSR3::*FSR3::fpCreate)(ffx::CreateContextDescUpscale&){&FSR3::safeFail};
 Upscaler::Status (FSR3::*FSR3::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&FSR3::safeFail};
@@ -131,7 +131,13 @@ void FSR3::log(const FfxApiMsgType type, const wchar_t *t_msg) {
     std::wstring message(t_msg);
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
-    if (logCallback != nullptr) logCallback(msg.c_str());
+    UnityLogType unityType = kUnityLogTypeLog;
+    switch (type) {
+        case FFX_API_MESSAGE_TYPE_ERROR: unityType = kUnityLogTypeError; break;
+        case FFX_API_MESSAGE_TYPE_WARNING: unityType = kUnityLogTypeWarning; break;
+        default: break;
+    }
+    Plugin::log(msg, unityType);
 }
 
 bool FSR3::isSupported() {
@@ -168,6 +174,10 @@ void FSR3::useGraphicsAPI(const GraphicsAPI::Type type) {
             break;
         }
     }
+}
+
+void FSR3::setSupported() {
+    supported = Untested;
 }
 
 FSR3::FSR3() {
@@ -211,9 +221,7 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
 
     ffx::CreateContextDescUpscale createContextDescUpscale;
     createContextDescUpscale.flags =
-#    ifndef NDEBUG
       static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEBUG_CHECKING) |
-#    endif
       static_cast<uint32_t>(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE) |
       static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
       static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |

@@ -19,6 +19,8 @@
 #    include <xess/xess.h>
 #endif
 
+#include "IUnityLog.h"
+
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -34,7 +36,7 @@
 0
 #define RETURN_VOID_ON_FAILURE(x) if (Upscaler::failure(x)) return
 
-struct alignas(128) UpscalerBase {
+struct alignas(512) UpscalerBase {
     constexpr static uint8_t SamplesPerPixel = 8U;
 
     enum Type {
@@ -104,7 +106,7 @@ struct alignas(128) UpscalerBase {
         bool hdr{};
         bool resetHistory{};
 
-        Jitter& getNextJitter(const float inputWidth);
+        Jitter& getNextJitter(float inputWidth);
 
 #ifdef ENABLE_DLSS
         template<Type T, typename = std::enable_if_t<T == DLSS>>
@@ -205,8 +207,6 @@ protected:
     template<typename... Args> constexpr Status succeed(Args... /*unused*/) {return Success;}
     template<typename T, typename... Args> static constexpr T nullFunc(Args... /*unused*/) {return {};}
 
-    static void (*logCallback)(const char* msg);
-
 public:
 #ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
@@ -216,8 +216,8 @@ public:
     static bool                      isSupported(Type type);
     static bool                      isSupported(Type type, enum Settings::Quality mode);
     static std::unique_ptr<Upscaler> fromType(Type type);
-    static void                      setLogCallback(void (*pFunction)(const char*));
     static void                      useGraphicsAPI(GraphicsAPI::Type type);
+    static void                      setSupported();
 
     Upscaler()                           = default;
     Upscaler(const Upscaler&)            = delete;

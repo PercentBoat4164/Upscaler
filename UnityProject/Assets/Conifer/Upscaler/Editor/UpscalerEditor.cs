@@ -15,7 +15,6 @@ using System.IO;
 using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.Editor
@@ -23,53 +22,167 @@ namespace Conifer.Upscaler.Editor
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
-        private static bool _installationFoldout = !Upscaler.PluginLoaded();
-        private bool _advancedSettingsFoldout;
-        private bool _debugSettingsFoldout;
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        private enum UpdateStage
+        {
+            None,
+            Ngx,
+            Dlss,
+            Common,
+            Streamline
+        }
+        private Upscaler.Technique _updating = Upscaler.Technique.None;
+        private UpdateStage _updateStage = UpdateStage.None;
+        private static readonly string LibraryPath = Application.dataPath + "/Plugins/";
+        private static string _installedStreamlineVersion = "";
+        private const string ThisStreamlineVersion = "2.4.11";
+        private static string _installedXessVersion = "";
+        private const string ThisXessVersion = "1.3.1";
         private static bool _needsRestart;
-        private static readonly string DlssLibraryPath = Application.dataPath + "/Plugins/nvngx_dlss.dll";
-        [SerializeField] private static uint _dlssUpdateNumber;
-        private const uint ThisDlssUpdateNumber = 1;
-        private static readonly string XessLibraryPath = Application.dataPath + "/Plugins/libxess.dll";
-        [SerializeField] private static uint _xessUpdateNumber;
-        private const uint ThisXessUpdateNumber = 1;
+
+        private readonly WebClient _webClient = new();
+        private int _downloadProgress = -1;
+
+        [SerializeField] private bool installationFoldout;
+        [SerializeField] private bool advancedSettingsFoldout;
+        [SerializeField] private bool debugSettingsFoldout;
+
+        private SerializedProperty _technique;
+        private SerializedProperty _quality;
+        private SerializedProperty _dlssPreset;
+        private SerializedProperty _sharpness;
+        private SerializedProperty _useReactiveMask;
+        private SerializedProperty _reactiveMax;
+        private SerializedProperty _reactiveScale;
+        private SerializedProperty _reactiveThreshold;
+        private SerializedProperty _debugView;
+        private SerializedProperty _showRenderingAreaOverlay;
+        private SerializedProperty _forceHistoryResetEveryFrame;
+
+        private void OnEnable()
+        {
+            _webClient.DownloadProgressChanged += (_, args) => _downloadProgress = args.ProgressPercentage;
+            _webClient.DownloadFileCompleted += (_, _) =>
+            {
+                if (_updating == Upscaler.Technique.XeSuperSampling)
+                {
+                    _installedXessVersion = ThisXessVersion;
+                    _downloadProgress = -1;
+                }
+                else
+                {
+                    switch (_updateStage)
+                    {
+                        case UpdateStage.Ngx:
+                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.dlss.dll"), LibraryPath + "sl.dlss.dll");
+                            _updateStage = UpdateStage.Dlss;
+                            break;
+                        case UpdateStage.Dlss:
+                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.common.dll"), LibraryPath + "sl.common.dll");
+                            _updateStage = UpdateStage.Common;
+                            break;
+                        case UpdateStage.Common:
+                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.interposer.dll"), LibraryPath + "sl.interposer.dll");
+                            _updateStage = UpdateStage.Streamline;
+                            break;
+                        case UpdateStage.Streamline:
+                            _downloadProgress = -1;
+                            _installedStreamlineVersion = ThisStreamlineVersion;
+                            _updateStage = UpdateStage.None;
+                            _needsRestart = true;
+                            break;
+                        case UpdateStage.None:
+                        default: break;
+                    }
+                }
+            };
+
+            installationFoldout = EditorPrefs.GetBool("installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
+            advancedSettingsFoldout = EditorPrefs.GetBool("advancedSettingsFoldout", false);
+            debugSettingsFoldout = EditorPrefs.GetBool("debugSettingsFoldout", false);
+            _installedStreamlineVersion = EditorPrefs.GetString("installedDlssVersion", "");
+            _installedXessVersion = EditorPrefs.GetString("installedXessVersion", "");
+
+            _technique = serializedObject.FindProperty("technique");
+            _quality = serializedObject.FindProperty("quality");
+            _dlssPreset = serializedObject.FindProperty("dlssPreset");
+            _sharpness = serializedObject.FindProperty("sharpness");
+            _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
+            _reactiveMax = serializedObject.FindProperty("reactiveMax");
+            _reactiveScale = serializedObject.FindProperty("reactiveScale");
+            _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
+            _debugView = serializedObject.FindProperty("debugView");
+            _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
+            _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
+
+            var icon = new Texture2D(2, 2);
+            icon.LoadImage(File.ReadAllBytes(Application.dataPath + "/Conifer/Upscaler/Editor/ConiferLogo.png"));
+            EditorGUIUtility.SetIconForObject(serializedObject.targetObject, icon);
+        }
+
+        private void OnDisable()
+        {
+            EditorPrefs.SetBool("installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
+            EditorPrefs.SetBool("advancedSettingsFoldout", advancedSettingsFoldout);
+            EditorPrefs.SetBool("debugSettingsFoldout", debugSettingsFoldout);
+            EditorPrefs.SetString("installedDlssVersion", _installedStreamlineVersion);
+            EditorPrefs.SetString("installedXessVersion", _installedXessVersion);
+        }
 
         public override void OnInspectorGUI()
         {
+            var dlssInstalled = File.Exists(LibraryPath + "sl.interposer.dll");
+            var xessInstalled = File.Exists(LibraryPath + "libxess.dll");
             EditorGUI.indentLevel += 1;
-            _installationFoldout = EditorGUILayout.Foldout(_installationFoldout, "Third-party Library Installation and Licenses");
-            if (_installationFoldout)
+            if (!dlssInstalled || !xessInstalled || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion)
+                EditorGUILayout.HelpBox("A third-party library update is required.", MessageType.Error);
+            installationFoldout = EditorGUILayout.Foldout(installationFoldout, "Third-party Library Installation and Licenses");
+            if (installationFoldout)
             {
                 EditorGUILayout.HelpBox("AMD FSR is included with Upscaler and is provided under the MIT license.", MessageType.Info);
+
                 EditorGUILayout.Separator();
-                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license.")) Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
-                var dlssInstalled = File.Exists(DlssLibraryPath);
-                EditorGUILayout.HelpBox(dlssInstalled ? "You have agreed to the NVIDIA RTX license." : "By clicking the below buttons you agree to the above NVIDIA RTX license.", MessageType.Info);
-                if (_dlssUpdateNumber != ThisDlssUpdateNumber && GUILayout.Button((dlssInstalled ? "Update" : "Install") + " DLSS Windows library"))
-                {
-                    new WebClient().DownloadFile("https://github.com/NVIDIA/DLSS/raw/ec405c6443583977a50d5842b244d3e498728f86/lib/Windows_x86_64/rel/nvngx_dlss.dll", DlssLibraryPath);
-                    _dlssUpdateNumber = ThisDlssUpdateNumber;
-                    _needsRestart = true;
+                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license."))
+                    Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
+                EditorGUILayout.HelpBox(dlssInstalled ? "You have agreed to the NVIDIA RTX license." : "By clicking the below button you agree to the above NVIDIA RTX license.", MessageType.Info);
+                if (_downloadProgress < 0 && _installedStreamlineVersion != ThisStreamlineVersion || !dlssInstalled) {
+                    if (Upscaler.PluginLoaded()) EditorGUILayout.HelpBox("Upscaler can only update DLSS when its DLL is not loaded. Uncheck 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' then restart Unity.", MessageType.Error);
+                    else if (GUILayout.Button((dlssInstalled ? "Update" : "Install") + " DLSS library"))
+                    {
+                        _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/nvngx_dlss.dll"), LibraryPath + "nvngx_dlss.dll");
+                        _updating = Upscaler.Technique.DeepLearningSuperSampling;
+                        _updateStage = UpdateStage.Ngx;
+                        _downloadProgress = 0;
+                    }
                 }
+                else if (_downloadProgress >= 0 && _updating == Upscaler.Technique.DeepLearningSuperSampling)
+                    EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight), _downloadProgress / 100.0f, "Installing DLSS ...");
+
                 EditorGUILayout.Separator();
-                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License.")) Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
-                var xessInstalled = File.Exists(XessLibraryPath);
+                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License."))
+                    Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
                 EditorGUILayout.HelpBox(xessInstalled ? "You have agreed to the Intel Simplified Software License." : "By clicking the below button you agree to the above Intel Simplified Software License.", MessageType.Info);
-                if (_xessUpdateNumber != ThisXessUpdateNumber && GUILayout.Button((xessInstalled ? "Update" : "Install") + " XeSS Windows library"))
-                {
-                    new WebClient().DownloadFile("https://github.com/intel/xess/raw/1d593fd8a2634a06d0d812bd574aa3031313ded0/bin/libxess.dll", XessLibraryPath);
-                    _xessUpdateNumber = ThisXessUpdateNumber;
+                if (_downloadProgress < 0 && _installedXessVersion != ThisXessVersion || !xessInstalled) {
+                    if (EditorApplication.isPlaying) EditorGUILayout.HelpBox("Upscaler can only update XeSS when its DLL is not loaded. Stop the application and try again.", MessageType.Error);
+                    else if (GUILayout.Button((xessInstalled ? "Update" : "Install") + " XeSS library"))
+                    {
+                        _webClient.DownloadFileAsync(new Uri("https://github.com/intel/xess/raw/1d593fd8a2634a06d0d812bd574aa3031313ded0/bin/libxess.dll"), LibraryPath + "libxess.dll");
+                        _updating = Upscaler.Technique.XeSuperSampling;
+                        _updateStage = UpdateStage.None;
+                        _downloadProgress = 0;
+                    }
                 }
+                else if (_downloadProgress >= 0 && _updating == Upscaler.Technique.XeSuperSampling)
+                    EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight), _downloadProgress / 100.0f, "Installing XeSS ...");
             }
             EditorGUI.indentLevel -= 1;
-            if (_needsRestart) EditorGUILayout.HelpBox("You must restart Unity to load the DLSS library.", MessageType.Warning);
-
-            if (!Upscaler.PluginLoaded())
+            if (!dlssInstalled || !xessInstalled || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion) return;
+            if (_needsRestart || !Upscaler.PluginLoaded())
             {
-                EditorGUILayout.HelpBox("You may need to restart Unity to load the Upscaler Native Plugin.", MessageType.Error);
+                EditorGUILayout.HelpBox("You may need to restart Unity to load the Upscaler Native Plugin and DLLs. Make sure that 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' is enabled.", MessageType.Error);
                 return;
             }
 
@@ -77,7 +190,7 @@ namespace Conifer.Upscaler.Editor
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var features = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
-                [(FRenderers.GetValue(GraphicsSettings.renderPipelineAsset) as ScriptableRenderer[])!
+                [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                     .Select((renderer, index) => new { renderer, index })
                     .First(i => i.renderer == cameraData.scriptableRenderer).index
                 ].rendererFeatures;
@@ -97,18 +210,17 @@ namespace Conifer.Upscaler.Editor
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
 
-            if (!Upscaler.IsSupported(upscaler.technique)) upscaler.technique = Upscaler.GetBestSupportedTechnique();
-            upscaler.technique = (Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), upscaler.technique, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
+            if (!Upscaler.IsSupported((Upscaler.Technique)_technique.intValue)) _technique.intValue = (int)Upscaler.GetBestSupportedTechnique();
+            _technique.intValue = (int)(Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), (Upscaler.Technique)_technique.intValue, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
 
-            if (upscaler.technique != Upscaler.Technique.None)
+            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
-                if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.upscalingFilter is UpscalingFilterSelection.FSR)
+                if (UniversalRenderPipeline.asset?.upscalingFilter is UpscalingFilterSelection.FSR)
                 {
                     EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
                         MessageType.Error);
                     if (GUILayout.Button("Set to 'Automatic'"))
-                        (GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)!.upscalingFilter =
-                            UpscalingFilterSelection.Auto;
+                        UniversalRenderPipeline.asset!.upscalingFilter = UpscalingFilterSelection.Auto;
                 }
                 if (cameraData.antialiasing != AntialiasingMode.None)
                 {
@@ -121,56 +233,70 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
                 }
             }
-            /* @todo Make our own opaque texture when we need to then remove this warning and the one below it?*/
-            if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.supportsCameraOpaqueTexture is false)
+            if (UniversalRenderPipeline.asset?.supportsCameraOpaqueTexture is false)
             {
                 EditorGUILayout.HelpBox("Upscaler requires access the 'Opaque Texture'.", MessageType.Warning);
                 if (GUILayout.Button("Enable 'Opaque Texture'"))
-                    (GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)!
-                        .supportsCameraOpaqueTexture = true;
+                    UniversalRenderPipeline.asset.supportsCameraOpaqueTexture = true;
             }
-            if ((GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset)?.opaqueDownsampling is not Downsampling.None)
+            if (UniversalRenderPipeline.asset?.opaqueDownsampling is not Downsampling.None)
             {
                 EditorGUILayout.HelpBox("set 'Opaque Downsampling' to 'None' for best results.", MessageType.Warning);
                 if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
-                    FOpaqueDownsampling.SetValue(GraphicsSettings.renderPipelineAsset, Downsampling.None);
+                    FOpaqueDownsampling.SetValue(UniversalRenderPipeline.asset, Downsampling.None);
             }
 
-            upscaler.quality = (Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
+            _quality.intValue = (int)(Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
-                upscaler.quality, x => upscaler.technique == Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Quality)x), false);
+                (Upscaler.Quality)_quality.intValue, x => (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Quality)x), false);
 
             var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution) || !Application.isPlaying;
-            if (upscaler.technique != Upscaler.Technique.None && !dynamicResolutionSupported)
+            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
-            if (upscaler.technique != Upscaler.Technique.None)
+            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
                 EditorGUILayout.Separator();
                 EditorGUI.indentLevel += 1;
-                if (upscaler.technique != Upscaler.Technique.XeSuperSampling)
+                if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling)
                 {
-                    _advancedSettingsFoldout = EditorGUILayout.Foldout(_advancedSettingsFoldout, "Advanced Settings");
-                    if (_advancedSettingsFoldout)
+                    advancedSettingsFoldout = EditorGUILayout.Foldout(advancedSettingsFoldout, "Advanced Settings");
+                    if (advancedSettingsFoldout)
                     {
-                        switch (upscaler.technique)
+                        switch ((Upscaler.Technique)_technique.intValue)
                         {
                             case Upscaler.Technique.FidelityFXSuperResolution:
-                                upscaler.sharpness = EditorGUILayout.Slider(
-                                    new GUIContent("Sharpness"), upscaler.sharpness, 0f, 1f);
-                                upscaler.useReactiveMask =
-                                    EditorGUILayout.Toggle("Use Reactive Mask", upscaler.useReactiveMask);
-                                if (upscaler.useReactiveMask)
+                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness",
+                                        "Controls the amount of RCAS sharpening to apply after upscaling. Too much will produce a dirty, crunchy image. Too little will produce a smooth, blurry image. A good balance will produce a clear, clean image\n\nConifer's default: 0.3f"),
+                                    _sharpness.floatValue, 0f, 1f);
+                                _useReactiveMask.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Reactive Mask",
+                                    "Enable the use of an automatically generated reactive mask. This can greatly improve quality if the parameters are refined well for your application."),
+                                    _useReactiveMask.boolValue);
+                                if (_useReactiveMask.boolValue)
                                 {
-                                    upscaler.reactiveValue = EditorGUILayout.Slider("Reactivity Value", upscaler.reactiveValue, 0, 1.0f);
-                                    upscaler.reactiveScale = EditorGUILayout.Slider("Reactivity Scale", upscaler.reactiveScale, 0, 1.0f);
-                                    upscaler.reactiveThreshold = EditorGUILayout.Slider("Reactivity Threshold", upscaler.reactiveThreshold, 0, 1.0f);
+                                    EditorGUI.indentLevel += 1;
+                                    _reactiveMax.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Max",
+                                            "Maximum reactive value. More reactivity favors newer information.\n\nConifer's default: 0.6f"),
+                                        _reactiveMax.floatValue, 0, 1.0f);
+                                    _reactiveScale.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Scale",
+                                            "Value used to scale reactive mask after generation. Larger values result in more reactive pixels.\n\nConifer's default: 0.9f"),
+                                        _reactiveScale.floatValue, 0, 1.0f);
+                                    _reactiveThreshold.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Threshold",
+                                            "Minimum reactive threshold. Increase to make more of the image reactive.\n\nConifer's default: 0.3f"),
+                                        _reactiveThreshold.floatValue, 0, 1.0f);
+                                    EditorGUI.indentLevel -= 1;
                                 }
                                 break;
                             case Upscaler.Technique.DeepLearningSuperSampling:
-                                upscaler.dlssPreset = (Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
-                                    new GUIContent("DLSS Preset"), upscaler.dlssPreset);
+                                _dlssPreset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
+                                    new GUIContent("DLSS Preset",
+                                        "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
+                                        "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
+                                        "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
+                                        "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
+                                        "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
+                                    (Upscaler.DlssPreset)_dlssPreset.intValue);
                                 break;
                             case Upscaler.Technique.None: break;
                             case Upscaler.Technique.XeSuperSampling: break;
@@ -179,33 +305,41 @@ namespace Conifer.Upscaler.Editor
                     }
                 }
                 EditorGUILayout.Separator();
-                _debugSettingsFoldout = EditorGUILayout.Foldout(_debugSettingsFoldout, "Debug Settings");
-                if (_debugSettingsFoldout)
+                debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
+                if (debugSettingsFoldout)
                 {
-                    if (upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
-                        upscaler.debugView = EditorGUILayout.Toggle("View Debug Images", upscaler.debugView);
-                    upscaler.showRenderingAreaOverlay = EditorGUILayout.Toggle(
+                    if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution)
+                        _debugView.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("View Debug Images",
+                                "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),
+                            _debugView.boolValue);
+                    _showRenderingAreaOverlay.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("Overlay Rendering Area",
                             "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),
-                        upscaler.showRenderingAreaOverlay);
-                    upscaler.forceHistoryResetEveryFrame = EditorGUILayout.Toggle(
+                        _showRenderingAreaOverlay.boolValue);
+                    _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("Force History Reset",
                             "Forces the active upscaler to ignore it's internal history buffer."),
-                        upscaler.forceHistoryResetEveryFrame);
+                        _forceHistoryResetEveryFrame.boolValue);
                     if (dynamicResolutionSupported)
                     {
                         var resolution = EditorGUILayout.Slider(
-                            new GUIContent("Dynamic Resolution", "Sets the dynamic resolution values."),
+                            new GUIContent("Dynamic Resolution",
+                                "Sets the width of the rendering (input) resolution."),
                             upscaler.InputResolution.x, upscaler.MinInputResolution.x,
                             upscaler.MaxInputResolution.x);
                         upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
                             (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                     }
+                    var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("logLevel", (int)LogType.Warning));
+                    EditorPrefs.SetInt("logLevel", (int)logLevel);
+                    Upscaler.SetLogLevel(logLevel);
                 }
 
                 EditorGUI.indentLevel -= 1;
             }
 
+            serializedObject.ApplyModifiedProperties();
             upscaler.ApplySettings();
         }
     }

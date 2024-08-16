@@ -9,24 +9,25 @@
 
 using System;
 using System.Runtime.InteropServices;
-using AOT;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler
 {
-    public delegate void LogCallbackDelegate(IntPtr msg);
 
     internal struct Native
     {
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
+        internal static extern bool LoadedCorrectly();
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
+        internal static extern bool SetLogLevel(LogType type);
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
         internal static extern int GetEventIDBase();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRenderingEventCallback")]
         internal static extern IntPtr GetRenderingEventCallback();
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterGlobalLogCallback")]
-        internal static extern void RegisterLogCallback(LogCallbackDelegate logCallback);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsUpscalerSupported")]
         internal static extern bool IsSupported(Upscaler.Technique type);
@@ -80,16 +81,13 @@ namespace Conifer.Upscaler
         private readonly IntPtr _renderingEventCallback;
         private readonly IntPtr _dataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
 
-        [MonoPInvokeCallback(typeof(LogCallbackDelegate))]
-        internal static void InternalLogCallback(IntPtr msg) => Debug.Log(Marshal.PtrToStringAnsi(msg));
-
         private struct UpscaleData
         {
             internal UpscaleData(Upscaler upscaler, ushort cameraID)
             {
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
-                _reactiveValue = upscaler.reactiveValue;
+                _reactiveValue = upscaler.reactiveMax;
                 _reactiveScale = upscaler.reactiveScale;
                 _reactiveThreshold = upscaler.reactiveThreshold;
                 _camera = cameraID;
@@ -137,15 +135,14 @@ namespace Conifer.Upscaler
         {
             try
             {
-                EventIDBase = Native.GetEventIDBase();
+                Loaded = Native.LoadedCorrectly();
             }
             catch (DllNotFoundException)
             {
                 return;
             }
 
-            Loaded = true;
-            Native.RegisterLogCallback(InternalLogCallback);
+            if (Loaded) EventIDBase = Native.GetEventIDBase();
         }
 
         internal NativeInterface()
@@ -166,6 +163,11 @@ namespace Conifer.Upscaler
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, EventIDBase, _dataPtr);
         }
 
+        internal static void SetLogLevel(LogType type)
+        {
+            if (Loaded) Native.SetLogLevel(type);
+        }
+
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
 
         internal static bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode) =>
@@ -176,7 +178,7 @@ namespace Conifer.Upscaler
 
         internal string GetStatusMessage() => Loaded
             ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID))
-            : "GfxPluginUpscaler shared library not found! A restart may resolve the problem.";
+            : "GfxPluginUpscaler shared library not loaded! A restart may resolve the problem.";
 
         internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
             ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))

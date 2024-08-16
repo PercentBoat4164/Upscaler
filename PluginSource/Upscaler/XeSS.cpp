@@ -26,7 +26,7 @@ decltype(&xessD3D12CreateContext) XeSS::xessD3D12CreateContext{nullptr};
 decltype(&xessD3D12Init) XeSS::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS::xessD3D12Execute{nullptr};
 
-Upscaler::SupportState XeSS::supported{Untested};
+Upscaler::SupportState XeSS::supported{Unsupported};
 
 #    ifdef ENABLE_DX12
 Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
@@ -79,7 +79,15 @@ Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string&
 
 
 void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
-    if (logCallback != nullptr) logCallback(message);
+    UnityLogType unityType = kUnityLogTypeLog;
+    switch (loggingLevel) {
+        case XESS_LOGGING_LEVEL_DEBUG:
+        case XESS_LOGGING_LEVEL_INFO: unityType = kUnityLogTypeLog; break;
+        case XESS_LOGGING_LEVEL_WARNING: unityType = kUnityLogTypeWarning; break;
+        case XESS_LOGGING_LEVEL_ERROR: unityType = kUnityLogTypeError; break;
+        default: break;
+    }
+    Plugin::log(message, unityType);
 }
 
 bool XeSS::isSupported() {
@@ -106,6 +114,10 @@ void XeSS::useGraphicsAPI(const GraphicsAPI::Type type) {
             break;
         }
     }
+}
+
+void XeSS::setSupported() {
+    supported = Untested;
 }
 
 XeSS::XeSS() {
@@ -149,11 +161,7 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
     if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
     context = nullptr;
     RETURN_ON_FAILURE((this->*fpCreate)(&params));
-#    ifndef NDEBUG
     RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."));
-#    else
-    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_INFO, &XeSS::log), "Failed to set logging callback."));
-#    endif
     const xess_2d_t inputResolution {resolution.width, resolution.height};
     xess_2d_t       optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));

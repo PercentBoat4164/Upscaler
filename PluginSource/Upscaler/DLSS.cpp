@@ -27,7 +27,7 @@
 
 HMODULE DLSS::library{nullptr};
 uint32_t  DLSS::users{};
-Upscaler::SupportState DLSS::supported{Untested};
+Upscaler::SupportState DLSS::supported{Unsupported};
 
 uint64_t DLSS::applicationID{0xDC98EECU};
 
@@ -94,8 +94,15 @@ Upscaler::Status DLSS::setStatus(const sl::Result t_error, const std::string& t_
     }
 }
 
-void DLSS::log(sl::LogType /*unused*/, const char* msg) {
-    if (logCallback != nullptr) logCallback(msg);
+void DLSS::log(const sl::LogType type, const char* msg) {
+    UnityLogType unityType = kUnityLogTypeLog;
+    switch (type) {
+        case sl::LogType::eInfo: unityType = kUnityLogTypeLog; break;
+        case sl::LogType::eWarn: unityType = kUnityLogTypeWarning; break;
+        case sl::LogType::eError: unityType = kUnityLogTypeError; break;
+        default: break;
+    }
+    Plugin::log(msg, unityType);
 }
 
 #    ifdef ENABLE_VULKAN
@@ -215,10 +222,8 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
         sl::kFeatureDLSS
     };
     sl::Preferences pref {};
-#    ifndef NDEBUG
     pref.logMessageCallback = &DLSS::log;
-    pref.logLevel = sl::LogLevel::eDefault;
-#    endif
+    pref.logLevel = sl::LogLevel::eVerbose;
     pref.pathsToPlugins = paths.data();
     pref.numPathsToPlugins = paths.size();
     pref.flags |= sl::PreferenceFlags::eUseManualHooking;
@@ -290,6 +295,10 @@ void DLSS::useGraphicsAPI(const GraphicsAPI::Type type) {
             break;
         }
     }
+}
+
+void DLSS::setSupported() {
+    supported = Untested;
 }
 
 DLSS::DLSS() : handle(users++) {
