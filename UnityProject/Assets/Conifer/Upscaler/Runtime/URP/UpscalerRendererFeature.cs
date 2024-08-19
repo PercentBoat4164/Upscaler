@@ -145,8 +145,12 @@ namespace Conifer.Upscaler.URP
             {
                 if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Upscale");
-                _upscaler.NativeInterface.Upscale(cb, _upscaler);
-                cb.CopyTexture(_output, _cameraOutputResolutionColorTarget);
+                if (Shader.GetGlobalTexture(MotionID).texelSize != _upscaler.OutputResolution) {
+                    _upscaler.NativeInterface.Upscale(cb, _upscaler);
+                    cb.CopyTexture(_output, _cameraOutputResolutionColorTarget);
+                } else {
+                    cb.Blit(_cameraRenderResolutionColorTarget, _cameraOutputResolutionColorTarget);
+                }
                 BlitDepth(cb, _cameraRenderResolutionDepthTarget, _cameraOutputResolutionDepthTarget);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
