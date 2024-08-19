@@ -9,20 +9,66 @@
 #    include <IUnityGraphicsVulkan.h>
 
 PFN_vkGetInstanceProcAddr Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
-PFN_vkGetDeviceProcAddr Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
+PFN_vkGetInstanceProcAddr Vulkan::m_nvGetInstanceProcAddr{VK_NULL_HANDLE};
+PFN_vkGetDeviceProcAddr   Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
+PFN_vkGetDeviceProcAddr   Vulkan::m_nvGetDeviceProcAddr{VK_NULL_HANDLE};
+PFN_vkCreateSwapchainKHR  Vulkan::m_vkCreateSwapchainKHR{VK_NULL_HANDLE};
+PFN_vkCreateSwapchainKHR  Vulkan::m_nvCreateSwapchainKHR{VK_NULL_HANDLE};
 
 PFN_vkCreateImageView Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
 PFN_vkDestroyImageView Vulkan::m_vkDestroyImageView{VK_NULL_HANDLE};
 
 IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 
-PFN_vkGetInstanceProcAddr Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
+PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const char* name) {
+    if (strcmp(name, "vkGetDeviceProcAddr") == 0) {
+        m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(instance, name));
 #    ifdef ENABLE_DLSS
-    DLSS::load(VULKAN, &const_cast<const void*&>(reinterpret_cast<void*&>(m_vkGetInstanceProcAddr)));
-    if (m_vkGetInstanceProcAddr == nullptr)
+        if (m_nvGetInstanceProcAddr != VK_NULL_HANDLE) m_nvGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_nvGetInstanceProcAddr(instance, name));
 #    endif
-        m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
-    return m_vkGetInstanceProcAddr;
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetDeviceProcAddr);
+    }
+#    ifdef ENABLE_DLSS
+    if (m_nvGetInstanceProcAddr != VK_NULL_HANDLE) return m_nvGetInstanceProcAddr(instance, name);
+#    endif
+    return m_vkGetInstanceProcAddr(instance, name);
+}
+
+PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char* name) {
+    if (strcmp(name, "vkCreateSwapchainKHR") == 0) {
+        m_vkCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_vkGetDeviceProcAddr(device, name));
+        m_nvCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_nvGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateSwapchainKHR);
+    }
+#    ifdef ENABLE_DLSS
+    if (m_nvGetDeviceProcAddr != VK_NULL_HANDLE) return m_nvGetDeviceProcAddr(device, name);
+#    endif
+    return m_nvGetDeviceProcAddr(device, name);
+}
+
+VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
+    switch (Plugin::frameGenerationProvider) {
+#    ifdef ENABLE_DLSS
+        case Plugin::DLSS: if (m_nvCreateSwapchainKHR != VK_NULL_HANDLE) return m_nvCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+#    endif
+#    ifdef ENABLE_FSR3
+        case Plugin::FSR: {
+            // Create new frame generation context (separate from upscaling context)
+            // Get function pointers for new swapchain.
+            // In hooks for swapchain functions call FSR functions if swapchain is an FSR swapchain (Plugin::frameGenerationProvider)
+        }
+#    endif
+        case Plugin::None:
+        default: return m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+    }
+}
+
+PFN_vkGetInstanceProcAddr Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
+    m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
+#    ifdef ENABLE_DLSS
+    DLSS::load(VULKAN, &const_cast<const void*&>(reinterpret_cast<void*&>(m_nvGetInstanceProcAddr)));
+#    endif
+    return &hook_vkGetInstanceProcAddr;
 }
 
 bool Vulkan::registerUnityInterfaces(IUnityInterfaces* t_unityInterfaces) {
@@ -41,8 +87,6 @@ bool Vulkan::unregisterUnityInterfaces() {
 }
 
 VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) {
-    if (m_vkGetDeviceProcAddr == VK_NULL_HANDLE) m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(getGraphicsInterface()->Instance().instance, "vkGetDeviceProcAddr"));
-    if (m_vkCreateImageView == VK_NULL_HANDLE) m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(getGraphicsInterface()->Instance().device, "vkCreateImageView"));
     const VkImageViewCreateInfo createInfo {
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext    = nullptr,
@@ -66,13 +110,11 @@ VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const 
 }
 
 void Vulkan::destroyImageView(VkImageView viewToDestroy) {
-    if (m_vkGetDeviceProcAddr == VK_NULL_HANDLE) m_vkGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(m_vkGetInstanceProcAddr(getGraphicsInterface()->Instance().instance, "vkGetDeviceProcAddr"));
-    if (m_vkDestroyImageView == VK_NULL_HANDLE) m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(getGraphicsInterface()->Instance().device, "vkDestroyImageView"));
     if (viewToDestroy != VK_NULL_HANDLE) m_vkDestroyImageView(graphicsInterface->Instance().device, viewToDestroy, nullptr);
     viewToDestroy = VK_NULL_HANDLE;
 }
 
 PFN_vkGetDeviceProcAddr Vulkan::getDeviceProcAddr() {
-    return m_vkGetDeviceProcAddr;
+    return m_nvGetDeviceProcAddr;
 }
 #endif

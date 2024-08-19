@@ -42,6 +42,12 @@ enum ImageID : uint8_t {
     Opaque
 };
 
+inline enum FrameGenerationProvider : uint8_t {
+    None,
+    FSR,
+    DLSS
+} frameGenerationProvider = None;
+
 constexpr std::size_t NumBaseImages = 4;
 constexpr std::size_t NumImages = 6;
 inline bool loadedCorrectly = false;

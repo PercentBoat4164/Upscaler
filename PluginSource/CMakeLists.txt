@@ -25,13 +25,15 @@ endfunction()
 
 # At least one graphics API must be enabled.
 cmake_dependent_option(ENABLE_VULKAN "Compiles with Vulkan support." ON "Vulkan_FOUND" OFF)
-cmake_dependent_option(ENABLE_DX12 "Compiles with DX12 support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
-cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
+cmake_dependent_option(ENABLE_DX12 "Compiles with DX12 support." ON "WIN32" OFF)
+cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support." ON "WIN32" OFF)
 
 # At least one upscaler must be enabled.
-cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support. Value is ignored on macOS operating systems." ON "NOT UNIX" OFF)
+cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support." ON "NOT UNIX" OFF)
 option(ENABLE_FSR3 "Compiles with FSR3 support." ON)
-cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support. Value is only respected on Windows operating systems." ON "WIN32" OFF)
+cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support." ON "WIN32" OFF)
+
+cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation support." ON "WIN32" OFF)
 
 if (ENABLE_DLSS)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
@@ -273,7 +275,7 @@ endif ()
 target_link_libraries(GfxPluginUpscaler ${CONIFER_LIBRARIES})
 
 # Add compile definitions
-foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS)
+foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS;ENABLE_FRAME_GENERATION)
     if (${ITEM})
         target_compile_definitions(GfxPluginUpscaler PUBLIC ${ITEM})
     endif ()

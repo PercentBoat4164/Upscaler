@@ -10,14 +10,26 @@ struct IUnityGraphicsVulkanV2;
 
 class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr m_vkGetInstanceProcAddr;
+    static PFN_vkGetInstanceProcAddr m_nvGetInstanceProcAddr;
     static PFN_vkGetDeviceProcAddr   m_vkGetDeviceProcAddr;
+    static PFN_vkGetDeviceProcAddr   m_nvGetDeviceProcAddr;
+    static PFN_vkCreateSwapchainKHR  m_vkCreateSwapchainKHR;
+    static PFN_vkCreateSwapchainKHR  m_nvCreateSwapchainKHR;
 
     static PFN_vkCreateImageView  m_vkCreateImageView;
     static PFN_vkDestroyImageView m_vkDestroyImageView;
 
     static IUnityGraphicsVulkanV2* graphicsInterface;
 
-    static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Hook_vkGetInstanceProcAddr(VkInstance t_instance, const char* pName);
+    static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
+    static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
+    static VkResult           hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
+    static VkResult           hook_vkDestroySwapchainKHR();
+    static VkResult           hook_vkGetSwapchainImagesKHR();
+    static VkResult           hook_vkAcquireNexImageKHR();
+    static VkResult           hook_vkDeviceWaitIdle();
+    static VkResult           hook_vkCreateWin32SurfaceKHR();
+    static VkResult           hook_vkDestroySurfaceKHR();
 
     static UNITY_INTERFACE_EXPORT PFN_vkGetInstanceProcAddr UNITY_INTERFACE_API interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/);
 
