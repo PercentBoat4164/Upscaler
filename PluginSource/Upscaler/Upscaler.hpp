@@ -217,7 +217,6 @@ public:
     static bool                      isSupported(Type type, enum Settings::Quality mode);
     static std::unique_ptr<Upscaler> fromType(Type type);
     static void                      useGraphicsAPI(GraphicsAPI::Type type);
-    static void                      setSupported();
 
     Upscaler()                           = default;
     Upscaler(const Upscaler&)            = delete;

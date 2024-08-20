@@ -176,10 +176,6 @@ void FSR3::useGraphicsAPI(const GraphicsAPI::Type type) {
     }
 }
 
-void FSR3::setSupported() {
-    supported = Untested;
-}
-
 FSR3::FSR3() {
     if (++users != 1U) return;
     std::string path;

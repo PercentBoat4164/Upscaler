@@ -18,8 +18,7 @@ IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 
 PFN_vkGetInstanceProcAddr Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
 #    ifdef ENABLE_DLSS
-    auto& f = const_cast<const void*&>(reinterpret_cast<void*&>(m_vkGetInstanceProcAddr));
-    DLSS::load(VULKAN, &f);
+    DLSS::load(VULKAN, &const_cast<const void*&>(reinterpret_cast<void*&>(m_vkGetInstanceProcAddr)));
     if (m_vkGetInstanceProcAddr == nullptr)
 #    endif
         m_vkGetInstanceProcAddr = t_getInstanceProcAddr;

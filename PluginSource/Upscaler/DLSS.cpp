@@ -236,8 +236,10 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
         case GraphicsAPI::DX11: pref.renderAPI = sl::RenderAPI::eD3D11; break;
         default: supported = Unsupported; return;
     }
-    if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk))
+    if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk)) {
         supported = Unsupported;
+        return;
+    }
     Plugin::dlssLoadedCorrectly = true;
 }
 
@@ -296,10 +298,6 @@ void DLSS::useGraphicsAPI(const GraphicsAPI::Type type) {
             break;
         }
     }
-}
-
-void DLSS::setSupported() {
-    supported = Untested;
 }
 
 DLSS::DLSS() : handle(users++) {

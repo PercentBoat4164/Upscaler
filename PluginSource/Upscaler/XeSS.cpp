@@ -116,10 +116,6 @@ void XeSS::useGraphicsAPI(const GraphicsAPI::Type type) {
     }
 }
 
-void XeSS::setSupported() {
-    supported = Untested;
-}
-
 XeSS::XeSS() {
     if (++users != 1) return;
     if (GraphicsAPI::getType() != GraphicsAPI::DX12) RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, getName() + " only supports DX12."));

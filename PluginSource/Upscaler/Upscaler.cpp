@@ -106,18 +106,6 @@ void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 #endif
 }
 
-void Upscaler::setSupported() {
-#ifdef ENABLE_DLSS
-    DLSS::setSupported();
-#endif
-#ifdef ENABLE_FSR3
-    FSR3::setSupported();
-#endif
-#ifdef ENABLE_XESS
-    XeSS::setSupported();
-#endif
-}
-
 Upscaler::Status Upscaler::getStatus() const {
     return status;
 }

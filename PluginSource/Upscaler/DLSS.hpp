@@ -64,7 +64,6 @@ public:
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
-    static void setSupported();
 
     DLSS();
     DLSS(const DLSS&)            = delete;

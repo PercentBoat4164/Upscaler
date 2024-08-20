@@ -153,7 +153,6 @@ static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDev
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize:
             Plugin::loadedCorrectly = true;
-            Upscaler::setSupported();
             GraphicsAPI::initialize(Plugin::Unity::graphicsInterface->GetRenderer());
             break;
         case kUnityGfxDeviceEventShutdown:
