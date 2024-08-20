@@ -20,8 +20,11 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
         internal static extern bool LoadedCorrectly();
 
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_DLSSLoadedCorrectly")]
+        internal static extern bool DLSSLoadedCorrectly();
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
-        internal static extern bool SetLogLevel(LogType type);
+        internal static extern void SetLogLevel(LogType type);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
         internal static extern int GetEventIDBase();
@@ -139,6 +142,7 @@ namespace Conifer.Upscaler
             }
             catch (DllNotFoundException)
             {
+                Debug.LogError("The Upscaler plugin could not be found. Please restart Unity. If this problem persists please reinstall Upscaler or contact Conifer support.");
                 return;
             }
 
@@ -156,6 +160,8 @@ namespace Conifer.Upscaler
         {
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
+
+        internal bool DlssLoadedCorrectly() => Loaded && Native.DLSSLoadedCorrectly();
 
         internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {

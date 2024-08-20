@@ -282,4 +282,5 @@ endforeach ()
 # Copy the resulting shared library to the Unity Project's Asset/Plugins directory.
 ConiferListToString("${SHARED_LIBRARIES}" SHARED_LIBRARIES_STRING)
 add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Copying ${SHARED_LIBRARIES_STRING} to ${PLUGINS_DIR}.")
-add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHARED_LIBRARIES} ${PLUGINS_DIR})
+add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll" ${PLUGINS_DIR})
+#add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHARED_LIBRARIES} ${PLUGINS_DIR})

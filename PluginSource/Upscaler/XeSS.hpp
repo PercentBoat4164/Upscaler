@@ -31,14 +31,14 @@ class XeSS final : public Upscaler {
 
     std::array<void*, Plugin::NumBaseImages> resources{};
 
+    Status setStatus(xess_result_t t_error, const std::string &t_msg);
+
+    static void log(const char* message, xess_logging_level_t loggingLevel);
+
 #    ifdef ENABLE_DX12
     Status DX12Create(const xess_d3d12_init_params_t*);
     Status DX12Evaluate();
 #    endif
-
-    Status setStatus(xess_result_t t_error, const std::string &t_msg);
-
-    static void log(const char* message, xess_logging_level_t loggingLevel);
 
 public:
     static bool isSupported();

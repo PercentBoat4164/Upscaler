@@ -64,7 +64,10 @@ namespace Conifer.Upscaler.Editor
 
         private void OnEnable()
         {
-            _webClient.DownloadProgressChanged += (_, args) => _downloadProgress = args.ProgressPercentage;
+            _webClient.DownloadProgressChanged += (_, args) => {
+                _downloadProgress = args.ProgressPercentage;
+                Repaint();
+            };
             _webClient.DownloadFileCompleted += (_, _) =>
             {
                 if (_updating == Upscaler.Technique.XeSuperSampling)
@@ -149,7 +152,7 @@ namespace Conifer.Upscaler.Editor
                     Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
                 EditorGUILayout.HelpBox(dlssInstalled ? "You have agreed to the NVIDIA RTX license." : "By clicking the below button you agree to the above NVIDIA RTX license.", MessageType.Info);
                 if (_downloadProgress < 0 && _installedStreamlineVersion != ThisStreamlineVersion || !dlssInstalled) {
-                    if (Upscaler.PluginLoaded()) EditorGUILayout.HelpBox("Upscaler can only update DLSS when its DLL is not loaded. Uncheck 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' then restart Unity.", MessageType.Error);
+                    if (Upscaler.DlssPluginLoaded()) EditorGUILayout.HelpBox("Upscaler can only update DLSS when its DLL is not loaded. Uncheck 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' then restart Unity.", MessageType.Error);
                     else if (GUILayout.Button((dlssInstalled ? "Update" : "Install") + " DLSS library"))
                     {
                         _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/nvngx_dlss.dll"), LibraryPath + "nvngx_dlss.dll");
@@ -189,12 +192,17 @@ namespace Conifer.Upscaler.Editor
             var upscaler = (Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();
-            var features = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
+            var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
                 [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                     .Select((renderer, index) => new { renderer, index })
                     .First(i => i.renderer == cameraData.scriptableRenderer).index
-                ].rendererFeatures;
-            if (features.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
+                ];
+            if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Vulkan)
+            {
+                EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
+                if (GUILayout.Button("Disable 'Native RenderPass'.")) activeRenderer.useNativeRenderPass = false;
+            }
+            if (activeRenderer.rendererFeatures.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
                 EditorGUILayout.HelpBox("There must be a single UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
             if (camera.GetComponents<Upscaler>().Length > 1)
             {

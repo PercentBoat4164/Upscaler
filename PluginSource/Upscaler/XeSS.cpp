@@ -28,34 +28,6 @@ decltype(&xessD3D12Execute) XeSS::xessD3D12Execute{nullptr};
 
 Upscaler::SupportState XeSS::supported{Unsupported};
 
-#    ifdef ENABLE_DX12
-Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
-    RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
-    return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
-}
-
-Upscaler::Status XeSS::DX12Evaluate() {
-    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Color])->GetDesc();
-    const D3D12_RESOURCE_DESC motionDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Motion])->GetDesc();
-    const xess_d3d12_execute_params_t params {
-        .pColorTexture = static_cast<ID3D12Resource*>(resources[Plugin::Color]),
-        .pVelocityTexture = static_cast<ID3D12Resource*>(resources[Plugin::Motion]),
-        .pDepthTexture = static_cast<ID3D12Resource*>(resources[Plugin::Depth]),
-        .pOutputTexture = static_cast<ID3D12Resource*>(resources[Plugin::Output]),
-        .jitterOffsetX = settings.jitter.x,
-        .jitterOffsetY = settings.jitter.y,
-        .exposureScale = 1.0F,
-        .resetHistory = static_cast<uint32_t>(settings.resetHistory),
-        .inputWidth = static_cast<uint32_t>(colorDescription.Width),
-        .inputHeight = static_cast<uint32_t>(colorDescription.Height),
-    };
-    UnityGraphicsD3D12RecordingState state{};
-    RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
-    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
-    return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute Intel Xe Super Sampling.");
-}
-#endif
-
 Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {
         case XESS_RESULT_WARNING_NONEXISTING_FOLDER: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_WARNING_NONEXISTING_FOLDER");
@@ -89,6 +61,34 @@ void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
     }
     Plugin::log(message, unityType);
 }
+
+#    ifdef ENABLE_DX12
+Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
+    RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
+    return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
+}
+
+Upscaler::Status XeSS::DX12Evaluate() {
+    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Color])->GetDesc();
+    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources[Plugin::Motion])->GetDesc();
+    const xess_d3d12_execute_params_t params {
+        .pColorTexture = static_cast<ID3D12Resource*>(resources[Plugin::Color]),
+        .pVelocityTexture = static_cast<ID3D12Resource*>(resources[Plugin::Motion]),
+        .pDepthTexture = static_cast<ID3D12Resource*>(resources[Plugin::Depth]),
+        .pOutputTexture = static_cast<ID3D12Resource*>(resources[Plugin::Output]),
+        .jitterOffsetX = settings.jitter.x,
+        .jitterOffsetY = settings.jitter.y,
+        .exposureScale = 1.0F,
+        .resetHistory = static_cast<uint32_t>(settings.resetHistory),
+        .inputWidth = static_cast<uint32_t>(colorDescription.Width),
+        .inputHeight = static_cast<uint32_t>(colorDescription.Height),
+    };
+    UnityGraphicsD3D12RecordingState state{};
+    RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
+    return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute Intel Xe Super Sampling.");
+}
+#endif
 
 bool XeSS::isSupported() {
     if (supported != Untested) return supported == Supported;

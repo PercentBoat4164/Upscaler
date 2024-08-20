@@ -145,7 +145,7 @@ namespace Conifer.Upscaler.URP
             {
                 if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Upscale");
-                if (Shader.GetGlobalTexture(MotionID).texelSize != _upscaler.OutputResolution) {
+                if (!_upscaler.DisableUpscaling) {
                     _upscaler.NativeInterface.Upscale(cb, _upscaler);
                     cb.CopyTexture(_output, _cameraOutputResolutionColorTarget);
                 } else {

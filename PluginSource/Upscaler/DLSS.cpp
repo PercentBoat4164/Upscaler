@@ -238,6 +238,7 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
     }
     if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk))
         supported = Unsupported;
+    Plugin::dlssLoadedCorrectly = true;
 }
 
 void DLSS::shutdown() {

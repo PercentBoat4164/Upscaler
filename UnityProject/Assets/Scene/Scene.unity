@@ -463,9 +463,9 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 1
+  technique: 2
   dlssPreset: 0
-  sharpness: 0.3
+  sharpness: 0
   useReactiveMask: 1
   reactiveMax: 0.6
   reactiveScale: 0.9

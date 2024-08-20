@@ -298,6 +298,17 @@ namespace Conifer.Upscaler
         public static bool PluginLoaded() => NativeInterface.Loaded;
 
         /**
+         * <summary>Check if the GfxPluginUpscaler DLSS library was loaded from start up.</summary>
+         * <returns><c>true</c> if DLSS was loaded correctly and <c>false</c> otherwise.</returns>
+         * <remarks>This method should return <c>true</c> most of the time. If it returns <c>false</c> it is likely that
+         * the user is currently performing the installation process. While this method returns <c>false</c> DLSS will
+         * be unusable. DLSS must be initialized before the graphics device is created, and thus must be loaded very
+         * early in Unity's boot sequence. If you have installed the DLSS library, but this method is still returning
+         * <c>false</c> try rebooting Unity.</remarks>
+         */
+        public static bool DlssPluginLoaded() => Native.DLSSLoadedCorrectly();
+
+        /**
          * <summary>Sets the log level filter for the C++ backend.</summary>
          * <param name="level">The minimum log level that messages must be before they are logged.</param>
          * <remarks>This applies to all instances of the Upscaler script globally. This method is very fast. The first
@@ -362,8 +373,20 @@ namespace Conifer.Upscaler
             ApplySettings();
         }
 
+        private int _screenWidth = Screen.width;
+        private int _screenHeight = Screen.height;
+        internal bool DisableUpscaling = false;
+
         protected void Update()
         {
+            DisableUpscaling = false;
+            if (Screen.width != _screenWidth || Screen.height != _screenHeight) {
+                DisableUpscaling = true;
+                ResetHistory();
+                _screenWidth = Screen.width;
+                _screenHeight = Screen.height;
+            }
+
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();
             if (Failure(CurrentStatus))

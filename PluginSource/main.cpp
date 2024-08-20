@@ -60,6 +60,10 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrec
     return Plugin::loadedCorrectly;
 }
 
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_DLSSLoadedCorrectly() {
+    return Plugin::dlssLoadedCorrectly;
+}
+
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(const UnityLogType type) {
     Plugin::logLevel = type;
     Plugin::log("", type);
