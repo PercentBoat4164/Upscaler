@@ -2,17 +2,17 @@
 
 #include "Upscaler.hpp"
 
-class NoUpscaler final : public Upscaler {
+class None_Upscaler final : public Upscaler {
 public:
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
 
-    NoUpscaler();
-    NoUpscaler(const NoUpscaler&)            = delete;
-    NoUpscaler(NoUpscaler&&)                 = delete;
-    NoUpscaler& operator=(const NoUpscaler&) = delete;
-    NoUpscaler& operator=(NoUpscaler&&)      = delete;
-    ~NoUpscaler() override                   = default;
+    None_Upscaler();
+    None_Upscaler(const None_Upscaler&)            = delete;
+    None_Upscaler(None_Upscaler&&)                 = delete;
+    None_Upscaler& operator=(const None_Upscaler&) = delete;
+    None_Upscaler& operator=(None_Upscaler&&)      = delete;
+    ~None_Upscaler() override                   = default;
 
     constexpr Type getType() override {
         return NONE;

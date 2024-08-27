@@ -1,23 +1,21 @@
 #pragma once
-#ifdef ENABLE_FSR3
+#ifdef ENABLE_FSR
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
-#    include <ffx_api/ffx_api.hpp>
+#    include <FidelityFX/host/ffx_api.hpp>
 
 #    include <Windows.h>
 
 namespace ffx { struct CreateContextDescUpscale; }  // namespace ffx
 struct FfxApiResource;
 
-class FSR3 final : public Upscaler {
-    static HMODULE library;
-    static uint32_t users;
+class FSR_Upscaler final : public Upscaler {
     static SupportState supported;
 
-    static Status (FSR3::*fpCreate)(ffx::CreateContextDescUpscale&);
-    static Status (FSR3::*fpSetResources)(const std::array<void*, Plugin::NumImages>&);
-    static Status (FSR3::*fpGetCommandBuffer)(void*&);
+    static Status (FSR_Upscaler::*fpCreate)(ffx::CreateContextDescUpscale&);
+    static Status (FSR_Upscaler::*fpSetResources)(const std::array<void*, Plugin::NumImages>&);
+    static Status (FSR_Upscaler::*fpGetCommandBuffer)(void*&);
 
     ffx::Context context{};
     std::array<FfxApiResource, Plugin::NumImages> resources{};
@@ -43,15 +41,15 @@ public:
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    FSR3();
-    FSR3(const FSR3&)            = delete;
-    FSR3(FSR3&&)                 = delete;
-    FSR3& operator=(const FSR3&) = delete;
-    FSR3& operator=(FSR3&&)      = delete;
-    ~FSR3() override;
+    FSR_Upscaler()                               = default;
+    FSR_Upscaler(const FSR_Upscaler&)            = delete;
+    FSR_Upscaler(FSR_Upscaler&&)                 = delete;
+    FSR_Upscaler& operator=(const FSR_Upscaler&) = delete;
+    FSR_Upscaler& operator=(FSR_Upscaler&&)      = delete;
+    ~FSR_Upscaler() override;
 
     constexpr Type getType() override {
-        return Upscaler::FSR3;
+        return FSR;
     }
 
     constexpr std::string getName() override {

@@ -1,6 +1,8 @@
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
 
+#include "IUnityRenderingExtensions.h"
+
 #include <memory>
 #include <vector>
 
@@ -67,6 +69,14 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_DLSSLoadedCo
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(const UnityLogType type) {
     Plugin::logLevel = type;
     Plugin::log("", type);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGeneration(const uint32_t width, const uint32_t height) {
+    if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
+    else Plugin::frameGenerationProvider = Plugin::FSR;
+
+    Plugin::swapchainWidth = width;
+    Plugin::swapchainHeight = height;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {

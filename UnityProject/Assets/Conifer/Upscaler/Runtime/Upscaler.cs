@@ -206,11 +206,13 @@ namespace Conifer.Upscaler
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
         public Technique technique = GetBestSupportedTechnique();
         private Technique _technique;
+        public bool frameGeneration;
+        private bool _frameGeneration;
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
         private DlssPreset _dlssPreset;
         /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public float sharpness = 0.0f;
+        public float sharpness;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask = true;
         /// Maximum reactive value. More reactivity favors newer information. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
@@ -373,20 +375,14 @@ namespace Conifer.Upscaler
             ApplySettings();
         }
 
+        private HDRDisplayBitDepth _oldBitDepth;
+        private bool _shouldResetSwapchainBitDepth;
         private int _screenWidth = Screen.width;
         private int _screenHeight = Screen.height;
-        internal bool DisableUpscaling = false;
-
+        internal bool DisableUpscaling;
+        
         protected void Update()
         {
-            DisableUpscaling = false;
-            if (Screen.width != _screenWidth || Screen.height != _screenHeight) {
-                DisableUpscaling = true;
-                ResetHistory();
-                _screenWidth = Screen.width;
-                _screenHeight = Screen.height;
-            }
-
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();
             if (Failure(CurrentStatus))
@@ -396,19 +392,35 @@ namespace Conifer.Upscaler
                     Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
                     technique = Technique.None;
                     quality = Quality.Auto;
-                    dlssPreset = DlssPreset.Default;
                     ApplySettings(true);
                 }
 
-                if (ErrorCallback is null) HandleError();
-                else
-                {
+                if (ErrorCallback is not null) {
                     ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
                     CurrentStatus = NativeInterface.GetStatus();
                     if (!Failure(CurrentStatus)) return;
                     Debug.LogError("The registered error handler failed to rectify the following error.");
-                    HandleError();
                 }
+                HandleError();
+            }
+
+            if (_shouldResetSwapchainBitDepth) {
+                NativeInterface.SetFrameGeneration(frameGeneration);
+                UnityEditor.PlayerSettings.hdrBitDepth = _oldBitDepth;
+                _shouldResetSwapchainBitDepth = false;
+            } else if (frameGeneration != _frameGeneration) {
+                _oldBitDepth = UnityEditor.PlayerSettings.hdrBitDepth;
+                UnityEditor.PlayerSettings.hdrBitDepth = (HDRDisplayBitDepth)((int)_oldBitDepth ^ 1);
+                _shouldResetSwapchainBitDepth = true;
+                _frameGeneration = frameGeneration;
+            }
+
+            DisableUpscaling = false;
+            if (Screen.width != _screenWidth || Screen.height != _screenHeight) {
+                DisableUpscaling = true;
+                ResetHistory();
+                _screenWidth = Screen.width;
+                _screenHeight = Screen.height;
             }
 
             if (technique == Technique.None) return;

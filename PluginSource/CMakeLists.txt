@@ -30,7 +30,7 @@ cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support." ON "WIN32" OFF)
 
 # At least one upscaler must be enabled.
 cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support." ON "NOT UNIX" OFF)
-option(ENABLE_FSR3 "Compiles with FSR3 support." ON)
+option(ENABLE_FSR "Compiles with FSR3 support." ON)
 cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support." ON "WIN32" OFF)
 
 cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation support." ON "WIN32" OFF)
@@ -38,7 +38,7 @@ cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation s
 if (ENABLE_DLSS)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
 endif ()
-if (ENABLE_FSR3)
+if (ENABLE_FSR)
     ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;OFF")
 endif ()
 if (ENABLE_XESS)
@@ -88,12 +88,15 @@ endfunction ()
 ConiferFilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with support for ${FINAL_STRING}.")
-ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS" FILTERED_LIST)
+ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR;ENABLE_XESS" FILTERED_LIST)
 ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with ${FINAL_STRING}.")
+if (ENABLE_FRAME_GENERATION)
+    message(STATUS "Compiling with Frame Generation.")
+endif ()
 
 # Fail if no upscaler was selected
-if (NOT ENABLE_DLSS AND NOT ENABLE_FSR3 AND NOT ENABLE_XESS)
+if (NOT ENABLE_DLSS AND NOT ENABLE_FSR AND NOT ENABLE_XESS)
     message(FATAL_ERROR "No upscaler(s) were enabled.")
 endif ()
 
@@ -154,7 +157,7 @@ if (ENABLE_DLSS AND NOT EXISTS ${STREAMLINE_SDK_DIR})
 endif ()
 
 # Ensure FSR was found
-if (ENABLE_FSR3 AND NOT EXISTS ${FFX_SDK_DIR})
+if (ENABLE_FSR AND NOT EXISTS ${FFX_SDK_DIR})
     message(FATAL_ERROR "Please extract the latest FFX SDK into '${FFX_SDK_DIR}'.")
 endif ()
 
@@ -165,7 +168,7 @@ if (NOT IS_COMPATIBLE AND ENABLE_DLSS)
         set(IS_COMPATIBLE ON)
     endif ()
 endif ()
-if (NOT IS_COMPATIBLE AND ENABLE_FSR3)
+if (NOT IS_COMPATIBLE AND ENABLE_FSR)
     if (ENABLE_VULKAN OR ENABLE_DX12)
         set(IS_COMPATIBLE ON)
     endif ()
@@ -188,9 +191,11 @@ if (ENABLE_DLSS)
 endif ()
 
 # Set up the FSR libraries
-if (ENABLE_FSR3)
+if (ENABLE_FSR)
     function (ConiferAddFSRLibrary LIBRARY_NAME LIBRARY_PATH LIBRARY_FILENAME)
-        add_library(${LIBRARY_NAME} INTERFACE)
+        add_library(${LIBRARY_NAME} SHARED IMPORTED)
+        set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_LOCATION "${LIBRARY_PATH}/${LIBRARY_FILENAME}.dll")
+        set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_IMPLIB "${LIBRARY_PATH}/${LIBRARY_FILENAME}.lib")
         target_include_directories(${LIBRARY_NAME} INTERFACE ${ARGN})
         list(APPEND CONIFER_LIBRARIES ${LIBRARY_NAME})
         set(CONIFER_LIBRARIES ${CONIFER_LIBRARIES} PARENT_SCOPE)
@@ -199,10 +204,10 @@ if (ENABLE_FSR3)
     endfunction ()
 
     if (ENABLE_VULKAN)
-        ConiferAddFSRLibrary(fsr3_vk "${FFX_SDK_DIR}/lib" "amd_fidelityfx_vk" "${FFX_SDK_DIR}/FidelityFX/host/backends/vk" "${FFX_SDK_DIR}/FidelityFX/host" "${FFX_SDK_DIR}")
+        ConiferAddFSRLibrary(fsr_vk "${FFX_SDK_DIR}/lib" "amd_fidelityfx_vk" "${FFX_SDK_DIR}/FidelityFX/host/backends/vk" "${FFX_SDK_DIR}/FidelityFX/host" "${FFX_SDK_DIR}")
     endif ()
     if (ENABLE_DX12)
-        ConiferAddFSRLibrary(fsr3_dx12 "${FFX_SDK_DIR}/lib" "amd_fidelityfx_dx12" "${FFX_SDK_DIR}/FidelityFX/host/backends/dx12" "${FFX_SDK_DIR}/FidelityFX/host" "${FFX_SDK_DIR}")
+        ConiferAddFSRLibrary(fsr_dx12 "${FFX_SDK_DIR}/lib" "amd_fidelityfx_dx12" "${FFX_SDK_DIR}/FidelityFX/host/backends/dx12" "${FFX_SDK_DIR}/FidelityFX/host" "${FFX_SDK_DIR}")
     endif ()
 endif ()
 
@@ -230,19 +235,22 @@ endif ()
 
 # Add source files for selected upscalers
 if (ENABLE_DLSS)
-    set(DLSS_SOURCES Upscaler/DLSS.cpp)
+    set(DLSS_SOURCES Upscaler/DLSS_Upscaler.cpp)
 endif ()
-if (ENABLE_FSR3)
-    set(FSR3_SOURCES Upscaler/FSR3.cpp)
+if (ENABLE_FSR)
+    set(FSR_SOURCES Upscaler/FSR_Upscaler.cpp)
+    if (ENABLE_FRAME_GENERATION)
+        set(FSR_SOURCES ${FSR_SOURCES} FrameGenerator/FSR_FrameGenerator.cpp)
+    endif ()
 endif ()
 if (ENABLE_XESS)
-    set(XESS_SOURCES Upscaler/XeSS.cpp)
+    set(XESS_SOURCES Upscaler/XeSS_Upscaler.cpp)
 endif ()
 
 # Add library and link Unity files
 add_library(GfxPluginUpscaler main.cpp
         ${DLSS_SOURCES}
-        ${FSR3_SOURCES}
+        ${FSR_SOURCES}
         ${XESS_SOURCES}
 
         ${DX11_SOURCES}
@@ -250,12 +258,15 @@ add_library(GfxPluginUpscaler main.cpp
         ${VULKAN_SOURCES}
 
         GraphicsAPI/GraphicsAPI.cpp
-        Upscaler/NoUpscaler.cpp
+        Upscaler/None_Upscaler.cpp
         Upscaler/Upscaler.cpp
         Plugin.hpp
+        FrameGenerator/FrameGenerator.cpp
+        FrameGenerator/FrameGenerator.hpp
 )
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")
+target_compile_definitions(GfxPluginUpscaler PUBLIC VK_NO_PROTOTYPES)
 target_include_directories(GfxPluginUpscaler PUBLIC ${UNITY_DIR} ${CMAKE_SOURCE_DIR})
 if (NOT WIN32)
     target_link_options(GfxPluginUpscaler PUBLIC -Wl,-rpath=$ORIGIN)
@@ -275,7 +286,7 @@ endif ()
 target_link_libraries(GfxPluginUpscaler ${CONIFER_LIBRARIES})
 
 # Add compile definitions
-foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR3;ENABLE_XESS;ENABLE_FRAME_GENERATION)
+foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR;ENABLE_XESS;ENABLE_FRAME_GENERATION)
     if (${ITEM})
         target_compile_definitions(GfxPluginUpscaler PUBLIC ${ITEM})
     endif ()
@@ -284,5 +295,5 @@ endforeach ()
 # Copy the resulting shared library to the Unity Project's Asset/Plugins directory.
 ConiferListToString("${SHARED_LIBRARIES}" SHARED_LIBRARIES_STRING)
 add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Copying ${SHARED_LIBRARIES_STRING} to ${PLUGINS_DIR}.")
-add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll" ${PLUGINS_DIR})
-#add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHARED_LIBRARIES} ${PLUGINS_DIR})
+#add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll" ${PLUGINS_DIR})
+add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHARED_LIBRARIES} ${PLUGINS_DIR})

@@ -1,10 +1,10 @@
 #include "Upscaler.hpp"
 
-#include "DLSS.hpp"
-#include "FSR3.hpp"
+#include "DLSS_Upscaler.hpp"
+#include "FSR_Upscaler.hpp"
+#include "None_Upscaler.hpp"
+#include "XeSS_UPscaler.hpp"
 #include "GraphicsAPI/GraphicsAPI.hpp"
-#include "NoUpscaler.hpp"
-#include "XeSS.hpp"
 
 #include <memory>
 #include <utility>
@@ -48,15 +48,15 @@ bool Upscaler::recoverable(const Status t_status) {
 
 bool Upscaler::isSupported(const Type type) {
     switch (type) {
-        case NONE: return NoUpscaler::isSupported();
+        case NONE: return None_Upscaler::isSupported();
 #ifdef ENABLE_DLSS
-        case DLSS: return DLSS::isSupported();
+        case DLSS: return DLSS_Upscaler::isSupported();
 #endif
-#ifdef ENABLE_FSR3
-        case FSR3: return FSR3::isSupported();
+#ifdef ENABLE_FSR
+        case FSR: return FSR_Upscaler::isSupported();
 #endif
 #ifdef ENABLE_XESS
-        case XESS: return XeSS::isSupported();
+        case XESS: return XeSS_Upscaler::isSupported();
 #endif
         default: return false;
     }
@@ -64,15 +64,15 @@ bool Upscaler::isSupported(const Type type) {
 
 bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
     switch (type) {
-        case NONE: return NoUpscaler::isSupported(mode);
+        case NONE: return None_Upscaler::isSupported(mode);
 #ifdef ENABLE_DLSS
-        case DLSS: return DLSS::isSupported(mode);
+        case DLSS: return DLSS_Upscaler::isSupported(mode);
 #endif
-#ifdef ENABLE_FSR3
-        case FSR3: return FSR3::isSupported(mode);
+#ifdef ENABLE_FSR
+        case FSR: return FSR_Upscaler::isSupported(mode);
 #endif
 #ifdef ENABLE_XESS
-        case XESS: return XeSS::isSupported(mode);
+        case XESS: return XeSS_Upscaler::isSupported(mode);
 #endif
         default: return false;
     }
@@ -80,29 +80,29 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
 
 std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
     switch (type) {
-        case NONE: return std::make_unique<NoUpscaler>();
+        case NONE: return std::make_unique<None_Upscaler>();
 #ifdef ENABLE_DLSS
-        case DLSS: return std::make_unique<class DLSS>();
+        case DLSS: return std::make_unique<DLSS_Upscaler>();
 #endif
-#ifdef ENABLE_FSR3
-        case FSR3: return std::make_unique<class FSR3>();
+#ifdef ENABLE_FSR
+        case FSR: return std::make_unique<FSR_Upscaler>();
 #endif
 #ifdef ENABLE_XESS
-        case XESS: return std::make_unique<XeSS>();
+        case XESS: return std::make_unique<XeSS_Upscaler>();
 #endif
-        default: return std::make_unique<NoUpscaler>();
+        default: return std::make_unique<None_Upscaler>();
     }
 }
 
 void Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 #ifdef ENABLE_DLSS
-    DLSS::useGraphicsAPI(type);
+    DLSS_Upscaler::useGraphicsAPI(type);
 #endif
-#ifdef ENABLE_FSR3
-    FSR3::useGraphicsAPI(type);
+#ifdef ENABLE_FSR
+    FSR_Upscaler::useGraphicsAPI(type);
 #endif
 #ifdef ENABLE_XESS
-    XeSS::useGraphicsAPI(type);
+    XeSS_Upscaler::useGraphicsAPI(type);
 #endif
 }
 

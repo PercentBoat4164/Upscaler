@@ -9,7 +9,7 @@ struct NVSDK_NGX_Resource_VK;
 struct NVSDK_NGX_Parameter;
 struct NVSDK_NGX_DLSS_Create_Params;
 
-class DLSS final : public Upscaler {
+class DLSS_Upscaler final : public Upscaler {
     static HMODULE library;
     static uint32_t users;
     static SupportState supported;
@@ -17,8 +17,8 @@ class DLSS final : public Upscaler {
     static uint64_t applicationID;
 
     static void* (*fpGetDevice)();
-    static Status (DLSS::*fpSetResources)(const std::array<void*, Plugin::NumImages>& images);
-    static Status (DLSS::*fpGetCommandBuffer)(void*&);
+    static Status (DLSS_Upscaler::*fpSetResources)(const std::array<void*, Plugin::NumImages>& images);
+    static Status (DLSS_Upscaler::*fpGetCommandBuffer)(void*&);
 
     sl::ViewportHandle handle{0};
     std::array<sl::Resource, Plugin::NumBaseImages> resources{};
@@ -65,12 +65,12 @@ public:
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    DLSS();
-    DLSS(const DLSS&)            = delete;
-    DLSS(DLSS&&)                 = delete;
-    DLSS& operator=(const DLSS&) = delete;
-    DLSS& operator=(DLSS&&)      = delete;
-    ~DLSS() override;
+    DLSS_Upscaler();
+    DLSS_Upscaler(const DLSS_Upscaler&)            = delete;
+    DLSS_Upscaler(DLSS_Upscaler&&)                 = delete;
+    DLSS_Upscaler& operator=(const DLSS_Upscaler&) = delete;
+    DLSS_Upscaler& operator=(DLSS_Upscaler&&)      = delete;
+    ~DLSS_Upscaler() override;
 
     constexpr Type getType() override {
         return Upscaler::DLSS;

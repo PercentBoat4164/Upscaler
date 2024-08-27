@@ -1,5 +1,5 @@
 #ifdef ENABLE_DLSS
-#    include "DLSS.hpp"
+#    include "DLSS_Upscaler.hpp"
 #    ifdef ENABLE_DX11
 #        include "GraphicsAPI/DX11.hpp"
 
@@ -25,30 +25,30 @@
 
 #    include <filesystem>
 
-HMODULE DLSS::library{nullptr};
-uint32_t  DLSS::users{};
-Upscaler::SupportState DLSS::supported{Unsupported};
+HMODULE DLSS_Upscaler::library{nullptr};
+uint32_t  DLSS_Upscaler::users{};
+Upscaler::SupportState DLSS_Upscaler::supported{Unsupported};
 
-uint64_t DLSS::applicationID{0xDC98EECU};
+uint64_t DLSS_Upscaler::applicationID{0xDC98EECU};
 
-void* (*DLSS::fpGetDevice)(){&DLSS::nullFunc<void*>};
-Upscaler::Status (DLSS::*DLSS::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&DLSS::safeFail};
-Upscaler::Status (DLSS::*DLSS::fpGetCommandBuffer)(void*&){&DLSS::safeFail};
+void* (*DLSS_Upscaler::fpGetDevice)(){&DLSS_Upscaler::nullFunc<void*>};
+Upscaler::Status (DLSS_Upscaler::*DLSS_Upscaler::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&DLSS_Upscaler::safeFail};
+Upscaler::Status (DLSS_Upscaler::*DLSS_Upscaler::fpGetCommandBuffer)(void*&){&DLSS_Upscaler::safeFail};
 
-decltype(&slInit) DLSS::slInit{nullptr};
-decltype(&slSetD3DDevice) DLSS::slSetD3DDevice{nullptr};
-decltype(&slSetFeatureLoaded) DLSS::slSetFeatureLoaded{nullptr};
-decltype(&slGetFeatureFunction) DLSS::slGetFeatureFunction{nullptr};
-decltype(&slDLSSGetOptimalSettings) DLSS::slDLSSGetOptimalSettings{nullptr};
-decltype(&slDLSSSetOptions) DLSS::slDLSSSetOptions{nullptr};
-decltype(&slSetTag) DLSS::slSetTag{nullptr};
-decltype(&slGetNewFrameToken) DLSS::slGetNewFrameToken{nullptr};
-decltype(&slSetConstants) DLSS::slSetConstants{nullptr};
-decltype(&slEvaluateFeature) DLSS::slEvaluateFeature{nullptr};
-decltype(&slFreeResources) DLSS::slFreeResources{nullptr};
-decltype(&slShutdown) DLSS::slShutdown{nullptr};
+decltype(&slInit) DLSS_Upscaler::slInit{nullptr};
+decltype(&slSetD3DDevice) DLSS_Upscaler::slSetD3DDevice{nullptr};
+decltype(&slSetFeatureLoaded) DLSS_Upscaler::slSetFeatureLoaded{nullptr};
+decltype(&slGetFeatureFunction) DLSS_Upscaler::slGetFeatureFunction{nullptr};
+decltype(&slDLSSGetOptimalSettings) DLSS_Upscaler::slDLSSGetOptimalSettings{nullptr};
+decltype(&slDLSSSetOptions) DLSS_Upscaler::slDLSSSetOptions{nullptr};
+decltype(&slSetTag) DLSS_Upscaler::slSetTag{nullptr};
+decltype(&slGetNewFrameToken) DLSS_Upscaler::slGetNewFrameToken{nullptr};
+decltype(&slSetConstants) DLSS_Upscaler::slSetConstants{nullptr};
+decltype(&slEvaluateFeature) DLSS_Upscaler::slEvaluateFeature{nullptr};
+decltype(&slFreeResources) DLSS_Upscaler::slFreeResources{nullptr};
+decltype(&slShutdown) DLSS_Upscaler::slShutdown{nullptr};
 
-Upscaler::Status DLSS::setStatus(const sl::Result t_error, const std::string& t_msg) {
+Upscaler::Status DLSS_Upscaler::setStatus(const sl::Result t_error, const std::string& t_msg) {
     switch (t_error) {
         case sl::Result::eOk: return Upscaler::setStatus(Success, t_msg + " | eOk");
         case sl::Result::eErrorIO: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | eErrorIO");
@@ -94,7 +94,7 @@ Upscaler::Status DLSS::setStatus(const sl::Result t_error, const std::string& t_
     }
 }
 
-void DLSS::log(const sl::LogType type, const char* msg) {
+void DLSS_Upscaler::log(const sl::LogType type, const char* msg) {
     UnityLogType unityType = kUnityLogTypeLog;
     switch (type) {
         case sl::LogType::eInfo: unityType = kUnityLogTypeLog; break;
@@ -106,7 +106,7 @@ void DLSS::log(const sl::LogType type, const char* msg) {
 }
 
 #    ifdef ENABLE_VULKAN
-Upscaler::Status DLSS::VulkanSetResources(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status DLSS_Upscaler::VulkanSetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < Plugin::NumBaseImages; ++reinterpret_cast<uint8_t&>(id)) {
         UnityVulkanImage image {};
         Vulkan::getGraphicsInterface()->AccessTexture(images.at(id), UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, id == Plugin::Output ? VK_ACCESS_SHADER_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
@@ -123,7 +123,7 @@ Upscaler::Status DLSS::VulkanSetResources(const std::array<void*, Plugin::NumIma
     return Success;
 }
 
-Upscaler::Status DLSS::VulkanGetCommandBuffer(void*& commandBuffer) {
+Upscaler::Status DLSS_Upscaler::VulkanGetCommandBuffer(void*& commandBuffer) {
     UnityVulkanRecordingState state {};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
@@ -133,11 +133,11 @@ Upscaler::Status DLSS::VulkanGetCommandBuffer(void*& commandBuffer) {
 #    endif
 
 #    ifdef ENABLE_DX12
-void* DLSS::DX12GetDevice() {
+void* DLSS_Upscaler::DX12GetDevice() {
     return DX12::getGraphicsInterface()->GetDevice();
 }
 
-Upscaler::Status DLSS::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status DLSS_Upscaler::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < Plugin::NumBaseImages; ++reinterpret_cast<uint8_t&>(id)) {
         auto* const image = static_cast<ID3D12Resource*>(images.at(id));
         RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
@@ -151,7 +151,7 @@ Upscaler::Status DLSS::DX12SetResources(const std::array<void*, Plugin::NumImage
     return Success;
 }
 
-Upscaler::Status DLSS::DX12GetCommandBuffer(void*& commandList) {
+Upscaler::Status DLSS_Upscaler::DX12GetCommandBuffer(void*& commandList) {
     UnityGraphicsD3D12RecordingState state {};
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     commandList = state.commandList;
@@ -160,11 +160,11 @@ Upscaler::Status DLSS::DX12GetCommandBuffer(void*& commandList) {
 #    endif
 
 #    ifdef ENABLE_DX11
-void* DLSS::DX11GetDevice() {
+void* DLSS_Upscaler::DX11GetDevice() {
     return DX11::getGraphicsInterface()->GetDevice();
 }
 
-Upscaler::Status DLSS::DX11SetResources(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status DLSS_Upscaler::DX11SetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < Plugin::NumBaseImages; ++reinterpret_cast<uint8_t&>(id)) {
         auto* const image = static_cast<ID3D11Texture2D*>(images.at(id));
         RETURN_ON_FAILURE(setStatusIf(image == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
@@ -179,13 +179,13 @@ Upscaler::Status DLSS::DX11SetResources(const std::array<void*, Plugin::NumImage
     return Success;
 }
 
-Upscaler::Status DLSS::DX11GetCommandBuffer(void*& deviceContext) {
+Upscaler::Status DLSS_Upscaler::DX11GetCommandBuffer(void*& deviceContext) {
     DX11::getGraphicsInterface()->GetDevice()->GetImmediateContext(reinterpret_cast<ID3D11DeviceContext**>(&deviceContext));
     return Success;
 }
 #    endif
 
-void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFunc) {
+void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFunc) {
     std::wstring path;
     if (std::filesystem::exists("sl.interposer.dll")) path = L"sl.interposer.dll";
     else if (std::filesystem::exists("Assets\\Plugins\\sl.interposer.dll")) path = L"Assets\\Plugins\\sl.interposer.dll";
@@ -222,7 +222,7 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
         sl::kFeatureDLSS
     };
     sl::Preferences pref {};
-    pref.logMessageCallback = &DLSS::log;
+    pref.logMessageCallback = &DLSS_Upscaler::log;
     pref.logLevel = sl::LogLevel::eVerbose;
     pref.pathsToPlugins = paths.data();
     pref.numPathsToPlugins = paths.size();
@@ -243,11 +243,11 @@ void DLSS::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFu
     Plugin::dlssLoadedCorrectly = true;
 }
 
-void DLSS::shutdown() {
+void DLSS_Upscaler::shutdown() {
     if (slShutdown != nullptr) slShutdown();
 }
 
-void DLSS::unload() {
+void DLSS_Upscaler::unload() {
     if (library != nullptr) FreeLibrary(library);
     library              = nullptr;
     slInit               = nullptr;
@@ -262,45 +262,45 @@ void DLSS::unload() {
     slShutdown           = nullptr;
 }
 
-bool DLSS::isSupported() {
+bool DLSS_Upscaler::isSupported() {
     if (supported != Untested) return supported == Supported;
-    return (supported = success(DLSS().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
+    return (supported = success(DLSS_Upscaler().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
-bool DLSS::isSupported(const enum Settings::Quality mode) {
+bool DLSS_Upscaler::isSupported(const enum Settings::Quality mode) {
     return mode == Settings::Auto || mode == Settings::AntiAliasing || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
-void DLSS::useGraphicsAPI(const GraphicsAPI::Type type) {
+void DLSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
         case GraphicsAPI::VULKAN: {
-            fpGetDevice        = &DLSS::nullFunc<void*>;
-            fpSetResources     = &DLSS::VulkanSetResources;
-            fpGetCommandBuffer = &DLSS::VulkanGetCommandBuffer;
+            fpGetDevice        = &DLSS_Upscaler::nullFunc<void*>;
+            fpSetResources     = &DLSS_Upscaler::VulkanSetResources;
+            fpGetCommandBuffer = &DLSS_Upscaler::VulkanGetCommandBuffer;
             break;
         }
         case GraphicsAPI::DX12: {
-            fpGetDevice        = &DLSS::DX12GetDevice;
-            fpSetResources     = &DLSS::DX12SetResources;
-            fpGetCommandBuffer = &DLSS::DX12GetCommandBuffer;
+            fpGetDevice        = &DLSS_Upscaler::DX12GetDevice;
+            fpSetResources     = &DLSS_Upscaler::DX12SetResources;
+            fpGetCommandBuffer = &DLSS_Upscaler::DX12GetCommandBuffer;
             break;
         }
         case GraphicsAPI::DX11: {
-            fpGetDevice        = &DLSS::DX11GetDevice;
-            fpSetResources     = &DLSS::DX11SetResources;
-            fpGetCommandBuffer = &DLSS::DX11GetCommandBuffer;
+            fpGetDevice        = &DLSS_Upscaler::DX11GetDevice;
+            fpSetResources     = &DLSS_Upscaler::DX11SetResources;
+            fpGetCommandBuffer = &DLSS_Upscaler::DX11GetCommandBuffer;
             break;
         }
         case GraphicsAPI::NONE: {
-            fpGetDevice        = &DLSS::nullFunc<void*>;
-            fpSetResources     = &DLSS::invalidGraphicsAPIFail;
-            fpGetCommandBuffer = &DLSS::invalidGraphicsAPIFail;
+            fpGetDevice        = &DLSS_Upscaler::nullFunc<void*>;
+            fpSetResources     = &DLSS_Upscaler::invalidGraphicsAPIFail;
+            fpGetCommandBuffer = &DLSS_Upscaler::invalidGraphicsAPIFail;
             break;
         }
     }
 }
 
-DLSS::DLSS() : handle(users++) {
+DLSS_Upscaler::DLSS_Upscaler() : handle(users++) {
     if (users != 1U) return;
     RETURN_VOID_ON_FAILURE(setStatus(slSetFeatureLoaded(sl::kFeatureDLSS, true), "Failed to load the NVIDIA Deep Learning Super Sampling feature."));
     void* func{nullptr};
@@ -310,7 +310,7 @@ DLSS::DLSS() : handle(users++) {
     slDLSSSetOptions = reinterpret_cast<decltype(&::slDLSSSetOptions)>(func);
 }
 
-DLSS::~DLSS() {
+DLSS_Upscaler::~DLSS_Upscaler() {
 #ifdef ENABLE_VULKAN
     if (GraphicsAPI::getType() == GraphicsAPI::VULKAN) for (const auto& resource : resources) Vulkan::destroyImageView(static_cast<VkImageView>(resource.view));
 #endif
@@ -318,7 +318,7 @@ DLSS::~DLSS() {
     if (--users == 0) slSetFeatureLoaded(sl::kFeatureDLSS, false);
 }
 
-Upscaler::Status DLSS::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset preset, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status DLSS_Upscaler::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset preset, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
@@ -366,11 +366,11 @@ Upscaler::Status DLSS::useSettings(const Settings::Resolution resolution, const 
     return Success;
 }
 
-Upscaler::Status DLSS::useImages(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status DLSS_Upscaler::useImages(const std::array<void*, Plugin::NumImages>& images) {
     return (this->*fpSetResources)(images);
 }
 
-Upscaler::Status DLSS::evaluate() {
+Upscaler::Status DLSS_Upscaler::evaluate() {
     void* commandBuffer {};
     RETURN_ON_FAILURE((this->*fpGetCommandBuffer)(commandBuffer));
     const sl::Extent colorExtent {0, 0, resources[Plugin::Color].width, resources[Plugin::Color].height};

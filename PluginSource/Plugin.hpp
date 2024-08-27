@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <FrameGenerator/FSR_FrameGenerator.hpp>
 
 namespace Plugin {
 namespace Unity {
@@ -47,6 +48,9 @@ inline enum FrameGenerationProvider : uint8_t {
     FSR,
     DLSS
 } frameGenerationProvider = None;
+
+inline uint32_t swapchainWidth = 0;
+inline uint32_t swapchainHeight = 0;
 
 constexpr std::size_t NumBaseImages = 4;
 constexpr std::size_t NumImages = 6;

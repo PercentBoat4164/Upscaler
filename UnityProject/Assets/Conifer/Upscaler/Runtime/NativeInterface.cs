@@ -26,6 +26,9 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
         internal static extern void SetLogLevel(LogType type);
 
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFrameGeneration")]
+        internal static extern void SetFrameGeneration(int width, int height);
+
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
         internal static extern int GetEventIDBase();
 
@@ -172,6 +175,12 @@ namespace Conifer.Upscaler
         internal static void SetLogLevel(LogType type)
         {
             if (Loaded) Native.SetLogLevel(type);
+        }
+
+        internal static void SetFrameGeneration(bool on) {
+            if (!Loaded) return;
+            if (on) Native.SetFrameGeneration(Screen.width + 2, Screen.height + 42);
+            else Native.SetFrameGeneration(0, 0);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);

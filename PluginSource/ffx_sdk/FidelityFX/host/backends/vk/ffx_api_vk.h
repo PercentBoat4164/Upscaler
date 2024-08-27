@@ -21,8 +21,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../ffx_api.h"
-#include "../ffx_api_types.h"
+#include "FidelityFX/host/ffx_api.h"
+#include "FidelityFX/host/ffx_api_types.h"
 #include <vulkan/vulkan.h>
 
 /// FFX specific callback type when submitting a command buffer to a queue.

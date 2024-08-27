@@ -10,14 +10,14 @@
 
 #    include <windows.h>
 
-class XeSS final : public Upscaler {
+class XeSS_Upscaler final : public Upscaler {
     xess_context_handle_t context{nullptr};
 
     static HMODULE library;
     static std::atomic<uint32_t> users;
 
-    static Status (XeSS::*fpCreate)(const xess_d3d12_init_params_t*);
-    static Status (XeSS::*fpEvaluate)();
+    static Status (XeSS_Upscaler::*fpCreate)(const xess_d3d12_init_params_t*);
+    static Status (XeSS_Upscaler::*fpEvaluate)();
 
     static decltype(&xessGetOptimalInputResolution) xessGetOptimalInputResolution;
     static decltype(&xessDestroyContext) xessDestroyContext;
@@ -45,12 +45,12 @@ public:
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    XeSS();
-    XeSS(const XeSS&)            = delete;
-    XeSS(XeSS&&)                 = delete;
-    XeSS& operator=(const XeSS&) = delete;
-    XeSS& operator=(XeSS&&)      = delete;
-    ~XeSS() override;
+    XeSS_Upscaler();
+    XeSS_Upscaler(const XeSS_Upscaler&)            = delete;
+    XeSS_Upscaler(XeSS_Upscaler&&)                 = delete;
+    XeSS_Upscaler& operator=(const XeSS_Upscaler&) = delete;
+    XeSS_Upscaler& operator=(XeSS_Upscaler&&)      = delete;
+    ~XeSS_Upscaler() override;
 
     constexpr Type getType() override {
         return XESS;

@@ -1,5 +1,5 @@
 #ifdef ENABLE_XESS
-#    include "XeSS.hpp"
+#    include "XeSS_Upscaler.hpp"
 
 #    include <xess/xess.h>
 #    ifdef ENABLE_DX12
@@ -12,23 +12,23 @@
 #        include <xess/xess_d3d12.h>
 #    endif
 
-HMODULE XeSS::library{nullptr};
-std::atomic<uint32_t> XeSS::users{};
+HMODULE XeSS_Upscaler::library{nullptr};
+std::atomic<uint32_t> XeSS_Upscaler::users{};
 
-Upscaler::Status (XeSS::*XeSS::fpCreate)(const xess_d3d12_init_params_t*){&XeSS::safeFail};
-Upscaler::Status (XeSS::*XeSS::fpEvaluate)(){&XeSS::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const xess_d3d12_init_params_t*){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(){&XeSS_Upscaler::safeFail};
 
-decltype(&xessGetOptimalInputResolution) XeSS::xessGetOptimalInputResolution{nullptr};
-decltype(&xessDestroyContext) XeSS::xessDestroyContext{nullptr};
-decltype(&xessSetVelocityScale) XeSS::xessSetVelocityScale{nullptr};
-decltype(&xessSetLoggingCallback) XeSS::xessSetLoggingCallback{nullptr};
-decltype(&xessD3D12CreateContext) XeSS::xessD3D12CreateContext{nullptr};
-decltype(&xessD3D12Init) XeSS::xessD3D12Init{nullptr};
-decltype(&xessD3D12Execute) XeSS::xessD3D12Execute{nullptr};
+decltype(&xessGetOptimalInputResolution) XeSS_Upscaler::xessGetOptimalInputResolution{nullptr};
+decltype(&xessDestroyContext) XeSS_Upscaler::xessDestroyContext{nullptr};
+decltype(&xessSetVelocityScale) XeSS_Upscaler::xessSetVelocityScale{nullptr};
+decltype(&xessSetLoggingCallback) XeSS_Upscaler::xessSetLoggingCallback{nullptr};
+decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr};
+decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
+decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
 
-Upscaler::SupportState XeSS::supported{Unsupported};
+Upscaler::SupportState XeSS_Upscaler::supported{Unsupported};
 
-Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string& t_msg) {
+Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {
         case XESS_RESULT_WARNING_NONEXISTING_FOLDER: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_WARNING_NONEXISTING_FOLDER");
         case XESS_RESULT_WARNING_OLD_DRIVER: return Upscaler::setStatus(Success, t_msg + " | XESS_RESULT_WARNING_OLD_DRIVER");
@@ -50,7 +50,7 @@ Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string&
 }
 
 
-void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
+void XeSS_Upscaler::log(const char* message, const xess_logging_level_t loggingLevel) {
     UnityLogType unityType = kUnityLogTypeLog;
     switch (loggingLevel) {
         case XESS_LOGGING_LEVEL_DEBUG:
@@ -63,12 +63,12 @@ void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
 }
 
 #    ifdef ENABLE_DX12
-Upscaler::Status XeSS::DX12Create(const xess_d3d12_init_params_t* params) {
+Upscaler::Status XeSS_Upscaler::DX12Create(const xess_d3d12_init_params_t* params) {
     RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
     return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
 }
 
-Upscaler::Status XeSS::DX12Evaluate() {
+Upscaler::Status XeSS_Upscaler::DX12Evaluate() {
     const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Color])->GetDesc();
     const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources[Plugin::Motion])->GetDesc();
     const xess_d3d12_execute_params_t params {
@@ -90,33 +90,33 @@ Upscaler::Status XeSS::DX12Evaluate() {
 }
 #endif
 
-bool XeSS::isSupported() {
+bool XeSS_Upscaler::isSupported() {
     if (supported != Untested) return supported == Supported;
-    return (supported = success(XeSS().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
+    return (supported = success(XeSS_Upscaler().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
-bool XeSS::isSupported(const enum Settings::Quality mode) {
+bool XeSS_Upscaler::isSupported(const enum Settings::Quality mode) {
     return mode == Settings::Auto || mode == Settings::AntiAliasing || mode == Settings::UltraQualityPlus || mode == Settings::UltraQuality || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
-void XeSS::useGraphicsAPI(const GraphicsAPI::Type type) {
+void XeSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpCreate   = &XeSS::DX12Create;
-            fpEvaluate = &XeSS::DX12Evaluate;
+            fpCreate   = &XeSS_Upscaler::DX12Create;
+            fpEvaluate = &XeSS_Upscaler::DX12Evaluate;
             break;
         }
 #    endif
         default: {
-            fpCreate   = &XeSS::invalidGraphicsAPIFail;
-            fpEvaluate = &XeSS::invalidGraphicsAPIFail;
+            fpCreate   = &XeSS_Upscaler::invalidGraphicsAPIFail;
+            fpEvaluate = &XeSS_Upscaler::invalidGraphicsAPIFail;
             break;
         }
     }
 }
 
-XeSS::XeSS() {
+XeSS_Upscaler::XeSS_Upscaler() {
     if (++users != 1) return;
     if (GraphicsAPI::getType() != GraphicsAPI::DX12) RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, getName() + " only supports DX12."));
     library = LoadLibrary("libxess.dll");
@@ -132,14 +132,14 @@ XeSS::XeSS() {
     setStatusIf(xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr, LibraryNotLoaded, "'libxess.dll' had missing symbols.");
 }
 
-XeSS::~XeSS() {
+XeSS_Upscaler::~XeSS_Upscaler() {
     if (context != nullptr) setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context.");
     context = nullptr;
     if (--users == 0 && library != nullptr) FreeLibrary(library);
     library = nullptr;
 }
 
-Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings;
     optimalSettings.outputResolution = resolution;
@@ -157,7 +157,7 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
     if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
     context = nullptr;
     RETURN_ON_FAILURE((this->*fpCreate)(&params));
-    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS::log), "Failed to set logging callback."));
+    RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS_Upscaler::log), "Failed to set logging callback."));
     const xess_2d_t inputResolution {resolution.width, resolution.height};
     xess_2d_t       optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
@@ -168,12 +168,12 @@ Upscaler::Status XeSS::useSettings(const Settings::Resolution resolution, const 
     return Success;
 }
 
-Upscaler::Status XeSS::useImages(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status XeSS_Upscaler::useImages(const std::array<void*, Plugin::NumImages>& images) {
     std::copy_n(images.begin(), Plugin::NumBaseImages, resources.begin());
     return Success;
 }
 
-Upscaler::Status XeSS::evaluate() {
+Upscaler::Status XeSS_Upscaler::evaluate() {
     return (this->*fpEvaluate)();
 }
 #endif

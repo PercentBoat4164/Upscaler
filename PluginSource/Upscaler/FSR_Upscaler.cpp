@@ -1,11 +1,11 @@
-#ifdef ENABLE_FSR3
-#    include "FSR3.hpp"
+#ifdef ENABLE_FSR
+#    include "FSR_Upscaler.hpp"
 #    ifdef ENABLE_VULKAN
 #        include "GraphicsAPI/Vulkan.hpp"
 
 #        include <IUnityGraphicsVulkan.h>
 
-#        include <ffx_api/vk/ffx_api_vk.hpp>
+#        include <FidelityFX/host/backends/vk/ffx_api_vk.hpp>
 #    endif
 #    ifdef ENABLE_DX12
 #        include "GraphicsAPI/DX12.hpp"
@@ -14,23 +14,21 @@
 
 #        include <IUnityGraphicsD3D12.h>
 
-#        include <ffx_api/dx12/ffx_api_dx12.hpp>
+#        include <FidelityFX/host/backends/dx12/ffx_api_dx12.hpp>
 #    endif
 
-#    include <ffx_api/ffx_upscale.hpp>
+#    include <FidelityFX/host/ffx_upscale.hpp>
 
 #    include <algorithm>
 
-HMODULE FSR3::library{nullptr};
-uint32_t FSR3::users{};
-Upscaler::SupportState FSR3::supported{Unsupported};
+Upscaler::SupportState FSR_Upscaler::supported{Untested};
 
-Upscaler::Status (FSR3::*FSR3::fpCreate)(ffx::CreateContextDescUpscale&){&FSR3::safeFail};
-Upscaler::Status (FSR3::*FSR3::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&FSR3::safeFail};
-Upscaler::Status (FSR3::*FSR3::fpGetCommandBuffer)(void*&){&FSR3::safeFail};
+Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpCreate)(ffx::CreateContextDescUpscale&){&FSR_Upscaler::safeFail};
+Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&FSR_Upscaler::safeFail};
+Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpGetCommandBuffer)(void*&){&FSR_Upscaler::safeFail};
 
 #    ifdef ENABLE_VULKAN
-Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale) {
+Upscaler::Status FSR_Upscaler::VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale) {
     ffx::CreateBackendVKDesc createBackendVKDesc;
     createBackendVKDesc.vkDevice = Vulkan::getGraphicsInterface()->Instance().device;
     createBackendVKDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
@@ -38,7 +36,7 @@ Upscaler::Status FSR3::VulkanCreate(ffx::CreateContextDescUpscale& createContext
     return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendVKDesc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
-Upscaler::Status FSR3::VulkanSetResources(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status FSR_Upscaler::VulkanSetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < (settings.autoReactive ? Plugin::NumImages : Plugin::NumBaseImages); ++reinterpret_cast<uint8_t&>(id)) {
         VkAccessFlags      accessFlags{VK_ACCESS_SHADER_READ_BIT};
         FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
@@ -66,7 +64,7 @@ Upscaler::Status FSR3::VulkanSetResources(const std::array<void*, Plugin::NumIma
     return Success;
 }
 
-Upscaler::Status FSR3::VulkanGetCommandBuffer(void*& commandBuffer) {
+Upscaler::Status FSR_Upscaler::VulkanGetCommandBuffer(void*& commandBuffer) {
     UnityVulkanRecordingState state {};
     Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
@@ -76,13 +74,13 @@ Upscaler::Status FSR3::VulkanGetCommandBuffer(void*& commandBuffer) {
 #    endif
 
 #    ifdef ENABLE_DX12
-Upscaler::Status FSR3::DX12Create(ffx::CreateContextDescUpscale& createContextDescUpscale) {
+Upscaler::Status FSR_Upscaler::DX12Create(ffx::CreateContextDescUpscale& createContextDescUpscale) {
     ffx::CreateBackendDX12Desc createBackendDX12Desc;
     createBackendDX12Desc.device = DX12::getGraphicsInterface()->GetDevice();
     return setStatus(CreateContext(context, nullptr, createContextDescUpscale, createBackendDX12Desc), "Failed to create the AMD FidelityFx Super Resolution context.");
 }
 
-Upscaler::Status FSR3::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status FSR_Upscaler::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < (settings.autoReactive ? Plugin::NumImages : Plugin::NumBaseImages); ++reinterpret_cast<uint8_t&>(id)) {
         FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
         if (id == Plugin::Output || id == Plugin::Reactive)
@@ -106,7 +104,7 @@ Upscaler::Status FSR3::DX12SetResources(const std::array<void*, Plugin::NumImage
     return Success;
 }
 
-Upscaler::Status FSR3::DX12GetCommandBuffer(void*& commandList) {
+Upscaler::Status FSR_Upscaler::DX12GetCommandBuffer(void*& commandList) {
     UnityGraphicsD3D12RecordingState state {};
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     commandList = state.commandList;
@@ -114,7 +112,7 @@ Upscaler::Status FSR3::DX12GetCommandBuffer(void*& commandList) {
 }
 #    endif
 
-Upscaler::Status FSR3::setStatus(const ffx::ReturnCode t_error, const std::string &t_msg) {
+Upscaler::Status FSR_Upscaler::setStatus(const ffx::ReturnCode t_error, const std::string &t_msg) {
     switch (t_error) {
         case ffx::ReturnCode::Ok: return Upscaler::setStatus(Success, t_msg + " | Ok");
         case ffx::ReturnCode::Error: return Upscaler::setStatus(FatalRuntimeError, t_msg + " | Error");
@@ -127,7 +125,7 @@ Upscaler::Status FSR3::setStatus(const ffx::ReturnCode t_error, const std::strin
     }
 }
 
-void FSR3::log(const FfxApiMsgType type, const wchar_t *t_msg) {
+void FSR_Upscaler::log(const FfxApiMsgType type, const wchar_t *t_msg) {
     std::wstring message(t_msg);
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
@@ -140,67 +138,48 @@ void FSR3::log(const FfxApiMsgType type, const wchar_t *t_msg) {
     Plugin::log(msg, unityType);
 }
 
-bool FSR3::isSupported() {
+bool FSR_Upscaler::isSupported() {
     if (supported != Untested) return supported == Supported;
-    return (supported = success(FSR3().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
+    return (supported = success(FSR_Upscaler().useSettings({32, 32}, Settings::DLSSPreset::Default, Settings::Quality::Auto, false)) ? Supported : Unsupported) == Supported;
 }
 
-bool FSR3::isSupported(const enum Settings::Quality mode) {
+bool FSR_Upscaler::isSupported(const enum Settings::Quality mode) {
     return mode == Settings::AntiAliasing || mode == Settings::Auto || mode == Settings::Quality || mode == Settings::Balanced || mode == Settings::Performance || mode == Settings::UltraPerformance;
 }
 
-void FSR3::useGraphicsAPI(const GraphicsAPI::Type type) {
+void FSR_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
 #    ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN: {
-            fpCreate           = &FSR3::VulkanCreate;
-            fpSetResources     = &FSR3::VulkanSetResources;
-            fpGetCommandBuffer = &FSR3::VulkanGetCommandBuffer;
+            fpCreate           = &FSR_Upscaler::VulkanCreate;
+            fpSetResources     = &FSR_Upscaler::VulkanSetResources;
+            fpGetCommandBuffer = &FSR_Upscaler::VulkanGetCommandBuffer;
             break;
         }
 #    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpCreate           = &FSR3::DX12Create;
-            fpSetResources     = &FSR3::DX12SetResources;
-            fpGetCommandBuffer = &FSR3::DX12GetCommandBuffer;
+            fpCreate           = &FSR_Upscaler::DX12Create;
+            fpSetResources     = &FSR_Upscaler::DX12SetResources;
+            fpGetCommandBuffer = &FSR_Upscaler::DX12GetCommandBuffer;
             break;
         }
 #    endif
         default: {
-            fpCreate           = &FSR3::invalidGraphicsAPIFail;
-            fpSetResources     = &FSR3::invalidGraphicsAPIFail;
-            fpGetCommandBuffer = &FSR3::invalidGraphicsAPIFail;
+            fpCreate           = &FSR_Upscaler::invalidGraphicsAPIFail;
+            fpSetResources     = &FSR_Upscaler::invalidGraphicsAPIFail;
+            fpGetCommandBuffer = &FSR_Upscaler::invalidGraphicsAPIFail;
             break;
         }
     }
 }
 
-FSR3::FSR3() {
-    if (++users != 1U) return;
-    std::string path;
-    if (GraphicsAPI::getType() == GraphicsAPI::DX12) path = R"(amd_fidelityfx_dx12.dll)";
-    else if (GraphicsAPI::getType() == GraphicsAPI::VULKAN) path = R"(amd_fidelityfx_vk.dll)";
-    else RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, getName() + " only supports Vulkan and DX12."));
-    library = LoadLibrary(path.c_str());
-    if (library == nullptr) library = LoadLibrary((R"(Assets\Plugins\)" + path).c_str());
-    RETURN_VOID_ON_FAILURE(setStatusIf(library == nullptr, LibraryNotLoaded, "Failed to load '" + path + "'."));
-    ffxCreateContext  = reinterpret_cast<PfnFfxCreateContext>(GetProcAddress(library, "ffxCreateContext"));
-    ffxDestroyContext = reinterpret_cast<PfnFfxDestroyContext>(GetProcAddress(library, "ffxDestroyContext"));
-    ffxConfigure      = reinterpret_cast<PfnFfxConfigure>(GetProcAddress(library, "ffxConfigure"));
-    ffxQuery          = reinterpret_cast<PfnFfxQuery>(GetProcAddress(library, "ffxQuery"));
-    ffxDispatch       = reinterpret_cast<PfnFfxDispatch>(GetProcAddress(library, "ffxDispatch"));
-    setStatusIf(ffxCreateContext == nullptr || ffxDestroyContext == nullptr || ffxConfigure == nullptr || ffxQuery == nullptr || ffxDispatch == nullptr, LibraryNotLoaded, "'" + path + "' had missing symbols.");
-}
-
-FSR3::~FSR3() {
+FSR_Upscaler::~FSR_Upscaler() {
     if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy the AMD FidelityFx Super Resolution context.");
     context = nullptr;
-    if (--users == 0 && library != nullptr) FreeLibrary(library);
-    library = nullptr;
 }
 
-Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
+Upscaler::Status FSR_Upscaler::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
     RETURN_ON_FAILURE(getStatus());
     Settings optimalSettings         = settings;
     optimalSettings.outputResolution = resolution;
@@ -209,7 +188,7 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     ffx::QueryDescUpscaleGetRenderResolutionFromQualityMode queryDescUpscaleGetRenderResolutionFromQualityMode;
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayWidth     = optimalSettings.outputResolution.width;
     queryDescUpscaleGetRenderResolutionFromQualityMode.displayHeight    = optimalSettings.outputResolution.height;
-    queryDescUpscaleGetRenderResolutionFromQualityMode.qualityMode      = optimalSettings.getQuality<Upscaler::FSR3>(mode);
+    queryDescUpscaleGetRenderResolutionFromQualityMode.qualityMode      = optimalSettings.getQuality<Upscaler::FSR>(mode);
     queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderWidth  = &optimalSettings.recommendedInputResolution.width;
     queryDescUpscaleGetRenderResolutionFromQualityMode.pOutRenderHeight = &optimalSettings.recommendedInputResolution.height;
     RETURN_ON_FAILURE(setStatus(ffx::Query(queryDescUpscaleGetRenderResolutionFromQualityMode), "Failed to query render resolution from quality mode. Ensure that the QualityMode setting is a valid enum value."));
@@ -225,7 +204,7 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
       (optimalSettings.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U);
     createContextDescUpscale.maxRenderSize  = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
     createContextDescUpscale.maxUpscaleSize = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
-    createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR3::log);
+    createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR_Upscaler::log);
 
 #    ifdef ENABLE_FRAME_GENERATION
     ffx::ConfigureDescFrameGenerationSwapChainRegisterUiResourceVK createContextDescFrameGeneration;
@@ -237,11 +216,11 @@ Upscaler::Status FSR3::useSettings(const Settings::Resolution resolution, const 
     return Success;
 }
 
-Upscaler::Status FSR3::useImages(const std::array<void*, Plugin::NumImages>& images) {
+Upscaler::Status FSR_Upscaler::useImages(const std::array<void*, Plugin::NumImages>& images) {
     return (this->*fpSetResources)(images);
 }
 
-Upscaler::Status FSR3::evaluate() {
+Upscaler::Status FSR_Upscaler::evaluate() {
     void* commandBuffer {};
     RETURN_ON_FAILURE((this->*fpGetCommandBuffer)(commandBuffer));
 

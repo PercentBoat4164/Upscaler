@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../ffx_api.hpp"
+#include "FidelityFX/host/ffx_api.hpp"
 #include "ffx_api_vk.h"
 
 // Helper types for header initialization. Api definition is in .h file.

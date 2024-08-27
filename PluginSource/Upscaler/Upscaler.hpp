@@ -12,8 +12,8 @@
 #    include <sl.h>
 #    include <sl_dlss.h>
 #endif
-#ifdef ENABLE_FSR3
-#    include <ffx_api/ffx_upscale.h>
+#ifdef ENABLE_FSR
+#    include <FidelityFX/host/ffx_upscale.hpp>
 #endif
 #ifdef ENABLE_XESS
 #    include <xess/xess.h>
@@ -42,7 +42,7 @@ struct alignas(512) UpscalerBase {
     enum Type {
         NONE,
         DLSS,
-        FSR3,
+        FSR,
         XESS,
         TYPE_MAX_ENUM
     };
@@ -127,8 +127,8 @@ struct alignas(512) UpscalerBase {
             }
         }
 #endif
-#ifdef ENABLE_FSR3
-        template<Type T, typename = std::enable_if_t<T == FSR3>>
+#ifdef ENABLE_FSR
+        template<Type T, typename = std::enable_if_t<T == FSR>>
         [[nodiscard]] FfxApiUpscaleQualityMode getQuality(const enum Quality quality) const {
             switch (quality) {
                 case Auto: {

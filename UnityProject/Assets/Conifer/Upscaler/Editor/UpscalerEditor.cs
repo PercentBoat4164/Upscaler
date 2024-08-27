@@ -52,6 +52,7 @@ namespace Conifer.Upscaler.Editor
 
         private SerializedProperty _technique;
         private SerializedProperty _quality;
+        private SerializedProperty _frameGeneration;
         private SerializedProperty _dlssPreset;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
@@ -111,6 +112,7 @@ namespace Conifer.Upscaler.Editor
 
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
+            _frameGeneration = serializedObject.FindProperty("frameGeneration");
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
@@ -263,6 +265,9 @@ namespace Conifer.Upscaler.Editor
             var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution) || !Application.isPlaying;
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
+
+            _frameGeneration.boolValue = EditorGUILayout.Toggle("Enable Frame Generation", _frameGeneration.boolValue);
+
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
                 EditorGUILayout.Separator();

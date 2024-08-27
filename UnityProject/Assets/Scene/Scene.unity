@@ -464,6 +464,7 @@ MonoBehaviour:
   forceHistoryResetEveryFrame: 0
   quality: 0
   technique: 2
+  frameGeneration: 0
   dlssPreset: 0
   sharpness: 0
   useReactiveMask: 1
