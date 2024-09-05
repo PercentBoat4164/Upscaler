@@ -11,6 +11,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
 namespace Conifer.Upscaler
 {
@@ -20,8 +21,8 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
         internal static extern bool LoadedCorrectly();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_DLSSLoadedCorrectly")]
-        internal static extern bool DLSSLoadedCorrectly();
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_DlssLoadedCorrectly")]
+        internal static extern bool DlssLoadedCorrectly();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
         internal static extern void SetLogLevel(LogType type);
@@ -71,8 +72,14 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
         internal static extern void ResetHistory(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetImages")]
-        internal static extern void SetImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscalingImages")]
+        internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFrameGenerationImages")]
+        internal static extern void SetFrameGenerationImages(IntPtr color, IntPtr depth, IntPtr motion);
+
+        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetBackBufferFormat")]
+        internal static extern RenderTextureFormat GetBackBufferFormat();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
         internal static extern void UnregisterCamera(ushort camera);
@@ -83,9 +90,11 @@ namespace Conifer.Upscaler
         internal readonly Camera Camera;
         internal static readonly bool Loaded;
         private readonly ushort _cameraID;
-        private static readonly int EventIDBase;
+        private static readonly int UpscaleEventID;
+        private static readonly int FrameGenerateEventID;
         private readonly IntPtr _renderingEventCallback;
-        private readonly IntPtr _dataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
+        private readonly IntPtr _upscaleDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
+        private readonly IntPtr _frameGenerateDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<FrameGenerateData>());
 
         private struct UpscaleData
         {
@@ -106,8 +115,7 @@ namespace Conifer.Upscaler
                 var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
-                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f /
-                               (float)Math.PI;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
                 _position = camera.transform.position;
                 _up = camera.transform.up;
                 _right = camera.transform.right;
@@ -137,6 +145,32 @@ namespace Conifer.Upscaler
             private uint _orthographic_debugView;
         }
 
+        private struct FrameGenerateData {
+            internal FrameGenerateData(Upscaler upscaler)
+            {
+                _enable = upscaler.frameGeneration;
+                if (Application.isEditor) _generationRect = new Rect(1, 41, Screen.width, Screen.height);
+                else _generationRect = new Rect(0, 0, Screen.width, Screen.height);
+                var camera = upscaler.GetComponent<Camera>();
+                _jitterOffset = new Vector2(camera.nonJitteredProjectionMatrix.m03 - camera.projectionMatrix.m03, camera.nonJitteredProjectionMatrix.m13 - camera.projectionMatrix.m13);
+                // _backBuffer = Graphics.activeColorBuffer.GetNativeRenderBufferPtr();
+                _frameTime = Time.deltaTime;
+                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
+                _farPlane = planes.zFar;
+                _nearPlane = planes.zNear;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
+            }
+
+            private bool _enable;
+            private Rect _generationRect;
+            private Vector2 _jitterOffset;
+            // private IntPtr _backBuffer;
+            private float _frameTime;
+            private float _farPlane;
+            private float _nearPlane;
+            private float _verticalFOV;
+        }
+
         static NativeInterface()
         {
             try
@@ -149,7 +183,10 @@ namespace Conifer.Upscaler
                 return;
             }
 
-            if (Loaded) EventIDBase = Native.GetEventIDBase();
+            if (!Loaded) return;
+            var eventIDBase = Native.GetEventIDBase();
+            UpscaleEventID = eventIDBase;
+            FrameGenerateEventID = ++eventIDBase;
         }
 
         internal NativeInterface()
@@ -164,12 +201,15 @@ namespace Conifer.Upscaler
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal bool DlssLoadedCorrectly() => Loaded && Native.DLSSLoadedCorrectly();
-
         internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _dataPtr, true);
-            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, EventIDBase, _dataPtr);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _upscaleDataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
+        }
+
+        internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler) {
+            Marshal.StructureToPtr(new FrameGenerateData(upscaler), _frameGenerateDataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 
         internal static void SetLogLevel(LogType type)
@@ -179,7 +219,9 @@ namespace Conifer.Upscaler
 
         internal static void SetFrameGeneration(bool on) {
             if (!Loaded) return;
-            if (on) Native.SetFrameGeneration(Screen.width + 2, Screen.height + 42);
+            if (on)
+                if (Application.isEditor) Native.SetFrameGeneration(Screen.width + 2, Screen.height + 42);
+                else Native.SetFrameGeneration(Screen.width, Screen.height);
             else Native.SetFrameGeneration(0, 0);
         }
 
@@ -219,9 +261,15 @@ namespace Conifer.Upscaler
             if (Loaded) Native.ResetHistory(_cameraID);
         }
 
-        internal void SetImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
+        internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
         {
-            if (Loaded) Native.SetImages(_cameraID, color, depth, motion, output, reactive, opaque, autoReactive);
+            if (Loaded) Native.SetUpscalingImages(_cameraID, color, depth, motion, output, reactive, opaque, autoReactive);
         }
+
+        internal void SetFrameGenerationImages(IntPtr hudless, IntPtr depth, IntPtr motion) {
+            if (Loaded) Native.SetFrameGenerationImages(hudless, depth, motion);
+        }
+
+        internal static RenderTextureFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : RenderTextureFormat.Default;
     }
 }

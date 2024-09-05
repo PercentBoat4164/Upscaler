@@ -462,7 +462,7 @@ MonoBehaviour:
   debugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 0
+  quality: 1
   technique: 2
   frameGeneration: 0
   dlssPreset: 0

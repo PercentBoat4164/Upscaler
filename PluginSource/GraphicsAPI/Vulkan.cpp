@@ -11,6 +11,7 @@
 
 PFN_vkGetInstanceProcAddr    Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetInstanceProcAddr    Vulkan::m_slGetInstanceProcAddr{VK_NULL_HANDLE};
+PFN_vkCreateDevice           Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr      Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr      Vulkan::m_slGetDeviceProcAddr{VK_NULL_HANDLE};
 PFN_vkCreateSwapchainKHR     Vulkan::m_vkCreateSwapchainKHR{VK_NULL_HANDLE};
@@ -39,6 +40,13 @@ PFN_vkDestroyImageView                       Vulkan::m_vkDestroyImageView{VK_NUL
 
 IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 
+PFN_vkVoidFunction Vulkan::monitor_vkGetDeviceProcAddr(VkDevice device, const char* name) {
+    PFN_vkVoidFunction func{VK_NULL_HANDLE};
+    if (strcmp(name, "vkGetBufferMemoryRequirements2KHR") == 0) func = m_vkGetDeviceProcAddr(device, "vkGetBufferMemoryRequirements2");
+    else func = m_vkGetDeviceProcAddr(device, name);
+    return func;
+}
+
 PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const char* name) {
     if (strcmp(name, "vkGetInstanceProcAddr") == 0) return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetInstanceProcAddr);
     if (strcmp(name, "vkGetDeviceProcAddr") == 0) {
@@ -48,6 +56,10 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
 #    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetDeviceProcAddr);
     }
+    // if (strcmp(name, "vkCreateDevice") == 0) {
+    //     m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
+    //     return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateDevice);
+    // }
     if (strcmp(name, "vkGetPhysicalDeviceQueueFamilyProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetPhysicalDeviceQueueFamilyProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkGetDeviceQueue") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetDeviceQueue = reinterpret_cast<PFN_vkGetDeviceQueue>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkCreateImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetInstanceProcAddr(instance, name)));
@@ -89,20 +101,63 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
 
 PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char* name) {
     if (strcmp(name, "vkGetDeviceProcAddr") == 0) return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetDeviceProcAddr);
+    if (strcmp(name, "vkGetPhysicalDeviceQueueFamilyProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetPhysicalDeviceQueueFamilyProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(m_vkGetDeviceProcAddr(device, name)));
+    if (strcmp(name, "vkGetDeviceQueue") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetDeviceQueue = reinterpret_cast<PFN_vkGetDeviceQueue>(m_vkGetDeviceProcAddr(device, name)));
+    if (strcmp(name, "vkCreateImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetDeviceProcAddr(device, name)));
+    if (strcmp(name, "vkDestroyImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, name)));
     if (strcmp(name, "vkCreateSwapchainKHR") == 0) {
         m_vkCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_vkGetDeviceProcAddr(device, name));
         m_slCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_slGetDeviceProcAddr(device, name));
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateSwapchainKHR);
     }
+    if (strcmp(name, "vkDestroySwapchainKHR") == 0) {
+        m_vkDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_vkGetDeviceProcAddr(device, name));
+        m_slDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_slGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySwapchainKHR);
+    }
+    if (strcmp(name, "vkGetSwapchainImagesKHR") == 0) {
+        m_vkGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_vkGetDeviceProcAddr(device, name));
+        m_slGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_slGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetSwapchainImagesKHR);
+    }
+    if (strcmp(name, "vkAcquireNextImageKHR") == 0) {
+        m_vkAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_vkGetDeviceProcAddr(device, name));
+        m_slAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_slGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkAcquireNextImageKHR);
+    }
+    if (strcmp(name, "vkQueuePresentKHR") == 0) {
+        m_vkQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_vkGetDeviceProcAddr(device, name));
+        m_slQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_slGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkQueuePresentKHR);
+    }
+    if (strcmp(name, "vkSetHdrMetadataEXT") == 0) {
+        m_vkSetHdrMetadataEXT = reinterpret_cast<PFN_vkSetHdrMetadataEXT>(m_vkGetDeviceProcAddr(device, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkSetHdrMetadataEXT);
+    }
 #    ifdef ENABLE_DLSS
     if (m_slGetDeviceProcAddr != VK_NULL_HANDLE) return m_slGetDeviceProcAddr(device, name);
 #    endif
-    return m_slGetDeviceProcAddr(device, name);
+    return m_vkGetDeviceProcAddr(device, name);
+}
+
+VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
+    std::vector<const char*> extensions(pCreateInfo->enabledExtensionCount + 1);
+    for (uint32_t i{}; i < pCreateInfo->enabledExtensionCount; ++i) extensions.push_back(pCreateInfo->ppEnabledExtensionNames[i]);
+    extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+    VkDeviceCreateInfo createInfo = *pCreateInfo;
+    createInfo.enabledExtensionCount = extensions.size();
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    if (m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice) == VK_SUCCESS) return VK_SUCCESS;
+    extensions.pop_back();
+    createInfo.enabledExtensionCount = extensions.size();
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    return m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
 }
 
 VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
-    // if (FSR_FrameGenerator::ownsSwapchain(*pSwapchain))
-    //     return m_fxCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain, FSR_FrameGenerator::getContext());
+    const VkResult result = m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+    if (FSR_FrameGenerator::ownsSwapchain(*pSwapchain))
+        return m_fxCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain, FSR_FrameGenerator::getContext());
     if (Plugin::frameGenerationProvider != Plugin::None && Plugin::swapchainWidth == pCreateInfo->imageExtent.width && Plugin::swapchainHeight == pCreateInfo->imageExtent.height)
         switch (Plugin::frameGenerationProvider) {
 #    ifdef ENABLE_DLSS
@@ -111,20 +166,20 @@ VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCre
 #    endif
 #    ifdef ENABLE_FSR
             case Plugin::FSR: {
-                FSR_FrameGenerator::CreateSwapchain(pSwapchain, pCreateInfo, pAllocator, &m_fxCreateSwapchainKHR, &m_fxDestroySwapchainKHR, &m_fxGetSwapchainImagesKHR, &m_fxAcquireNextImageKHR, &m_fxQueuePresentKHR, &m_fxSetHdrMetadataEXT, nullptr);
+                FSR_FrameGenerator::createSwapchain(pSwapchain, pCreateInfo, pAllocator, &m_fxCreateSwapchainKHR, &m_fxDestroySwapchainKHR, &m_fxGetSwapchainImagesKHR, &m_fxAcquireNextImageKHR, &m_fxQueuePresentKHR, &m_fxSetHdrMetadataEXT, nullptr);
                 if (*pSwapchain == VK_NULL_HANDLE) return m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
                 return VK_SUCCESS;
             }
 #    endif
             case Plugin::None:
-            default: return m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+                default: return m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
         }
-    return m_vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+    return result;
 }
 
 void Vulkan::hook_vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) {
     if (FSR_FrameGenerator::ownsSwapchain(swapchain))
-        return FSR_FrameGenerator::DestroySwapchain();
+        return FSR_FrameGenerator::destroySwapchain();
     return m_vkDestroySwapchainKHR(device, swapchain, pAllocator);
 }
 
@@ -138,17 +193,14 @@ VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swap
     if (FSR_FrameGenerator::ownsSwapchain(swapchain))
         return m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     return m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
+    return VK_ERROR_OUT_OF_DATE_KHR;
 }
 
 VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
-    const PFN_vkQueuePresentKHR* queuePresentKHR = &m_vkQueuePresentKHR;
-    for (uint32_t i{}; i < pPresentInfo->swapchainCount; ++i) {
-        if (FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[i])) {
-            queuePresentKHR = &m_fxQueuePresentKHR;
-            break;
-        }
-    }
-    return (*queuePresentKHR)(queue, pPresentInfo);
+    if (pPresentInfo->swapchainCount == 1 && FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0]))
+        return m_fxQueuePresentKHR(queue, pPresentInfo);
+    return m_vkQueuePresentKHR(queue, pPresentInfo);
+    return VK_ERROR_OUT_OF_DATE_KHR;
 }
 
 void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, const uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata) {
@@ -215,6 +267,10 @@ std::vector<std::pair<VkQueue, uint32_t>> Vulkan::getQueues(const std::vector<Vk
     return queues;
 }
 
+VkResult Vulkan::createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
+    return m_vkCreateSwapchainKHR(graphicsInterface->Instance().device, pCreateInfo, pAllocator, pSwapchain);
+}
+
 VkImageView Vulkan::createImageView(VkImage image, const VkFormat format, const VkImageAspectFlags flags) {
     const VkImageViewCreateInfo createInfo {
       .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -244,6 +300,6 @@ void Vulkan::destroyImageView(VkImageView viewToDestroy) {
 }
 
 PFN_vkGetDeviceProcAddr Vulkan::getDeviceProcAddr() {
-    return m_slGetDeviceProcAddr;
+    return m_vkGetDeviceProcAddr;
 }
 #endif

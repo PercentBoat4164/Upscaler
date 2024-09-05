@@ -308,7 +308,7 @@ namespace Conifer.Upscaler
          * early in Unity's boot sequence. If you have installed the DLSS library, but this method is still returning
          * <c>false</c> try rebooting Unity.</remarks>
          */
-        public static bool DlssPluginLoaded() => Native.DLSSLoadedCorrectly();
+        public static bool DlssPluginLoaded() => Native.DlssLoadedCorrectly();
 
         /**
          * <summary>Sets the log level filter for the C++ backend.</summary>
@@ -377,6 +377,7 @@ namespace Conifer.Upscaler
 
         private HDRDisplayBitDepth _oldBitDepth;
         private bool _shouldResetSwapchainBitDepth;
+        private bool _willControlSwapchainNextFrame;
         private int _screenWidth = Screen.width;
         private int _screenHeight = Screen.height;
         internal bool DisableUpscaling;
@@ -385,10 +386,8 @@ namespace Conifer.Upscaler
         {
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();
-            if (Failure(CurrentStatus))
-            {
-                void HandleError()
-                {
+            if (Failure(CurrentStatus)) {
+                void HandleError() {
                     Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
                     technique = Technique.None;
                     quality = Quality.Auto;
@@ -404,15 +403,23 @@ namespace Conifer.Upscaler
                 HandleError();
             }
 
-            if (_shouldResetSwapchainBitDepth) {
+            if (_willControlSwapchainNextFrame)
+            {
+                frameGeneration = true;
+                _willControlSwapchainNextFrame = false;
+            }
+            if (_shouldResetSwapchainBitDepth)
+            {
                 NativeInterface.SetFrameGeneration(frameGeneration);
                 UnityEditor.PlayerSettings.hdrBitDepth = _oldBitDepth;
+                _willControlSwapchainNextFrame = true;
                 _shouldResetSwapchainBitDepth = false;
-            } else if (frameGeneration != _frameGeneration) {
+            }
+            else if (Input.GetKeyDown(KeyCode.F))
+            {
                 _oldBitDepth = UnityEditor.PlayerSettings.hdrBitDepth;
                 UnityEditor.PlayerSettings.hdrBitDepth = (HDRDisplayBitDepth)((int)_oldBitDepth ^ 1);
                 _shouldResetSwapchainBitDepth = true;
-                _frameGeneration = frameGeneration;
             }
 
             DisableUpscaling = false;

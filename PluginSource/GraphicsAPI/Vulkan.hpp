@@ -14,6 +14,7 @@ struct IUnityGraphicsVulkanV2;
 class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr    m_vkGetInstanceProcAddr;
     static PFN_vkGetInstanceProcAddr    m_slGetInstanceProcAddr;
+    static PFN_vkCreateDevice           m_vkCreateDevice;
     static PFN_vkGetDeviceProcAddr      m_vkGetDeviceProcAddr;
     static PFN_vkGetDeviceProcAddr      m_slGetDeviceProcAddr;
     static PFN_vkCreateSwapchainKHR     m_vkCreateSwapchainKHR;
@@ -42,8 +43,13 @@ class Vulkan final : public GraphicsAPI {
 
     static IUnityGraphicsVulkanV2* graphicsInterface;
 
+public:
+    static PFN_vkVoidFunction monitor_vkGetDeviceProcAddr(VkDevice device, const char* name);
+
+private:
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
     static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
+    static VkResult           hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
     static VkResult           hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static void               hook_vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
     static VkResult           hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages);
@@ -69,6 +75,7 @@ public:
     static bool                    unregisterUnityInterfaces();
 
     static std::vector<std::pair<VkQueue, uint32_t>> getQueues(const std::vector<VkQueueFlags>& queueTypes);
+    static VkResult                                  createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static VkImageView                               createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void                                      destroyImageView(VkImageView viewToDestroy);
 

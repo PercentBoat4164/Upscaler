@@ -1,5 +1,6 @@
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
+#include "FrameGenerator/FSR_FrameGenerator.hpp"
 
 #include "IUnityRenderingExtensions.h"
 
@@ -10,8 +11,9 @@
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
+static std::unique_ptr<FrameGenerator> frameGenerator{};
 
-struct alignas(128) UpscalingData {
+struct alignas(128) UpscaleData {
     float frameTime;
     float sharpness;
     float reactiveValue;
@@ -32,37 +34,66 @@ struct alignas(128) UpscalingData {
     unsigned orthographic_debugView;
 };
 
+struct alignas(64) FrameGenerateData {
+    bool enable;
+    float rect[4];
+    float jitter[2];
+    float frameTime;
+    float farPlane;
+    float nearPlane;
+    float verticalFOV;
+};
+
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
-    if (d == nullptr || event != Plugin::Unity::eventIDBase) return;
-    const auto& data              = *static_cast<UpscalingData*>(d);
-    Upscaler&   upscaler          = *upscalers[data.camera];
-    upscaler.settings.farPlane    = data.farPlane;
-    upscaler.settings.nearPlane   = data.nearPlane;
-    upscaler.settings.verticalFOV = data.verticalFOV;
-    std::ranges::copy(data.viewToClip, upscaler.settings.viewToClip.begin());
-    std::ranges::copy(data.clipToView, upscaler.settings.clipToView.begin());
-    std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
-    std::ranges::copy(data.prevClipToClip, upscaler.settings.prevClipToClip.begin());
-    std::ranges::copy(data.position, upscaler.settings.position.begin());
-    std::ranges::copy(data.up, upscaler.settings.up.begin());
-    std::ranges::copy(data.right, upscaler.settings.right.begin());
-    std::ranges::copy(data.forward, upscaler.settings.forward.begin());
-    upscaler.settings.frameTime         = data.frameTime;
-    upscaler.settings.sharpness         = data.sharpness;
-    upscaler.settings.reactiveValue     = data.reactiveValue;
-    upscaler.settings.reactiveScale     = data.reactiveScale;
-    upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-    upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
-    upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
-    upscaler.evaluate();
-    upscaler.settings.resetHistory = false;
+    if (d == nullptr) return;
+    switch (event - Plugin::Unity::eventIDBase) {
+        case Plugin::Upscale: {
+            const auto& data              = *static_cast<UpscaleData*>(d);
+            Upscaler&   upscaler          = *upscalers[data.camera];
+            upscaler.settings.farPlane    = data.farPlane;
+            upscaler.settings.nearPlane   = data.nearPlane;
+            upscaler.settings.verticalFOV = data.verticalFOV;
+            std::ranges::copy(data.viewToClip, upscaler.settings.viewToClip.begin());
+            std::ranges::copy(data.clipToView, upscaler.settings.clipToView.begin());
+            std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
+            std::ranges::copy(data.prevClipToClip, upscaler.settings.prevClipToClip.begin());
+            std::ranges::copy(data.position, upscaler.settings.position.begin());
+            std::ranges::copy(data.up, upscaler.settings.up.begin());
+            std::ranges::copy(data.right, upscaler.settings.right.begin());
+            std::ranges::copy(data.forward, upscaler.settings.forward.begin());
+            upscaler.settings.frameTime         = data.frameTime;
+            upscaler.settings.sharpness         = data.sharpness;
+            upscaler.settings.reactiveValue     = data.reactiveValue;
+            upscaler.settings.reactiveScale     = data.reactiveScale;
+            upscaler.settings.reactiveThreshold = data.reactiveThreshold;
+            upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
+            upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
+            upscaler.evaluate();
+            upscaler.settings.resetHistory = false;
+            break;
+        }
+        case Plugin::FrameGenerate: {
+            const auto& data = *static_cast<FrameGenerateData*>(d);
+            FSR_FrameGenerator::evaluate(
+                data.enable,
+                FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
+                FfxApiFloatCoords2D{data.jitter[0], data.jitter[1]},
+                data.frameTime,
+                data.farPlane,
+                data.nearPlane,
+                data.verticalFOV
+            );
+            break;
+        }
+        default: break;
+    }
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrectly() {
     return Plugin::loadedCorrectly;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_DLSSLoadedCorrectly() {
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_DlssLoadedCorrectly() {
     return Plugin::dlssLoadedCorrectly;
 }
 
@@ -149,10 +180,18 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraH
     upscalers[camera]->settings.resetHistory = true;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
     Upscaler& upscaler = *upscalers[camera];
     upscaler.settings.autoReactive = useReactiveMask;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGenerationImages(void* color, void* depth, void* motion) {
+    FSR_FrameGenerator::useImages(static_cast<VkImage>(color), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
+}
+
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {
+    return FSR_FrameGenerator::getBackBufferFormat();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {

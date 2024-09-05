@@ -206,9 +206,6 @@ Upscaler::Status FSR_Upscaler::useSettings(const Settings::Resolution resolution
     createContextDescUpscale.maxUpscaleSize = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height};
     createContextDescUpscale.fpMessage = reinterpret_cast<decltype(ffx::CreateContextDescUpscale::fpMessage)>(&FSR_Upscaler::log);
 
-#    ifdef ENABLE_FRAME_GENERATION
-    ffx::ConfigureDescFrameGenerationSwapChainRegisterUiResourceVK createContextDescFrameGeneration;
-#    endif
     if (context != nullptr) setStatus(ffx::DestroyContext(context), "Failed to destroy AMD FidelityFx Super Resolution context");
     context = nullptr;
     RETURN_ON_FAILURE((this->*fpCreate)(createContextDescUpscale));

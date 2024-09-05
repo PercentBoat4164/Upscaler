@@ -7,7 +7,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <FrameGenerator/FSR_FrameGenerator.hpp>
 
 namespace Plugin {
 namespace Unity {
@@ -41,6 +40,11 @@ enum ImageID : uint8_t {
     Output,
     Reactive,
     Opaque
+};
+
+enum Events {
+    Upscale,
+    FrameGenerate
 };
 
 inline enum FrameGenerationProvider : uint8_t {

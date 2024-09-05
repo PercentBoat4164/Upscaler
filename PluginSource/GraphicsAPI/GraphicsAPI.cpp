@@ -19,10 +19,13 @@
 #endif
 
 #ifdef ENABLE_DLSS
-#    include <Upscaler/DLSS_Upscaler.hpp>
+#    include "Upscaler/DLSS_Upscaler.hpp"
 #endif
+#include "Upscaler/Upscaler.hpp"
 
-#include <Upscaler/Upscaler.hpp>
+#ifdef ENABLE_FRAME_GENERATION
+#    include "FrameGenerator/FrameGenerator.hpp"
+#endif
 
 GraphicsAPI::Type GraphicsAPI::type = NONE;
 
@@ -32,12 +35,16 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererVulkan: {
             type = VULKAN;
             Upscaler::useGraphicsAPI(type);
+#    ifdef ENABLE_FRAME_GENERATION
+            FrameGenerator::useGraphicsAPI(type);
+#    endif
             constexpr UnityVulkanPluginEventConfig eventConfig {
               .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
               .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };
-            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
+            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
+            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             break;
         }
 #endif
@@ -50,7 +57,8 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
               .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
               .ensureActiveRenderTextureIsBound = false
             };
-            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase, &eventConfig);
+            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
+            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
 #    ifdef ENABLE_DLSS
             DLSS_Upscaler::load(DX12);
 #    endif

@@ -1,4 +1,5 @@
 #pragma once
+#include <GraphicsAPI/GraphicsAPI.hpp>
 #ifdef ENABLE_FRAME_GENERATION
 #    ifdef ENABLE_VULKAN
 #        include <vulkan/vulkan.h>
@@ -13,6 +14,8 @@ protected:
     } swapchain;
 
 public:
+    static void useGraphicsAPI(GraphicsAPI::Type type);
+
     FrameGenerator()                                 = default;
     FrameGenerator(const FrameGenerator&)            = delete;
     FrameGenerator(FrameGenerator&&)                 = delete;
