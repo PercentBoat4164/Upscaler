@@ -23,7 +23,7 @@
 
 HMODULE FSR3::library{nullptr};
 uint32_t FSR3::users{};
-Upscaler::SupportState FSR3::supported{Unsupported};
+Upscaler::SupportState FSR3::supported{Untested};
 
 Upscaler::Status (FSR3::*FSR3::fpCreate)(ffx::CreateContextDescUpscale&){&FSR3::safeFail};
 Upscaler::Status (FSR3::*FSR3::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&FSR3::safeFail};

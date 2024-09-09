@@ -463,7 +463,7 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 2
+  technique: 1
   dlssPreset: 0
   sharpness: 0
   useReactiveMask: 1

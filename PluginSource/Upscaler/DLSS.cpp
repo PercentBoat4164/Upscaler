@@ -27,7 +27,7 @@
 
 HMODULE DLSS::library{nullptr};
 uint32_t  DLSS::users{};
-Upscaler::SupportState DLSS::supported{Unsupported};
+Upscaler::SupportState DLSS::supported{Untested};
 
 uint64_t DLSS::applicationID{0xDC98EECU};
 

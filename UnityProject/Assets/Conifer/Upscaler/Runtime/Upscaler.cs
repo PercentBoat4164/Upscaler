@@ -3,8 +3,8 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.0                                *
- * See the OfflineManual.pdf for more information *
+ * Upscaler v1.1.1                                *
+ * See the UserManual.pdf for more information    *
  **************************************************/
 
 using System;
@@ -16,7 +16,7 @@ namespace Conifer.Upscaler
      * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
      * <see cref="UnityEngine.Camera"/> object.
      */
-    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v1.1.0")]
+    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v1.1.1")]
     public class Upscaler : MonoBehaviour
     {
         /**
