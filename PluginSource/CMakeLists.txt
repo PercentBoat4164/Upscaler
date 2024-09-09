@@ -269,7 +269,7 @@ add_library(GfxPluginUpscaler main.cpp
 )
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")
-target_compile_definitions(GfxPluginUpscaler PUBLIC VK_NO_PROTOTYPES)
+target_compile_definitions(GfxPluginUpscaler PUBLIC VK_NO_PROTOTYPES VK_USE_PLATFORM_WIN32_KHR)
 target_include_directories(GfxPluginUpscaler PUBLIC ${UNITY_DIR} ${CMAKE_SOURCE_DIR})
 if (NOT WIN32)
     target_link_options(GfxPluginUpscaler PUBLIC -Wl,-rpath=$ORIGIN)

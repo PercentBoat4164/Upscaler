@@ -23,10 +23,6 @@
 #endif
 #include "Upscaler/Upscaler.hpp"
 
-#ifdef ENABLE_FRAME_GENERATION
-#    include "FrameGenerator/FrameGenerator.hpp"
-#endif
-
 GraphicsAPI::Type GraphicsAPI::type = NONE;
 
 void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
@@ -35,9 +31,6 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererVulkan: {
             type = VULKAN;
             Upscaler::useGraphicsAPI(type);
-#    ifdef ENABLE_FRAME_GENERATION
-            FrameGenerator::useGraphicsAPI(type);
-#    endif
             constexpr UnityVulkanPluginEventConfig eventConfig {
               .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,

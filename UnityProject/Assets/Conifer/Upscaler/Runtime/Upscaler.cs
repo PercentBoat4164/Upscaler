@@ -9,6 +9,11 @@
 
 using System;
 using UnityEngine;
+using UnityEditor;
+using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
+using static System.Linq.Enumerable;
 
 namespace Conifer.Upscaler
 {
@@ -206,6 +211,7 @@ namespace Conifer.Upscaler
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
         public Technique technique = GetBestSupportedTechnique();
         private Technique _technique;
+        ///@todo Add documentation for this.
         public bool frameGeneration;
         private bool _frameGeneration;
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
@@ -403,27 +409,15 @@ namespace Conifer.Upscaler
                 HandleError();
             }
 
-            if (_willControlSwapchainNextFrame)
-            {
-                frameGeneration = true;
-                _willControlSwapchainNextFrame = false;
-            }
-            if (_shouldResetSwapchainBitDepth)
+            if (frameGeneration != _frameGeneration)
             {
                 NativeInterface.SetFrameGeneration(frameGeneration);
-                UnityEditor.PlayerSettings.hdrBitDepth = _oldBitDepth;
-                _willControlSwapchainNextFrame = true;
-                _shouldResetSwapchainBitDepth = false;
-            }
-            else if (Input.GetKeyDown(KeyCode.F))
-            {
-                _oldBitDepth = UnityEditor.PlayerSettings.hdrBitDepth;
-                UnityEditor.PlayerSettings.hdrBitDepth = (HDRDisplayBitDepth)((int)_oldBitDepth ^ 1);
-                _shouldResetSwapchainBitDepth = true;
+                _frameGeneration = frameGeneration;
             }
 
             DisableUpscaling = false;
-            if (Screen.width != _screenWidth || Screen.height != _screenHeight) {
+            if (Screen.width != _screenWidth || Screen.height != _screenHeight)
+            {
                 DisableUpscaling = true;
                 ResetHistory();
                 _screenWidth = Screen.width;
@@ -450,6 +444,23 @@ namespace Conifer.Upscaler
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
+            GetWindow();
+        }
+
+        private static readonly Type playModeView = typeof(EditorWindow).Assembly.GetType("UnityEditor.PlayModeView")!;
+        private static readonly MethodInfo GetAllPlayModeViewWindows = playModeView.GetMethod("GetAllPlayModeViewWindows", BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly FieldInfo Parent = typeof(EditorWindow).GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly PropertyInfo TargetDisplay = typeof(EditorWindow).Assembly.GetType("UnityEditor.GameView")!.GetProperty("targetDisplay", BindingFlags.Public | BindingFlags.Instance);
+        private void GetWindow() {
+            // var thisDisplayHWND = IntPtr.Zero;
+            // var ListType = typeof(List<>).MakeGenericType(GetAllPlayModeViewWindows.ReturnType).GetConstructor(null);
+            // var playViewWindows = ((IList)GetAllPlayModeViewWindows.Invoke(null, null)).Cast<ListType>().ToList();
+            // foreach (object window in playViewWindows) {
+            //     if ((int)TargetDisplay.GetValue(window) == _camera.targetDisplay) {
+            //         // thisDisplayHWND = Marshal.ReadIntPtr((window.m_Parent as UnityEditor.View).m_ViewPtr);
+            //         Debug.Log((window as EditorWindow).position);
+            //     }
+            // }
         }
 
         private void OnDisable() => _camera.ResetProjectionMatrix();

@@ -1,5 +1,4 @@
 #pragma once
-#include <thread>
 #if defined(ENABLE_FRAME_GENERATION) && defined(ENABLE_FSR)
 #include "FrameGenerator.hpp"
 
@@ -151,51 +150,51 @@ public:
     };
 
     static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV) {
-        if (swapchain.vulkan == VK_NULL_HANDLE) return;
-        UnityVulkanRecordingState state {};
-        Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
-
-        ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
-        configureDescFrameGeneration.swapChain                  = swapchain.vulkan;
-        configureDescFrameGeneration.presentCallback            = nullptr;
-        configureDescFrameGeneration.presentCallbackUserContext = nullptr;
-        configureDescFrameGeneration.frameGenerationCallback    = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
-            ffxReturnCode_t returnValue = 0;
-            Params param {params, &returnValue};
-            Vulkan::getGraphicsInterface()->AccessQueue([](int event, void* data) {
-                auto params = *static_cast<Params*>(data);
-                *params.returnValue = ffxDispatch(&context, &params.params->header);
-            }, 0, &param, true);
-            return returnValue;
-            // return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
-        };
-        configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
-        configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == backBufferFormat;
-        configureDescFrameGeneration.allowAsyncWorkloads                = false;
-        configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
-        configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
-        configureDescFrameGeneration.onlyPresentGenerated               = false;
-        configureDescFrameGeneration.generationRect                     = generationRect;
-        configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
-        if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
-            Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
-
-        ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
-        dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
-        dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
-        dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
-        dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
-        dispatchDescFrameGenerationPrepare.motionVectorScale       = {-static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height)};
-        dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
-        dispatchDescFrameGenerationPrepare.unused_reset            = false;
-        dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
-        dispatchDescFrameGenerationPrepare.cameraFar               = nearPlane;  // Switched because depth is inverted
-        dispatchDescFrameGenerationPrepare.cameraFovAngleVertical  = verticalFOV;
-        dispatchDescFrameGenerationPrepare.viewSpaceToMetersFactor = 1.0F;
-        dispatchDescFrameGenerationPrepare.depth                   = depthResource;
-        dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
-        if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
-            Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
+        // if (swapchain.vulkan == VK_NULL_HANDLE) return;
+        // UnityVulkanRecordingState state {};
+        // Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+        //
+        // ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
+        // configureDescFrameGeneration.swapChain                  = swapchain.vulkan;
+        // configureDescFrameGeneration.presentCallback            = nullptr;
+        // configureDescFrameGeneration.presentCallbackUserContext = nullptr;
+        // configureDescFrameGeneration.frameGenerationCallback    = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
+        //     ffxReturnCode_t returnValue = 0;
+        //     Params param {params, &returnValue};
+        //     Vulkan::getGraphicsInterface()->AccessQueue([](int event, void* data) {
+        //         auto params = *static_cast<Params*>(data);
+        //         *params.returnValue = ffxDispatch(&context, &params.params->header);
+        //     }, 0, &param, true);
+        //     return returnValue;
+        //     // return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
+        // };
+        // configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
+        // configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == backBufferFormat;
+        // configureDescFrameGeneration.allowAsyncWorkloads                = false;
+        // configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
+        // configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
+        // configureDescFrameGeneration.onlyPresentGenerated               = false;
+        // configureDescFrameGeneration.generationRect                     = generationRect;
+        // configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
+        // if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
+        //     Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
+        //
+        // ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
+        // dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
+        // dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
+        // dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
+        // dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
+        // dispatchDescFrameGenerationPrepare.motionVectorScale       = {-static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height)};
+        // dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
+        // dispatchDescFrameGenerationPrepare.unused_reset            = false;
+        // dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
+        // dispatchDescFrameGenerationPrepare.cameraFar               = nearPlane;  // Switched because depth is inverted
+        // dispatchDescFrameGenerationPrepare.cameraFovAngleVertical  = verticalFOV;
+        // dispatchDescFrameGenerationPrepare.viewSpaceToMetersFactor = 1.0F;
+        // dispatchDescFrameGenerationPrepare.depth                   = depthResource;
+        // dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
+        // if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
+        //     Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
     }
 
     static bool ownsSwapchain(VkSwapchainKHR swapchain) {

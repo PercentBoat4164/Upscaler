@@ -104,11 +104,11 @@ namespace Conifer.Upscaler.Editor
                 }
             };
 
-            installationFoldout = EditorPrefs.GetBool("installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
-            advancedSettingsFoldout = EditorPrefs.GetBool("advancedSettingsFoldout", false);
-            debugSettingsFoldout = EditorPrefs.GetBool("debugSettingsFoldout", false);
-            _installedStreamlineVersion = EditorPrefs.GetString("installedDlssVersion", "");
-            _installedXessVersion = EditorPrefs.GetString("installedXessVersion", "");
+            installationFoldout = EditorPrefs.GetBool("Conifer:Upscaler:installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
+            advancedSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:advancedSettingsFoldout", false);
+            debugSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:debugSettingsFoldout", false);
+            _installedStreamlineVersion = EditorPrefs.GetString("Conifer:Upscaler:installedDlssVersion", "");
+            _installedXessVersion = EditorPrefs.GetString("Conifer:Upscaler:installedXessVersion", "");
 
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
@@ -130,11 +130,11 @@ namespace Conifer.Upscaler.Editor
 
         private void OnDisable()
         {
-            EditorPrefs.SetBool("installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
-            EditorPrefs.SetBool("advancedSettingsFoldout", advancedSettingsFoldout);
-            EditorPrefs.SetBool("debugSettingsFoldout", debugSettingsFoldout);
-            EditorPrefs.SetString("installedDlssVersion", _installedStreamlineVersion);
-            EditorPrefs.SetString("installedXessVersion", _installedXessVersion);
+            EditorPrefs.SetBool("Conifer:Upscaler:installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
+            EditorPrefs.SetBool("Conifer:Upscaler:advancedSettingsFoldout", advancedSettingsFoldout);
+            EditorPrefs.SetBool("Conifer:Upscaler:debugSettingsFoldout", debugSettingsFoldout);
+            EditorPrefs.SetString("Conifer:Upscaler:installedDlssVersion", _installedStreamlineVersion);
+            EditorPrefs.SetString("Conifer:Upscaler:installedXessVersion", _installedXessVersion);
         }
 
         public override void OnInspectorGUI()
@@ -344,8 +344,8 @@ namespace Conifer.Upscaler.Editor
                         upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
                             (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                     }
-                    var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("logLevel", (int)LogType.Warning));
-                    EditorPrefs.SetInt("logLevel", (int)logLevel);
+                    var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
+                    EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
                     Upscaler.SetLogLevel(logLevel);
                 }
 

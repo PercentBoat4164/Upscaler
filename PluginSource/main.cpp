@@ -194,6 +194,10 @@ extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE
     return FSR_FrameGenerator::getBackBufferFormat();
 }
 
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RequestSwapchainRecreation(HWND hwnd) {
+    Vulkan::requestSwapchainRecreation(hwnd);
+}
+
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {
     if (upscalers.size() > camera) upscalers[camera].reset();
 }
