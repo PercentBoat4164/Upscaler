@@ -26,7 +26,7 @@ decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr}
 decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
 
-Upscaler::SupportState XeSS_Upscaler::supported{Unsupported};
+Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
 Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {

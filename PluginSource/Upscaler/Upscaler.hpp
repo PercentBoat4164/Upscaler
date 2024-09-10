@@ -225,8 +225,8 @@ public:
     Upscaler& operator=(Upscaler&&)      = delete;
     virtual ~Upscaler()                  = default;
 
-    constexpr virtual Type        getType()                                                                                = 0;
-    constexpr virtual std::string getName()                                                                                = 0;
+    constexpr virtual Type        getType() = 0;
+    constexpr virtual std::string getName() = 0;
 
     virtual Status useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
     virtual Status useImages(const std::array<void*, Plugin::NumImages>&)                                = 0;

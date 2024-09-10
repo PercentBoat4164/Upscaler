@@ -105,7 +105,7 @@ if (NOT ENABLE_VULKAN AND NOT ENABLE_DX12 AND NOT ENABLE_DX11)
     message(FATAL_ERROR "No graphics API(s) were enabled.")
 endif ()
 
-cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/Streamline-2.4.11")
+cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/Streamline-2.4.15")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/ffx_sdk")
 cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/XeSS_SDK-1.3.1")
 set(DESIRED_UNITY_VERSION "2022.3.40f1")
@@ -113,9 +113,9 @@ set(REQUIRE_DESIRED_UNITY_VERSION OFF)
 
 # Add the plugin path the list of shared libraries to copy
 if (WIN32)
-    list(APPEND SHARED_LIBRARIES "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll")
+    list(APPEND LIBRARIES_TO_COPY "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll")
 elseif (UNIX AND NOT APPLE)
-    list(APPEND SHARED_LIBRARIES "${CMAKE_BINARY_DIR}/libGfxPluginUpscaler.so")
+    list(APPEND LIBRARIES_TO_COPY "${CMAKE_BINARY_DIR}/libGfxPluginUpscaler.so")
 endif ()
 
 # Find the Unity PluginAPI headers location
@@ -183,11 +183,14 @@ endif ()
 
 # Set up the DLSS library
 if (ENABLE_DLSS)
-    set(STREAMLINE_FEATURE_DLSS_SR ON)
-    set(STREAMLINE_IMPORT_AS_INTERFACE ON)
-    add_subdirectory(${STREAMLINE_SDK_DIR})
+    add_library(streamline INTERFACE)
+    target_include_directories(streamline INTERFACE "${STREAMLINE_SDK_DIR}/include")
     list(APPEND CONIFER_LIBRARIES streamline)
-    list(APPEND SHARED_LIBRARIES ${STREAMLINE_DLLS})
+    set(STREAMLINE_DLL_DIR "${STREAMLINE_SDK_DIR}/bin/x64/")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(STREAMLINE_DLL_DIR "${STREAMLINE_DLL_DIR}development/")
+    endif ()
+    list(APPEND LIBRARIES_TO_COPY "${STREAMLINE_DLL_DIR}sl.interposer.dll" "${STREAMLINE_DLL_DIR}sl.common.dll" "${STREAMLINE_DLL_DIR}sl.dlss.dll" "${STREAMLINE_DLL_DIR}nvngx_dlss.dll")
 endif ()
 
 # Set up the FSR libraries
@@ -202,8 +205,8 @@ if (ENABLE_FSR)
         target_include_directories(${LIBRARY_NAME} INTERFACE ${ARGN})
         list(APPEND CONIFER_LIBRARIES ${LIBRARY_NAME})
         set(CONIFER_LIBRARIES ${CONIFER_LIBRARIES} PARENT_SCOPE)
-        list(APPEND SHARED_LIBRARIES "${LIBRARY_PATH}/${LIBRARY_FILENAME}.dll")
-        set(SHARED_LIBRARIES ${SHARED_LIBRARIES} PARENT_SCOPE)
+        list(APPEND LIBRARIES_TO_COPY "${LIBRARY_PATH}/${LIBRARY_FILENAME}.dll")
+        set(LIBRARIES_TO_COPY ${LIBRARIES_TO_COPY} PARENT_SCOPE)
     endfunction ()
 
     if (ENABLE_VULKAN)
@@ -218,7 +221,7 @@ if (ENABLE_XESS)
     add_library(xess INTERFACE)
     target_include_directories(xess INTERFACE "${XESS_SDK_DIR}/inc")
     list(APPEND CONIFER_LIBRARIES xess)
-    list(APPEND SHARED_LIBRARIES "${XESS_SDK_DIR}/bin/libxess.dll")
+    list(APPEND LIBRARIES_TO_COPY "${XESS_SDK_DIR}/bin/libxess.dll")
 endif ()
 
 ##############
@@ -296,7 +299,6 @@ foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR;ENABL
 endforeach ()
 
 # Copy the resulting shared library to the Unity Project's Asset/Plugins directory.
-ConiferListToString("${SHARED_LIBRARIES}" SHARED_LIBRARIES_STRING)
-add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Copying ${SHARED_LIBRARIES_STRING} to ${PLUGINS_DIR}.")
-#add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/GfxPluginUpscaler.dll" ${PLUGINS_DIR})
-add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHARED_LIBRARIES} ${PLUGINS_DIR})
+ConiferListToString("${LIBRARIES_TO_COPY}" LIBRARIES_TO_COPY_STRING)
+add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Copying ${LIBRARIES_TO_COPY_STRING} to ${PLUGINS_DIR}.")
+add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${LIBRARIES_TO_COPY} ${PLUGINS_DIR})

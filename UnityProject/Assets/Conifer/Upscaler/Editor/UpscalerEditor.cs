@@ -3,8 +3,8 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.0                                *
- * See the OfflineManual.pdf for more information *
+ * Upscaler v1.1.1                                *
+ * See the UserManual.pdf for more information    *
  **************************************************/
 
 using System;
@@ -26,27 +26,6 @@ namespace Conifer.Upscaler.Editor
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
-        private enum UpdateStage
-        {
-            None,
-            Ngx,
-            Dlss,
-            Common,
-            Streamline
-        }
-        private Upscaler.Technique _updating = Upscaler.Technique.None;
-        private UpdateStage _updateStage = UpdateStage.None;
-        private static readonly string LibraryPath = Application.dataPath + "/Plugins/";
-        private static string _installedStreamlineVersion = "";
-        private const string ThisStreamlineVersion = "2.4.11";
-        private static string _installedXessVersion = "";
-        private const string ThisXessVersion = "1.3.1";
-        private static bool _needsRestart;
-
-        private readonly WebClient _webClient = new();
-        private int _downloadProgress = -1;
-
-        [SerializeField] private bool installationFoldout;
         [SerializeField] private bool advancedSettingsFoldout;
         [SerializeField] private bool debugSettingsFoldout;
 
@@ -65,50 +44,8 @@ namespace Conifer.Upscaler.Editor
 
         private void OnEnable()
         {
-            _webClient.DownloadProgressChanged += (_, args) => {
-                _downloadProgress = args.ProgressPercentage;
-                Repaint();
-            };
-            _webClient.DownloadFileCompleted += (_, _) =>
-            {
-                if (_updating == Upscaler.Technique.XeSuperSampling)
-                {
-                    _installedXessVersion = ThisXessVersion;
-                    _downloadProgress = -1;
-                }
-                else
-                {
-                    switch (_updateStage)
-                    {
-                        case UpdateStage.Ngx:
-                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.dlss.dll"), LibraryPath + "sl.dlss.dll");
-                            _updateStage = UpdateStage.Dlss;
-                            break;
-                        case UpdateStage.Dlss:
-                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.common.dll"), LibraryPath + "sl.common.dll");
-                            _updateStage = UpdateStage.Common;
-                            break;
-                        case UpdateStage.Common:
-                            _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/sl.interposer.dll"), LibraryPath + "sl.interposer.dll");
-                            _updateStage = UpdateStage.Streamline;
-                            break;
-                        case UpdateStage.Streamline:
-                            _downloadProgress = -1;
-                            _installedStreamlineVersion = ThisStreamlineVersion;
-                            _updateStage = UpdateStage.None;
-                            _needsRestart = true;
-                            break;
-                        case UpdateStage.None:
-                        default: break;
-                    }
-                }
-            };
-
-            installationFoldout = EditorPrefs.GetBool("Conifer:Upscaler:installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
             advancedSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:advancedSettingsFoldout", false);
             debugSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:debugSettingsFoldout", false);
-            _installedStreamlineVersion = EditorPrefs.GetString("Conifer:Upscaler:installedDlssVersion", "");
-            _installedXessVersion = EditorPrefs.GetString("Conifer:Upscaler:installedXessVersion", "");
 
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
@@ -130,67 +67,12 @@ namespace Conifer.Upscaler.Editor
 
         private void OnDisable()
         {
-            EditorPrefs.SetBool("Conifer:Upscaler:installationFoldout", !Upscaler.PluginLoaded() || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion);
             EditorPrefs.SetBool("Conifer:Upscaler:advancedSettingsFoldout", advancedSettingsFoldout);
             EditorPrefs.SetBool("Conifer:Upscaler:debugSettingsFoldout", debugSettingsFoldout);
-            EditorPrefs.SetString("Conifer:Upscaler:installedDlssVersion", _installedStreamlineVersion);
-            EditorPrefs.SetString("Conifer:Upscaler:installedXessVersion", _installedXessVersion);
         }
 
         public override void OnInspectorGUI()
         {
-            var dlssInstalled = File.Exists(LibraryPath + "sl.interposer.dll");
-            var xessInstalled = File.Exists(LibraryPath + "libxess.dll");
-            EditorGUI.indentLevel += 1;
-            if (!dlssInstalled || !xessInstalled || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion)
-                EditorGUILayout.HelpBox("A third-party library update is required.", MessageType.Error);
-            installationFoldout = EditorGUILayout.Foldout(installationFoldout, "Third-party Library Installation and Licenses");
-            if (installationFoldout)
-            {
-                EditorGUILayout.HelpBox("AMD FSR is included with Upscaler and is provided under the MIT license.", MessageType.Info);
-
-                EditorGUILayout.Separator();
-                if (EditorGUILayout.LinkButton("See the NVIDIA RTX license."))
-                    Application.OpenURL("https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt");
-                EditorGUILayout.HelpBox(dlssInstalled ? "You have agreed to the NVIDIA RTX license." : "By clicking the below button you agree to the above NVIDIA RTX license.", MessageType.Info);
-                if (_downloadProgress < 0 && _installedStreamlineVersion != ThisStreamlineVersion || !dlssInstalled) {
-                    if (Upscaler.DlssPluginLoaded()) EditorGUILayout.HelpBox("Upscaler can only update DLSS when its DLL is not loaded. Uncheck 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' then restart Unity.", MessageType.Error);
-                    else if (GUILayout.Button((dlssInstalled ? "Update" : "Install") + " DLSS library"))
-                    {
-                        _webClient.DownloadFileAsync(new Uri("https://github.com/NVIDIAGameWorks/Streamline/raw/c709dd9874e21dea100d6e2f2e109d16b87b8b55/bin/x64/nvngx_dlss.dll"), LibraryPath + "nvngx_dlss.dll");
-                        _updating = Upscaler.Technique.DeepLearningSuperSampling;
-                        _updateStage = UpdateStage.Ngx;
-                        _downloadProgress = 0;
-                    }
-                }
-                else if (_downloadProgress >= 0 && _updating == Upscaler.Technique.DeepLearningSuperSampling)
-                    EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight), _downloadProgress / 100.0f, "Installing DLSS ...");
-
-                EditorGUILayout.Separator();
-                if (EditorGUILayout.LinkButton("See the Intel Simplified Software License."))
-                    Application.OpenURL("https://github.com/intel/xess/blob/main/licenses/LICENSE.pdf");
-                EditorGUILayout.HelpBox(xessInstalled ? "You have agreed to the Intel Simplified Software License." : "By clicking the below button you agree to the above Intel Simplified Software License.", MessageType.Info);
-                if (_downloadProgress < 0 && _installedXessVersion != ThisXessVersion || !xessInstalled) {
-                    if (EditorApplication.isPlaying) EditorGUILayout.HelpBox("Upscaler can only update XeSS when its DLL is not loaded. Stop the application and try again.", MessageType.Error);
-                    else if (GUILayout.Button((xessInstalled ? "Update" : "Install") + " XeSS library"))
-                    {
-                        _webClient.DownloadFileAsync(new Uri("https://github.com/intel/xess/raw/1d593fd8a2634a06d0d812bd574aa3031313ded0/bin/libxess.dll"), LibraryPath + "libxess.dll");
-                        _updating = Upscaler.Technique.XeSuperSampling;
-                        _updateStage = UpdateStage.None;
-                        _downloadProgress = 0;
-                    }
-                }
-                else if (_downloadProgress >= 0 && _updating == Upscaler.Technique.XeSuperSampling)
-                    EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight), _downloadProgress / 100.0f, "Installing XeSS ...");
-            }
-            EditorGUI.indentLevel -= 1;
-            if (!dlssInstalled || !xessInstalled || _installedStreamlineVersion != ThisStreamlineVersion || _installedXessVersion != ThisXessVersion) return;
-            if (_needsRestart || !Upscaler.PluginLoaded())
-            {
-                EditorGUILayout.HelpBox("You may need to restart Unity to load the Upscaler Native Plugin and DLLs. Make sure that 'Load on startup' for 'Assets/Plugins/GfxPluginUpscaler' is enabled.", MessageType.Error);
-                return;
-            }
-
             var upscaler = (Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
             var cameraData = camera.GetUniversalAdditionalCameraData();

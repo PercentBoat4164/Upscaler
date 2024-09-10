@@ -3,8 +3,8 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.0                                *
- * See the OfflineManual.pdf for more information *
+ * Upscaler v1.1.1                                *
+ * See the UserManual.pdf for more information    *
  **************************************************/
 
 using System;
@@ -21,7 +21,7 @@ namespace Conifer.Upscaler
      * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
      * <see cref="UnityEngine.Camera"/> object.
      */
-    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v1.1.0")]
+    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v1.1.1")]
     public class Upscaler : MonoBehaviour
     {
         /**
@@ -444,23 +444,6 @@ namespace Conifer.Upscaler
             }
             _camera.projectionMatrix = projectionMatrix;
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
-            GetWindow();
-        }
-
-        private static readonly Type playModeView = typeof(EditorWindow).Assembly.GetType("UnityEditor.PlayModeView")!;
-        private static readonly MethodInfo GetAllPlayModeViewWindows = playModeView.GetMethod("GetAllPlayModeViewWindows", BindingFlags.NonPublic | BindingFlags.Static);
-        private static readonly FieldInfo Parent = typeof(EditorWindow).GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly PropertyInfo TargetDisplay = typeof(EditorWindow).Assembly.GetType("UnityEditor.GameView")!.GetProperty("targetDisplay", BindingFlags.Public | BindingFlags.Instance);
-        private void GetWindow() {
-            // var thisDisplayHWND = IntPtr.Zero;
-            // var ListType = typeof(List<>).MakeGenericType(GetAllPlayModeViewWindows.ReturnType).GetConstructor(null);
-            // var playViewWindows = ((IList)GetAllPlayModeViewWindows.Invoke(null, null)).Cast<ListType>().ToList();
-            // foreach (object window in playViewWindows) {
-            //     if ((int)TargetDisplay.GetValue(window) == _camera.targetDisplay) {
-            //         // thisDisplayHWND = Marshal.ReadIntPtr((window.m_Parent as UnityEditor.View).m_ViewPtr);
-            //         Debug.Log((window as EditorWindow).position);
-            //     }
-            // }
         }
 
         private void OnDisable() => _camera.ResetProjectionMatrix();

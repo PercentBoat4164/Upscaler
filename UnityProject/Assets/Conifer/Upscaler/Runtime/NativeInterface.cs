@@ -3,8 +3,8 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.0                                *
- * See the OfflineManual.pdf for more information *
+ * Upscaler v1.1.1                                *
+ * See the UserManual.pdf for more information    *
  **************************************************/
 
 using System;
