@@ -103,7 +103,7 @@ public:
         ffx::CreateBackendVKDesc createBackendVkDesc {};
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
         createBackendVkDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
-        createBackendVkDesc.vkDeviceProcAddr = Vulkan::monitor_vkGetDeviceProcAddr;
+        createBackendVkDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
 
         if (CreateContext(context, nullptr, createContextDescFrameGeneration, createBackendVkDesc) != ffx::ReturnCode::Ok)
             return Plugin::log("Failed to create frame generation context.", kUnityLogTypeError);

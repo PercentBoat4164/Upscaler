@@ -48,10 +48,6 @@ class Vulkan final : public GraphicsAPI {
     static IUnityGraphicsVulkanV2* graphicsInterface;
     static uint64_t                SizeOfSwapchainToRecreate;
 
-public:
-    static PFN_vkVoidFunction monitor_vkGetDeviceProcAddr(VkDevice device, const char* name);
-
-private:
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
     static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
     static VkResult           hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);

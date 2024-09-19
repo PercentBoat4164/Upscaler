@@ -48,13 +48,6 @@ PFN_vkQueueSubmit                            Vulkan::m_vkQueueSubmit{VK_NULL_HAN
 IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 uint64_t                Vulkan::SizeOfSwapchainToRecreate{};
 
-PFN_vkVoidFunction Vulkan::monitor_vkGetDeviceProcAddr(VkDevice device, const char* name) {
-    PFN_vkVoidFunction func{VK_NULL_HANDLE};
-    if (strcmp(name, "vkGetBufferMemoryRequirements2KHR") == 0) func = m_vkGetDeviceProcAddr(device, "vkGetBufferMemoryRequirements2");
-    else func = m_vkGetDeviceProcAddr(device, name);
-    return func;
-}
-
 PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const char* name) {
     if (strcmp(name, "vkGetInstanceProcAddr") == 0) return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetInstanceProcAddr);
     if (strcmp(name, "vkGetDeviceProcAddr") == 0) {
