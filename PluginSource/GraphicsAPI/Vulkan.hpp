@@ -77,7 +77,7 @@ public:
     static bool                    unregisterUnityInterfaces();
 
     static void                                      requestSwapchainRecreationBySize(uint64_t size);
-    static std::vector<std::pair<VkQueue, uint32_t>> getQueues(const std::vector<VkQueueFlags>& queueTypes);
+    static std::vector<VkQueue>                      getQueues();
     static VkResult                                  createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static VkImageView                               createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void                                      destroyImageView(VkImageView viewToDestroy);

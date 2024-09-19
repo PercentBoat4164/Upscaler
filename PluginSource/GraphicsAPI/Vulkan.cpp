@@ -62,7 +62,6 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
         m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
         m_slCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_slGetInstanceProcAddr(instance, name));
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateDevice);
-        // return m_vkGetInstanceProcAddr(instance, name);
     }
     // if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
     //     m_vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
@@ -158,26 +157,16 @@ PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char*
 
 VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
     VkDeviceCreateInfo createInfo = *pCreateInfo;
-    std::vector queueCreateInfos(createInfo.pQueueCreateInfos, createInfo.pQueueCreateInfos + createInfo.queueCreateInfoCount);
 
-    uint32_t count{};
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> properties(count);
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, properties.data());
+    const std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .queueFamilyIndex = 0,
+        .queueCount = 4,
+        .pQueuePriorities = nullptr
+    }};
 
-    for (const VkQueueFlags flags : std::vector<VkQueueFlags>{VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, 0})
-        for (uint32_t queueFamilyIndex{}; queueFamilyIndex < properties.size(); ++queueFamilyIndex)
-            if ((properties[queueFamilyIndex].queueFlags & flags) == flags) {
-                queueCreateInfos.push_back(VkDeviceQueueCreateInfo {
-                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .queueFamilyIndex = queueFamilyIndex,
-                    .queueCount = 1,
-                    .pQueuePriorities = nullptr
-                });
-                break;
-            }
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = queueCreateInfos.size();
 
@@ -228,9 +217,7 @@ VkResult Vulkan::hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR sw
 VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
     VkResult result{VK_SUCCESS};
     if (FSR_FrameGenerator::ownsSwapchain(swapchain)) {
-        FSR_FrameGenerator::doNotSyncThisThreadsQueueAccess();
         result = m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
-        FSR_FrameGenerator::syncAllThreadsQueueAccess();
     }
     else result = m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     if (FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain)
@@ -242,9 +229,7 @@ VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* p
     VkResult result{VK_SUCCESS};
     if (pPresentInfo->swapchainCount == 0) return result;
     if (pPresentInfo->swapchainCount == 1 && FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0])) {
-        FSR_FrameGenerator::doNotSyncThisThreadsQueueAccess();
         result = m_fxQueuePresentKHR(queue, pPresentInfo);
-        FSR_FrameGenerator::syncAllThreadsQueueAccess();
     }
     else result = m_vkQueuePresentKHR(queue, pPresentInfo);
     if (FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == pPresentInfo->pSwapchains[0])
@@ -301,24 +286,9 @@ void Vulkan::requestSwapchainRecreationBySize(uint64_t size) {
     SizeOfSwapchainToRecreate = size;
 }
 
-std::vector<std::pair<VkQueue, uint32_t>> Vulkan::getQueues(const std::vector<VkQueueFlags>& queueTypes) {
-    std::vector<std::pair<VkQueue, uint32_t>> queues(queueTypes.size());
-
-    VkPhysicalDevice physicalDevice = graphicsInterface->Instance().physicalDevice;
-    uint32_t count{};
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> properties(count);
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, properties.data());
-
-    for (uint32_t i{}; i < queueTypes.size(); ++i) {
-        for (uint32_t j{}; j < count; ++j) {
-            if ((properties[j].queueFlags & queueTypes[i]) == queueTypes[i]) {
-                m_vkGetDeviceQueue(graphicsInterface->Instance().device, j, 0, &queues[i].first);
-                queues[i].second = j;
-                if (queues[i].first != VK_NULL_HANDLE) break;
-            }
-        }
-    }
+std::vector<VkQueue> Vulkan::getQueues() {
+    std::vector<VkQueue> queues(4);
+    for (uint32_t i{}; i < 4; ++i) m_vkGetDeviceQueue(graphicsInterface->Instance().device, 0, i, &queues[i]);
     return queues;
 }
 

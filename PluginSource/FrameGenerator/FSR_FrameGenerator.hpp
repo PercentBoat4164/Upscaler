@@ -23,7 +23,6 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     static FfxApiResource depthResource;
     static FfxApiResource motionResource;
     static VkFormat backBufferFormat;
-    static std::atomic<std::thread::id> threadID;
 
     struct alignas(32) QueueSubmitAccessParameters {
         const VkSubmitInfo* submitInfo{nullptr};
@@ -32,32 +31,18 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     };
 
     static VkResult synchronizeQueueSubmit(const uint32_t submitCount, const VkSubmitInfo* pSubmitInfo, VkFence fence) {
-        VkResult result{VK_SUCCESS};
-        if (threadID == std::this_thread::get_id())
-            result = Vulkan::submit(submitCount, pSubmitInfo, fence);
-        else {
-            QueueSubmitAccessParameters param{pSubmitInfo, fence};
-            Vulkan::getGraphicsInterface()->AccessQueue([](const int submitCount, void* data) {
-                auto& [submitInfo, fence, result] = *static_cast<QueueSubmitAccessParameters*>(data);
-                result = Vulkan::submit(submitCount, submitInfo, fence);
-            }, static_cast<int>(submitCount), &param, true);
-            result = param.result;
-        }
-        return result;
+        QueueSubmitAccessParameters param{pSubmitInfo, fence};
+        Vulkan::getGraphicsInterface()->AccessQueue([](const int submitCount, void* data) {
+            auto& [submitInfo, fence, result] = *static_cast<QueueSubmitAccessParameters*>(data);
+            result = Vulkan::submit(submitCount, submitInfo, fence);
+        }, static_cast<int>(submitCount), &param, true);
+        return param.result;
     }
 
 public:
-    static void doNotSyncThisThreadsQueueAccess() {
-        threadID = std::this_thread::get_id();
-    }
-
-    static void syncAllThreadsQueueAccess() {
-        threadID = std::thread::id();
-    }
-
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
         destroySwapchain();
-        // const auto queues = Vulkan::getQueues({VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, 0});
+        const auto queues = Vulkan::getQueues();
         ffx::CreateContextDescFrameGenerationSwapChainVK createContextDescFrameGenerationSwapChainVk{};
         createContextDescFrameGenerationSwapChainVk.physicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createContextDescFrameGenerationSwapChainVk.device         = Vulkan::getGraphicsInterface()->Instance().device;
@@ -67,29 +52,23 @@ public:
         createContextDescFrameGenerationSwapChainVk.gameQueue      = VkQueueInfoFFXAPI{
           Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
           Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          &synchronizeQueueSubmit
-          // nullptr
+          // &synchronizeQueueSubmit
+          nullptr
         };
         createContextDescFrameGenerationSwapChainVk.asyncComputeQueue = VkQueueInfoFFXAPI{
-          // queues[0].first,
-          //   queues[0].second,
-          // nullptr
+          queues[1],
+            0,
+          nullptr
         };
         createContextDescFrameGenerationSwapChainVk.presentQueue = VkQueueInfoFFXAPI{
-          // queues[1].first,
-          // queues[1].second,
-          Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
-          Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          &synchronizeQueueSubmit
-          // nullptr
+          queues[2],
+          0,
+          nullptr
         };
         createContextDescFrameGenerationSwapChainVk.imageAcquireQueue = VkQueueInfoFFXAPI{
-          // queues[2].first,
-          // queues[2].second,
-          Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
-          Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          &synchronizeQueueSubmit
-          // nullptr
+          queues[3],
+          0,
+          nullptr
         };
         if (CreateContext(swapchainContext, nullptr, createContextDescFrameGenerationSwapChainVk) != ffx::ReturnCode::Ok)
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
