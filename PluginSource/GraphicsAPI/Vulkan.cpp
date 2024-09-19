@@ -12,6 +12,7 @@
 PFN_vkGetInstanceProcAddr    Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetInstanceProcAddr    Vulkan::m_slGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkCreateDevice           Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
+PFN_vkCreateDevice           Vulkan::m_slCreateDevice{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr      Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr      Vulkan::m_slGetDeviceProcAddr{VK_NULL_HANDLE};
 PFN_vkCreateSwapchainKHR     Vulkan::m_vkCreateSwapchainKHR{VK_NULL_HANDLE};
@@ -57,10 +58,12 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
 #    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetDeviceProcAddr);
     }
-    // if (strcmp(name, "vkCreateDevice") == 0) {
-    //     m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
-    //     return reinterpret_cast<PFN_vkVoidFunction>(hook_vkCreateDevice);
-    // }
+    if (strcmp(name, "vkCreateDevice") == 0) {
+        m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
+        m_slCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_slGetInstanceProcAddr(instance, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateDevice);
+        // return m_vkGetInstanceProcAddr(instance, name);
+    }
     // if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
     //     m_vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
     //     return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateWin32SurfaceKHR);
@@ -104,7 +107,8 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkSetHdrMetadataEXT);
     }
 #    ifdef ENABLE_DLSS
-    if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) return m_slGetInstanceProcAddr(instance, name);
+    if (m_slGetInstanceProcAddr != VK_NULL_HANDLE)
+        return m_slGetInstanceProcAddr(instance, name);
 #    endif
     return m_vkGetInstanceProcAddr(instance, name);
 }
@@ -161,10 +165,8 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
     std::vector<VkQueueFamilyProperties> properties(count);
     m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, properties.data());
 
-    std::vector<VkQueueFlags> queueTypes{VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, 0};
-
-    for (uint32_t queueFamilyIndex{}; queueFamilyIndex < properties.size(); ++queueFamilyIndex)
-        for (const VkQueueFlags flags : queueTypes)
+    for (const VkQueueFlags flags : std::vector<VkQueueFlags>{VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, 0})
+        for (uint32_t queueFamilyIndex{}; queueFamilyIndex < properties.size(); ++queueFamilyIndex)
             if ((properties[queueFamilyIndex].queueFlags & flags) == flags) {
                 queueCreateInfos.push_back(VkDeviceQueueCreateInfo {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -178,7 +180,10 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
             }
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = queueCreateInfos.size();
-    return m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
+
+    if (m_slCreateDevice != VK_NULL_HANDLE)
+        return m_slCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
+    return m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
 }
 
 VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {

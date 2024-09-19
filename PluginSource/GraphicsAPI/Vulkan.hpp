@@ -16,6 +16,7 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr    m_vkGetInstanceProcAddr;
     static PFN_vkGetInstanceProcAddr    m_slGetInstanceProcAddr;
     static PFN_vkCreateDevice           m_vkCreateDevice;
+    static PFN_vkCreateDevice           m_slCreateDevice;
     static PFN_vkGetDeviceProcAddr      m_vkGetDeviceProcAddr;
     static PFN_vkGetDeviceProcAddr      m_slGetDeviceProcAddr;
     static PFN_vkCreateSwapchainKHR     m_vkCreateSwapchainKHR;
@@ -49,8 +50,8 @@ class Vulkan final : public GraphicsAPI {
     static uint64_t                SizeOfSwapchainToRecreate;
 
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
-    static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
     static VkResult           hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
+    static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
     static VkResult           hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static void               hook_vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
     static VkResult           hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages);
