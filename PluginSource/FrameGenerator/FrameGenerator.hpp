@@ -8,8 +8,7 @@
 
 class FrameGenerator {
 protected:
-    static std::unordered_map<VkSurfaceKHR, HWND> VkSurfaceKHR_HWND;
-    static std::unordered_map<HWND, VkSwapchainKHR> HWND_VkSwapchainKHR;
+    static std::unordered_map<uint64_t, VkSwapchainKHR> SizeToVkSwapchainKHR;
 
     static union Swapchain {
 #    ifdef ENABLE_VULKAN
@@ -25,11 +24,8 @@ public:
     FrameGenerator& operator=(FrameGenerator&&)      = delete;
     virtual ~FrameGenerator()                        = default;
 
-    static void              addMapping(HWND hwnd, VkSurfaceKHR surface);
-    static void              addMapping(VkSurfaceKHR surface, VkSwapchainKHR swapchain);
-    static void              removeMapping(VkSurfaceKHR surface);
-    static void              removeMapping(VkSwapchainKHR swapchain);
-    static VkSwapchainKHR    getSwapchain(HWND hwnd);
-    static std::vector<HWND> getHWNDs();
+    static void           addMapping(uint64_t size, VkSwapchainKHR swapchain);
+    static void           removeMapping(VkSwapchainKHR swapchain);
+    static VkSwapchainKHR getSwapchain(uint64_t size);
 };
 #endif

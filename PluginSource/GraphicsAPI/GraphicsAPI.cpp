@@ -31,12 +31,13 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererVulkan: {
             type = VULKAN;
             Upscaler::useGraphicsAPI(type);
-            constexpr UnityVulkanPluginEventConfig eventConfig {
+            UnityVulkanPluginEventConfig eventConfig {
               .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
               .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
+            eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             break;
         }
@@ -45,12 +46,13 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererD3D12: {
             type = DX12;
             Upscaler::useGraphicsAPI(type);
-            constexpr UnityD3D12PluginEventConfig eventConfig {
+            UnityD3D12PluginEventConfig eventConfig {
               .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
               .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
               .ensureActiveRenderTextureIsBound = false
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
+            eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
 #    ifdef ENABLE_DLSS
             DLSS_Upscaler::load(DX12);

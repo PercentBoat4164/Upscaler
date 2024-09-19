@@ -13,6 +13,9 @@
 
 #include <IUnityGraphicsVulkan.h>
 
+#include <atomic>
+#include <thread>
+
 class FSR_FrameGenerator final : protected FrameGenerator {
     static ffx::Context swapchainContext;
     static ffx::Context context;
@@ -20,8 +23,38 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     static FfxApiResource depthResource;
     static FfxApiResource motionResource;
     static VkFormat backBufferFormat;
+    static std::atomic<std::thread::id> threadID;
+
+    struct alignas(32) QueueSubmitAccessParameters {
+        const VkSubmitInfo* submitInfo{nullptr};
+        VkFence fence{VK_NULL_HANDLE};
+        VkResult result{VK_SUCCESS};
+    };
+
+    static VkResult synchronizeQueueSubmit(const uint32_t submitCount, const VkSubmitInfo* pSubmitInfo, VkFence fence) {
+        VkResult result{VK_SUCCESS};
+        if (threadID == std::this_thread::get_id())
+            result = Vulkan::submit(submitCount, pSubmitInfo, fence);
+        else {
+            QueueSubmitAccessParameters param{pSubmitInfo, fence};
+            Vulkan::getGraphicsInterface()->AccessQueue([](const int submitCount, void* data) {
+                auto& [submitInfo, fence, result] = *static_cast<QueueSubmitAccessParameters*>(data);
+                result = Vulkan::submit(submitCount, submitInfo, fence);
+            }, static_cast<int>(submitCount), &param, true);
+            result = param.result;
+        }
+        return result;
+    }
 
 public:
+    static void doNotSyncThisThreadsQueueAccess() {
+        threadID = std::this_thread::get_id();
+    }
+
+    static void syncAllThreadsQueueAccess() {
+        threadID = std::thread::id();
+    }
+
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
         destroySwapchain();
         // const auto queues = Vulkan::getQueues({VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, 0});
@@ -34,22 +67,29 @@ public:
         createContextDescFrameGenerationSwapChainVk.gameQueue      = VkQueueInfoFFXAPI{
           Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
           Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          nullptr
+          &synchronizeQueueSubmit
+          // nullptr
         };
         createContextDescFrameGenerationSwapChainVk.asyncComputeQueue = VkQueueInfoFFXAPI{
-          // Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
-          // Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
+          // queues[0].first,
+          //   queues[0].second,
           // nullptr
         };
         createContextDescFrameGenerationSwapChainVk.presentQueue = VkQueueInfoFFXAPI{
+          // queues[1].first,
+          // queues[1].second,
           Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
           Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          nullptr
+          &synchronizeQueueSubmit
+          // nullptr
         };
         createContextDescFrameGenerationSwapChainVk.imageAcquireQueue = VkQueueInfoFFXAPI{
+          // queues[2].first,
+          // queues[2].second,
           Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
           Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          nullptr
+          &synchronizeQueueSubmit
+          // nullptr
         };
         if (CreateContext(swapchainContext, nullptr, createContextDescFrameGenerationSwapChainVk) != ffx::ReturnCode::Ok)
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
@@ -115,7 +155,7 @@ public:
         };
         hudlessColorResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
         image = {};
-        Vulkan::getGraphicsInterface()->AccessTexture(depth, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        Vulkan::getGraphicsInterface()->AccessTexture(depth, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
         depthResource.resource = image.image;
         depthResource.description = {
           .type     = FFX_API_RESOURCE_TYPE_TEXTURE2D,
@@ -144,57 +184,48 @@ public:
         motionResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
 
-    struct alignas(16) Params {
-        ffxDispatchDescFrameGeneration* params;
-        ffxReturnCode_t* returnValue;
-    };
-
     static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV) {
-        // if (swapchain.vulkan == VK_NULL_HANDLE) return;
-        // UnityVulkanRecordingState state {};
-        // Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
-        //
-        // ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
-        // configureDescFrameGeneration.swapChain                  = swapchain.vulkan;
-        // configureDescFrameGeneration.presentCallback            = nullptr;
-        // configureDescFrameGeneration.presentCallbackUserContext = nullptr;
-        // configureDescFrameGeneration.frameGenerationCallback    = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
-        //     ffxReturnCode_t returnValue = 0;
-        //     Params param {params, &returnValue};
-        //     Vulkan::getGraphicsInterface()->AccessQueue([](int event, void* data) {
-        //         auto params = *static_cast<Params*>(data);
-        //         *params.returnValue = ffxDispatch(&context, &params.params->header);
-        //     }, 0, &param, true);
-        //     return returnValue;
-        //     // return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
-        // };
-        // configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
-        // configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == backBufferFormat;
-        // configureDescFrameGeneration.allowAsyncWorkloads                = false;
-        // configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
-        // configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
-        // configureDescFrameGeneration.onlyPresentGenerated               = false;
-        // configureDescFrameGeneration.generationRect                     = generationRect;
-        // configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
-        // if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
-        //     Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
-        //
-        // ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
-        // dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
-        // dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
-        // dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
-        // dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
-        // dispatchDescFrameGenerationPrepare.motionVectorScale       = {-static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height)};
-        // dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
-        // dispatchDescFrameGenerationPrepare.unused_reset            = false;
-        // dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
-        // dispatchDescFrameGenerationPrepare.cameraFar               = nearPlane;  // Switched because depth is inverted
-        // dispatchDescFrameGenerationPrepare.cameraFovAngleVertical  = verticalFOV;
-        // dispatchDescFrameGenerationPrepare.viewSpaceToMetersFactor = 1.0F;
-        // dispatchDescFrameGenerationPrepare.depth                   = depthResource;
-        // dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
-        // if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
-        //     Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
+        if (swapchain.vulkan == VK_NULL_HANDLE) return;
+        UnityVulkanRecordingState state {};
+        Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+
+        ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
+        configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
+        configureDescFrameGeneration.presentCallback                    = nullptr;
+        configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
+        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
+            return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
+        };
+        configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
+        configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
+        configureDescFrameGeneration.allowAsyncWorkloads                = false;
+        configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
+        configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
+        configureDescFrameGeneration.onlyPresentGenerated               = false;
+        configureDescFrameGeneration.generationRect                     = generationRect;
+        configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
+        if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
+            Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
+
+        if (configureDescFrameGeneration.frameGenerationEnabled) {
+            ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
+            dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
+            dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
+            dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
+            dispatchDescFrameGenerationPrepare.renderSize              = FfxApiDimensions2D{static_cast<uint32_t>(generationRect.width), static_cast<uint32_t>(generationRect.height)};
+            dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
+            dispatchDescFrameGenerationPrepare.motionVectorScale       = {-static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height)};
+            dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
+            dispatchDescFrameGenerationPrepare.unused_reset            = false;
+            dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
+            dispatchDescFrameGenerationPrepare.cameraFar               = nearPlane;  // Switched because depth is inverted
+            dispatchDescFrameGenerationPrepare.cameraFovAngleVertical  = verticalFOV;
+            dispatchDescFrameGenerationPrepare.viewSpaceToMetersFactor = 1.0F;
+            dispatchDescFrameGenerationPrepare.depth                   = depthResource;
+            dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
+            if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
+                Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
+        }
     }
 
     static bool ownsSwapchain(VkSwapchainKHR swapchain) {
@@ -269,6 +300,21 @@ public:
             case VK_FORMAT_R32G32B32A32_UINT: return kUnityRenderingExtFormatR32G32B32A32_UInt;
             case VK_FORMAT_R32G32B32A32_SINT: return kUnityRenderingExtFormatR32G32B32A32_SInt;
             case VK_FORMAT_R32G32B32A32_SFLOAT: return kUnityRenderingExtFormatR32G32B32A32_SFloat;
+            case VK_FORMAT_R4G4B4A4_UNORM_PACK16: return kUnityRenderingExtFormatR4G4B4A4_UNormPack16;
+            case VK_FORMAT_B4G4R4A4_UNORM_PACK16: return kUnityRenderingExtFormatB4G4R4A4_UNormPack16;
+            case VK_FORMAT_R5G6B5_UNORM_PACK16: return kUnityRenderingExtFormatR5G6B5_UNormPack16;
+            case VK_FORMAT_B5G6R5_UNORM_PACK16: return kUnityRenderingExtFormatB5G6R5_UNormPack16;
+            case VK_FORMAT_R5G5B5A1_UNORM_PACK16: return kUnityRenderingExtFormatR5G5B5A1_UNormPack16;
+            case VK_FORMAT_B5G5R5A1_UNORM_PACK16: return kUnityRenderingExtFormatB5G5R5A1_UNormPack16;
+            case VK_FORMAT_A1R5G5B5_UNORM_PACK16: return kUnityRenderingExtFormatA1R5G5B5_UNormPack16;
+            case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: return kUnityRenderingExtFormatE5B9G9R9_UFloatPack32;
+            case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return kUnityRenderingExtFormatB10G11R11_UFloatPack32;
+            case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UNormPack32;
+            case VK_FORMAT_A2R10G10B10_UINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UIntPack32;
+            case VK_FORMAT_A2R10G10B10_SINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_SIntPack32;
+            case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UNormPack32;
+            case VK_FORMAT_A2B10G10R10_UINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UIntPack32;
+            case VK_FORMAT_A2B10G10R10_SINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_SIntPack32;
             default: return kUnityRenderingExtFormatNone;
         }
     }

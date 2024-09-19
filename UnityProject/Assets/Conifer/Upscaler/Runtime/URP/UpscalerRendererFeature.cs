@@ -78,14 +78,23 @@ namespace Conifer.Upscaler.URP
                 cameraTextureDescriptor.height = _upscaler.InputResolution.y;
                 var colorDescriptor = cameraTextureDescriptor;
                 colorDescriptor.depthStencilFormat = GraphicsFormat.None;
-                if (RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget")) _needsUpdate = true;
+                _needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
                 var depthDescriptor = cameraTextureDescriptor;
-                depthDescriptor.colorFormat = RenderTextureFormat.Depth;
-                if (RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, name: "Conifer_CameraDepthTarget")) _needsUpdate = true;
+                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
+                {
+                    depthDescriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
+                    _needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, isShadowMap: true, name: "Conifer_CameraDepthTarget");
+                }
+                else
+                {
+                    depthDescriptor.colorFormat = RenderTextureFormat.Depth;
+                    _needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, name: "Conifer_CameraDepthTarget");
+                }
                 BlitDepth(cmd, Texture2D.blackTexture, _cameraRenderResolutionDepthTarget);
 
                 _cameraOutputResolutionColorTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
                 _cameraOutputResolutionDepthTarget = renderingData.cameraData.renderer.cameraDepthTargetHandle;
+                cmd.Blit(Texture2D.blackTexture, _cameraOutputResolutionColorTarget);
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraRenderResolutionColorTarget, _cameraRenderResolutionDepthTarget);
             }
 
@@ -155,21 +164,31 @@ namespace Conifer.Upscaler.URP
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                var hudlessDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                hudlessDescriptor.colorFormat = NativeInterface.GetBackBufferFormat();
-                hudlessDescriptor.depthStencilFormat = GraphicsFormat.None;
+                var descriptor = renderingData.cameraData.cameraTargetDescriptor;
+                descriptor.colorFormat = GraphicsFormatUtility.GetRenderTextureFormat(NativeInterface.GetBackBufferFormat());
+                descriptor.depthStencilFormat = GraphicsFormat.None;
+                var needsUpdate = RenderingUtils.ReAllocateIfNeeded(ref _hudless, descriptor, name: "Conifer_FrameGenHUDLessTarget");
+
                 var thisMotion = Shader.GetGlobalTexture(MotionID);
-                if (RenderingUtils.ReAllocateIfNeeded(ref _hudless, hudlessDescriptor, name: "Conifer_HUDlessTarget") || thisMotion != _lastMotion || _upscaler.frameGeneration != _lastFrameGeneration)
-                    _upscaler.NativeInterface.SetFrameGenerationImages(_hudless.rt.GetNativeTexturePtr(), _cameraOutputResolutionDepthTarget.rt.GetNativeTexturePtr(), thisMotion?.GetNativeTexturePtr() ?? IntPtr.Zero);
+                if (!needsUpdate && thisMotion == _lastMotion && _upscaler.frameGeneration == _lastFrameGeneration) return;
+                _upscaler.NativeInterface.SetFrameGenerationImages(_hudless.rt.GetNativeTexturePtr(), _cameraRenderResolutionDepthTarget.rt.GetNativeTexturePtr(), thisMotion?.GetNativeTexturePtr() ?? IntPtr.Zero);
+                _lastMotion = thisMotion;
+                _lastFrameGeneration = _upscaler.frameGeneration;
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var cb = CommandBufferPool.Get("Frame Generate");
-                cb.Blit(_cameraOutputResolutionColorTarget, _hudless);
+                cb.Blit(renderingData.cameraData.targetTexture, _hudless);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
+            }
+
+            public static void FreeMemory()
+            {
+                _hudless?.Release();
+                _hudless = null;
             }
         }
 
@@ -205,6 +224,7 @@ namespace Conifer.Upscaler.URP
                 _cameraRenderResolutionDepthTarget?.Release();
                 _cameraRenderResolutionDepthTarget = null;
                 Upscale.FreeMemory();
+                FrameGenerate.FreeMemory();
                 return;
             }
 

@@ -79,10 +79,7 @@ namespace Conifer.Upscaler
         internal static extern void SetFrameGenerationImages(IntPtr color, IntPtr depth, IntPtr motion);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetBackBufferFormat")]
-        internal static extern RenderTextureFormat GetBackBufferFormat();
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RequestSwapchainRecreation")]
-        internal static extern void RequestSwapchainRecreation(IntPtr hwnd);
+        internal static extern GraphicsFormat GetBackBufferFormat();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
         internal static extern void UnregisterCamera(ushort camera);
@@ -226,7 +223,6 @@ namespace Conifer.Upscaler
                 if (Application.isEditor) Native.SetFrameGeneration(Screen.width + 2, Screen.height + 42);
                 else Native.SetFrameGeneration(Screen.width, Screen.height);
             else Native.SetFrameGeneration(0, 0);
-            Native.RequestSwapchainRecreation(System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
@@ -274,6 +270,6 @@ namespace Conifer.Upscaler
             if (Loaded) Native.SetFrameGenerationImages(hudless, depth, motion);
         }
 
-        internal static RenderTextureFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : RenderTextureFormat.Default;
+        internal static GraphicsFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : GraphicsFormat.None;
     }
 }

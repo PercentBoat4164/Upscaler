@@ -9,11 +9,6 @@
 
 using System;
 using UnityEngine;
-using UnityEditor;
-using System.Reflection;
-using System.Collections;
-using System.Collections.Generic;
-using static System.Linq.Enumerable;
 
 namespace Conifer.Upscaler
 {

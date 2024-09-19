@@ -1,6 +1,7 @@
+using Conifer.Upscaler;
 using UnityEngine;
 
-namespace Conifer.Upscaler.Demo.Demo.Scripts
+namespace Demo
 {
     public class SettingsChanger : MonoBehaviour
     {

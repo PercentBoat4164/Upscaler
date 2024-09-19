@@ -35,17 +35,18 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkQueuePresentKHR        m_fxQueuePresentKHR;
     static PFN_vkSetHdrMetadataEXT      m_vkSetHdrMetadataEXT;
     static PFN_vkSetHdrMetadataEXT      m_fxSetHdrMetadataEXT;
-    static PFN_vkCreateWin32SurfaceKHR  m_vkCreateWin32SurfaceKHR;
-    static PFN_vkDestroySurfaceKHR      m_vkDestroySurfaceKHR;
+    // static PFN_vkCreateWin32SurfaceKHR  m_vkCreateWin32SurfaceKHR;
+    // static PFN_vkDestroySurfaceKHR      m_vkDestroySurfaceKHR;
 
     static PFN_vkGetPhysicalDeviceQueueFamilyProperties m_vkGetPhysicalDeviceQueueFamilyProperties;
     static PFN_vkDestroyImage                           m_vkDestroyImage;
     static PFN_vkGetDeviceQueue                         m_vkGetDeviceQueue;
     static PFN_vkCreateImageView                        m_vkCreateImageView;
     static PFN_vkDestroyImageView                       m_vkDestroyImageView;
+    static PFN_vkQueueSubmit                            m_vkQueueSubmit;
 
     static IUnityGraphicsVulkanV2* graphicsInterface;
-    static HWND                    HwndOfSwapchainToRecreate;
+    static uint64_t                SizeOfSwapchainToRecreate;
 
 public:
     static PFN_vkVoidFunction monitor_vkGetDeviceProcAddr(VkDevice device, const char* name);
@@ -53,6 +54,7 @@ public:
 private:
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
     static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);
+    static VkResult           hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
     static VkResult           hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static void               hook_vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
     static VkResult           hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages);
@@ -60,8 +62,8 @@ private:
     static VkResult           hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo);
     static void               hook_vkSetHdrMetadataEXT(VkDevice device, uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata);
     // static VkResult           hook_vkDeviceWaitIdle();
-    static VkResult           hook_vkCreateWin32SurfaceKHR(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
-    static void               hook_vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
+    // static VkResult           hook_vkCreateWin32SurfaceKHR(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
+    // static void               hook_vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
 
     static UNITY_INTERFACE_EXPORT PFN_vkGetInstanceProcAddr UNITY_INTERFACE_API interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/);
 
@@ -77,11 +79,12 @@ public:
     static IUnityGraphicsVulkanV2* getGraphicsInterface();
     static bool                    unregisterUnityInterfaces();
 
-    static void                                      requestSwapchainRecreation(HWND hwnd);
+    static void                                      requestSwapchainRecreationBySize(uint64_t size);
     static std::vector<std::pair<VkQueue, uint32_t>> getQueues(const std::vector<VkQueueFlags>& queueTypes);
     static VkResult                                  createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static VkImageView                               createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void                                      destroyImageView(VkImageView viewToDestroy);
+    static VkResult                                  submit(uint32_t submitCount, const VkSubmitInfo* submitInfo, VkFence fence);
 
     static PFN_vkGetDeviceProcAddr getDeviceProcAddr();
 };

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Conifer.Upscaler.Demo.Demo.Scripts
+namespace Demo
 {
 	[RequireComponent(typeof(Camera))]
 	public class FlyCamera : MonoBehaviour {

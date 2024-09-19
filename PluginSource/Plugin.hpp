@@ -53,9 +53,6 @@ inline enum FrameGenerationProvider : uint8_t {
     DLSS
 } frameGenerationProvider = None;
 
-inline uint32_t swapchainWidth = 0;
-inline uint32_t swapchainHeight = 0;
-
 constexpr std::size_t NumBaseImages = 4;
 constexpr std::size_t NumImages = 6;
 inline bool loadedCorrectly = false;

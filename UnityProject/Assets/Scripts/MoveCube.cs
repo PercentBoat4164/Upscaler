@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Conifer.Upscaler.Demo.Demo.Scripts
+namespace Demo
 {
     public class MoveCube : MonoBehaviour
     {

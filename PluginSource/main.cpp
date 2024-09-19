@@ -105,9 +105,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGeneration(const uint32_t width, const uint32_t height) {
     if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
-
-    Plugin::swapchainWidth = width;
-    Plugin::swapchainHeight = height;
+    Vulkan::requestSwapchainRecreationBySize(static_cast<uint64_t>(width) << 32U | height);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
@@ -192,10 +190,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGene
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {
     return FSR_FrameGenerator::getBackBufferFormat();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_RequestSwapchainRecreation(HWND hwnd) {
-    Vulkan::requestSwapchainRecreation(hwnd);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {

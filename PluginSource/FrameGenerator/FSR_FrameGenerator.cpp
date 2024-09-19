@@ -6,3 +6,4 @@ FfxApiResource FSR_FrameGenerator::hudlessColorResource {};
 FfxApiResource FSR_FrameGenerator::depthResource {};
 FfxApiResource FSR_FrameGenerator::motionResource {};
 VkFormat FSR_FrameGenerator::backBufferFormat {};
+std::atomic<std::thread::id> FSR_FrameGenerator::threadID{};
