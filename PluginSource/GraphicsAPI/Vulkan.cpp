@@ -171,8 +171,8 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
     createInfo.queueCreateInfoCount = queueCreateInfos.size();
 
     if (m_slCreateDevice != VK_NULL_HANDLE)
-        return m_slCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
-    return m_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
+        return m_slCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
+    return m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
 }
 
 VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
@@ -216,9 +216,7 @@ VkResult Vulkan::hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR sw
 
 VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
     VkResult result{VK_SUCCESS};
-    if (FSR_FrameGenerator::ownsSwapchain(swapchain)) {
-        result = m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
-    }
+    if (FSR_FrameGenerator::ownsSwapchain(swapchain)) result = m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     else result = m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     if (FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain)
         return VK_ERROR_OUT_OF_DATE_KHR;
@@ -228,9 +226,7 @@ VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swap
 VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
     VkResult result{VK_SUCCESS};
     if (pPresentInfo->swapchainCount == 0) return result;
-    if (pPresentInfo->swapchainCount == 1 && FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0])) {
-        result = m_fxQueuePresentKHR(queue, pPresentInfo);
-    }
+    if (pPresentInfo->swapchainCount == 1 && FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0])) result = m_fxQueuePresentKHR(queue, pPresentInfo);
     else result = m_vkQueuePresentKHR(queue, pPresentInfo);
     if (FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == pPresentInfo->pSwapchains[0])
         return VK_ERROR_OUT_OF_DATE_KHR;
@@ -288,7 +284,7 @@ void Vulkan::requestSwapchainRecreationBySize(uint64_t size) {
 
 std::vector<VkQueue> Vulkan::getQueues() {
     std::vector<VkQueue> queues(4);
-    for (uint32_t i{}; i < 4; ++i) m_vkGetDeviceQueue(graphicsInterface->Instance().device, 0, i, &queues[i]);
+    for (uint32_t i{}; i < queues.size(); ++i) m_vkGetDeviceQueue(graphicsInterface->Instance().device, 0, i, &queues[i]);
     return queues;
 }
 

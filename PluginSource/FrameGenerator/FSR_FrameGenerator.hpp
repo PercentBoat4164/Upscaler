@@ -13,8 +13,6 @@
 
 #include <IUnityGraphicsVulkan.h>
 
-#include <atomic>
-#include <thread>
 
 class FSR_FrameGenerator final : protected FrameGenerator {
     static ffx::Context swapchainContext;
@@ -42,7 +40,7 @@ class FSR_FrameGenerator final : protected FrameGenerator {
 public:
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
         destroySwapchain();
-        const auto queues = Vulkan::getQueues();
+        const std::vector<VkQueue> queues = Vulkan::getQueues();
         ffx::CreateContextDescFrameGenerationSwapChainVK createContextDescFrameGenerationSwapChainVk{};
         createContextDescFrameGenerationSwapChainVk.physicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createContextDescFrameGenerationSwapChainVk.device         = Vulkan::getGraphicsInterface()->Instance().device;
@@ -177,7 +175,7 @@ public:
         };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
         configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
-        configureDescFrameGeneration.allowAsyncWorkloads                = false;
+        configureDescFrameGeneration.allowAsyncWorkloads                = true;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
         configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
         configureDescFrameGeneration.onlyPresentGenerated               = false;

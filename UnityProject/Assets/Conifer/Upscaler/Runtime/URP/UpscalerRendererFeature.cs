@@ -180,6 +180,7 @@ namespace Conifer.Upscaler.URP
             {
                 var cb = CommandBufferPool.Get("Frame Generate");
                 cb.Blit(renderingData.cameraData.targetTexture, _hudless);
+                BlitDepth(cb, _cameraRenderResolutionDepthTarget, _cameraOutputResolutionDepthTarget);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
