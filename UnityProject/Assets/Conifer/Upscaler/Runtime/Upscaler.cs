@@ -139,8 +139,14 @@ namespace Conifer.Upscaler
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
-        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
-        public bool debugView;
+        /// Enables displaying frame generation input images. Will not be affected by postprocessing effects. Will display over <see cref="upscalingDebugView"/> if it is turned on at the same time. Only works when <see cref="frameGeneration"/> is enabled.
+        public bool frameGenerationDebugView;
+        /// Displays tear lines to help debug frame generation. Only works when <see cref="frameGeneration"/> is enabled.
+        public bool showTearLines;
+        /// Displays an indicator whenever a frame generation history reset occurs. Only works when <see cref="frameGeneration"/> is enabled.
+        public bool showResetIndicator;
+        /// Enables displaying upscaling input images. Will be affected by postprocessing effects. Only works when <see cref="Technique.FidelityFXSuperResolution"/> is the active technique.
+        public bool upscalingDebugView;
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
         public bool showRenderingAreaOverlay;
         /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame.

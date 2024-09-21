@@ -161,7 +161,7 @@ public:
         motionResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
 
-    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV) {
+    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned options) {
         if (swapchain.vulkan == VK_NULL_HANDLE) return;
         UnityVulkanRecordingState state {};
         Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
@@ -177,7 +177,9 @@ public:
         configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
         configureDescFrameGeneration.allowAsyncWorkloads                = true;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
-        configureDescFrameGeneration.flags                              = FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
+        configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
+                                                                          ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
+                                                                          ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U);
         configureDescFrameGeneration.onlyPresentGenerated               = false;
         configureDescFrameGeneration.generationRect                     = generationRect;
         configureDescFrameGeneration.frameID                            = state.currentFrameNumber;

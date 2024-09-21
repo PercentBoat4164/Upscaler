@@ -31,13 +31,16 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _technique;
         private SerializedProperty _quality;
         private SerializedProperty _frameGeneration;
+        private SerializedProperty _frameGenerationDebugView;
+        private SerializedProperty _showTearLines;
+        private SerializedProperty _showResetIndicator;
         private SerializedProperty _dlssPreset;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
         private SerializedProperty _reactiveMax;
         private SerializedProperty _reactiveScale;
         private SerializedProperty _reactiveThreshold;
-        private SerializedProperty _debugView;
+        private SerializedProperty _upscalingDebugView;
         private SerializedProperty _showRenderingAreaOverlay;
         private SerializedProperty _forceHistoryResetEveryFrame;
 
@@ -49,13 +52,16 @@ namespace Conifer.Upscaler.Editor
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
             _frameGeneration = serializedObject.FindProperty("frameGeneration");
+            _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
+            _showTearLines = serializedObject.FindProperty("showTearLines");
+            _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
-            _debugView = serializedObject.FindProperty("debugView");
+            _upscalingDebugView = serializedObject.FindProperty("debugView");
             _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
 
@@ -202,11 +208,25 @@ namespace Conifer.Upscaler.Editor
                 debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
                 if (debugSettingsFoldout)
                 {
+                    if (upscaler.frameGeneration) {
+                        _frameGenerationDebugView.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("View Frame Generation Debug Images",
+                                "Draws extra views over the scene to help understand the inputs to the frame generation process. (Frame Generation only)"),
+                            _frameGenerationDebugView.boolValue);
+                        _showTearLines.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("Show Tear Lines",
+                                "Draws flashing lines on the sides of the screen to make screen tears visually apparent. (Frame Generation only)"),
+                            _showTearLines.boolValue);
+                        _showResetIndicator.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("Show Reset Indicator",
+                                "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
+                            _showResetIndicator.boolValue);
+                    }
                     if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution)
-                        _debugView.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("View Debug Images",
+                        _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("View Upscaling Debug Images",
                                 "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),
-                            _debugView.boolValue);
+                            _upscalingDebugView.boolValue);
                     _showRenderingAreaOverlay.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("Overlay Rendering Area",
                             "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),

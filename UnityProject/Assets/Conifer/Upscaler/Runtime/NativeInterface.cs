@@ -120,7 +120,7 @@ namespace Conifer.Upscaler
                 _up = camera.transform.up;
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
-                _orthographic_debugView = (camera.orthographic ? 0b1U : 0b0U) | (upscaler.debugView ? 0b10U : 0b0U);
+                _orthographic_debugView = (camera.orthographic ? 0b1U : 0U) | (upscaler.upscalingDebugView ? 0b10U : 0U);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -153,22 +153,22 @@ namespace Conifer.Upscaler
                 else _generationRect = new Rect(0, 0, Screen.width, Screen.height);
                 var camera = upscaler.GetComponent<Camera>();
                 _jitterOffset = new Vector2(camera.nonJitteredProjectionMatrix.m03 - camera.projectionMatrix.m03, camera.nonJitteredProjectionMatrix.m13 - camera.projectionMatrix.m13);
-                // _backBuffer = Graphics.activeColorBuffer.GetNativeRenderBufferPtr();
                 _frameTime = Time.deltaTime;
                 var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
                 _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
+                _debugView_tearLines_resetIndicator = (upscaler.frameGenerationDebugView ? 0b1U : 0U) | (upscaler.showTearLines ? 0b10U : 0U) | (upscaler.showResetIndicator ? 0b100U : 0U);
             }
 
             private bool _enable;
             private Rect _generationRect;
             private Vector2 _jitterOffset;
-            // private IntPtr _backBuffer;
             private float _frameTime;
             private float _farPlane;
             private float _nearPlane;
             private float _verticalFOV;
+            private uint _debugView_tearLines_resetIndicator;
         }
 
         static NativeInterface()
