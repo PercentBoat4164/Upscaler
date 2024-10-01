@@ -158,7 +158,7 @@ namespace Conifer.Upscaler
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
                 _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
-                _debugView_tearLines_resetIndicator = (upscaler.frameGenerationDebugView ? 0b1U : 0U) | (upscaler.showTearLines ? 0b10U : 0U) | (upscaler.showResetIndicator ? 0b100U : 0U);
+                _debugView_tearLines_resetIndicator_onlyGenerated = (upscaler.frameGenerationDebugView ? 0x1U : 0U) | (upscaler.showTearLines ? 0x2U : 0U) | (upscaler.showResetIndicator ? 0x4U : 0U) | (upscaler.onlyPresentGenerated ? 0x8U : 0U);
             }
 
             private bool _enable;
@@ -168,7 +168,7 @@ namespace Conifer.Upscaler
             private float _farPlane;
             private float _nearPlane;
             private float _verticalFOV;
-            private uint _debugView_tearLines_resetIndicator;
+            private uint _debugView_tearLines_resetIndicator_onlyGenerated;
         }
 
         static NativeInterface()

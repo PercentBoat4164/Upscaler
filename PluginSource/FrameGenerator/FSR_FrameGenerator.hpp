@@ -47,35 +47,19 @@ public:
         createContextDescFrameGenerationSwapChainVk.swapchain      = pSwapchain;
         createContextDescFrameGenerationSwapChainVk.allocator      = pAllocator;
         createContextDescFrameGenerationSwapChainVk.createInfo     = *pCreateInfo;
-        createContextDescFrameGenerationSwapChainVk.gameQueue      = VkQueueInfoFFXAPI{
-          Vulkan::getGraphicsInterface()->Instance().graphicsQueue,
-          Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex,
-          // &synchronizeQueueSubmit
-          nullptr
-        };
-        createContextDescFrameGenerationSwapChainVk.asyncComputeQueue = VkQueueInfoFFXAPI{
-          queues[1],
-            0,
-          nullptr
-        };
-        createContextDescFrameGenerationSwapChainVk.presentQueue = VkQueueInfoFFXAPI{
-          queues[2],
-          0,
-          nullptr
-        };
-        createContextDescFrameGenerationSwapChainVk.imageAcquireQueue = VkQueueInfoFFXAPI{
-          queues[3],
-          0,
-          nullptr
-        };
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.gameQueue, Vulkan::getGraphicsInterface()->Instance().graphicsQueue, Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex, nullptr);
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.asyncComputeQueue, queues[1], 0, nullptr);
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.presentQueue, queues[2], 0, nullptr);
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.imageAcquireQueue, queues[3], 0, nullptr);
+
         if (CreateContext(swapchainContext, nullptr, createContextDescFrameGenerationSwapChainVk) != ffx::ReturnCode::Ok)
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
 
         ffx::CreateContextDescFrameGeneration createContextDescFrameGeneration{};
         createContextDescFrameGeneration.flags            = FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED | FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE | FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
-        createContextDescFrameGeneration.displaySize      = FfxApiDimensions2D { pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height };
+        std::construct_at(&createContextDescFrameGeneration.displaySize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
         createContextDescFrameGeneration.backBufferFormat = ffxApiGetSurfaceFormatVK(pCreateInfo->imageFormat);
-        createContextDescFrameGeneration.maxRenderSize    = FfxApiDimensions2D { pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height };
+        std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
 
         ffx::CreateBackendVKDesc createBackendVkDesc {};
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
@@ -102,10 +86,18 @@ public:
     static void destroySwapchain() {
         if (context != nullptr) {
             ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
-            configureDescFrameGeneration.swapChain              = swapchain.vulkan;
-            configureDescFrameGeneration.presentCallback        = nullptr;
-            configureDescFrameGeneration.frameGenerationEnabled = false;
-            configureDescFrameGeneration.HUDLessColor           = {};
+            configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
+            configureDescFrameGeneration.presentCallback                    = nullptr;
+            configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
+            configureDescFrameGeneration.frameGenerationCallback            = nullptr;
+            configureDescFrameGeneration.frameGenerationCallbackUserContext = nullptr;
+            configureDescFrameGeneration.frameGenerationEnabled             = false;
+            configureDescFrameGeneration.allowAsyncWorkloads                = false;
+            std::construct_at(&configureDescFrameGeneration.HUDLessColor);
+            configureDescFrameGeneration.flags                              = 0;
+            configureDescFrameGeneration.onlyPresentGenerated               = false;
+            std::construct_at(&configureDescFrameGeneration.generationRect, 0, 0, 0, 0);
+            configureDescFrameGeneration.frameID                            = 0;
             if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
                 Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
             ffx::DestroyContext(context, nullptr);
@@ -180,7 +172,7 @@ public:
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
                                                                           ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
                                                                           ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U);
-        configureDescFrameGeneration.onlyPresentGenerated               = false;
+        configureDescFrameGeneration.onlyPresentGenerated               = (options & 0x8U) != 0U;
         configureDescFrameGeneration.generationRect                     = generationRect;
         configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
         if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
@@ -191,9 +183,9 @@ public:
             dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
             dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
             dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
-            dispatchDescFrameGenerationPrepare.renderSize              = FfxApiDimensions2D{static_cast<uint32_t>(generationRect.width), static_cast<uint32_t>(generationRect.height)};
+            std::construct_at(&dispatchDescFrameGenerationPrepare.renderSize, depthResource.description.width, depthResource.description.height);
             dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
-            dispatchDescFrameGenerationPrepare.motionVectorScale       = {-static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height)};
+            std::construct_at(&dispatchDescFrameGenerationPrepare.motionVectorScale, -static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height));
             dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
             dispatchDescFrameGenerationPrepare.unused_reset            = false;
             dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;

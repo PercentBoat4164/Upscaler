@@ -145,6 +145,8 @@ namespace Conifer.Upscaler
         public bool showTearLines;
         /// Displays an indicator whenever a frame generation history reset occurs. Only works when <see cref="frameGeneration"/> is enabled.
         public bool showResetIndicator;
+        /// Only presents generated frames onto the screen. This allows easy visualization of generated frame quality. Only works when <see cref="frameGeneration"/> is enabled.
+        public bool onlyPresentGenerated;
         /// Enables displaying upscaling input images. Will be affected by postprocessing effects. Only works when <see cref="Technique.FidelityFXSuperResolution"/> is the active technique.
         public bool upscalingDebugView;
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
@@ -379,6 +381,7 @@ namespace Conifer.Upscaler
             NativeInterface ??= new NativeInterface();
 
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
+            NativeInterface.SetFrameGeneration(frameGeneration);
             ApplySettings();
         }
 
@@ -447,7 +450,10 @@ namespace Conifer.Upscaler
             _camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
 
-        private void OnDisable() => _camera.ResetProjectionMatrix();
+        private void OnDisable() {
+            NativeInterface.SetFrameGeneration(false);
+            _camera.ResetProjectionMatrix();
+        }
 
         private void OnGUI()
         {

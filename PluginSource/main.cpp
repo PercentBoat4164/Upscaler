@@ -42,7 +42,7 @@ struct alignas(64) FrameGenerateData {
     float farPlane;
     float nearPlane;
     float verticalFOV;
-    unsigned debugView_tearLines_resetIndicator;
+    unsigned debugView_tearLines_resetIndicator_onlyGenerated;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
@@ -83,7 +83,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
                 data.farPlane,
                 data.nearPlane,
                 data.verticalFOV,
-                data.debugView_tearLines_resetIndicator
+                data.debugView_tearLines_resetIndicator_onlyGenerated
             );
             break;
         }
@@ -105,7 +105,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGeneration(const uint32_t width, const uint32_t height) {
-    if (width == 2 && height == 42) Plugin::frameGenerationProvider = Plugin::None;
+    if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
     Vulkan::requestSwapchainRecreationBySize(static_cast<uint64_t>(width) << 32U | height);
 }

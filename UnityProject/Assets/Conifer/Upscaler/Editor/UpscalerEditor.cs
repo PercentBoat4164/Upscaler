@@ -34,6 +34,7 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _frameGenerationDebugView;
         private SerializedProperty _showTearLines;
         private SerializedProperty _showResetIndicator;
+        private SerializedProperty _onlyPresentGenerated;
         private SerializedProperty _dlssPreset;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
@@ -55,13 +56,14 @@ namespace Conifer.Upscaler.Editor
             _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
             _showTearLines = serializedObject.FindProperty("showTearLines");
             _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
+            _onlyPresentGenerated = serializedObject.FindProperty("onlyPresentGenerated");
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
-            _upscalingDebugView = serializedObject.FindProperty("debugView");
+            _upscalingDebugView = serializedObject.FindProperty("upscalingDebugView");
             _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
 
@@ -221,12 +223,19 @@ namespace Conifer.Upscaler.Editor
                             new GUIContent("Show Reset Indicator",
                                 "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
                             _showResetIndicator.boolValue);
+                        _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
+                            new GUIContent("Only Present Generated Frames",
+                                "Presents only the generated frames."),
+                            _onlyPresentGenerated.boolValue);
+                        EditorGUILayout.Separator();
                     }
-                    if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution)
+                    if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution) {
                         _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
                             new GUIContent("View Upscaling Debug Images",
                                 "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),
                             _upscalingDebugView.boolValue);
+                        EditorGUILayout.Separator();
+                    }
                     _showRenderingAreaOverlay.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("Overlay Rendering Area",
                             "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),
@@ -235,6 +244,7 @@ namespace Conifer.Upscaler.Editor
                         new GUIContent("Force History Reset",
                             "Forces the active upscaler to ignore it's internal history buffer."),
                         _forceHistoryResetEveryFrame.boolValue);
+                    EditorGUILayout.Separator();
                     if (dynamicResolutionSupported)
                     {
                         var resolution = EditorGUILayout.Slider(
@@ -245,6 +255,7 @@ namespace Conifer.Upscaler.Editor
                         upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
                             (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                     }
+                    EditorGUILayout.Separator();
                     var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
                     EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
                     Upscaler.SetLogLevel(logLevel);
