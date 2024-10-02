@@ -94,15 +94,18 @@ struct ffxDispatchDescFrameGenerationSwapChainWaitForPresentsVK
 struct ffxConfigureDescFrameGenerationSwapChainKeyValueVK
 {
     ffxConfigureDescHeader header;
-    uint64_t               key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKeyVK enumeration.
+    uint64_t               key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKey enumeration.
     uint64_t               u64;        ///< Integer value or enum value to set.
     void*                  ptr;        ///< Pointer to set or pointer to value to set.
 };
 
-enum FfxApiConfigureFrameGenerationSwapChainKeyVK
+#ifndef FFX_SWAPCHAIN_KEY
+#define FFX_SWAPCHAIN_KEY
+enum FfxApiConfigureFrameGenerationSwapChainKey
 {
-    // No values.
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0                     ///< Sets FfxWaitCallbackFunc
 };
+#endif
 
 /// Function to get the number of presents. This is useful when using frame interpolation
 typedef uint64_t (*PFN_getLastPresentCountFFXAPI)(VkSwapchainKHR);
@@ -178,6 +181,8 @@ static inline uint32_t ffxApiGetSurfaceFormatVK(VkFormat fmt)
         return FFX_API_SURFACE_FORMAT_R32_FLOAT;
     case VK_FORMAT_D32_SFLOAT:
         return FFX_API_SURFACE_FORMAT_R32_FLOAT;
+    case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
+        return FFX_API_SURFACE_FORMAT_R9G9B9E5_SHAREDEXP;
     case VK_FORMAT_UNDEFINED:
         return FFX_API_SURFACE_FORMAT_UNKNOWN;
 
