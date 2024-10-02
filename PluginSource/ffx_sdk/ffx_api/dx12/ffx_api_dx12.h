@@ -98,15 +98,18 @@ struct ffxDispatchDescFrameGenerationSwapChainWaitForPresentsDX12
 struct ffxConfigureDescFrameGenerationSwapChainKeyValueDX12
 {
     ffxConfigureDescHeader  header;
-    uint64_t                key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKeyDX12 enumeration.
+    uint64_t                key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKey enumeration.
     uint64_t                u64;        ///< Integer value or enum value to set.
     void*                   ptr;        ///< Pointer to set or pointer to value to set.
 };
 
-enum FfxApiConfigureFrameGenerationSwapChainKeyDX12
+#ifndef FFX_SWAPCHAIN_KEY
+#define FFX_SWAPCHAIN_KEY
+enum FfxApiConfigureFrameGenerationSwapChainKey
 {
-    // No values.
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0                     ///< Sets FfxWaitCallbackFunc
 };
+#endif
 
 #if defined(__cplusplus)
 
@@ -225,6 +228,9 @@ static inline uint32_t ffxApiGetSurfaceFormatDX12(DXGI_FORMAT format)
     //case DXGI_FORMAT_R8_SNORM:
     //case DXGI_FORMAT_R8_SINT:
     //case DXGI_FORMAT_R1_UNORM:
+
+    case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
+        return FFX_API_SURFACE_FORMAT_R9G9B9E5_SHAREDEXP;
 
     case DXGI_FORMAT_UNKNOWN:
     default:

@@ -119,41 +119,36 @@ typedef struct ffxAllocationCallbacks
 // Non-zero return indicates error code.
 // Pointers passed in desc must remain live until ffxDestroyContext is called on the context.
 // MemCb may be null; the system allocator (malloc/free) will be used in this case.
-    // MANUALLY EDITED: Added static function pointer and removed function declaration.
 // FFX_API_ENTRY ffxReturnCode_t ffxCreateContext(ffxContext* context, ffxCreateContextDescHeader* desc, const ffxAllocationCallbacks* memCb);
 typedef ffxReturnCode_t (*PfnFfxCreateContext)(ffxContext* context, ffxCreateContextDescHeader* desc, const ffxAllocationCallbacks* memCb);
-static PfnFfxCreateContext ffxCreateContext;
+inline PfnFfxCreateContext ffxCreateContext;
 
 // Destroys an FFX object context.
 // Non-zero return indicates error code.
 // MemCb must be compatible with the callbacks passed into ffxCreateContext.
-    // MANUALLY EDITED: Added static function pointer and removed function declaration.
 // FFX_API_ENTRY ffxReturnCode_t ffxDestroyContext(ffxContext* context, const ffxAllocationCallbacks* memCb);
 typedef ffxReturnCode_t (*PfnFfxDestroyContext)(ffxContext* context, const ffxAllocationCallbacks* memCb);
-static PfnFfxDestroyContext ffxDestroyContext;
+inline PfnFfxDestroyContext ffxDestroyContext;
 
 // Configures the provided FFX object context.
 // If context is null, configure operates on any global state.
 // Non-zero return indicates error code.
-    // MANUALLY EDITED: Added static function pointer and removed function declaration.
 // FFX_API_ENTRY ffxReturnCode_t ffxConfigure(ffxContext* context, const ffxConfigureDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxConfigure)(ffxContext* context, const ffxConfigureDescHeader* desc);
-static PfnFfxConfigure ffxConfigure;
+inline PfnFfxConfigure ffxConfigure;
 
 // Queries the provided FFX object context.
 // If context is null, query operates on any global state.
 // Non-zero return indicates error code.
-    // MANUALLY EDITED: Added static function pointer and removed function declaration.
 // FFX_API_ENTRY ffxReturnCode_t ffxQuery(ffxContext* context, ffxQueryDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxQuery)(ffxContext* context, ffxQueryDescHeader* desc);
-static PfnFfxQuery ffxQuery;
+inline PfnFfxQuery ffxQuery;
 
 // Dispatches work on the given FFX object context defined by the dispatch descriptor.
 // Non-zero return indicates error code.
-    // MANUALLY EDITED: Added static function pointer and removed function declaration.
 // FFX_API_ENTRY ffxReturnCode_t ffxDispatch(ffxContext* context, const ffxDispatchDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxDispatch)(ffxContext* context, const ffxDispatchDescHeader* desc);
-static PfnFfxDispatch ffxDispatch;
+inline PfnFfxDispatch ffxDispatch;
 
 #if defined(__cplusplus)
 }
