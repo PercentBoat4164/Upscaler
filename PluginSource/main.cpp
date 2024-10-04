@@ -42,7 +42,7 @@ struct alignas(64) FrameGenerateData {
     float farPlane;
     float nearPlane;
     float verticalFOV;
-    unsigned debugView_tearLines_resetIndicator_onlyGenerated;
+    unsigned options;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
@@ -54,14 +54,14 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             upscaler.settings.farPlane    = data.farPlane;
             upscaler.settings.nearPlane   = data.nearPlane;
             upscaler.settings.verticalFOV = data.verticalFOV;
-            std::ranges::copy(data.viewToClip, upscaler.settings.viewToClip.begin());
-            std::ranges::copy(data.clipToView, upscaler.settings.clipToView.begin());
+            std::ranges::copy(data.viewToClip,     upscaler.settings.viewToClip.begin());
+            std::ranges::copy(data.clipToView,     upscaler.settings.clipToView.begin());
             std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
             std::ranges::copy(data.prevClipToClip, upscaler.settings.prevClipToClip.begin());
-            std::ranges::copy(data.position, upscaler.settings.position.begin());
-            std::ranges::copy(data.up, upscaler.settings.up.begin());
-            std::ranges::copy(data.right, upscaler.settings.right.begin());
-            std::ranges::copy(data.forward, upscaler.settings.forward.begin());
+            std::ranges::copy(data.position,       upscaler.settings.position.begin());
+            std::ranges::copy(data.up,             upscaler.settings.up.begin());
+            std::ranges::copy(data.right,          upscaler.settings.right.begin());
+            std::ranges::copy(data.forward,        upscaler.settings.forward.begin());
             upscaler.settings.frameTime         = data.frameTime;
             upscaler.settings.sharpness         = data.sharpness;
             upscaler.settings.reactiveValue     = data.reactiveValue;
@@ -83,7 +83,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
                 data.farPlane,
                 data.nearPlane,
                 data.verticalFOV,
-                data.debugView_tearLines_resetIndicator_onlyGenerated
+                data.options
             );
             break;
         }

@@ -2,19 +2,20 @@
 #ifdef ENABLE_VULKAN
 #    include "GraphicsAPI.hpp"
 
-#    include <ffx_api_vk.h>
-
-#    include <vulkan/vulkan.h>
+#    include <vk/ffx_api_vk.h>
 
 #    include <IUnityRenderingExtensions.h>
 
 #    include <vector>
 
 struct IUnityGraphicsVulkanV2;
+struct SDL_Window;
 
 class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr    m_vkGetInstanceProcAddr;
     static PFN_vkGetInstanceProcAddr    m_slGetInstanceProcAddr;
+    static PFN_vkCreateInstance         m_vkCreateInstance;
+    static PFN_vkCreateInstance         m_slCreateInstance;
     static PFN_vkCreateDevice           m_vkCreateDevice;
     static PFN_vkCreateDevice           m_slCreateDevice;
     static PFN_vkGetDeviceProcAddr      m_vkGetDeviceProcAddr;
@@ -36,19 +37,26 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkQueuePresentKHR        m_fxQueuePresentKHR;
     static PFN_vkSetHdrMetadataEXT      m_vkSetHdrMetadataEXT;
     static PFN_vkSetHdrMetadataEXT      m_fxSetHdrMetadataEXT;
-    // static PFN_vkCreateWin32SurfaceKHR  m_vkCreateWin32SurfaceKHR;
-    // static PFN_vkDestroySurfaceKHR      m_vkDestroySurfaceKHR;
+    static PFN_vkCreateWin32SurfaceKHR  m_vkCreateWin32SurfaceKHR;
+    static PFN_vkDestroySurfaceKHR      m_vkDestroySurfaceKHR;
 
     static PFN_vkGetPhysicalDeviceQueueFamilyProperties m_vkGetPhysicalDeviceQueueFamilyProperties;
+    static PFN_vkGetPhysicalDeviceSurfaceSupportKHR     m_vkGetPhysicalDeviceSurfaceSupportKHR;
     static PFN_vkDestroyImage                           m_vkDestroyImage;
     static PFN_vkGetDeviceQueue                         m_vkGetDeviceQueue;
     static PFN_vkCreateImageView                        m_vkCreateImageView;
     static PFN_vkDestroyImageView                       m_vkDestroyImageView;
     static PFN_vkQueueSubmit                            m_vkQueueSubmit;
 
+    static VkInstance instance;
+
     static IUnityGraphicsVulkanV2* graphicsInterface;
     static uint64_t                SizeOfSwapchainToRecreate;
 
+    static VkSurfaceKHR createDummySurface(void*& hwnd);
+    static void         destroyDummySurface(void* hwnd, VkSurfaceKHR dummySurface);
+
+    static VkResult           hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance);
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
     static VkResult           hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
     static PFN_vkVoidFunction hook_vkGetDeviceProcAddr(VkDevice device, const char* name);

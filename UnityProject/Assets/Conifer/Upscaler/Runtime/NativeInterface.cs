@@ -153,12 +153,12 @@ namespace Conifer.Upscaler
                 else _generationRect = new Rect(0, 0, Screen.width, Screen.height);
                 var camera = upscaler.GetComponent<Camera>();
                 _jitterOffset = new Vector2(camera.nonJitteredProjectionMatrix.m03 - camera.projectionMatrix.m03, camera.nonJitteredProjectionMatrix.m13 - camera.projectionMatrix.m13);
-                _frameTime = Time.deltaTime;
+                _frameTime = Time.deltaTime * 1000.0f;
                 var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
                 _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
-                _debugView_tearLines_resetIndicator_onlyGenerated = (upscaler.frameGenerationDebugView ? 0x1U : 0U) | (upscaler.showTearLines ? 0x2U : 0U) | (upscaler.showResetIndicator ? 0x4U : 0U) | (upscaler.onlyPresentGenerated ? 0x8U : 0U);
+                _options = (upscaler.frameGenerationDebugView ? 0x1U : 0U) | (upscaler.showTearLines ? 0x2U : 0U) | (upscaler.showResetIndicator ? 0x4U : 0U) | (upscaler.onlyPresentGenerated ? 0x8U : 0U) | (upscaler.useAsyncCompute ? 0x10U : 0U);
             }
 
             private bool _enable;
@@ -168,7 +168,7 @@ namespace Conifer.Upscaler
             private float _farPlane;
             private float _nearPlane;
             private float _verticalFOV;
-            private uint _debugView_tearLines_resetIndicator_onlyGenerated;
+            private uint _options;
         }
 
         static NativeInterface()

@@ -214,7 +214,7 @@ namespace Conifer.Upscaler
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
         public Technique technique = GetBestSupportedTechnique();
         private Technique _technique;
-        ///@todo Add documentation for this.
+        /// @todo Add documentation for this.
         public bool frameGeneration;
         private bool _frameGeneration;
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
@@ -230,6 +230,8 @@ namespace Conifer.Upscaler
         public float reactiveScale = 0.9f;
         /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveThreshold = 0.3f;
+        /// @todo Add documentation for this.
+        public bool useAsyncCompute;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
@@ -384,10 +386,7 @@ namespace Conifer.Upscaler
             NativeInterface.SetFrameGeneration(frameGeneration);
             ApplySettings();
         }
-
-        private HDRDisplayBitDepth _oldBitDepth;
-        private bool _shouldResetSwapchainBitDepth;
-        private bool _willControlSwapchainNextFrame;
+        
         private int _screenWidth = Screen.width;
         private int _screenHeight = Screen.height;
         internal bool DisableUpscaling;
@@ -451,7 +450,7 @@ namespace Conifer.Upscaler
         }
 
         private void OnDisable() {
-            NativeInterface.SetFrameGeneration(false);
+            // NativeInterface.SetFrameGeneration(false);
             _camera.ResetProjectionMatrix();
         }
 

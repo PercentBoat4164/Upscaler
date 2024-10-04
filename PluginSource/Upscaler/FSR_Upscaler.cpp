@@ -5,7 +5,7 @@
 
 #        include <IUnityGraphicsVulkan.h>
 
-#        include <FidelityFX/host/backends/vk/ffx_api_vk.hpp>
+#        include <vk/ffx_api_vk.hpp>
 #    endif
 #    ifdef ENABLE_DX12
 #        include "GraphicsAPI/DX12.hpp"
@@ -14,10 +14,10 @@
 
 #        include <IUnityGraphicsD3D12.h>
 
-#        include <FidelityFX/host/backends/dx12/ffx_api_dx12.hpp>
+#        include <dx12/ffx_api_dx12.hpp>
 #    endif
 
-#    include <FidelityFX/host/ffx_upscale.hpp>
+#    include <ffx_upscale.hpp>
 
 #    include <algorithm>
 

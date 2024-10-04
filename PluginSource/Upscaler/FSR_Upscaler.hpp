@@ -3,9 +3,7 @@
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
-#    include <FidelityFX/host/ffx_api.hpp>
-
-#    include <Windows.h>
+#    include <ffx_api.hpp>
 
 namespace ffx { struct CreateContextDescUpscale; }  // namespace ffx
 struct FfxApiResource;

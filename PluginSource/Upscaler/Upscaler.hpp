@@ -13,13 +13,11 @@
 #    include <sl_dlss.h>
 #endif
 #ifdef ENABLE_FSR
-#    include <FidelityFX/host/ffx_upscale.hpp>
+#    include <ffx_upscale.hpp>
 #endif
 #ifdef ENABLE_XESS
 #    include <xess/xess.h>
 #endif
-
-#include "IUnityLog.h"
 
 #include <array>
 #include <cmath>

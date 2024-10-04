@@ -50,7 +50,6 @@ enum Events {
 inline enum FrameGenerationProvider : uint8_t {
     None,
     FSR,
-    DLSS
 } frameGenerationProvider = None;
 
 constexpr std::size_t NumBaseImages = 4;

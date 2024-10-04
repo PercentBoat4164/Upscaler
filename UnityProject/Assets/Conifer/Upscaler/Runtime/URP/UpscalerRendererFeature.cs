@@ -185,10 +185,9 @@ namespace Conifer.Upscaler.URP
             {
                 if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Frame Generate");
+                cb.CopyTexture(Shader.GetGlobalTexture(MotionID), _flippedMotion);
                 cb.Blit(null, _hudless);
-                cb.Blit(MotionID, _flippedMotion);
                 MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _flippedDepth, true, true);
-                // MultipurposeBlit(cb, MotionID, _flippedMotion, false, true);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);

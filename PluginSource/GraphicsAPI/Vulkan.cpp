@@ -11,6 +11,8 @@
 
 PFN_vkGetInstanceProcAddr    Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetInstanceProcAddr    Vulkan::m_slGetInstanceProcAddr{VK_NULL_HANDLE};
+PFN_vkCreateInstance         Vulkan::m_vkCreateInstance{VK_NULL_HANDLE};
+PFN_vkCreateInstance         Vulkan::m_slCreateInstance{VK_NULL_HANDLE};
 PFN_vkCreateDevice           Vulkan::m_vkCreateDevice{VK_NULL_HANDLE};
 PFN_vkCreateDevice           Vulkan::m_slCreateDevice{VK_NULL_HANDLE};
 PFN_vkGetDeviceProcAddr      Vulkan::m_vkGetDeviceProcAddr{VK_NULL_HANDLE};
@@ -32,10 +34,11 @@ PFN_vkQueuePresentKHR        Vulkan::m_slQueuePresentKHR{VK_NULL_HANDLE};
 PFN_vkQueuePresentKHR        Vulkan::m_fxQueuePresentKHR{VK_NULL_HANDLE};
 PFN_vkSetHdrMetadataEXT      Vulkan::m_vkSetHdrMetadataEXT{VK_NULL_HANDLE};
 PFN_vkSetHdrMetadataEXT      Vulkan::m_fxSetHdrMetadataEXT{VK_NULL_HANDLE};
-// PFN_vkCreateWin32SurfaceKHR  Vulkan::m_vkCreateWin32SurfaceKHR{VK_NULL_HANDLE};
-// PFN_vkDestroySurfaceKHR      Vulkan::m_vkDestroySurfaceKHR{VK_NULL_HANDLE};
+PFN_vkCreateWin32SurfaceKHR  Vulkan::m_vkCreateWin32SurfaceKHR{VK_NULL_HANDLE};
+PFN_vkDestroySurfaceKHR      Vulkan::m_vkDestroySurfaceKHR{VK_NULL_HANDLE};
 
 PFN_vkGetPhysicalDeviceQueueFamilyProperties Vulkan::m_vkGetPhysicalDeviceQueueFamilyProperties{VK_NULL_HANDLE};
+PFN_vkGetPhysicalDeviceSurfaceSupportKHR     Vulkan::m_vkGetPhysicalDeviceSurfaceSupportKHR{VK_NULL_HANDLE};
 PFN_vkGetDeviceQueue                         Vulkan::m_vkGetDeviceQueue{VK_NULL_HANDLE};
 PFN_vkDestroyImage                           Vulkan::m_vkDestroyImage{VK_NULL_HANDLE};
 PFN_vkCreateImageView                        Vulkan::m_vkCreateImageView{VK_NULL_HANDLE};
@@ -45,6 +48,8 @@ PFN_vkQueueSubmit                            Vulkan::m_vkQueueSubmit{VK_NULL_HAN
 // PFN_vkQueueWaitIdle                          Vulkan::m_vkQueueWaitIdle{VK_NULL_HANDLE};
 // PFN_vkQueueBindSparse                        Vulkan::m_vkQueueBindSparse{VK_NULL_HANDLE};
 // PFN_vkQueuePresentKHR                        Vulkan::m_vkQueuePresentKHR{VK_NULL_HANDLE};
+
+VkInstance Vulkan::instance{VK_NULL_HANDLE};
 
 IUnityGraphicsVulkanV2* Vulkan::graphicsInterface{nullptr};
 uint64_t                Vulkan::SizeOfSwapchainToRecreate{};
@@ -58,20 +63,28 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
 #    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetDeviceProcAddr);
     }
+    if (strcmp(name, "vkCreateInstance") == 0) {
+        m_vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(instance, name));
+        m_slCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_slGetInstanceProcAddr(instance, name));
+        return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateInstance);
+    }
     if (strcmp(name, "vkCreateDevice") == 0) {
         m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
         m_slCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_slGetInstanceProcAddr(instance, name));
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateDevice);
     }
-    // if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
-    //     m_vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
-    //     return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateWin32SurfaceKHR);
-    // }
-    // if (strcmp(name, "vkDestroySurfaceKHR") == 0) {
-    //     m_vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
-    //     return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySurfaceKHR);
-    // }
+    if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
+        m_vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
+        // return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateWin32SurfaceKHR);
+        return reinterpret_cast<PFN_vkVoidFunction>(m_vkCreateWin32SurfaceKHR);
+    }
+    if (strcmp(name, "vkDestroySurfaceKHR") == 0) {
+        m_vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
+        // return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySurfaceKHR);
+        return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroySurfaceKHR);
+    }
     if (strcmp(name, "vkGetPhysicalDeviceQueueFamilyProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetPhysicalDeviceQueueFamilyProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(m_vkGetInstanceProcAddr(instance, name)));
+    if (strcmp(name, "vkGetPhysicalDeviceSurfaceSupportKHR") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetPhysicalDeviceSurfaceSupportKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceSupportKHR>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkGetDeviceQueue") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetDeviceQueue = reinterpret_cast<PFN_vkGetDeviceQueue>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkCreateImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkCreateImageView = reinterpret_cast<PFN_vkCreateImageView>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkDestroyImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetInstanceProcAddr(instance, name)));
@@ -155,7 +168,74 @@ PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char*
     return m_vkGetDeviceProcAddr(device, name);
 }
 
+VkSurfaceKHR Vulkan::createDummySurface(void*& hwnd) {
+#    ifdef WIN32
+    HINSTANCE hInstance = GetModuleHandle(nullptr);
+    hwnd = CreateWindow("STATIC", "DummyWindow", 0, 0, 0, 0, 0, nullptr, nullptr, hInstance, nullptr);
+    VkSurfaceKHR surface{VK_NULL_HANDLE};
+    VkWin32SurfaceCreateInfoKHR win32SurfaceCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .hinstance = hInstance,
+        .hwnd = static_cast<HWND>(hwnd)
+    };
+    m_vkCreateWin32SurfaceKHR(instance, &win32SurfaceCreateInfo, nullptr, &surface);
+    return surface;
+#    endif
+}
+
+void Vulkan::destroyDummySurface(void* hwnd, VkSurfaceKHR dummySurface) {
+    m_vkDestroySurfaceKHR(instance, dummySurface, nullptr);
+#    ifdef WIN32
+    DestroyWindow(static_cast<HWND>(hwnd));
+#    endif
+}
+
+VkResult Vulkan::hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) {
+    VkResult result{VK_SUCCESS};
+    if (m_slCreateInstance != VK_NULL_HANDLE) result = m_slCreateInstance(pCreateInfo, pAllocator, pInstance);
+    else result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
+    instance = *pInstance;
+    return result;
+}
+
 VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
+    struct alignas(8) QueueFamily {
+        uint32_t count;
+        enum Properties : uint16_t {
+            Present = 0x1,
+            Graphics = 0x2,
+            Compute = 0x4,
+            Transfer = 0x8,
+            SparseBinding = 0x10,
+            Protected = 0x20,
+            VideoDecode = 0x40,
+            VideoEncode = 0x80,
+            OpticalFlow = 0x100,
+        } properties;
+    };
+
+    void* hwnd = nullptr;
+    VkSurfaceKHR surface = createDummySurface(hwnd);
+    std::uint32_t count{};
+    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
+    std::vector<VkQueueFamilyProperties> vkPropertieses(count);
+    std::vector<QueueFamily> propertieses(count);
+    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, vkPropertieses.data());
+    for (uint32_t i{}; i < count; ++i) {
+        VkBool32 present{};
+        m_vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &present);
+        propertieses[i] = {vkPropertieses[i].queueCount, static_cast<QueueFamily::Properties>(present | vkPropertieses[i].queueFlags << 1U)};
+    }
+    vkPropertieses.clear();
+    destroyDummySurface(hwnd, surface);
+
+    for (uint32_t i{}; i < pCreateInfo->queueCreateInfoCount; ++i) {
+        const VkDeviceQueueCreateInfo& queueInfo = pCreateInfo->pQueueCreateInfos[i];
+        propertieses[queueInfo.queueFamilyIndex].count -= queueInfo.queueCount;
+    }
+
     VkDeviceCreateInfo createInfo = *pCreateInfo;
 
     const std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{{
@@ -182,10 +262,6 @@ VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCre
         return m_fxCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain, FSR_FrameGenerator::getContext());
     if (Plugin::frameGenerationProvider != Plugin::None && SizeOfSwapchainToRecreate == swapchainSize)
         switch (Plugin::frameGenerationProvider) {
-#    ifdef ENABLE_DLSS
-            case Plugin::DLSS:
-                if (m_slCreateSwapchainKHR != VK_NULL_HANDLE) return m_slCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
-#    endif
 #    ifdef ENABLE_FSR
             case Plugin::FSR: {
                 FSR_FrameGenerator::createSwapchain(pSwapchain, pCreateInfo, pAllocator, &m_fxCreateSwapchainKHR, &m_fxDestroySwapchainKHR, &m_fxGetSwapchainImagesKHR, &m_fxAcquireNextImageKHR, &m_fxQueuePresentKHR, &m_fxSetHdrMetadataEXT, nullptr);

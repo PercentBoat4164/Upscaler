@@ -5,9 +5,9 @@
 #include "GraphicsAPI/Vulkan.hpp"
 #include "Plugin.hpp"
 
-#include <FidelityFX/host/backends/vk/ffx_api_vk.hpp>
-#include <FidelityFX/host/ffx_api.hpp>
-#include <FidelityFX/host/ffx_framegeneration.hpp>
+#include <vk/ffx_api_vk.hpp>
+#include <ffx_api.hpp>
+#include <ffx_framegeneration.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -167,7 +167,7 @@ public:
         };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
         configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
-        configureDescFrameGeneration.allowAsyncWorkloads                = true;
+        configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x10U) != 0U;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
                                                                           ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
