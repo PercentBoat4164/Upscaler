@@ -9,6 +9,9 @@
 
 #    include <IUnityGraphicsVulkan.h>
 
+#    define VQS_IMPLEMENTATION
+#    include <vk_queue_selector.h>
+
 PFN_vkGetInstanceProcAddr    Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkGetInstanceProcAddr    Vulkan::m_slGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkCreateInstance         Vulkan::m_vkCreateInstance{VK_NULL_HANDLE};
@@ -201,54 +204,91 @@ VkResult Vulkan::hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, 
 }
 
 VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
-    struct alignas(8) QueueFamily {
-        uint32_t count;
-        enum Properties : uint16_t {
-            Present = 0x1,
-            Graphics = 0x2,
-            Compute = 0x4,
-            Transfer = 0x8,
-            SparseBinding = 0x10,
-            Protected = 0x20,
-            VideoDecode = 0x40,
-            VideoEncode = 0x80,
-            OpticalFlow = 0x100,
-        } properties;
+    static VkDeviceCreateInfo createInfo = *pCreateInfo;
+    void* hwnd = nullptr;
+    const VqsQueueRequirements asyncRequirements[] {
+      {VK_QUEUE_TRANSFER_BIT, 0.9F, VK_NULL_HANDLE},
+      {0,                     1.0F, createDummySurface(hwnd)},
+      {VK_QUEUE_COMPUTE_BIT,  1.0F, VK_NULL_HANDLE}
+    };
+    const VqsQueueRequirements noAsyncRequirements[] {
+        asyncRequirements[0],
+        asyncRequirements[1]
     };
 
-    void* hwnd = nullptr;
-    VkSurfaceKHR surface = createDummySurface(hwnd);
-    std::uint32_t count{};
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> vkPropertieses(count);
-    std::vector<QueueFamily> propertieses(count);
-    m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, vkPropertieses.data());
-    for (uint32_t i{}; i < count; ++i) {
-        VkBool32 present{};
-        m_vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &present);
-        propertieses[i] = {vkPropertieses[i].queueCount, static_cast<QueueFamily::Properties>(present | vkPropertieses[i].queueFlags << 1U)};
+    VqsVulkanFunctions vkFuncs {
+        .vkGetPhysicalDeviceQueueFamilyProperties = [](VkPhysicalDevice physicalDevice, uint32_t* pQueueFamilyPropertyCount, VkQueueFamilyProperties* pQueueFamilyProperties) {
+            m_vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, pQueueFamilyProperties);
+            if (pQueueFamilyProperties == nullptr) return;
+            for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i) {
+                const VkDeviceQueueCreateInfo& queueCreateInfo = createInfo.pQueueCreateInfos[i];
+                pQueueFamilyProperties[queueCreateInfo.queueFamilyIndex].queueCount -= queueCreateInfo.queueCount;
+            }
+        },
+        .vkGetPhysicalDeviceSurfaceSupportKHR = m_vkGetPhysicalDeviceSurfaceSupportKHR
+    };
+
+    VqsQueryCreateInfo queryCreateInfo{
+        .physicalDevice = physicalDevice,
+        .queueRequirementCount = std::size(asyncRequirements),
+        .pQueueRequirements = asyncRequirements,
+        .pVulkanFunctions = &vkFuncs
+    };
+
+    VqsQuery query{VK_NULL_HANDLE};
+    vqsCreateQuery(&queryCreateInfo, &query);
+    std::vector<VqsQueueSelection> selections;
+    bool overrideQueues{};
+    if (vqsPerformQuery(query) != VK_SUCCESS) {
+        vqsDestroyQuery(query);
+        queryCreateInfo.queueRequirementCount = std::size(noAsyncRequirements);
+        queryCreateInfo.pQueueRequirements = noAsyncRequirements;
+        vqsCreateQuery(&queryCreateInfo, &query);
+        if (vqsPerformQuery(query) == VK_SUCCESS) {
+            selections.resize(std::size(noAsyncRequirements));
+            vqsGetQueueSelections(query, selections.data());
+            for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i) for (auto& selection : selections) if (createInfo.pQueueCreateInfos[i].queueFamilyIndex == selection.queueFamilyIndex) selection.queueIndex += createInfo.pQueueCreateInfos[i].queueCount;
+            FSR_FrameGenerator::useQueues(selections);
+            overrideQueues = true;
+        }
+    } else {
+        selections.resize(std::size(asyncRequirements));
+        vqsGetQueueSelections(query, selections.data());
+        for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i) for (auto& selection : selections) if (createInfo.pQueueCreateInfos[i].queueFamilyIndex == selection.queueFamilyIndex) selection.queueIndex += createInfo.pQueueCreateInfos[i].queueCount;
+        FSR_FrameGenerator::useQueues(selections);
+        overrideQueues = true;
     }
-    vkPropertieses.clear();
-    destroyDummySurface(hwnd, surface);
-
-    for (uint32_t i{}; i < pCreateInfo->queueCreateInfoCount; ++i) {
-        const VkDeviceQueueCreateInfo& queueInfo = pCreateInfo->pQueueCreateInfos[i];
-        propertieses[queueInfo.queueFamilyIndex].count -= queueInfo.queueCount;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::vector<float> priorities;
+    std::vector<float> allPriorities;
+    if (overrideQueues) {
+        uint32_t queuePriorityCount{}, queueCreateInfoCount{};
+        vqsEnumerateDeviceQueueCreateInfos(query, &queueCreateInfoCount, nullptr, &queuePriorityCount, nullptr);
+        queueCreateInfos.resize(queueCreateInfoCount);
+        priorities.resize(queuePriorityCount);
+        vqsEnumerateDeviceQueueCreateInfos(query, &queueCreateInfoCount, queueCreateInfos.data(), &queuePriorityCount, priorities.data());
+        uint32_t queueCount{};
+        for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i)
+            for (VkDeviceQueueCreateInfo& queueCreateInfo : queueCreateInfos)
+                queueCount += queueCreateInfo.queueCount + createInfo.pQueueCreateInfos[i].queueCount;
+        allPriorities.resize(queueCount);
+        queueCount = 0;
+        for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i) {
+            const VkDeviceQueueCreateInfo& originalQueueCreateInfo = createInfo.pQueueCreateInfos[i];
+            for (VkDeviceQueueCreateInfo& queueCreateInfo : queueCreateInfos) {
+                queueCreateInfo.pQueuePriorities = allPriorities.data() + queueCount;
+                std::copy_n(originalQueueCreateInfo.pQueuePriorities, originalQueueCreateInfo.queueCount, allPriorities.data() + queueCount);
+                queueCount += originalQueueCreateInfo.queueCount;
+                std::copy_n(queueCreateInfo.pQueuePriorities, queueCreateInfo.queueCount, allPriorities.data() + queueCount);
+                queueCount += queueCreateInfo.queueCount;
+                if (queueCreateInfo.queueFamilyIndex == originalQueueCreateInfo.queueFamilyIndex)
+                    queueCreateInfo.queueCount += originalQueueCreateInfo.queueCount;
+            }
+        }
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.queueCreateInfoCount = queueCreateInfos.size();
     }
-
-    VkDeviceCreateInfo createInfo = *pCreateInfo;
-
-    const std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{{
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .queueFamilyIndex = 0,
-        .queueCount = 4,
-        .pQueuePriorities = nullptr
-    }};
-
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.queueCreateInfoCount = queueCreateInfos.size();
+    vqsDestroyQuery(query);
 
     if (m_slCreateDevice != VK_NULL_HANDLE)
         return m_slCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
@@ -304,7 +344,8 @@ VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* p
     VkResult result{VK_SUCCESS};
     bool isFsrSwapchain = false;
     if (pPresentInfo->swapchainCount == 0) return result;
-    if (pPresentInfo->swapchainCount == 1 && (isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0]))) result = m_fxQueuePresentKHR(queue, pPresentInfo);
+    if (pPresentInfo->swapchainCount == 1 && (isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0])))
+        result = m_fxQueuePresentKHR(queue, pPresentInfo);
     else result = m_vkQueuePresentKHR(queue, pPresentInfo);
     if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == pPresentInfo->pSwapchains[0])
         return VK_ERROR_OUT_OF_DATE_KHR;
@@ -360,10 +401,10 @@ void Vulkan::requestSwapchainRecreationBySize(uint64_t size) {
     SizeOfSwapchainToRecreate = size;
 }
 
-std::vector<VkQueue> Vulkan::getQueues() {
-    std::vector<VkQueue> queues(4);
-    for (uint32_t i{}; i < queues.size(); ++i) m_vkGetDeviceQueue(graphicsInterface->Instance().device, 0, i, &queues[i]);
-    return queues;
+VkQueue Vulkan::getQueue(const uint32_t family, const uint32_t index) {
+    VkQueue queue;
+    m_vkGetDeviceQueue(graphicsInterface->Instance().device, family, index, &queue);
+    return queue;
 }
 
 VkResult Vulkan::createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {

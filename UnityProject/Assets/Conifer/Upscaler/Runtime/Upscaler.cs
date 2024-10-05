@@ -231,7 +231,7 @@ namespace Conifer.Upscaler
         /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveThreshold = 0.3f;
         /// @todo Add documentation for this.
-        public bool useAsyncCompute;
+        public bool useAsyncCompute = true;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>

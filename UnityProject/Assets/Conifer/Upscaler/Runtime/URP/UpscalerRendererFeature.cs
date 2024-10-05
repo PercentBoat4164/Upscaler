@@ -38,10 +38,10 @@ namespace Conifer.Upscaler.URP
 
         private static void MultipurposeBlit(CommandBuffer cb, RenderTargetIdentifier src, RenderTargetIdentifier dst, bool depth, bool flip = false)
         {
-            cb.SetRenderTarget(dst);
-            cb.SetGlobalTexture(BlitID, src);
             cb.SetProjectionMatrix(Ortho);
             cb.SetViewMatrix(LookAt);
+            cb.SetRenderTarget(dst);
+            cb.SetGlobalTexture(BlitID, src);
             cb.DrawMesh(flip ? _upsideDownTriangle : _triangle, Matrix4x4.identity, depth ? _depthBlitMaterial : _blitMaterial);
         }
 
@@ -82,7 +82,7 @@ namespace Conifer.Upscaler.URP
                 colorDescriptor.depthStencilFormat = GraphicsFormat.None;
                 _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
                 var depthDescriptor = cameraTextureDescriptor;
-                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
+                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution || _upscaler.frameGeneration)
                 {
                     depthDescriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
                     _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, isShadowMap: true, name: "Conifer_CameraDepthTarget");
@@ -171,23 +171,21 @@ namespace Conifer.Upscaler.URP
                 descriptor.depthStencilFormat = GraphicsFormat.None;
                 var needsUpdate = _renderTargetsUpdated;
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _hudless, descriptor, name: "Conifer_FrameGenHUDLessTarget");
-                descriptor = _cameraRenderResolutionDepthTarget.rt.descriptor;
-                needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _flippedDepth, descriptor, name: "Conifer_FrameGenFlippedDepthTarget");
                 descriptor = _cameraOutputResolutionColorTarget.rt.descriptor;
                 descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _flippedMotion, descriptor, name: "Conifer_FrameGenFlippedMotionVectorTarget");
 
                 if (!needsUpdate) return;
-                _upscaler.NativeInterface.SetFrameGenerationImages(_hudless.rt.GetNativeTexturePtr(), _flippedDepth.rt.GetNativeTexturePtr(), _flippedMotion.rt.GetNativeTexturePtr());
+                _upscaler.NativeInterface.SetFrameGenerationImages(_hudless.rt.GetNativeTexturePtr(), _cameraRenderResolutionDepthTarget.rt.GetNativeTexturePtr(), _flippedMotion.rt.GetNativeTexturePtr());
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Frame Generate");
-                cb.CopyTexture(Shader.GetGlobalTexture(MotionID), _flippedMotion);
                 cb.Blit(null, _hudless);
-                MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _flippedDepth, true, true);
+                MultipurposeBlit(cb, MotionID, _flippedMotion, false, true);
+                MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _cameraRenderResolutionDepthTarget, true, true);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
@@ -215,8 +213,7 @@ namespace Conifer.Upscaler.URP
             _triangle = new Mesh
             {
                 vertices = new Vector3[] { new(-1, -1, 0), new(3, -1, 0), new(-1, 3, 0) },
-                uv = new Vector2[] { new(0, 1), new(2, 1), new(0, -1) },
-                triangles = new[] { 0, 1, 2 }
+                uv = new Vector2[] { new(0, 1), new(2, 1), new(0, -1) }
             };
             _upsideDownTriangle = _triangle;
             _upsideDownTriangle.uv = new Vector2[] { new(0, 0), new(2, 0), new(0, 2) };

@@ -286,6 +286,9 @@ endif ()
 # Link selected graphics APIs
 if (ENABLE_VULKAN)
     target_include_directories(GfxPluginUpscaler PUBLIC ${Vulkan_INCLUDE_DIR})
+    if (ENABLE_FRAME_GENERATION)
+        target_include_directories(GfxPluginUpscaler PUBLIC "${CMAKE_SOURCE_DIR}/external")
+    endif ()
 endif ()
 
 # Link selected upscaler libraries

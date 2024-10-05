@@ -1,18 +1,21 @@
 #pragma once
+#include <vk_queue_selector.h>
 #if defined(ENABLE_FRAME_GENERATION) && defined(ENABLE_FSR)
 #include "FrameGenerator.hpp"
 
 #include "GraphicsAPI/Vulkan.hpp"
 #include "Plugin.hpp"
 
-#include <vk/ffx_api_vk.hpp>
 #include <ffx_api.hpp>
 #include <ffx_framegeneration.hpp>
+#include <vk/ffx_api_vk.hpp>
 
 #include <vulkan/vulkan.h>
 
 #include <IUnityGraphicsVulkan.h>
 
+
+struct VqsQueueSelection;
 
 class FSR_FrameGenerator final : protected FrameGenerator {
     static ffx::Context swapchainContext;
@@ -22,25 +25,24 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     static FfxApiResource motionResource;
     static VkFormat backBufferFormat;
 
-    struct alignas(32) QueueSubmitAccessParameters {
-        const VkSubmitInfo* submitInfo{nullptr};
-        VkFence fence{VK_NULL_HANDLE};
-        VkResult result{VK_SUCCESS};
-    };
-
-    static VkResult synchronizeQueueSubmit(const uint32_t submitCount, const VkSubmitInfo* pSubmitInfo, VkFence fence) {
-        QueueSubmitAccessParameters param{pSubmitInfo, fence};
-        Vulkan::getGraphicsInterface()->AccessQueue([](const int submitCount, void* data) {
-            auto& [submitInfo, fence, result] = *static_cast<QueueSubmitAccessParameters*>(data);
-            result = Vulkan::submit(submitCount, submitInfo, fence);
-        }, static_cast<int>(submitCount), &param, true);
-        return param.result;
-    }
+    static struct alignas(8) QueueData {
+        uint32_t family{}, index{};
+    } asyncCompute, present, imageAcquire;
+    static bool supported;
+    static bool asyncComputeSupported;
 
 public:
+    static void useQueues(std::vector<VqsQueueSelection> selection) {
+        if (selection.size() >= 2) {
+            std::construct_at(&imageAcquire, selection[0].queueFamilyIndex, selection[0].queueIndex);
+            std::construct_at(&present, selection[1].queueFamilyIndex, selection[1].queueIndex);
+        } if (selection.size() == 3) {
+            std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
+        }
+    }
+
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
         destroySwapchain();
-        const std::vector<VkQueue> queues = Vulkan::getQueues();
         ffx::CreateContextDescFrameGenerationSwapChainVK createContextDescFrameGenerationSwapChainVk{};
         createContextDescFrameGenerationSwapChainVk.physicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createContextDescFrameGenerationSwapChainVk.device         = Vulkan::getGraphicsInterface()->Instance().device;
@@ -48,9 +50,9 @@ public:
         createContextDescFrameGenerationSwapChainVk.allocator      = pAllocator;
         createContextDescFrameGenerationSwapChainVk.createInfo     = *pCreateInfo;
         std::construct_at(&createContextDescFrameGenerationSwapChainVk.gameQueue, Vulkan::getGraphicsInterface()->Instance().graphicsQueue, Vulkan::getGraphicsInterface()->Instance().queueFamilyIndex, nullptr);
-        std::construct_at(&createContextDescFrameGenerationSwapChainVk.asyncComputeQueue, queues[1], 0, nullptr);
-        std::construct_at(&createContextDescFrameGenerationSwapChainVk.presentQueue, queues[2], 0, nullptr);
-        std::construct_at(&createContextDescFrameGenerationSwapChainVk.imageAcquireQueue, queues[3], 0, nullptr);
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.presentQueue, Vulkan::getQueue(present.family, present.index), present.family, nullptr);
+        std::construct_at(&createContextDescFrameGenerationSwapChainVk.imageAcquireQueue, Vulkan::getQueue(imageAcquire.family, imageAcquire.index), imageAcquire.family, nullptr);
+        if (asyncComputeSupported) std::construct_at(&createContextDescFrameGenerationSwapChainVk.asyncComputeQueue, Vulkan::getQueue(asyncCompute.family, asyncCompute.index), asyncCompute.family, nullptr);
 
         if (CreateContext(swapchainContext, nullptr, createContextDescFrameGenerationSwapChainVk) != ffx::ReturnCode::Ok)
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
@@ -157,17 +159,16 @@ public:
         if (swapchain.vulkan == VK_NULL_HANDLE) return;
         UnityVulkanRecordingState state {};
         Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+        state.currentFrameNumber >>= 2U;
 
         ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
         configureDescFrameGeneration.presentCallback                    = nullptr;
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
-        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
-            return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
-        };
+        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t { return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header); };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
         configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
-        configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x10U) != 0U;
+        configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x10U) != 0U && asyncComputeSupported;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
                                                                           ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |

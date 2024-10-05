@@ -31,18 +31,24 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _technique;
         private SerializedProperty _quality;
         private SerializedProperty _frameGeneration;
-        private SerializedProperty _frameGenerationDebugView;
-        private SerializedProperty _showTearLines;
-        private SerializedProperty _showResetIndicator;
-        private SerializedProperty _onlyPresentGenerated;
+        
         private SerializedProperty _dlssPreset;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
         private SerializedProperty _reactiveMax;
         private SerializedProperty _reactiveScale;
         private SerializedProperty _reactiveThreshold;
+        
+        private SerializedProperty _useAsyncCompute;
+        
         private SerializedProperty _upscalingDebugView;
         private SerializedProperty _showRenderingAreaOverlay;
+        
+        private SerializedProperty _frameGenerationDebugView;
+        private SerializedProperty _showTearLines;
+        private SerializedProperty _showResetIndicator;
+        private SerializedProperty _onlyPresentGenerated;
+        
         private SerializedProperty _forceHistoryResetEveryFrame;
 
         private void OnEnable()
@@ -53,18 +59,24 @@ namespace Conifer.Upscaler.Editor
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
             _frameGeneration = serializedObject.FindProperty("frameGeneration");
-            _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
-            _showTearLines = serializedObject.FindProperty("showTearLines");
-            _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
-            _onlyPresentGenerated = serializedObject.FindProperty("onlyPresentGenerated");
+
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
+            
+            _useAsyncCompute = serializedObject.FindProperty("useAsyncCompute");
+            
             _upscalingDebugView = serializedObject.FindProperty("upscalingDebugView");
             _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
+            
+            _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
+            _showTearLines = serializedObject.FindProperty("showTearLines");
+            _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
+            _onlyPresentGenerated = serializedObject.FindProperty("onlyPresentGenerated");
+            
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
 
             var icon = new Texture2D(2, 2);
@@ -156,113 +168,115 @@ namespace Conifer.Upscaler.Editor
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             _frameGeneration.boolValue = EditorGUILayout.Toggle("Enable Frame Generation", _frameGeneration.boolValue);
-
-            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
+            
+            if (((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling && (Upscaler.Technique)_technique.intValue != Upscaler.Technique.None) || _frameGeneration.boolValue)
             {
                 EditorGUILayout.Separator();
                 EditorGUI.indentLevel += 1;
-                if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling)
+                advancedSettingsFoldout = EditorGUILayout.Foldout(advancedSettingsFoldout, "Advanced Settings");
+                if (advancedSettingsFoldout)
                 {
-                    advancedSettingsFoldout = EditorGUILayout.Foldout(advancedSettingsFoldout, "Advanced Settings");
-                    if (advancedSettingsFoldout)
+                    switch ((Upscaler.Technique)_technique.intValue)
                     {
-                        switch ((Upscaler.Technique)_technique.intValue)
-                        {
-                            case Upscaler.Technique.FidelityFXSuperResolution:
-                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness",
-                                        "Controls the amount of RCAS sharpening to apply after upscaling. Too much will produce a dirty, crunchy image. Too little will produce a smooth, blurry image. A good balance will produce a clear, clean image\n\nConifer's default: 0.3f"),
-                                    _sharpness.floatValue, 0f, 1f);
-                                _useReactiveMask.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Reactive Mask",
-                                    "Enable the use of an automatically generated reactive mask. This can greatly improve quality if the parameters are refined well for your application."),
-                                    _useReactiveMask.boolValue);
-                                if (_useReactiveMask.boolValue)
-                                {
-                                    EditorGUI.indentLevel += 1;
-                                    _reactiveMax.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Max",
-                                            "Maximum reactive value. More reactivity favors newer information.\n\nConifer's default: 0.6f"),
-                                        _reactiveMax.floatValue, 0, 1.0f);
-                                    _reactiveScale.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Scale",
-                                            "Value used to scale reactive mask after generation. Larger values result in more reactive pixels.\n\nConifer's default: 0.9f"),
-                                        _reactiveScale.floatValue, 0, 1.0f);
-                                    _reactiveThreshold.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Threshold",
-                                            "Minimum reactive threshold. Increase to make more of the image reactive.\n\nConifer's default: 0.3f"),
-                                        _reactiveThreshold.floatValue, 0, 1.0f);
-                                    EditorGUI.indentLevel -= 1;
-                                }
-                                break;
-                            case Upscaler.Technique.DeepLearningSuperSampling:
-                                _dlssPreset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
-                                    new GUIContent("DLSS Preset",
-                                        "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
-                                        "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
-                                        "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
-                                        "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
-                                        "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
-                                    (Upscaler.DlssPreset)_dlssPreset.intValue);
-                                break;
-                            case Upscaler.Technique.None: break;
-                            case Upscaler.Technique.XeSuperSampling: break;
-                            default: break;
-                        }
+                        case Upscaler.Technique.FidelityFXSuperResolution:
+                            _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness",
+                                    "Controls the amount of RCAS sharpening to apply after upscaling. Too much will produce a dirty, crunchy image. Too little will produce a smooth, blurry image. A good balance will produce a clear, clean image\n\nConifer's default: 0.3f"),
+                                _sharpness.floatValue, 0f, 1f);
+                            _useReactiveMask.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Reactive Mask",
+                                "Enable the use of an automatically generated reactive mask. This can greatly improve quality if the parameters are refined well for your application."),
+                                _useReactiveMask.boolValue);
+                            if (_useReactiveMask.boolValue)
+                            {
+                                EditorGUI.indentLevel += 1;
+                                _reactiveMax.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Max",
+                                        "Maximum reactive value. More reactivity favors newer information.\n\nConifer's default: 0.6f"),
+                                    _reactiveMax.floatValue, 0, 1.0f);
+                                _reactiveScale.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Scale",
+                                        "Value used to scale reactive mask after generation. Larger values result in more reactive pixels.\n\nConifer's default: 0.9f"),
+                                    _reactiveScale.floatValue, 0, 1.0f);
+                                _reactiveThreshold.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Threshold",
+                                        "Minimum reactive threshold. Increase to make more of the image reactive.\n\nConifer's default: 0.3f"),
+                                    _reactiveThreshold.floatValue, 0, 1.0f);
+                                EditorGUI.indentLevel -= 1;
+                            }
+                            break;
+                        case Upscaler.Technique.DeepLearningSuperSampling:
+                            _dlssPreset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
+                                new GUIContent("DLSS Preset",
+                                    "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
+                                    "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
+                                    "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
+                                    "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
+                                    "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
+                                (Upscaler.DlssPreset)_dlssPreset.intValue);
+                            break;
+                        case Upscaler.Technique.None: break;
+                        case Upscaler.Technique.XeSuperSampling: break;
+                        default: break;
                     }
+                    if (((Upscaler.Technique)_technique.intValue == Upscaler.Technique.XeSuperSampling || (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None) ^ _frameGeneration.boolValue)
+                        EditorGUILayout.Separator();
+                    if (_frameGeneration.boolValue)
+                        // @todo Ensure that async compute is supported before showing the toggle.
+                        _useAsyncCompute.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Async Compute"), _useAsyncCompute.boolValue);
+                }
+            }
+                
+            EditorGUILayout.Separator();
+            debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
+            if (debugSettingsFoldout)
+            {
+                if (upscaler.frameGeneration) {
+                    _frameGenerationDebugView.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("View Frame Generation Debug Images",
+                            "Draws extra views over the scene to help understand the inputs to the frame generation process. (Frame Generation only)"),
+                        _frameGenerationDebugView.boolValue);
+                    _showTearLines.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("Show Tear Lines",
+                            "Draws flashing lines on the sides of the screen to make screen tears visually apparent. (Frame Generation only)"),
+                        _showTearLines.boolValue);
+                    _showResetIndicator.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("Show Reset Indicator",
+                            "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
+                        _showResetIndicator.boolValue);
+                    _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("Only Present Generated Frames",
+                            "Presents only the generated frames."),
+                        _onlyPresentGenerated.boolValue);
+                    EditorGUILayout.Separator();
+                }
+                if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution) {
+                    _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("View Upscaling Debug Images",
+                            "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),
+                        _upscalingDebugView.boolValue);
+                }
+                _showRenderingAreaOverlay.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Overlay Rendering Area",
+                        "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),
+                    _showRenderingAreaOverlay.boolValue);
+                if (dynamicResolutionSupported)
+                {
+                    var resolution = EditorGUILayout.Slider(
+                        new GUIContent("Dynamic Resolution",
+                            "Sets the width of the rendering (input) resolution."),
+                        upscaler.InputResolution.x, upscaler.MinInputResolution.x,
+                        upscaler.MaxInputResolution.x);
+                    upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
+                        (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                 }
                 EditorGUILayout.Separator();
-                debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
-                if (debugSettingsFoldout)
-                {
-                    if (upscaler.frameGeneration) {
-                        _frameGenerationDebugView.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("View Frame Generation Debug Images",
-                                "Draws extra views over the scene to help understand the inputs to the frame generation process. (Frame Generation only)"),
-                            _frameGenerationDebugView.boolValue);
-                        _showTearLines.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("Show Tear Lines",
-                                "Draws flashing lines on the sides of the screen to make screen tears visually apparent. (Frame Generation only)"),
-                            _showTearLines.boolValue);
-                        _showResetIndicator.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("Show Reset Indicator",
-                                "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
-                            _showResetIndicator.boolValue);
-                        _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("Only Present Generated Frames",
-                                "Presents only the generated frames."),
-                            _onlyPresentGenerated.boolValue);
-                        EditorGUILayout.Separator();
-                    }
-                    if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution) {
-                        _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
-                            new GUIContent("View Upscaling Debug Images",
-                                "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),
-                            _upscalingDebugView.boolValue);
-                        EditorGUILayout.Separator();
-                    }
-                    _showRenderingAreaOverlay.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Overlay Rendering Area",
-                            "Overlays a box onto the screen in the OnGUI pass. The box is the same size on-screen as the image that the camera renders into before upscaling."),
-                        _showRenderingAreaOverlay.boolValue);
-                    _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Force History Reset",
-                            "Forces the active upscaler to ignore it's internal history buffer."),
-                        _forceHistoryResetEveryFrame.boolValue);
-                    EditorGUILayout.Separator();
-                    if (dynamicResolutionSupported)
-                    {
-                        var resolution = EditorGUILayout.Slider(
-                            new GUIContent("Dynamic Resolution",
-                                "Sets the width of the rendering (input) resolution."),
-                            upscaler.InputResolution.x, upscaler.MinInputResolution.x,
-                            upscaler.MaxInputResolution.x);
-                        upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
-                            (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
-                    }
-                    EditorGUILayout.Separator();
-                    var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
-                    EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
-                    Upscaler.SetLogLevel(logLevel);
-                }
-
-                EditorGUI.indentLevel -= 1;
+                _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Force History Reset",
+                        "Forces the active upscaler to ignore it's internal history buffer."),
+                    _forceHistoryResetEveryFrame.boolValue);
+                EditorGUILayout.Separator();
+                var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
+                EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
+                Upscaler.SetLogLevel(logLevel);
             }
+
+            EditorGUI.indentLevel -= 1;
 
             serializedObject.ApplyModifiedProperties();
             upscaler.ApplySettings();
