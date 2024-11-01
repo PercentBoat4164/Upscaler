@@ -20,9 +20,6 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
         internal static extern bool LoadedCorrectly();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_DLSSLoadedCorrectly")]
-        internal static extern bool DLSSLoadedCorrectly();
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
         internal static extern void SetLogLevel(LogType type);
 
@@ -142,7 +139,8 @@ namespace Conifer.Upscaler
             }
             catch (DllNotFoundException)
             {
-                Debug.LogError("The Upscaler plugin could not be found. Please restart Unity. If this problem persists please reinstall Upscaler or contact Conifer support.");
+                if (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer)
+                  Debug.LogError("The Upscaler plugin could not be loaded. Please restart Unity. If this problem persists please reinstall Upscaler or contact Conifer support.");
                 return;
             }
 
@@ -161,8 +159,6 @@ namespace Conifer.Upscaler
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal bool DlssLoadedCorrectly() => Loaded && Native.DLSSLoadedCorrectly();
-
         internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {
             Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _dataPtr, true);
@@ -180,11 +176,11 @@ namespace Conifer.Upscaler
             Loaded && Native.IsSupported(type, mode);
 
         internal Upscaler.Status GetStatus() =>
-            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
+            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.Success;
 
         internal string GetStatusMessage() => Loaded
             ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID))
-            : "GfxPluginUpscaler shared library not loaded! A restart may resolve the problem.";
+            : "GfxPluginUpscaler shared library not loaded; some upscalers may be unavailable! A restart may resolve the problem if you are on a supported platform.";
 
         internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
             ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))

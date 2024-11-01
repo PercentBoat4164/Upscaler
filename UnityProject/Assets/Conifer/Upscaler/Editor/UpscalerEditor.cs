@@ -9,7 +9,6 @@
 
 using System;
 using System.Linq;
-using System.Net;
 using System.Reflection;
 using System.IO;
 using Conifer.Upscaler.URP;
@@ -112,7 +111,13 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Set to 'Automatic'"))
                         UniversalRenderPipeline.asset!.upscalingFilter = UpscalingFilterSelection.Auto;
                 }
-                if (cameraData.antialiasing != AntialiasingMode.None)
+
+                if (upscaler.IsSpatial() && cameraData.antialiasing == AntialiasingMode.None)
+                {
+                    EditorGUILayout.HelpBox("Enable 'Anti-aliasing' for best results.", MessageType.Error);
+                    if (GUILayout.Button("Set to 'Fast Approximate Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
+                }
+                if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                 {
                     EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Error);
                     if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
@@ -188,8 +193,9 @@ namespace Conifer.Upscaler.Editor
                                         "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
                                     (Upscaler.DlssPreset)_dlssPreset.intValue);
                                 break;
-                            case Upscaler.Technique.None: break;
-                            case Upscaler.Technique.XeSuperSampling: break;
+                            case Upscaler.Technique.SnapdragonGameSuperResolutionSpatial:
+                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
+                                break;
                             default: break;
                         }
                     }

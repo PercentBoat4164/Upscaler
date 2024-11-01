@@ -9,6 +9,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler
 {
@@ -27,12 +28,16 @@ namespace Conifer.Upscaler
         {
             /// The <see cref="None"/> <see cref="Technique"/>. Use this to turn off upscaling.
             None,
-            /// NVIDIA's Deep Learning Super Sampling upscaler.
+            /// NVIDIA's Deep Learning Super Sampling upscaler, designed for modern NVIDIA GPUs.
             DeepLearningSuperSampling,
-            /// AMD's FidelityFX Super Resolution upscaler.
+            /// AMD's FidelityFX Super Resolution upscaler, designed for any modern GPU with compute support.
             FidelityFXSuperResolution,
-            /// Intel's X<sup>e</sup> Super Sampling upscaler.
-            XeSuperSampling
+            /// Intel's X<sup>e</sup> Super Sampling upscaler, designed to excel on Intel GPUs, but works on any modern GPU with compute.
+            XeSuperSampling,
+            /// Snapdragon's Snapdragon Game Super Resolution v1, a spatial algorithm designed for mobile devices.
+            SnapdragonGameSuperResolutionSpatial,
+            /// Snapdragon's Snapdragon Game Super Resolution v1, a temporal algorithm with modes designed for anything from mobile to desktop class devices.
+            SnapdragonGameSuperResolutionTemporal
         }
 
         /**
@@ -223,12 +228,14 @@ namespace Conifer.Upscaler
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
          *<returns>Returns the 'best' supported technique.</returns>
-         * <remarks>Selects the first supported technique as they appear in the following list:
+         * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/> if on a mobile platform and it is
+         * supported. It otherwise selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
          */
         public static Technique GetBestSupportedTechnique()
         {
+            if (Application.isMobilePlatform && IsSupported(Technique.SnapdragonGameSuperResolutionSpatial)) return Technique.SnapdragonGameSuperResolutionSpatial;
             if (IsSupported(Technique.DeepLearningSuperSampling)) return Technique.DeepLearningSuperSampling;
             if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
             return IsSupported(Technique.FidelityFXSuperResolution) ? Technique.FidelityFXSuperResolution : Technique.None;
@@ -258,23 +265,27 @@ namespace Conifer.Upscaler
          * <example><code>bool DLSSSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
          * </code></example>
          */
-        public static bool IsSupported(Technique type) => NativeInterface.IsSupported(type);
+        public static bool IsSupported(Technique type) => type is Technique.None ||
+                                                          (type is Technique.SnapdragonGameSuperResolutionSpatial or Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                          (PluginLoaded() && NativeInterface.IsSupported(type));
 
         /**
-         * <summary>Check if a <see cref="Quality"/> mode is supported by a given
-         * <see cref="Technique"/>.</summary>
+         * <summary>Check if a <see cref="Quality"/> mode is supported by a given <see cref="Technique"/>.</summary>
          * <param name="type">The <see cref="Technique"/> to query.</param>
          * <param name="mode">The <see cref="Quality"/> mode to query support for.</param>
          * <returns><c>true</c> if the <see cref="Technique"/> supports the requested <see cref="Quality"/> mode and
          * <c>false</c> if it does not.</returns>
          * <remarks>This method is always fast. Every non-<see cref="Technique.None"/> <see cref="Technique"/> will
          * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode.</remarks>
-         * <example><code>bool supportsAA = upscaler.IsSupported(
+         * <example><code>bool dlssSupportsAA = upscaler.IsSupported(
          *   Upscaler.Technique.DeepLearningSuperSampling,
          *   Upscaler.Quality.AntiAliasing
          * );</code></example>
          */
-        public static bool IsSupported(Technique type, Quality mode) => NativeInterface.IsSupported(type, mode);
+        public static bool IsSupported(Technique type, Quality mode) => type is Technique.None ||
+                                                                        (type is Technique.SnapdragonGameSuperResolutionSpatial && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
+                                                                        (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                                        NativeInterface.IsSupported(type, mode);
 
         /**
          * <summary>Check if a <see cref="Quality"/> mode is supported by the current <see cref="Technique"/>.</summary>
@@ -283,30 +294,56 @@ namespace Conifer.Upscaler
          * <returns><c>true</c> if the current <see cref="Technique"/> supports the requested <see cref="Quality"/> mode
          * and <c>false</c> if it does not.</returns>
          * <remarks>This method is always fast. This is a convenience method for
-         * <see cref="IsSupported(Technique, Quality)"/> that uses this upscaler's <see cref="Technique"/> as the first
+         * <see cref="IsSupported(Technique, Quality)"/> that uses this <see cref="Upscaler"/>'s <see cref="Technique"/> as the first
          * argument. </remarks>
          * <example><code>bool supportsAA = upscaler.IsSupported(Upscaler.Quality.AntiAliasing);</code></example>
          */
         public bool IsSupported(Quality mode) => IsSupported(technique, mode);
 
         /**
+         *
+         */
+        public static bool IsSpatial(Technique type) => type switch
+            {
+                Technique.None or Technique.SnapdragonGameSuperResolutionSpatial => true,
+                Technique.DeepLearningSuperSampling or Technique.FidelityFXSuperResolution or Technique.XeSuperSampling or Technique.SnapdragonGameSuperResolutionTemporal => false,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
+            };
+
+        /**
+         *
+         */
+        public bool IsSpatial() => IsSpatial(technique);
+
+        /**
+         *
+         */
+        public static bool IsTemporal(Technique type) => !IsSpatial(type);
+
+        /**
+         *
+         */
+        public bool IsTemporal() => !IsSpatial(technique);
+
+        public static bool RequiresNativePlugin(Technique type) => type switch
+            {
+                Technique.SnapdragonGameSuperResolutionSpatial or Technique.SnapdragonGameSuperResolutionTemporal or Technique.None => false,
+                Technique.DeepLearningSuperSampling or Technique.FidelityFXSuperResolution or Technique.XeSuperSampling => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
+            };
+
+        public bool RequiresNativePlugin() => RequiresNativePlugin(technique);
+
+        /**
          * <summary>Check if the <c>GfxPluginUpscaler</c> shared library has been loaded.</summary>
          * <returns><c>true</c> if the <c>GfxPluginUpscaler</c> shared library has been loaded by Unity and <c>false</c>
          * if it has not been.</returns>
+         * <remarks>When this function returns false <see cref="Technique.DeepLearningSuperSampling"/>,
+         * <see cref="Technique.FidelityFXSuperResolution"/>, and <see cref="Technique.XeSuperSampling"/> will all be
+         * unavailable.</remarks>
          * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
          */
         public static bool PluginLoaded() => NativeInterface.Loaded;
-
-        /**
-         * <summary>Check if the GfxPluginUpscaler DLSS library was loaded from start up.</summary>
-         * <returns><c>true</c> if DLSS was loaded correctly and <c>false</c> otherwise.</returns>
-         * <remarks>This method should return <c>true</c> most of the time. If it returns <c>false</c> it is likely that
-         * the user is currently performing the installation process. While this method returns <c>false</c> DLSS will
-         * be unusable. DLSS must be initialized before the graphics device is created, and thus must be loaded very
-         * early in Unity's boot sequence. If you have installed the DLSS library, but this method is still returning
-         * <c>false</c> try rebooting Unity.</remarks>
-         */
-        public static bool DlssPluginLoaded() => Native.DLSSLoadedCorrectly();
 
         /**
          * <summary>Sets the log level filter for the C++ backend.</summary>
@@ -348,17 +385,52 @@ namespace Conifer.Upscaler
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
-            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
-            RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
-            MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
-            MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
-            if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force) InputResolution = RecommendedInputResolution;
+            if (RequiresNativePlugin())
+            {
+                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
+                RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
+                MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
+                MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
+            }
+            else
+            {
+                if (SystemInfo.graphicsShaderLevel < 50)
+                    return CurrentStatus = Status.DeviceNotSupported;
+                var scale = 0.769;
+                switch (quality)
+                {
+                    case Quality.Auto:
+                        scale = ((uint)OutputResolution.x * (uint)OutputResolution.y) switch
+                        {
+                            <= 2560 * 1440 => 0.769,
+                            <= 3840 * 2160 => 0.667,
+                            _ => 0.5
+                        }; break;
+                    case Quality.AntiAliasing: CurrentStatus = Status.RecoverableRuntimeError; break;
+                    case Quality.UltraQualityPlus: scale = 0.769; break;
+                    case Quality.UltraQuality: scale = 0.667; break;
+                    case Quality.Quality: scale = 0.588; break;
+                    case Quality.Balanced: scale = 0.5; break;
+                    case Quality.Performance: scale = 0.435; break;
+                    case Quality.UltraPerformance: scale = 0.333; break;
+                    default: CurrentStatus = Status.RecoverableRuntimeError; break;
+                }
+
+                RecommendedInputResolution = new Vector2Int((int)Math.Ceiling(OutputResolution.x * scale), (int)Math.Ceiling(OutputResolution.y * scale));
+                MaxInputResolution = OutputResolution;
+                MinInputResolution = Vector2Int.one;
+            }
+
+            if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force)
+                InputResolution = RecommendedInputResolution;
             _outputResolution = OutputResolution;
-            if (Failure(CurrentStatus)) return CurrentStatus;
+            if (Failure(CurrentStatus))
+                return CurrentStatus;
+            if (IsTemporal(_technique))
+                _camera.ResetProjectionMatrix();
             _quality = quality;
             _dlssPreset = dlssPreset;
             _technique = technique;
-            if (technique == Technique.None) _camera.ResetProjectionMatrix();
             return CurrentStatus;
         }
 
@@ -391,33 +463,32 @@ namespace Conifer.Upscaler
             CurrentStatus = ApplySettings();
             if (Failure(CurrentStatus))
             {
-                void HandleError()
-                {
-                    Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
-                    technique = Technique.None;
-                    quality = Quality.Auto;
-                    dlssPreset = DlssPreset.Default;
-                    ApplySettings(true);
-                }
-
-                if (ErrorCallback is null) HandleError();
-                else
+                if (ErrorCallback is not null)
                 {
                     ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
                     CurrentStatus = NativeInterface.GetStatus();
                     if (!Failure(CurrentStatus)) return;
                     Debug.LogError("The registered error handler failed to rectify the following error.");
-                    HandleError();
                 }
+
+                Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
+                technique = Technique.None;
+                quality = Quality.Auto;
+                dlssPreset = DlssPreset.Default;
+                ApplySettings(true);
             }
 
-            if (technique == Technique.None) return;
+            if (IsSpatial()) return;
             if (forceHistoryResetEveryFrame) ResetHistory();
 
             if (FrameDebugger.enabled) return;
             _camera.ResetProjectionMatrix();
             _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            var clipSpaceJitter = -NativeInterface.GetJitter(InputResolution) / InputResolution * 2;
+            Vector2 clipSpaceJitter;
+            if (PluginLoaded())
+                clipSpaceJitter = -NativeInterface.GetJitter(InputResolution) / InputResolution * 2;
+            else
+                clipSpaceJitter = -new Vector2(HaltonSequence.Get(Time.frameCount % 8, 2), HaltonSequence.Get(Time.frameCount % 8, 3)) / InputResolution * 2;
             var projectionMatrix = _camera.projectionMatrix;
             if (_camera.orthographic)
             {
