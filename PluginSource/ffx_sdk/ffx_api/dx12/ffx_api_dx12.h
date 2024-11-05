@@ -98,18 +98,17 @@ struct ffxDispatchDescFrameGenerationSwapChainWaitForPresentsDX12
 struct ffxConfigureDescFrameGenerationSwapChainKeyValueDX12
 {
     ffxConfigureDescHeader  header;
-    uint64_t                key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKey enumeration.
+    uint64_t                key;        ///< Configuration key, member of the FfxApiConfigureFrameGenerationSwapChainKeyDX12 enumeration.
     uint64_t                u64;        ///< Integer value or enum value to set.
     void*                   ptr;        ///< Pointer to set or pointer to value to set.
 };
 
-#ifndef FFX_SWAPCHAIN_KEY
-#define FFX_SWAPCHAIN_KEY
-enum FfxApiConfigureFrameGenerationSwapChainKey
+#define FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_GPU_MEMORY_USAGE_DX12 0x00030009u
+struct ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageDX12
 {
-    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0                     ///< Sets FfxWaitCallbackFunc
+    ffxQueryDescHeader header;
+    struct FfxApiEffectMemoryUsage* gpuMemoryUsageFrameGenerationSwapchain;
 };
-#endif
 
 #if defined(__cplusplus)
 
@@ -257,9 +256,13 @@ static inline FfxApiResource ffxApiGetResourceDX12(ID3D12Resource* pRes, uint32_
     else
     {
         res.description.flags = FFX_API_RESOURCE_FLAGS_NONE;
-        if (desc.Format == DXGI_FORMAT_D16_UNORM || desc.Format == DXGI_FORMAT_D32_FLOAT || desc.Format == DXGI_FORMAT_D24_UNORM_S8_UINT || desc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+        if (desc.Format == DXGI_FORMAT_D16_UNORM || desc.Format == DXGI_FORMAT_D32_FLOAT)
         {
             res.description.usage = FFX_API_RESOURCE_USAGE_DEPTHTARGET;
+        }
+        else if (desc.Format == DXGI_FORMAT_D24_UNORM_S8_UINT || desc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+        {
+            res.description.usage = FFX_API_RESOURCE_USAGE_DEPTHTARGET | FFX_API_RESOURCE_USAGE_STENCILTARGET;
         }
         else
         {
