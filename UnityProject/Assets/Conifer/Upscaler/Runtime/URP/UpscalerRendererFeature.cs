@@ -82,7 +82,7 @@ namespace Conifer.Upscaler.URP
                 colorDescriptor.depthStencilFormat = GraphicsFormat.None;
                 _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionColorTarget, colorDescriptor, name: "Conifer_CameraColorTarget");
                 var depthDescriptor = cameraTextureDescriptor;
-                if (_upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution || _upscaler.frameGeneration)
+                if (_upscaler.frameGeneration)
                 {
                     depthDescriptor.depthStencilFormat = GraphicsFormat.D32_SFloat;
                     _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _cameraRenderResolutionDepthTarget, depthDescriptor, isShadowMap: true, name: "Conifer_CameraDepthTarget");
@@ -162,7 +162,7 @@ namespace Conifer.Upscaler.URP
             private static RTHandle _flippedDepth;
             private static RTHandle _flippedMotion;
 
-            public FrameGenerate() => renderPassEvent = RenderPassEvent.AfterRendering;
+            public FrameGenerate() => renderPassEvent = (RenderPassEvent)int.MaxValue;
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
@@ -185,7 +185,6 @@ namespace Conifer.Upscaler.URP
                 var cb = CommandBufferPool.Get("Frame Generate");
                 cb.Blit(null, _hudless);
                 MultipurposeBlit(cb, MotionID, _flippedMotion, false, true);
-                MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _cameraRenderResolutionDepthTarget, true, true);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);

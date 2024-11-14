@@ -46,7 +46,6 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkGetDeviceQueue                         m_vkGetDeviceQueue;
     static PFN_vkCreateImageView                        m_vkCreateImageView;
     static PFN_vkDestroyImageView                       m_vkDestroyImageView;
-    static PFN_vkQueueSubmit                            m_vkQueueSubmit;
 
     static VkInstance instance;
 
@@ -66,9 +65,6 @@ class Vulkan final : public GraphicsAPI {
     static VkResult           hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex);
     static VkResult           hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo);
     static void               hook_vkSetHdrMetadataEXT(VkDevice device, uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata);
-    // static VkResult           hook_vkDeviceWaitIdle();
-    // static VkResult           hook_vkCreateWin32SurfaceKHR(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
-    // static void               hook_vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
 
     static UNITY_INTERFACE_EXPORT PFN_vkGetInstanceProcAddr UNITY_INTERFACE_API interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/);
 
@@ -89,7 +85,6 @@ public:
     static VkResult                                  createSwapchain(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
     static VkImageView                               createImageView(VkImage image, VkFormat format, VkImageAspectFlags flags);
     static void                                      destroyImageView(VkImageView viewToDestroy);
-    static VkResult                                  submit(uint32_t submitCount, const VkSubmitInfo* submitInfo, VkFence fence);
 
     static PFN_vkGetDeviceProcAddr getDeviceProcAddr();
 };

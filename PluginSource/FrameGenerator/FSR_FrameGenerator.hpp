@@ -36,9 +36,8 @@ public:
         if (selection.size() >= 2) {
             std::construct_at(&imageAcquire, selection[0].queueFamilyIndex, selection[0].queueIndex);
             std::construct_at(&present, selection[1].queueFamilyIndex, selection[1].queueIndex);
-        } if (selection.size() == 3) {
-            std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
         }
+        if (selection.size() == 3) std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
     }
 
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
@@ -58,7 +57,9 @@ public:
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
 
         ffx::CreateContextDescFrameGeneration createContextDescFrameGeneration{};
-        createContextDescFrameGeneration.flags            = FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED | FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE | FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
+        createContextDescFrameGeneration.flags = static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED) |
+                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE) |
+                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS);
         std::construct_at(&createContextDescFrameGeneration.displaySize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
         createContextDescFrameGeneration.backBufferFormat = ffxApiGetSurfaceFormatVK(pCreateInfo->imageFormat);
         std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
@@ -112,7 +113,7 @@ public:
 
     static void useImages(VkImage color, VkImage depth, VkImage motion) {
         UnityVulkanImage image{};
-        Vulkan::getGraphicsInterface()->AccessTexture(color, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        Vulkan::getGraphicsInterface()->AccessTexture(color, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
         hudlessColorResource.resource = image.image;
         hudlessColorResource.description = {
           .type     = FFX_API_RESOURCE_TYPE_TEXTURE2D,
@@ -140,7 +141,7 @@ public:
         };
         depthResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
         image = {};
-        Vulkan::getGraphicsInterface()->AccessTexture(motion, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        Vulkan::getGraphicsInterface()->AccessTexture(motion, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
         motionResource.resource = image.image;
         motionResource.description = {
           .type     = FFX_API_RESOURCE_TYPE_TEXTURE2D,

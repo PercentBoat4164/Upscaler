@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  frameGenerationDebugView: 0
+  frameGenerationDebugView: 1
   showTearLines: 0
   showResetIndicator: 0
   onlyPresentGenerated: 0
@@ -471,7 +471,7 @@ MonoBehaviour:
   frameGeneration: 1
   dlssPreset: 0
   sharpness: 0
-  useReactiveMask: 1
+  useReactiveMask: 0
   reactiveMax: 0.6
   reactiveScale: 0.9
   reactiveThreshold: 0.3
