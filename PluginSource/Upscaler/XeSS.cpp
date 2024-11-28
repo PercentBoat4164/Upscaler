@@ -50,7 +50,7 @@ Upscaler::Status XeSS::setStatus(const xess_result_t t_error, const std::string&
 }
 
 
-void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
+void XeSS::log(const char* msg, const xess_logging_level_t loggingLevel) {
     UnityLogType unityType = kUnityLogTypeLog;
     switch (loggingLevel) {
         case XESS_LOGGING_LEVEL_DEBUG:
@@ -59,7 +59,7 @@ void XeSS::log(const char* message, const xess_logging_level_t loggingLevel) {
         case XESS_LOGGING_LEVEL_ERROR: unityType = kUnityLogTypeError; break;
         default: break;
     }
-    Plugin::log(message, unityType);
+    Plugin::log(msg, unityType);
 }
 
 #    ifdef ENABLE_DX12

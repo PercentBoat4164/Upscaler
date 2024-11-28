@@ -36,6 +36,7 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _reactiveMax;
         private SerializedProperty _reactiveScale;
         private SerializedProperty _reactiveThreshold;
+        private SerializedProperty _useEdgeDirection;
         private SerializedProperty _debugView;
         private SerializedProperty _showRenderingAreaOverlay;
         private SerializedProperty _forceHistoryResetEveryFrame;
@@ -53,6 +54,7 @@ namespace Conifer.Upscaler.Editor
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
+            _useEdgeDirection = serializedObject.FindProperty("useEdgeDirection");
             _debugView = serializedObject.FindProperty("debugView");
             _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
@@ -111,15 +113,9 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Set to 'Automatic'"))
                         UniversalRenderPipeline.asset!.upscalingFilter = UpscalingFilterSelection.Auto;
                 }
-
-                if (upscaler.IsSpatial() && cameraData.antialiasing == AntialiasingMode.None)
-                {
-                    EditorGUILayout.HelpBox("Enable 'Anti-aliasing' for best results.", MessageType.Error);
-                    if (GUILayout.Button("Set to 'Fast Approximate Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
-                }
                 if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                 {
-                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Error);
+                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
                 }
                 if (camera.allowMSAA)
@@ -195,6 +191,7 @@ namespace Conifer.Upscaler.Editor
                                 break;
                             case Upscaler.Technique.SnapdragonGameSuperResolutionSpatial:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
+                                _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
                             default: break;
                         }

@@ -13,6 +13,7 @@ class DLSS final : public Upscaler {
     static HMODULE library;
     static uint32_t users;
     static SupportState supported;
+    static bool streamlineLoaded;
 
     static uint64_t applicationID;
 

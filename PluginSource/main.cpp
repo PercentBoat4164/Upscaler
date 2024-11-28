@@ -27,6 +27,7 @@ struct alignas(128) UpscalingData {
     float up[3];
     float right[3];
     float forward[3];
+    float jitter[2];
     unsigned orthographic_debugView;
 };
 
@@ -52,6 +53,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     upscaler.settings.reactiveThreshold = data.reactiveThreshold;
     upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
     upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
+    std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
     upscaler.evaluate();
     upscaler.settings.resetHistory = false;
 }
@@ -129,10 +131,6 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera, const float inputWidth) {
-    return upscalers[camera]->settings.getNextJitter(inputWidth);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {

@@ -59,9 +59,6 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
-        internal static extern Vector2 GetJitter(ushort camera, float inputWidth);
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
         internal static extern void ResetHistory(ushort camera);
 
@@ -106,6 +103,7 @@ namespace Conifer.Upscaler
                 _up = camera.transform.up;
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
+                _jitter = upscaler.Jitter;
                 _orthographic_debugView = (camera.orthographic ? 0b1U : 0b0U) | (upscaler.debugView ? 0b10U : 0b0U);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
@@ -128,6 +126,7 @@ namespace Conifer.Upscaler
             private Vector3 _up;
             private Vector3 _right;
             private Vector3 _forward;
+            private Vector2 _jitter;
             private uint _orthographic_debugView;
         }
 
@@ -197,9 +196,6 @@ namespace Conifer.Upscaler
         internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
-
-        internal Vector2 GetJitter(Vector2Int inputResolution) =>
-            Loaded ? Native.GetJitter(_cameraID, inputResolution.x) : Vector2.zero;
 
         internal void ResetHistory()
         {

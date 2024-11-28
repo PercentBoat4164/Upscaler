@@ -154,6 +154,7 @@ namespace Conifer.Upscaler
         private Camera _camera;
         internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
         internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
+        internal Vector2 Jitter = Vector2.zero;
 
         internal NativeInterface NativeInterface;
 
@@ -214,7 +215,7 @@ namespace Conifer.Upscaler
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
         private DlssPreset _dlssPreset;
-        /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
+        /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
         public float sharpness = 0.0f;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask = true;
@@ -224,6 +225,9 @@ namespace Conifer.Upscaler
         public float reactiveScale = 0.9f;
         /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveThreshold = 0.3f;
+        /// Enables the use of Edge Direction. Disabling this increases performance at the cost of visual quality. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
+        public bool useEdgeDirection = true;
+        private bool _useEdgeDirection = false;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
@@ -370,7 +374,7 @@ namespace Conifer.Upscaler
         public Status ApplySettings(bool force = false)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == _quality && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == _camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == _quality && useEdgeDirection == _useEdgeDirection && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == _camera.allowHDR) return NativeInterface.GetStatus();
 
             var newOutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
             HDR = _camera.allowHDR;
@@ -385,17 +389,18 @@ namespace Conifer.Upscaler
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
-            if (RequiresNativePlugin())
+            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, RequiresNativePlugin() ? technique : Technique.None, dlssPreset, quality, sharpness, HDR);
+            if (RequiresNativePlugin(_technique))
             {
-                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
                 RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
                 MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
                 MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
             }
             else
             {
-                if (SystemInfo.graphicsShaderLevel < 50)
-                    return CurrentStatus = Status.DeviceNotSupported;
+                if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
+                else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
+                if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
                 var scale = 0.769;
                 switch (quality)
                 {
@@ -419,6 +424,7 @@ namespace Conifer.Upscaler
                 RecommendedInputResolution = new Vector2Int((int)Math.Ceiling(OutputResolution.x * scale), (int)Math.Ceiling(OutputResolution.y * scale));
                 MaxInputResolution = OutputResolution;
                 MinInputResolution = Vector2Int.one;
+                CurrentStatus = Status.Success;
             }
 
             if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force)
@@ -429,6 +435,7 @@ namespace Conifer.Upscaler
             if (IsTemporal(_technique))
                 _camera.ResetProjectionMatrix();
             _quality = quality;
+            _useEdgeDirection = useEdgeDirection;
             _dlssPreset = dlssPreset;
             _technique = technique;
             return CurrentStatus;
@@ -447,61 +454,33 @@ namespace Conifer.Upscaler
 
         private int _screenWidth = Screen.width;
         private int _screenHeight = Screen.height;
-        internal bool DisableUpscaling = false;
+        internal bool DisableUpscaling;
 
         protected void Update()
         {
-            DisableUpscaling = false;
-            if (Screen.width != _screenWidth || Screen.height != _screenHeight) {
-                DisableUpscaling = true;
+            DisableUpscaling = Screen.width != _screenWidth || Screen.height != _screenHeight || Time.frameCount == 1;
+            if (DisableUpscaling) {
                 ResetHistory();
                 _screenWidth = Screen.width;
                 _screenHeight = Screen.height;
             }
 
+            if (forceHistoryResetEveryFrame) ResetHistory();
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();
-            if (Failure(CurrentStatus))
+            if (!Failure(CurrentStatus)) return;
+            if (ErrorCallback is not null)
             {
-                if (ErrorCallback is not null)
-                {
-                    ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
-                    CurrentStatus = NativeInterface.GetStatus();
-                    if (!Failure(CurrentStatus)) return;
-                    Debug.LogError("The registered error handler failed to rectify the following error.");
-                }
-
-                Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
-                technique = Technique.None;
-                quality = Quality.Auto;
-                dlssPreset = DlssPreset.Default;
-                ApplySettings(true);
+                ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
+                CurrentStatus = NativeInterface.GetStatus();
+                if (!Failure(CurrentStatus)) return;
+                Debug.LogError("The registered error handler failed to rectify the following error.");
             }
 
-            if (IsSpatial()) return;
-            if (forceHistoryResetEveryFrame) ResetHistory();
-
-            if (FrameDebugger.enabled) return;
-            _camera.ResetProjectionMatrix();
-            _camera.nonJitteredProjectionMatrix = _camera.projectionMatrix;
-            Vector2 clipSpaceJitter;
-            if (PluginLoaded())
-                clipSpaceJitter = -NativeInterface.GetJitter(InputResolution) / InputResolution * 2;
-            else
-                clipSpaceJitter = -new Vector2(HaltonSequence.Get(Time.frameCount % 8, 2), HaltonSequence.Get(Time.frameCount % 8, 3)) / InputResolution * 2;
-            var projectionMatrix = _camera.projectionMatrix;
-            if (_camera.orthographic)
-            {
-                projectionMatrix.m03 += clipSpaceJitter.x;
-                projectionMatrix.m13 += clipSpaceJitter.y;
-            }
-            else
-            {
-                projectionMatrix.m02 += clipSpaceJitter.x;
-                projectionMatrix.m12 += clipSpaceJitter.y;
-            }
-            _camera.projectionMatrix = projectionMatrix;
-            _camera.useJitteredProjectionMatrixForTransparentRendering = true;
+            Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
+            technique = Technique.None;
+            quality = Quality.Auto;
+            ApplySettings(true);
         }
 
         private void OnDisable() => _camera.ResetProjectionMatrix();

@@ -45,6 +45,7 @@ namespace Conifer.Upscaler.URP
         private class SetMipBias : ScriptableRenderPass
         {
             private static readonly int GlobalMipBias = Shader.PropertyToID("_GlobalMipBias");
+            private static int _jitterIndex;
 
             public SetMipBias() => renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
 
@@ -53,6 +54,21 @@ namespace Conifer.Upscaler.URP
                 var cb = CommandBufferPool.Get("SetMipBias");
                 var mipBias = (float)Math.Log((float)_upscaler.InputResolution.x / _upscaler.OutputResolution.x, 2f) - 1f;
                 cb.SetGlobalVector(GlobalMipBias, new Vector4(mipBias, mipBias * mipBias));
+                _upscaler.Jitter = new Vector2(HaltonSequence.Get(_jitterIndex, 2), HaltonSequence.Get(_jitterIndex, 3));
+                _jitterIndex = (_jitterIndex + 1) % (int)Math.Ceiling(7 * Math.Pow((float)_upscaler.OutputResolution.x / _upscaler.InputResolution.x, 2));
+                var clipSpaceJitter = -_upscaler.Jitter / _upscaler.InputResolution * 2;
+                var projectionMatrix = renderingData.cameraData.GetProjectionMatrix();
+                if (renderingData.cameraData.camera.orthographic)
+                {
+                    projectionMatrix.m03 += clipSpaceJitter.x;
+                    projectionMatrix.m13 += clipSpaceJitter.y;
+                }
+                else
+                {
+                    projectionMatrix.m02 += clipSpaceJitter.x;
+                    projectionMatrix.m12 += clipSpaceJitter.y;
+                }
+                cb.SetViewProjectionMatrices(renderingData.cameraData.GetViewMatrix(), projectionMatrix);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
             }
@@ -74,7 +90,9 @@ namespace Conifer.Upscaler.URP
             private static IntPtr _reactivePtr;
             private static bool _needsUpdate;
 
-            internal static Material SgsrBlitMaterial;
+            internal static Material SgsrMaterial;
+            internal static Material SgsrConvertMaterial;
+            internal static Material SgsrUpscaleMaterial;
             private static readonly int ViewportInfoID = Shader.PropertyToID("Conifer_Upscaler_ViewportInfo");
             private static readonly int EdgeSharpnessID = Shader.PropertyToID("Conifer_Upscaler_EdgeSharpness");
 
@@ -114,11 +132,12 @@ namespace Conifer.Upscaler.URP
 
                 if (_upscaler.technique != Upscaler.Technique.SnapdragonGameSuperResolutionTemporal) return;
                 descriptor = renderingData.cameraData.cameraTargetDescriptor;
-                descriptor.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
-                RenderingUtils.ReAllocateIfNeeded(ref _motionDepthClipAlphaBuffer, descriptor, name: "Conifer_Upscaler_SGSR2MotionDepthClipAlphaBuffer");
-                descriptor = renderingData.cameraData.cameraTargetDescriptor;
                 descriptor.depthStencilFormat = GraphicsFormat.None;
                 RenderingUtils.ReAllocateIfNeeded(ref _previousOutput, descriptor, name: "Conifer_Upscaler_SGSR2HistoryBuffer");
+                descriptor = cameraTextureDescriptor;
+                descriptor.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+                descriptor.depthStencilFormat = GraphicsFormat.None;
+                RenderingUtils.ReAllocateIfNeeded(ref _motionDepthClipAlphaBuffer, descriptor, name: "Conifer_Upscaler_SGSR2MotionDepthClipAlphaBuffer");
                 descriptor = cameraTextureDescriptor;
                 descriptor.graphicsFormat = GraphicsFormat.None;
                 cmd.GetTemporaryRT(ConiferDepthID, descriptor);
@@ -171,7 +190,6 @@ namespace Conifer.Upscaler.URP
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Upscale");
                 if (!_upscaler.DisableUpscaling)
                 {
@@ -184,7 +202,7 @@ namespace Conifer.Upscaler.URP
                             cb.SetViewMatrix(LookAt);
                             cb.SetGlobalVector(ViewportInfoID, new Vector4(1.0f / _upscaler.InputResolution.x, 1.0f / _upscaler.InputResolution.y, _upscaler.InputResolution.x, _upscaler.InputResolution.y));
                             cb.SetGlobalFloat(EdgeSharpnessID, _upscaler.sharpness);
-                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrBlitMaterial, 0, 0);
+                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrMaterial, 0, 0);
                             break;
                         case Upscaler.Technique.SnapdragonGameSuperResolutionTemporal:
                             var cameraIsSame = renderingData.cameraData.camera.previousViewProjectionMatrix == renderingData.cameraData.GetViewMatrix() * renderingData.cameraData.GetProjectionMatrix();
@@ -194,22 +212,24 @@ namespace Conifer.Upscaler.URP
                             cb.SetGlobalVector("Conifer_Upscaler_OutputSize", (Vector2)_upscaler.OutputResolution);
                             cb.SetGlobalVector("Conifer_Upscaler_RenderSizeRcp", Vector2.one / _upscaler.InputResolution);
                             cb.SetGlobalVector("Conifer_Upscaler_OutputSizeRcp", Vector2.one / _upscaler.OutputResolution);
-                            cb.SetGlobalVector("Conifer_Upscaler_JitterOffset", new Vector2(HaltonSequence.Get(Time.frameCount % 8, 2), HaltonSequence.Get(Time.frameCount % 8, 3)));
+                            cb.SetGlobalVector("Conifer_Upscaler_JitterOffset", _upscaler.Jitter);
                             cb.SetGlobalVector("Conifer_Upscaler_ScaleRatio", new Vector4((float)_upscaler.OutputResolution.x / _upscaler.InputResolution.x, Mathf.Min(20.0f, Mathf.Pow((float)_upscaler.OutputResolution.x * _upscaler.OutputResolution.y / (_upscaler.InputResolution.x * _upscaler.InputResolution.y), 3.0f))));
                             cb.SetGlobalFloat("Conifer_Upscaler_CameraFovAngleHor", Mathf.Tan(Mathf.Deg2Rad * (renderingData.cameraData.camera.fieldOfView / 2)) * _upscaler.InputResolution.x / _upscaler.InputResolution.y);
                             cb.SetGlobalFloat("Conifer_Upscaler_MinLerpContribution", cameraIsSame ? 0.3f : 0.0f);
                             cb.SetGlobalFloat("Conifer_Upscaler_Reset", 0.0f);
                             cb.SetGlobalInt("Conifer_Upscaler_SameCamera", cameraIsSame ? 1 : 0);
                             cb.SetGlobalVector("Conifer_Upscaler_RenderSize", (Vector2)_upscaler.InputResolution);
-                            cb.Blit(MotionID, ConiferMotionID);
-                            BlitDepth(cb, _cameraRenderResolutionDepthTarget, ConiferDepthID);
+                            cb.SetProjectionMatrix(Ortho);
+                            cb.SetViewMatrix(LookAt);
+                            // BlitDepth(cb, _cameraRenderResolutionDepthTarget, ConiferDepthID);
+                            // cb.Blit(MotionID, ConiferMotionID);
                             cb.SetRenderTarget(_motionDepthClipAlphaBuffer);
-                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrBlitMaterial, 0, 1);
+                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrConvertMaterial);
                             cb.SetGlobalTexture(MotionDepthClipAlphaBufferID, _motionDepthClipAlphaBuffer);
                             cb.SetGlobalTexture(PreviousOutputID, _previousOutput);
                             cb.SetGlobalTexture(BlitID, _cameraRenderResolutionColorTarget);
                             cb.SetRenderTarget(_cameraOutputResolutionColorTarget);
-                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrBlitMaterial, 0, 2);
+                            cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrUpscaleMaterial);
                             cb.CopyTexture(_cameraOutputResolutionColorTarget, _previousOutput);
                             cb.ReleaseTemporaryRT(ConiferDepthID);
                             cb.ReleaseTemporaryRT(ConiferMotionID);
@@ -250,11 +270,6 @@ namespace Conifer.Upscaler.URP
 
         private readonly SetMipBias _setMipBias = new();
         private readonly Upscale _upscale = new();
-        private static readonly FieldInfo FMotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).GetField("m_MotionVectorsPersistentData", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly Type MotionVectorsPersistentData = typeof(UniversalAdditionalCameraData).Assembly.GetType("UnityEngine.Rendering.Universal.MotionVectorsPersistentData")!;
-        private static readonly FieldInfo FLastFrameIndex = MotionVectorsPersistentData.GetField("m_LastFrameIndex", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo FPreviousViewProjection = MotionVectorsPersistentData.GetField("m_PreviousViewProjection", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo FViewProjection = MotionVectorsPersistentData.GetField("m_ViewProjection", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public override void Create()
         {
@@ -266,7 +281,9 @@ namespace Conifer.Upscaler.URP
                 triangles = new[] { 0, 1, 2 }
             };
             _blitMaterial = new Material(Shader.Find("Hidden/BlitToDepth"));
-            Upscale.SgsrBlitMaterial = new Material(Shader.Find("Conifer/Upscaler/Snapdragon Game Super Resolution"));
+            Upscale.SgsrMaterial = new Material(Shader.Find("Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"));
+            Upscale.SgsrConvertMaterial = new Material(Shader.Find("Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"));
+            Upscale.SgsrUpscaleMaterial = new Material(Shader.Find("Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"));
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -283,14 +300,7 @@ namespace Conifer.Upscaler.URP
                 return;
             }
 
-            var cameraData = renderingData.cameraData.camera.GetUniversalAdditionalCameraData();
-            if (cameraData.resetHistory) _upscaler.ResetHistory();
-            var mVecData = FMotionVectorsPersistentData.GetValue(cameraData);
-            var lastFrameIndex = (int[])FLastFrameIndex.GetValue(mVecData);
-            lastFrameIndex[0] = Time.frameCount + 1;
-            FLastFrameIndex.SetValue(mVecData, lastFrameIndex);
-            FPreviousViewProjection.SetValue(mVecData, FViewProjection.GetValue(mVecData));
-            FViewProjection.SetValue(mVecData, new []{GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.nonJitteredProjectionMatrix, true) * renderingData.cameraData.camera.worldToCameraMatrix});
+            if (renderingData.cameraData.camera.GetUniversalAdditionalCameraData().resetHistory) _upscaler.ResetHistory();
 
             _setMipBias.ConfigureInput(ScriptableRenderPassInput.None);
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);

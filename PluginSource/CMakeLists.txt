@@ -103,7 +103,7 @@ endif ()
 cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/Streamline-2.4.15")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/ffx_sdk")
 cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/XeSS_SDK-1.3.1")
-set(DESIRED_UNITY_VERSION "2022.3.40f1")
+set(DESIRED_UNITY_VERSION "2022.3.53f1")
 set(REQUIRE_DESIRED_UNITY_VERSION OFF)
 
 # Add the plugin path the list of shared libraries to copy
