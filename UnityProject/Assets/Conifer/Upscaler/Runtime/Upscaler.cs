@@ -66,7 +66,7 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * Uses different DLSS models in an effort to help it to deal with your application's idiosyncrasies.
+         * Different DLSS models in an effort to help it to deal with your application's idiosyncrasies.
          */
         [Serializable]
         public enum DlssPreset
@@ -79,6 +79,20 @@ namespace Conifer.Upscaler
             FastPaced,
             /// Handles objects with missing or incorrect motion vectors best. Recommended for applications that cannot generate all required motion vectors.
             AntiGhosting,
+        }
+
+        /**
+         * Different SGSR implementations which trade off quality and performance
+         */
+        [Serializable]
+        public enum SgsrMethod
+        {
+            /// Default SGSR behavior. Recommended for most desktop and high-end mobile devices. Slowest method, higher quality than <see cref="Compute2Pass"/>.
+            Compute3Pass,
+            /// Faster than <see cref="Compute3Pass"/>, higher quality than <see cref="Fragment2Pass"/>
+            Compute2Pass,
+            /// Recommended for low-end mobile devices. Faster than <see cref="Compute2Pass"/>, lowest quality.
+            Fragment2Pass,
         }
 
         private const byte ErrorRecoverable = 1 << 7;
@@ -215,8 +229,10 @@ namespace Conifer.Upscaler
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
         private DlssPreset _dlssPreset;
+        /// The current <see cref="SgsrMethod"/>. Defaults to Compute3Pass
+        public SgsrMethod sgsrMethod;
         /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
-        public float sharpness = 0.0f;
+        public float sharpness;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask = true;
         /// Maximum reactive value. More reactivity favors newer information. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
@@ -227,7 +243,7 @@ namespace Conifer.Upscaler
         public float reactiveThreshold = 0.3f;
         /// Enables the use of Edge Direction. Disabling this increases performance at the cost of visual quality. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
         public bool useEdgeDirection = true;
-        private bool _useEdgeDirection = false;
+        private bool _useEdgeDirection;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>

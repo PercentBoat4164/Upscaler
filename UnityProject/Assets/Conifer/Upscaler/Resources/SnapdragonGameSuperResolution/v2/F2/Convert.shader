@@ -1,4 +1,12 @@
-﻿Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
+﻿//============================================================================================================
+//
+//
+//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+
+Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
 {
     SubShader
     {
@@ -27,50 +35,19 @@
 				return o;
 			}
 
-			//============================================================================================================
-			//
-			//
-			//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
-			//                              SPDX-License-Identifier: BSD-3-Clause
-			//
-			//============================================================================================================
-
 			SamplerState linearClampSampler : register(s0);
-			Texture2D<half> _CameraDepthTexture;
+			Texture2D<float> _CameraDepthTexture;
 			Texture2D<half2> _MotionVectorTexture;
 
-		    float4 Conifer_Upscaler_ClipToPrevClip[4];
 		    float2 Conifer_Upscaler_RenderSize;
 		    float2 Conifer_Upscaler_OutputSize;
 		    float2 Conifer_Upscaler_RenderSizeRcp;
-		    float2 Conifer_Upscaler_OutputSizeRcp;
-		    float2 Conifer_Upscaler_JitterOffset;
-		    float2 Conifer_Upscaler_ScaleRatio;
 		    float  Conifer_Upscaler_CameraFovAngleHor;
-		    float  Conifer_Upscaler_MinLerpContribution;
-		    float  Conifer_Upscaler_Reset;
-		    uint   Conifer_Upscaler_SameCamera;
-
-			float2 decodeVelocityFromTexture(half2 ev) {
-			    const float inv_div = 1.0f / (0.499f * 0.5f);
-			    return ev.xy * inv_div - 32767.0f / 65535.0f * inv_div;
-			}
 
 			float4 frag(float4 _ : POSITION, float2 uv : TEXCOORD) : SV_Target
 			{
 			    uint2 InputPos = uint2(uv * Conifer_Upscaler_OutputSize);
 			    float2 gatherCoord = uv - float2(0.5, 0.5) * Conifer_Upscaler_RenderSizeRcp;
-
-
-			    // texture gather to find nearest depth
-			    //      a  b  c  d
-			    //      e  f  g  h
-			    //      i  j  k  l
-			    //      m  n  o  p
-			    //btmLeft mnji
-			    //btmRight oplk
-			    //topLeft  efba
-			    //topRight ghdc
 
 			    float4 btmLeft     = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord, 0);
 			    float2 v10         = gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0f, 0.0);
@@ -104,7 +81,6 @@
 			        depthclip = clamp(1.0f - Wdepth * 0.25, 0.0, 1.0);
 			    }
 
-			    //refer to ue/fsr2 PostProcessFFX_FSR2ConvertVelocity.usf, and using nearest depth for dilated motion
 			    return float4(_MotionVectorTexture.Load(int3(InputPos, 0)), depthclip, 0.0);
 			}
 			ENDHLSL

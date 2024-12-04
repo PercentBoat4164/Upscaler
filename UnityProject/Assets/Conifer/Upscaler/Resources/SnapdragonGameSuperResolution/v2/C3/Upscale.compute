@@ -1,0 +1,291 @@
+﻿//============================================================================================================
+//
+//
+//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+#pragma target 5.0
+#pragma kernel main
+
+#define EPSILON 1.19e-07f
+
+SamplerState       linearClampSampler : register(s0);
+Texture2D<uint>    Conifer_Upscaler_Luma;
+Texture2D<half4>   Conifer_Upscaler_MotionDepthAlphaBuffer;
+RWTexture2D<half4> Conifer_Upscaler_OutputSink;
+Texture2D<half4>   Conifer_Upscaler_History;
+RWTexture2D<half4> Conifer_Upscaler_NextHistory;
+
+float2 Conifer_Upscaler_RenderSize;
+float2 Conifer_Upscaler_OutputSize;
+float2 Conifer_Upscaler_RenderSizeRcp;
+float2 Conifer_Upscaler_OutputSizeRcp;
+float2 Conifer_Upscaler_JitterOffset;
+float2 Conifer_Upscaler_ScaleRatio;
+half   Conifer_Upscaler_PreExposure;
+float  Conifer_Upscaler_Reset;
+
+float FastLanczos(float base) {
+    float y      = base - 1.0f;
+    float y2     = y * y;
+    float y_temp = 0.75f * y + y2;
+    return y_temp * y2;
+}
+
+float3 DecodeColor(uint sample32) {
+    uint x11 = sample32 >> 21u;
+    uint y11 = sample32 & 2047u << 10u;
+    uint z10 = sample32 & 1023u;
+    return float3(float(x11) * (1.0 / 2047.5), float(y11) * 4.76953602e-7 - 0.5, float(z10) * (1.0 / 1023.5) - 0.5);
+}
+
+[numthreads(8, 8, 1)]
+void main(uint3 id : SV_DispatchThreadID) {
+    float Biasmax_viewportXScale = min(float(Conifer_Upscaler_OutputSize.x) / float(Conifer_Upscaler_RenderSize.x), 1.99);  //Biasmax_viewportXScale
+    float scalefactor = min(20.0, pow((float(Conifer_Upscaler_OutputSize.x) / float(Conifer_Upscaler_RenderSize.x)) * (float(Conifer_Upscaler_OutputSize.y) / float(Conifer_Upscaler_RenderSize.y)), 3.0));
+    float2 HistoryInfoViewportSizeInverse = Conifer_Upscaler_OutputSizeRcp;
+    float2 HistoryInfoViewportSize = float2(Conifer_Upscaler_OutputSize);
+    float2 InputJitter = Conifer_Upscaler_JitterOffset;
+    float2 InputInfoViewportSize = float2(Conifer_Upscaler_RenderSize);
+    float2 Hruv = (float2(id.xy) + 0.5) * HistoryInfoViewportSizeInverse;
+    float2 Jitteruv;
+    Jitteruv.x = clamp(Hruv.x + (InputJitter.x * HistoryInfoViewportSizeInverse.x), 0.0, 1.0);
+    Jitteruv.y = clamp(Hruv.y + (InputJitter.y * HistoryInfoViewportSizeInverse.y), 0.0, 1.0);
+
+    int2 InputPos = int2(Jitteruv * InputInfoViewportSize);
+
+    //float2 Motion = texelFetch(MotionDepthClipAlphaBuffer, InputPos, 0).xy;
+    float alphab = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(InputPos, 0)).w;
+    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.SampleLevel(linearClampSampler, Jitteruv, 0.0).xyz;
+    float2 Motion = mda.xy;
+
+    ///ScreenPosToViewportScale&Bias
+    float2 PrevUV = clamp(Hruv - Motion, 0.0, 1.0);
+    float depthfactor = mda.z;
+    float history_value = frac(alphab); // clamp(alpha, 0.0f, 1.0f);
+    float alphamask = (alphab - history_value) * 0.001f;
+    history_value *= 2.0;
+
+    float4 History = Conifer_Upscaler_History.SampleLevel(linearClampSampler, PrevUV, 0.0);
+    float3 HistoryColor = History.xyz;
+    float Historyw = History.w;
+    float Wfactor = max(clamp(abs(Historyw), 0.0, 1.0), alphamask);
+
+    /////upsample and compute box
+    float4 Upsampledcw = 0.0;
+    float kernelfactor = clamp(Wfactor + float(Conifer_Upscaler_Reset), 0.0, 1.0);
+    float biasmax = Biasmax_viewportXScale - Biasmax_viewportXScale * kernelfactor;
+    float biasmin = max(1.0f, 0.3 + 0.3 * biasmax);
+    float biasfactor = max(0.25f * depthfactor, kernelfactor);
+    float kernelbias = lerp(biasmax, biasmin, biasfactor);
+    float motion_viewport_len = length(Motion * HistoryInfoViewportSize);
+    float curvebias = lerp(-2.0, -3.0, clamp(motion_viewport_len * 0.02, 0.0, 1.0));
+
+    float3 rectboxcenter = 0.0;
+    float3 rectboxvar = 0.0;
+    float rectboxweight = 0.0;
+    float2 srcpos = float2(InputPos) + 0.5 - InputJitter;
+    float2 srcOutputPos = Hruv * InputInfoViewportSize;
+
+    kernelbias *= 0.5f;
+    float kernelbias2 = kernelbias * kernelbias;
+    float2 srcpos_srcOutputPos = srcpos - srcOutputPos;
+
+    int2 InputPosBtmRight = 1 + InputPos;
+    float2 gatherCoord = float2(InputPos) * Conifer_Upscaler_RenderSizeRcp;
+    uint btmRight = Conifer_Upscaler_Luma.Load(int3(InputPosBtmRight, 0)).x;
+    uint4 topleft = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord);
+    uint2 topRight = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x, 0.0)).yz;
+    uint2 bottomLeft = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y)).xy;
+
+    float3 rectboxmin;
+    float3 rectboxmax;
+    {
+        rectboxmin = DecodeColor(btmRight);
+        float2 baseoffset = srcpos_srcOutputPos + float2(1.0, 1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0, 1.0);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(rectboxmin * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmax = rectboxmin;
+        float3 wsample = rectboxmin * boxweight;
+        rectboxcenter = wsample;
+        rectboxvar = rectboxmin * wsample;
+        rectboxweight = boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(bottomLeft.x);
+        float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, 1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(bottomLeft.y);
+        float2 baseoffset = srcpos_srcOutputPos + float2(0.0, 1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topRight.x);
+        float2 baseoffset = srcpos_srcOutputPos + float2(1.0, 0.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topRight.y);
+        float2 baseoffset = srcpos_srcOutputPos + float2(1.0, -1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topleft.x);
+        float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, 0.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topleft.y);
+        float2 baseoffset = srcpos_srcOutputPos;
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topleft.z);
+        float2 baseoffset = srcpos_srcOutputPos + float2(0.0, -1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+    {
+        float3 samplecolor = DecodeColor(topleft.w);
+        float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, -1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+    }
+
+    rectboxweight = 1.0 / rectboxweight;
+    rectboxcenter *= rectboxweight;
+    rectboxvar *= rectboxweight;
+    rectboxvar = sqrt(abs(rectboxvar - rectboxcenter * rectboxcenter));
+
+    Upsampledcw.xyz =  clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin - 0.05, rectboxmax + 0.05);
+    Upsampledcw.w = Upsampledcw.w * (1.0f / 3.0f) ;
+
+	float tcontribute = history_value * clamp(rectboxvar.x * 10.0f, 0.0, 1.0);
+	float OneMinusWfactor = 1.0f - Wfactor;
+	tcontribute = tcontribute * OneMinusWfactor;
+
+    float baseupdate = OneMinusWfactor - OneMinusWfactor * depthfactor;
+    baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w *10.0f, clamp(10.0f* motion_viewport_len, 0.0, 1.0)));
+    baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w, clamp(motion_viewport_len *0.05f, 0.0, 1.0)));
+    float basealpha = baseupdate;
+
+    float boxscale = max(depthfactor, clamp(motion_viewport_len * 0.05f, 0.0, 1.0));
+    float boxsize = lerp(scalefactor, 1.0f, boxscale);
+    float3 sboxvar = rectboxvar * boxsize;
+    float3 boxmin = rectboxcenter - sboxvar;
+    float3 boxmax = rectboxcenter + sboxvar;
+    rectboxmax = min(rectboxmax, boxmax);
+    rectboxmin = max(rectboxmin, boxmin);
+
+    float3 clampedcolor = clamp(HistoryColor, rectboxmin, rectboxmax);
+	float lerpcontribution = any(rectboxmin > HistoryColor) || any(HistoryColor > rectboxmax) ? tcontribute : 1.0f;
+	lerpcontribution = lerpcontribution - lerpcontribution * sqrt(alphamask);
+	HistoryColor = lerp(clampedcolor, HistoryColor, clamp(lerpcontribution, 0.0, 1.0));
+    float basemin = min(basealpha, 0.1f);
+    basealpha = lerp(basemin, basealpha, clamp(lerpcontribution, 0.0, 1.0));
+
+    ////blend color
+    float alphasum = max(EPSILON, basealpha + Upsampledcw.w);
+    float alpha = clamp(Upsampledcw.w / alphasum + Conifer_Upscaler_Reset, 0.0, 1.0);
+    Upsampledcw.xyz = lerp(HistoryColor, Upsampledcw.xyz, alpha);
+
+    Conifer_Upscaler_NextHistory[id.xy] = float4(Upsampledcw.xyz, Wfactor);
+
+    ////ycocg to grb
+    float x_z = Upsampledcw.x - Upsampledcw.z;
+    Upsampledcw.xyz = float3(
+        x_z + Upsampledcw.y,
+        Upsampledcw.x + Upsampledcw.z,
+        x_z - Upsampledcw.y);
+
+    float compMax = max(Upsampledcw.x, Upsampledcw.y);
+    compMax = max(compMax, Upsampledcw.z);
+    float scale = Conifer_Upscaler_PreExposure /  ((1.0f + 1.0f / 65504.0f) - compMax);   //(1.0f + 1.0f / 65504.0f) = 1.000015e+00
+
+    Upsampledcw.xyz = Upsampledcw.xyz * scale;
+    Conifer_Upscaler_OutputSink[id.xy] = Upsampledcw;
+}

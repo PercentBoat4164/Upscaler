@@ -1,3 +1,11 @@
+//============================================================================================================
+//
+//
+//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+
 Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 {
     SubShader

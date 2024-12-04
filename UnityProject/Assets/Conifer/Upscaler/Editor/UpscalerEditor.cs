@@ -31,6 +31,7 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _technique;
         private SerializedProperty _quality;
         private SerializedProperty _dlssPreset;
+        private SerializedProperty _sgsrMethod;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
         private SerializedProperty _reactiveMax;
@@ -49,6 +50,7 @@ namespace Conifer.Upscaler.Editor
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
+            _sgsrMethod = serializedObject.FindProperty("sgsrMethod");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
@@ -192,6 +194,9 @@ namespace Conifer.Upscaler.Editor
                             case Upscaler.Technique.SnapdragonGameSuperResolutionSpatial:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
+                                break;
+                            case Upscaler.Technique.SnapdragonGameSuperResolutionTemporal:
+                                _sgsrMethod.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_sgsrMethod.intValue);
                                 break;
                             default: break;
                         }
