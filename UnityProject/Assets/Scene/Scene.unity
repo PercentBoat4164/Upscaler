@@ -465,7 +465,7 @@ MonoBehaviour:
   quality: 7
   technique: 5
   dlssPreset: 0
-  sgsrMethod: 1
+  sgsrMethod: 2
   sharpness: 1
   useReactiveMask: 0
   reactiveMax: 0.6

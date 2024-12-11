@@ -22,15 +22,15 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 
             #include "UnityCG.cginc"
 
-			struct VertexShaderOutput
+			struct Varyings
 			{
 				float2 uv : TEXCOORD0;
 				float4 pos : POSITION;
 			};
 
-			VertexShaderOutput vert(float4 pos : POSITION, float2 uv : TEXCOORD)
+			Varyings vert(float4 pos : POSITION, float2 uv : TEXCOORD)
 			{
-				VertexShaderOutput o;
+				Varyings o;
 				o.pos = UnityObjectToClipPos(pos);
 				o.uv = uv;
 				return o;
@@ -60,11 +60,12 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 				return half2(w, w * c);
 			}
 
-			half4 frag(float4 _ : POSITION, float2 uv : TEXCOORD) : SV_TARGET {
+			half4 frag(Varyings input) : SV_TARGET {
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
-				pix.xyz = _MainTex.SampleLevel(linearClampSampler, uv, 0).xyz;
+				pix.xyz = _MainTex.SampleLevel(linearClampSampler, input.uv, 0).xyz;
 
-				float2 imgCoord = uv.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
+				float2 imgCoord = input.uv.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
 				float2 imgCoordPixel = floor(imgCoord);
 				float2 coord = imgCoordPixel * Conifer_Upscaler_ViewportInfo.xy;
 				half2 pl = imgCoord - imgCoordPixel;

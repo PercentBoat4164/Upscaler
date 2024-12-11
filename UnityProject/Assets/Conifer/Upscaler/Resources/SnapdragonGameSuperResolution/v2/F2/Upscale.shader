@@ -23,15 +23,15 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 
 			#define EPSILON 1.19e-07f
 
-			struct VertexShaderOutput
+			struct Varyings
 			{
 				float2 uv : TEXCOORD0;
 				float4 pos : POSITION;
 			};
 
-			VertexShaderOutput vert(float4 pos : POSITION, float2 uv : TEXCOORD)
+			Varyings vert(float4 pos : POSITION, float2 uv : TEXCOORD)
 			{
-				VertexShaderOutput o;
+				Varyings o;
 				o.pos = UnityObjectToClipPos(pos);
 				o.uv = uv;
 				return o;
@@ -59,11 +59,12 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 		    float  Conifer_Upscaler_Reset;
 		    uint   Conifer_Upscaler_SameCamera;
 
-			half3 frag(float4 _ : POSITION, float2 uv : TEXCOORD) : SV_Target
+			half3 frag(Varyings input) : SV_Target
 			{
-			    int2 input_pos = int2(clamp(uv + Conifer_Upscaler_JitterOffset * Conifer_Upscaler_OutputSizeRcp, 0.0, 1.0) * Conifer_Upscaler_RenderSize);
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+			    int2 input_pos = int2(clamp(input.uv + Conifer_Upscaler_JitterOffset * Conifer_Upscaler_OutputSizeRcp, 0.0, 1.0) * Conifer_Upscaler_RenderSize);
 			    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(input_pos, 0)).xyz;
-			    float2 prev_uv = clamp(uv - mda.xy, 0.0, 1.0);
+			    float2 prev_uv = clamp(input.uv - mda.xy, 0.0, 1.0);
 			    half3 history_color = Conifer_Upscaler_PreviousOutput.SampleLevel(linearClampSampler, prev_uv, 0.0).xyz;
 
 			    half4 Upsampledcw = 0.0;
@@ -80,7 +81,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 
 			    kernelbias *= 0.5f;
 			    half kernelbias2 = kernelbias * kernelbias;
-			    half2 srcpos_srcOutputPos = srcpos - uv * Conifer_Upscaler_RenderSize;
+			    half2 srcpos_srcOutputPos = srcpos - input.uv * Conifer_Upscaler_RenderSize;
 			    half3 rectboxmin;
 			    half3 rectboxmax;
 			    half3 topMid = _MainTex.Load(int3(input_pos + int2(0, 1), 0)).xyz;

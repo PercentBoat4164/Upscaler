@@ -21,15 +21,15 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
 
 			#include "UnityCG.cginc"
 
-			struct VertexShaderOutput
+			struct Varyings
 			{
 				float2 uv : TEXCOORD0;
 				float4 pos : POSITION;
 			};
 
-			VertexShaderOutput vert(float4 pos : POSITION, float2 uv : TEXCOORD)
+			Varyings vert(float4 pos : POSITION, float2 uv : TEXCOORD)
 			{
-				VertexShaderOutput o;
+				Varyings o;
 				o.pos = UnityObjectToClipPos(pos);
 				o.uv = uv;
 				return o;
@@ -44,10 +44,11 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
 		    float2 Conifer_Upscaler_RenderSizeRcp;
 		    float  Conifer_Upscaler_CameraFovAngleHor;
 
-			float4 frag(float4 _ : POSITION, float2 uv : TEXCOORD) : SV_Target
+			float4 frag(Varyings input) : SV_Target
 			{
-			    uint2 InputPos = uint2(uv * Conifer_Upscaler_OutputSize);
-			    float2 gatherCoord = uv - float2(0.5, 0.5) * Conifer_Upscaler_RenderSizeRcp;
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+			    uint2 InputPos = uint2(input.uv * Conifer_Upscaler_OutputSize);
+			    float2 gatherCoord = input.uv - float2(0.5, 0.5) * Conifer_Upscaler_RenderSizeRcp;
 
 			    float4 btmLeft     = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord, 0);
 			    float2 v10         = gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0f, 0.0);
