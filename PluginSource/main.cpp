@@ -28,7 +28,7 @@ struct alignas(128) UpscalingData {
     float right[3];
     float forward[3];
     float jitter[2];
-    unsigned orthographic_debugView;
+    unsigned orthographic_debugView_reset;
 };
 
 void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
@@ -51,11 +51,11 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     upscaler.settings.reactiveValue     = data.reactiveValue;
     upscaler.settings.reactiveScale     = data.reactiveScale;
     upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-    upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
-    upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
+    upscaler.settings.orthographic      = (data.orthographic_debugView_reset & 0b1U) != 0U;
+    upscaler.settings.debugView         = (data.orthographic_debugView_reset & 0b10U) != 0U;
+    upscaler.settings.resetHistory      = (data.orthographic_debugView_reset & 0b100U) != 0U;
     std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
     upscaler.evaluate();
-    upscaler.settings.resetHistory = false;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrectly() {
@@ -131,10 +131,6 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
 
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {
-    upscalers[camera]->settings.resetHistory = true;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {

@@ -59,9 +59,6 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
-        internal static extern void ResetHistory(ushort camera);
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetImages")]
         internal static extern void SetImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
 
@@ -77,10 +74,11 @@ namespace Conifer.Upscaler
         private static readonly int EventIDBase;
         private readonly IntPtr _renderingEventCallback;
         private readonly IntPtr _dataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
+        public bool ShouldResetHistory = true;
 
         private struct UpscaleData
         {
-            internal UpscaleData(Upscaler upscaler, ushort cameraID)
+            internal UpscaleData(Upscaler upscaler, ushort cameraID, bool reset)
             {
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
@@ -104,7 +102,9 @@ namespace Conifer.Upscaler
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
                 _jitter = upscaler.Jitter;
-                _orthographic_debugView = (camera.orthographic ? 0b1U : 0b0U) | (upscaler.debugView ? 0b10U : 0b0U);
+                _orthographic_debugView_reset = (Convert.ToUInt32(camera.orthographic) << 0) |
+                                                (Convert.ToUInt32(upscaler.debugView)  << 1) |
+                                                (Convert.ToUInt32(reset)               << 2);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -127,7 +127,7 @@ namespace Conifer.Upscaler
             private Vector3 _right;
             private Vector3 _forward;
             private Vector2 _jitter;
-            private uint _orthographic_debugView;
+            private uint _orthographic_debugView_reset;
         }
 
         static NativeInterface()
@@ -160,8 +160,9 @@ namespace Conifer.Upscaler
 
         internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _dataPtr, true);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, ShouldResetHistory), _dataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, EventIDBase, _dataPtr);
+            ShouldResetHistory = false;
         }
 
         internal static void SetLogLevel(LogType type)
@@ -196,11 +197,6 @@ namespace Conifer.Upscaler
         internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
-
-        internal void ResetHistory()
-        {
-            if (Loaded) Native.ResetHistory(_cameraID);
-        }
 
         internal void SetImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
         {

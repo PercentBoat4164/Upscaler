@@ -262,18 +262,32 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * <summary>Tells the <see cref="Technique"/> to reset the pixel history this frame.</summary>
-         * <remarks>This method is fast. It will set a flag that tells the <see cref="Technique"/> to reset the pixel
-         * history this frame.This flag is automatically cleared at the end of each frame. This should be only called
-         * everytime there is no correlation between what the camera saw last frame and what it sees this frame.
-         * This method is called whenever the <c>resetHistory</c> flag is on in the <c>UniversalAdditionalCameraData</c>
-         * .</remarks>
+         * <summary>Tells the <see cref="Technique"/> whether or not to reset the pixel history next upscale.</summary>
+         * <remarks>This method is fast. It just sets a flag that tells the <see cref="Technique"/> to reset the pixel
+         * history during the next upscale. This flag is automatically cleared after each upscale. This should be called
+         * with <c>true</c> everytime there is little or no correlation between what the camera saw last frame and what
+         * it sees this frame. This will be set to <c>true</c> if the <c>resetHistory</c> flag is on in the
+         * <c>UniversalAdditionalCameraData</c>.
+         * </remarks>
+         * <example><code>
+         * SnapCameraToLastFramePosition();
+         * upscaler.ShouldResetHistory(false);
+         * // Or
+         * TurnCameraAround();
+         * upscaler.ShouldResetHistory(true);
+         * </code></example>
+         */
+        public void ShouldResetHistory(bool reset) => NativeInterface.ShouldResetHistory = reset;
+
+        /**
+         * <summary>Tells the <see cref="Technique"/> to reset the pixel history next upscale.</summary>
+         * <remarks>Internally calls the <see cref="ShouldResetHistory"/> function, passing it <c>true</c>.</remarks>
          * <example><code>
          * CameraJumpCut(newLocation);
          * upscaler.ResetHistory();
          * </code></example>
          */
-        public void ResetHistory() => NativeInterface.ResetHistory();
+        public void ResetHistory() => NativeInterface.ShouldResetHistory = true;
 
         /**
          * <summary>Check if an <see cref="Technique"/> is supported in the current environment.</summary>
@@ -405,15 +419,16 @@ namespace Conifer.Upscaler
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
-            CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, RequiresNativePlugin() ? technique : Technique.None, dlssPreset, quality, sharpness, HDR);
-            if (RequiresNativePlugin(_technique))
+            if (RequiresNativePlugin(technique))
             {
+                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
                 RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
                 MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
                 MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
             }
             else
             {
+                NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, sharpness, HDR);
                 if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
@@ -427,7 +442,10 @@ namespace Conifer.Upscaler
                             <= 3840 * 2160 => 0.667,
                             _ => 0.5
                         }; break;
-                    case Quality.AntiAliasing: CurrentStatus = Status.RecoverableRuntimeError; break;
+                    case Quality.AntiAliasing:
+                        if (technique == Technique.SnapdragonGameSuperResolutionSpatial) CurrentStatus = Status.RecoverableRuntimeError;
+                        else scale = 1.0;
+                        break;
                     case Quality.UltraQualityPlus: scale = 0.769; break;
                     case Quality.UltraQuality: scale = 0.667; break;
                     case Quality.Quality: scale = 0.588; break;
@@ -440,7 +458,6 @@ namespace Conifer.Upscaler
                 RecommendedInputResolution = new Vector2Int((int)Math.Ceiling(OutputResolution.x * scale), (int)Math.Ceiling(OutputResolution.y * scale));
                 MaxInputResolution = OutputResolution;
                 MinInputResolution = Vector2Int.one;
-                CurrentStatus = Status.Success;
             }
 
             if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force)
@@ -454,6 +471,7 @@ namespace Conifer.Upscaler
             _useEdgeDirection = useEdgeDirection;
             _dlssPreset = dlssPreset;
             _technique = technique;
+            ResetHistory();
             return CurrentStatus;
         }
 

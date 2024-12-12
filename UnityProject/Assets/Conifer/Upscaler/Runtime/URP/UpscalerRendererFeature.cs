@@ -89,6 +89,7 @@ namespace Conifer.Upscaler.URP
             private static RTHandle _reactive;
             private static IntPtr _reactivePtr;
             private static bool _needsUpdate;
+            private static Matrix4x4 _previousProjectionMatrix;
 
             internal static Material SgsrMaterial;
             internal static Material SgsrConvertMaterial;
@@ -223,7 +224,12 @@ namespace Conifer.Upscaler.URP
                             cb.DrawMesh(_triangle, Matrix4x4.identity, SgsrMaterial, 0, 0);
                             break;
                         case Upscaler.Technique.SnapdragonGameSuperResolutionTemporal:
-                            var cameraIsSame = renderingData.cameraData.camera.previousViewProjectionMatrix == renderingData.cameraData.GetViewMatrix() * renderingData.cameraData.GetProjectionMatrix();
+                            var current = renderingData.cameraData.camera.cameraToWorldMatrix * renderingData.cameraData.camera.projectionMatrix;
+                            float vpDiff = 0;
+                            for(var i = 0; i < 4; i++) for(var j = 0; j < 4; j++)
+                                vpDiff += Math.Abs(current[i, j] - _previousProjectionMatrix[i, j]);
+                            _previousProjectionMatrix = current;
+                            var cameraIsSame = vpDiff < 1e-5;
                             cb.SetGlobalVector("Conifer_Upscaler_RenderSize", (Vector2)_upscaler.InputResolution);
                             cb.SetGlobalVector("Conifer_Upscaler_OutputSize", (Vector2)_upscaler.OutputResolution);
                             cb.SetGlobalVector("Conifer_Upscaler_RenderSizeRcp", Vector2.one / _upscaler.InputResolution);
@@ -233,7 +239,7 @@ namespace Conifer.Upscaler.URP
                             cb.SetGlobalFloat("Conifer_Upscaler_PreExposure", 1.0f);
                             cb.SetGlobalFloat("Conifer_Upscaler_CameraFovAngleHor", Mathf.Tan(Mathf.Deg2Rad * (renderingData.cameraData.camera.fieldOfView / 2)) * _upscaler.InputResolution.x / _upscaler.InputResolution.y);
                             cb.SetGlobalFloat("Conifer_Upscaler_MinLerpContribution", cameraIsSame ? 0.3f : 0.0f);
-                            cb.SetGlobalFloat("Conifer_Upscaler_Reset", 0.0f);
+                            cb.SetGlobalFloat("Conifer_Upscaler_Reset", Convert.ToSingle(_upscaler.NativeInterface.ShouldResetHistory));
                             cb.SetGlobalInt("Conifer_Upscaler_SameCamera", cameraIsSame ? 1 : 0);
                             cb.SetGlobalVector("Conifer_Upscaler_RenderSize", (Vector2)_upscaler.InputResolution);
                             switch (_upscaler.sgsrMethod)
@@ -332,6 +338,7 @@ namespace Conifer.Upscaler.URP
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraOutputResolutionColorTarget, _cameraOutputResolutionDepthTarget);
+                _upscaler.ShouldResetHistory(false);
             }
 
             public static void FreeMemory()
