@@ -184,12 +184,12 @@ namespace Conifer.Upscaler
 
         internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
             ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))
-            : Upscaler.Status.Success;
+            : Upscaler.Status.LibraryNotLoaded;
 
         internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique,
             Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr) => Loaded
             ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr)
-            : Upscaler.Status.FatalRuntimeError;
+            : Upscaler.Status.LibraryNotLoaded;
 
         internal Vector2Int GetRecommendedResolution() =>
             Loaded ? Native.GetRecommendedResolution(_cameraID) : Vector2Int.zero;

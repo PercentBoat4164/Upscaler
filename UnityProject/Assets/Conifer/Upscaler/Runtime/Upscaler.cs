@@ -30,13 +30,13 @@ namespace Conifer.Upscaler
             None,
             /// NVIDIA's Deep Learning Super Sampling upscaler, designed for modern NVIDIA GPUs.
             DeepLearningSuperSampling,
-            /// AMD's FidelityFX Super Resolution upscaler, designed for any modern GPU with compute support.
+            /// AMD's FidelityFX Super Resolution upscaler, designed for any modern desktop GPU with compute support.
             FidelityFXSuperResolution,
             /// Intel's X<sup>e</sup> Super Sampling upscaler, designed to excel on Intel GPUs, but works on any modern GPU with compute.
             XeSuperSampling,
             /// Snapdragon's Snapdragon Game Super Resolution v1, a spatial algorithm designed for mobile devices.
             SnapdragonGameSuperResolutionSpatial,
-            /// Snapdragon's Snapdragon Game Super Resolution v1, a temporal algorithm with modes designed for anything from mobile to desktop class devices.
+            /// Snapdragon's Snapdragon Game Super Resolution v2, a temporal algorithm with modes designed for anything from mobile to desktop class devices.
             SnapdragonGameSuperResolutionTemporal
         }
 
@@ -49,13 +49,13 @@ namespace Conifer.Upscaler
         {
             /// Automatically choose another <see cref="Quality"/> mode based on output resolution. Available to all <see cref="Technique"/>s.
             Auto,
-            /// Render at native resolution and use the <see cref="Technique"/> for antialiasing.
+            /// Render at native resolution and use the <see cref="Technique"/> for antialiasing. Not available for <see cref="Upscaler.IsSpatial(Conifer.Upscaler.Upscaler.Technique)"/> <see cref="Technique"/>s.
             AntiAliasing,
-            /// Recommended for extremely low resolution outputs. Only available when using the <see cref="Technique.XeSuperSampling"/> <see cref="Technique"/>.
+            /// Recommended for extremely low resolution outputs.
             UltraQualityPlus,
-            /// Recommended for very low resolution outputs. Only available when using the <see cref="Technique.XeSuperSampling"/> <see cref="Technique"/>.
+            /// Recommended for very low resolution outputs.
             UltraQuality,
-            /// Recommended for lower resolution outputs.
+            /// Recommended for low resolution outputs.
             Quality,
             /// Recommended in most scenarios.
             Balanced,
@@ -82,7 +82,7 @@ namespace Conifer.Upscaler
         }
 
         /**
-         * Different SGSR implementations which trade off quality and performance
+         * Different SGSR implementations which trade off quality and performance.
          */
         [Serializable]
         public enum SgsrMethod
@@ -118,7 +118,7 @@ namespace Conifer.Upscaler
             FeatureDenied               = 5,
             /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory then try again.
             OutOfMemory                 = 6 | ErrorRecoverable,
-            /// The library required by this <see cref="Technique"/> were not loaded. Ensure that they have been installed.
+            /// The libraries required by this <see cref="Technique"/> were not loaded. Ensure that they have been installed.
             LibraryNotLoaded            = 7,
             /// This is an error that may have been caused by an invalid configuration (e.g. output resolution too small). Restore a valid configuration then try again.
             RecoverableRuntimeError     = 8 | ErrorRecoverable,
@@ -158,11 +158,11 @@ namespace Conifer.Upscaler
          */
         public static bool Recoverable(Status status) => ((uint)status & ErrorRecoverable) == ErrorRecoverable;
 
-        /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
+        /// Enables displaying the debug view for this <see cref="Technique"/>. Defaults to <c>false</c>
         public bool debugView;
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>
         public bool showRenderingAreaOverlay;
-        /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame.
+        /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame. Defaults to <c>false</c>
         public bool forceHistoryResetEveryFrame;
 
         private Camera _camera;
@@ -183,10 +183,10 @@ namespace Conifer.Upscaler
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
-        /// <see cref="RecommendedInputResolution"/> whenever the <see cref="technique"/> or <see cref="quality"/> are
-        /// changed using <see cref="ApplySettings"/>. It is never <c>(0, 0)</c>. When the <see cref="Technique"/> has a
-        /// <see cref="Status"/> error or the <see cref="Technique"/> is <see cref="Technique.None"/> it will be the
-        /// same as <see cref="OutputResolution"/>.
+        /// <see cref="RecommendedInputResolution"/> whenever settings are changed using <see cref="ApplySettings"/>. It
+        /// is never <c>(0, 0)</c>. When the <see cref="Technique"/> has a <see cref="Failure"/> <see cref="Status"/> or the
+        /// <see cref="Technique"/> is <see cref="Technique.None"/> it will be the same as
+        /// <see cref="OutputResolution"/>.
         public Vector2Int InputResolution
         {
             get => _inputResolution;
@@ -194,22 +194,21 @@ namespace Conifer.Upscaler
         }
         private Vector2Int _inputResolution;
 
-        /// The recommended resolution for this quality mode as given by the selected <see cref="Technique"/>. This
-        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        /// The recommended resolution for this <see cref="Quality"/> mode as given by the selected
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int RecommendedInputResolution { get; private set; }
 
-        /// The maximum dynamic resolution for this quality mode as given by the selected <see cref="Technique"/>. This
-        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        /// The maximum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int MaxInputResolution { get; private set; }
 
-        /// The minimum dynamic resolution for this quality mode as given by the selected <see cref="Technique"/>. This
-        /// value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        /// The minimum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int MinInputResolution { get; private set; }
 
         /**
-         * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws.</summary>
-         * <param name="Status">The <see cref="Status"/> that the <see cref="Technique"/> errored with.</param>
-         * <param name="string">A plain English message describing the nature of the issue.</param>
+         * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws. Takes the current
+         * <see cref="Status"/>, and the current status message.</summary>
          * <remarks>This callback is only ever called if an error occurs. When that happens it will be called from the
          * <see cref="Update"/> method during the next frame. If this callback fails to bring the
          * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the default error
@@ -218,7 +217,7 @@ namespace Conifer.Upscaler
          */
         [NonSerialized] public Action<Status, string> ErrorCallback;
 
-        /// The current <see cref="Status"/> for the managed <see cref="Technique"/>.
+        /// The current <see cref="Status"/> for the current <see cref="Technique"/>.
         public Status CurrentStatus { get; private set; } = Status.Success;
         /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
         public Quality quality;
@@ -248,14 +247,14 @@ namespace Conifer.Upscaler
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
          *<returns>Returns the 'best' supported technique.</returns>
-         * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/> if on a mobile platform and it is
+         * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/> if on a mobile platform and it is
          * supported. It otherwise selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
          */
         public static Technique GetBestSupportedTechnique()
         {
-            if (Application.isMobilePlatform && IsSupported(Technique.SnapdragonGameSuperResolutionSpatial)) return Technique.SnapdragonGameSuperResolutionSpatial;
+            if (Application.isMobilePlatform && IsSupported(Technique.SnapdragonGameSuperResolutionTemporal)) return Technique.SnapdragonGameSuperResolutionTemporal;
             if (IsSupported(Technique.DeepLearningSuperSampling)) return Technique.DeepLearningSuperSampling;
             if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
             return IsSupported(Technique.FidelityFXSuperResolution) ? Technique.FidelityFXSuperResolution : Technique.None;
@@ -295,12 +294,17 @@ namespace Conifer.Upscaler
          * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.</returns>
          * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast every time
          * after that. Support for the <see cref="Technique"/> requested is computed then cached. Any future calls with
-         * the same <see cref="Technique"/> will use the cached value.</remarks>
-         * <example><code>bool DLSSSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
+         * the same <see cref="Technique"/> will use the cached value. Note that for
+         * <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/> the <see cref="SgsrMethod.Fragment2Pass"/> may
+         * be able to be used even if this returns <c>false</c> for
+         * <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/>
+         * so long as it returns <c>true</c> for <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.</remarks>
+         * <example><code>bool dlssSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
          * </code></example>
          */
         public static bool IsSupported(Technique type) => type is Technique.None ||
-                                                          (type is Technique.SnapdragonGameSuperResolutionSpatial or Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                          (type is Technique.SnapdragonGameSuperResolutionSpatial && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                          (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
                                                           (PluginLoaded() && NativeInterface.IsSupported(type));
 
         /**
@@ -309,8 +313,9 @@ namespace Conifer.Upscaler
          * <param name="mode">The <see cref="Quality"/> mode to query support for.</param>
          * <returns><c>true</c> if the <see cref="Technique"/> supports the requested <see cref="Quality"/> mode and
          * <c>false</c> if it does not.</returns>
-         * <remarks>This method is always fast. Every non-<see cref="Technique.None"/> <see cref="Technique"/> will
-         * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode.</remarks>
+         * <remarks>This method is always fast. Every <see cref="Technique"/> will
+         * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode. Note the caveats about SGSR
+         * mentioned in the documentation for <see cref="IsSupported(Conifer.Upscaler.Upscaler.Technique)"/>.</remarks>
          * <example><code>bool dlssSupportsAA = upscaler.IsSupported(
          *   Upscaler.Technique.DeepLearningSuperSampling,
          *   Upscaler.Quality.AntiAliasing
@@ -318,7 +323,7 @@ namespace Conifer.Upscaler
          */
         public static bool IsSupported(Technique type, Quality mode) => type is Technique.None ||
                                                                         (type is Technique.SnapdragonGameSuperResolutionSpatial && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
-                                                                        (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                                        (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
                                                                         NativeInterface.IsSupported(type, mode);
 
         /**
@@ -335,7 +340,14 @@ namespace Conifer.Upscaler
         public bool IsSupported(Quality mode) => IsSupported(technique, mode);
 
         /**
-         *
+         * <summary>Is this a spatial <see cref="Technique"/>?</summary>
+         * <param name="type">The <see cref="Technique"/> to query.</param>
+         * <returns><c>true</c> if the <see cref="Technique"/> is spatial only, <c>false</c> otherwise.</returns>
+         * <remarks>This is useful for determining whether motion vectors are required. <see cref="Technique"/>s for
+         * which this returns <c>true</c> will usually perform faster and look worse than ones for which this returns
+         * <c>false</c>.</remarks>
+         * <example><code>bool xessIsSpatial = Upscaler.IsSpatial(Upscaler.Technique.XeSuperSampling);</code>
+         * </example>
          */
         public static bool IsSpatial(Technique type) => type switch
             {
@@ -345,20 +357,50 @@ namespace Conifer.Upscaler
             };
 
         /**
-         *
+         * <summary>Is <see cref="technique"/> spatial only?</summary>
+         * <returns><c>true</c> if <see cref="technique"/> is spatial only, <c>false</c> otherwise.</returns>
+         * <remarks>This is a convenience method for <see cref="IsSpatial(Conifer.Upscaler.Upscaler.Technique)"/>. This
+         * is useful for determining whether motion vectors are required. <see cref="Technique"/>s for which this
+         * returns <c>true</c> will usually perform faster and look worse than ones for which this returns <c>false</c>.
+         * </remarks>
+         * <example><code>bool isSpatial = upscaler.IsSpatial();</code></example>
          */
         public bool IsSpatial() => IsSpatial(technique);
 
         /**
-         *
+         * <summary>Is <see cref="technique"/> spatiotemporal?</summary>
+         * <param name="type">The <see cref="Technique"/> to query.</param>
+         * <returns><c>true</c> if <see cref="technique"/> is spatiotemporal, <c>false</c> otherwise.</returns>
+         * <remarks>This is useful for determining whether motion vectors are required. <see cref="Technique"/>s for
+         * which this returns <c>false</c> will usually perform faster and look worse than ones for which this returns
+         * <c>true</c>.</remarks>
+         * <example><code>bool xessUsesMotionVectors = Upscaler.IsTemporal(Upscaler.Technique.XeSuperSampling);</code>
+         * </example>
          */
         public static bool IsTemporal(Technique type) => !IsSpatial(type);
 
         /**
-         *
+         * <summary>Is <see cref="technique"/> spatiotemporal?</summary>
+         * <returns><c>true</c> if <see cref="technique"/> is spatiotemporal, <c>false</c> otherwise.</returns>
+         * <remarks>This is a convenience method for <see cref="IsTemporal(Conifer.Upscaler.Upscaler.Technique)"/>. This
+         * is useful for determining whether motion vectors are required. <see cref="Technique"/>s for which this
+         * returns <c>false</c> will usually perform faster and look worse than ones for which this returns <c>true</c>.
+         * </remarks>
+         * <example><code>bool usesMotionVectors = upscaler.IsTemporal();</code></example>
          */
         public bool IsTemporal() => !IsSpatial(technique);
 
+        /**
+         * <summary>Does this <see cref="Technique"/> require the <c>GfxPluginUpscaler</c> library to be loaded?
+         * </summary>
+         * <param name="type">The <see cref="Technique"/> to query.</param>
+         * <returns><c>true</c> if this <see cref="Technique"/> cannot be used without loading the
+         * <c>GfxPluginUpscaler</c> shared library, <c>false</c> otherwise.</returns>
+         * <remarks>This is method is fast.</remarks>
+         * <example><code>
+         * bool requiresPlugin = Upscaler.RequiresNativePlugin(Upscaler.Technique.FidelityFXSuperResolution);
+         * </code></example>
+         */
         public static bool RequiresNativePlugin(Technique type) => type switch
             {
                 Technique.SnapdragonGameSuperResolutionSpatial or Technique.SnapdragonGameSuperResolutionTemporal or Technique.None => false,
@@ -366,6 +408,16 @@ namespace Conifer.Upscaler
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
             };
 
+        /**
+         * <summary>Does <see cref="technique"/> require the <c>GfxPluginUpscaler</c> library to be loaded?</summary>
+         * <returns><c>true</c> if <see cref="technique"/> cannot be used without loading the <c>GfxPluginUpscaler</c>
+         * shared library, <c>false</c> otherwise.</returns>
+         * <remarks>This is method is fast. It is a convenience method for
+         * <see cref="RequiresNativePlugin(Conifer.Upscaler.Upscaler.Technique)"/>.</remarks>
+         * <example><code>
+         * bool requiresPlugin = Upscaler.RequiresNativePlugin(Upscaler.Technique.FidelityFXSuperResolution);
+         * </code></example>
+         */
         public bool RequiresNativePlugin() => RequiresNativePlugin(technique);
 
         /**
