@@ -219,7 +219,7 @@ namespace Conifer.Upscaler
         [NonSerialized] public Action<Status, string> ErrorCallback;
 
         /// The current <see cref="Status"/> for the managed <see cref="Technique"/>.
-        public Status CurrentStatus { get; private set; }
+        public Status CurrentStatus { get; private set; } = Status.Success;
         /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
         public Quality quality;
         private Quality _quality;
@@ -428,7 +428,7 @@ namespace Conifer.Upscaler
             }
             else
             {
-                NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, sharpness, HDR);
+                CurrentStatus = NativeInterface.Loaded ? NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, sharpness, HDR) : Status.Success;
                 if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
