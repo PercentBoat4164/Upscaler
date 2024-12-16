@@ -102,7 +102,8 @@ struct ffxOverrideVersion
 
 enum FfxApiConfigureFrameGenerationSwapChainKey
 {
-    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0                     ///< Sets FfxWaitCallbackFunc
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0,                      ///< Sets FfxWaitCallbackFunc
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING = 2,                ///< Sets FfxApiSwapchainFramePacingTuning casted from ptr
 };
 
 // Memory allocation function. Must return a valid pointer to at least size bytes of memory aligned to hold any type.
