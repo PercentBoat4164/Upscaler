@@ -3,13 +3,11 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.3                                *
+ * Upscaler v1.2.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
 using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
