@@ -517,8 +517,6 @@ namespace Conifer.Upscaler
             _outputResolution = OutputResolution;
             if (Failure(CurrentStatus))
                 return CurrentStatus;
-            if (IsTemporal(_technique))
-                _camera.ResetProjectionMatrix();
             _quality = quality;
             _useEdgeDirection = useEdgeDirection;
             _dlssPreset = dlssPreset;
@@ -568,8 +566,6 @@ namespace Conifer.Upscaler
             quality = Quality.Auto;
             ApplySettings(true);
         }
-
-        private void OnDisable() => _camera.ResetProjectionMatrix();
 
         private void OnGUI()
         {
