@@ -28,6 +28,7 @@
 HMODULE DLSS_Upscaler::library{nullptr};
 uint32_t  DLSS_Upscaler::users{};
 Upscaler::SupportState DLSS_Upscaler::supported{Untested};
+bool DLSS_Upscaler::streamlineLoaded;
 
 uint64_t DLSS_Upscaler::applicationID{0xDC98EECU};
 
@@ -209,6 +210,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetP
     slFreeResources      = reinterpret_cast<decltype(&::slFreeResources)>(GetProcAddress(library, "slFreeResources"));
     slShutdown           = reinterpret_cast<decltype(&::slShutdown)>(GetProcAddress(library, "slShutdown"));
     if (type == GraphicsAPI::VULKAN) *vkGetProcAddrFunc = reinterpret_cast<const void* const>(GetProcAddress(library, "vkGetInstanceProcAddr"));
+    streamlineLoaded = slSetFeatureLoaded != nullptr;
 
     const std::array pathStrings {
         std::filesystem::current_path().wstring(),
@@ -301,6 +303,10 @@ void DLSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 }
 
 DLSS_Upscaler::DLSS_Upscaler() : handle(users++) {
+    if (!streamlineLoaded) {
+        --users;
+        RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, "Failed to load streamline. NVIDIA Deep Learning Super Sampling is not available."));
+    }
     if (users != 1U) return;
     RETURN_VOID_ON_FAILURE(setStatus(slSetFeatureLoaded(sl::kFeatureDLSS, true), "Failed to load the NVIDIA Deep Learning Super Sampling feature."));
     void* func{nullptr};
@@ -314,6 +320,7 @@ DLSS_Upscaler::~DLSS_Upscaler() {
 #ifdef ENABLE_VULKAN
     if (GraphicsAPI::getType() == GraphicsAPI::VULKAN) for (const auto& resource : resources) Vulkan::destroyImageView(static_cast<VkImageView>(resource.view));
 #endif
+    if (!streamlineLoaded) return;
     slFreeResources(sl::kFeatureDLSS, handle);
     if (--users == 0) slSetFeatureLoaded(sl::kFeatureDLSS, false);
 }

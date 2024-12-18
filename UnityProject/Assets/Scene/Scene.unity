@@ -466,16 +466,18 @@ MonoBehaviour:
   upscalingDebugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 7
-  technique: 2
+  quality: 0
+  technique: 5
   frameGeneration: 1
   dlssPreset: 0
-  sharpness: 0
+  sgsrMethod: 0
+  sharpness: 1
   useReactiveMask: 0
   reactiveMax: 0.6
   reactiveScale: 0.9
   reactiveThreshold: 0.3
   useAsyncCompute: 1
+  useEdgeDirection: 1
 --- !u!1 &1308310398
 GameObject:
   m_ObjectHideFlags: 0

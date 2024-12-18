@@ -34,7 +34,7 @@
 0
 #define RETURN_VOID_ON_FAILURE(x) if (Upscaler::failure(x)) return
 
-struct alignas(512) UpscalerBase {
+struct alignas(128) UpscalerBase {
     constexpr static uint8_t SamplesPerPixel = 8U;
 
     enum Type {
@@ -69,19 +69,7 @@ struct alignas(512) UpscalerBase {
             uint32_t height;
         } recommendedInputResolution, dynamicMaximumInputResolution, dynamicMinimumInputResolution, outputResolution;
 
-        struct alignas(16) JitterState {
-            uint8_t  base{};
-            uint32_t n = 0U;
-            uint32_t d = 1U;
-            uint32_t iterations{-1U};
-
-            float advance(uint32_t maxIterations);
-        } x{2U}, y{3U};
-
-        struct alignas(8) Jitter {
-            float x, y;
-        } jitter;
-
+        struct alignas(8) Jitter { float x, y; } jitter;
         float reactiveValue{};
         float reactiveScale{};
         float reactiveThreshold{};
@@ -103,8 +91,6 @@ struct alignas(512) UpscalerBase {
         bool debugView{};
         bool hdr{};
         bool resetHistory{};
-
-        Jitter& getNextJitter(float inputWidth);
 
 #ifdef ENABLE_DLSS
         template<Type T, typename = std::enable_if_t<T == DLSS>>

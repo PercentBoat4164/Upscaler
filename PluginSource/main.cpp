@@ -31,7 +31,8 @@ struct alignas(128) UpscaleData {
     float up[3];
     float right[3];
     float forward[3];
-    unsigned orthographic_debugView;
+    float jitter[2];
+    unsigned orthographic_debugView_reset;
 };
 
 struct alignas(64) FrameGenerateData {
@@ -67,10 +68,11 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             upscaler.settings.reactiveValue     = data.reactiveValue;
             upscaler.settings.reactiveScale     = data.reactiveScale;
             upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-            upscaler.settings.orthographic      = (data.orthographic_debugView & 0b1U) != 0U;
-            upscaler.settings.debugView         = (data.orthographic_debugView & 0b10U) != 0U;
+            upscaler.settings.orthographic      = (data.orthographic_debugView_reset & 0b1U) != 0U;
+            upscaler.settings.debugView         = (data.orthographic_debugView_reset & 0b10U) != 0U;
+            upscaler.settings.resetHistory      = (data.orthographic_debugView_reset & 0b100U) != 0U;
+            std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
             upscaler.evaluate();
-            upscaler.settings.resetHistory = false;
             break;
         }
         case Plugin::FrameGenerate: {
@@ -172,15 +174,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Jitter UNITY_INTERFACE_API Upscaler_GetCameraJitter(const uint16_t camera, const float inputWidth) {
-    return upscalers[camera]->settings.getNextJitter(inputWidth);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_ResetCameraHistory(const uint16_t camera) {
-    upscalers[camera]->settings.resetHistory = true;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
     Upscaler& upscaler = *upscalers[camera];
     upscaler.settings.autoReactive = useReactiveMask;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});

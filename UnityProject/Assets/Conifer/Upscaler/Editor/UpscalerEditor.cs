@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.2                                *
+ * Upscaler v1.2.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -31,24 +31,26 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _technique;
         private SerializedProperty _quality;
         private SerializedProperty _frameGeneration;
-        
+
         private SerializedProperty _dlssPreset;
+        private SerializedProperty _sgsrMethod;
         private SerializedProperty _sharpness;
         private SerializedProperty _useReactiveMask;
         private SerializedProperty _reactiveMax;
         private SerializedProperty _reactiveScale;
         private SerializedProperty _reactiveThreshold;
-        
+        private SerializedProperty _useEdgeDirection;
+
         private SerializedProperty _useAsyncCompute;
-        
+
         private SerializedProperty _upscalingDebugView;
         private SerializedProperty _showRenderingAreaOverlay;
-        
+
         private SerializedProperty _frameGenerationDebugView;
         private SerializedProperty _showTearLines;
         private SerializedProperty _showResetIndicator;
         private SerializedProperty _onlyPresentGenerated;
-        
+
         private SerializedProperty _forceHistoryResetEveryFrame;
 
         private void OnEnable()
@@ -61,22 +63,24 @@ namespace Conifer.Upscaler.Editor
             _frameGeneration = serializedObject.FindProperty("frameGeneration");
 
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
+            _sgsrMethod = serializedObject.FindProperty("sgsrMethod");
             _sharpness = serializedObject.FindProperty("sharpness");
             _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
-            
+            _useEdgeDirection = serializedObject.FindProperty("useEdgeDirection");
+
             _useAsyncCompute = serializedObject.FindProperty("useAsyncCompute");
-            
+
             _upscalingDebugView = serializedObject.FindProperty("upscalingDebugView");
             _showRenderingAreaOverlay = serializedObject.FindProperty("showRenderingAreaOverlay");
-            
+
             _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
             _showTearLines = serializedObject.FindProperty("showTearLines");
             _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
             _onlyPresentGenerated = serializedObject.FindProperty("onlyPresentGenerated");
-            
+
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
 
             var icon = new Texture2D(2, 2);
@@ -133,9 +137,9 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Set to 'Automatic'"))
                         UniversalRenderPipeline.asset!.upscalingFilter = UpscalingFilterSelection.Auto;
                 }
-                if (cameraData.antialiasing != AntialiasingMode.None)
+                if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                 {
-                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Error);
+                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
                 }
                 if (camera.allowMSAA)
@@ -168,7 +172,7 @@ namespace Conifer.Upscaler.Editor
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             _frameGeneration.boolValue = EditorGUILayout.Toggle("Enable Frame Generation", _frameGeneration.boolValue);
-            
+
             if (((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling && (Upscaler.Technique)_technique.intValue != Upscaler.Technique.None) || _frameGeneration.boolValue)
             {
                 EditorGUILayout.Separator();
@@ -210,8 +214,13 @@ namespace Conifer.Upscaler.Editor
                                     "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
                                 (Upscaler.DlssPreset)_dlssPreset.intValue);
                             break;
-                        case Upscaler.Technique.None: break;
-                        case Upscaler.Technique.XeSuperSampling: break;
+                        case Upscaler.Technique.SnapdragonGameSuperResolutionSpatial:
+                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
+                                _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
+                                break;
+                        case Upscaler.Technique.SnapdragonGameSuperResolutionTemporal:
+                                _sgsrMethod.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_sgsrMethod.intValue);
+                                break;
                         default: break;
                     }
                     if (((Upscaler.Technique)_technique.intValue == Upscaler.Technique.XeSuperSampling || (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None) ^ _frameGeneration.boolValue)
@@ -221,7 +230,7 @@ namespace Conifer.Upscaler.Editor
                         _useAsyncCompute.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Async Compute"), _useAsyncCompute.boolValue);
                 }
             }
-                
+
             EditorGUILayout.Separator();
             debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
             if (debugSettingsFoldout)

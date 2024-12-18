@@ -1,0 +1,83 @@
+﻿//============================================================================================================
+//
+//
+//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+#pragma target 5.0
+#pragma kernel main
+
+#define EPSILON 1.19e-07f
+#define SEPARATION 1.37e-05f
+#define TOLERANCE 1.0e-05f
+
+SamplerState       linearClampSampler : register(s0);
+Texture2D<uint>    Conifer_Upscaler_Luma;
+Texture2D<half4>   Conifer_Upscaler_MotionDepthAlphaBuffer;
+RWTexture2D<half4> Conifer_Upscaler_MotionDepthAlphaBufferSink;
+Texture2D<half2>   Conifer_Upscaler_LumaHistory;
+RWTexture2D<half2> Conifer_Upscaler_LumaHistorySink;
+
+float2 Conifer_Upscaler_OutputSize;
+float2 Conifer_Upscaler_RenderSizeRcp;
+float  Conifer_Upscaler_CameraFovAngleHor;
+float  Conifer_Upscaler_Reset;
+
+[numthreads(8, 8, 1)]
+void main(uint3 id : SV_DispatchThreadID) {
+    int2   sampleOffset[4] = {int2(-1, -1), int2(-1, +0), int2(+0, -1), int2(+0, +0)};
+    float2 ViewportUV      = (float2(id.xy) + float2(0.5, 0.5)) * Conifer_Upscaler_RenderSizeRcp;
+    float2 gatherCoord     = ViewportUV + 0.5f * Conifer_Upscaler_RenderSizeRcp;
+    float  luma_reference  = (Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord).w >> 21u) * (1.0 / 2047.5);
+
+    float4 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(id.xy, 0)).xyzw;
+
+    float2 PrevUV    = mda.xy + ViewportUV;
+    float  depthclip = 0.0;
+
+    if (mda.z < 1.0 - TOLERANCE) {
+        float2 Prevf_sample     = PrevUV * float2(Conifer_Upscaler_OutputSize) - 0.5f;
+        float2 Prevfrac         = Prevf_sample - floor(Prevf_sample);
+        float  OneMinusPrevfacx = 1.0 - Prevfrac.x;
+
+        float4 Bilinweights = float4(OneMinusPrevfacx - OneMinusPrevfacx * Prevfrac.y, Prevfrac.x - Prevfrac.x * Prevfrac.y, OneMinusPrevfacx * Prevfrac.y, Prevfrac.x * Prevfrac.y);
+
+        float diagonal_length    = length(float2(Conifer_Upscaler_OutputSize));
+        float Wdepth             = 0.0;
+        float Kfov               = Conifer_Upscaler_CameraFovAngleHor;
+        float Ksep_Kfov_diagonal = SEPARATION * Kfov * diagonal_length;
+        for (int index = 0; index < 4; index += 2) {
+            float4 gPrevdepth = Conifer_Upscaler_MotionDepthAlphaBuffer.Gather(linearClampSampler, PrevUV, sampleOffset[index]);
+            float  tdepth1    = min(gPrevdepth.x, gPrevdepth.y);
+            float  tdepth2    = min(gPrevdepth.z, gPrevdepth.w);
+            float  fPrevdepth = min(tdepth1, tdepth2);
+
+            float Depthsep = Ksep_Kfov_diagonal * (1.0 - min(fPrevdepth, mda.z));
+            float weight   = Bilinweights[index];
+            Wdepth += clamp(Depthsep / (abs(fPrevdepth - mda.z) + EPSILON), 0.0, 1.0) * weight;
+
+            float2 gPrevdepth2 = Conifer_Upscaler_MotionDepthAlphaBuffer.Gather(linearClampSampler, PrevUV, sampleOffset[index + 1]).zw;
+            fPrevdepth         = min(min(gPrevdepth2.x, gPrevdepth2.y), tdepth2);
+            Depthsep           = Ksep_Kfov_diagonal * (1.0 - min(fPrevdepth, mda.z));
+            weight             = Bilinweights[index + 1];
+            Wdepth += clamp(Depthsep / (abs(fPrevdepth - mda.z) + EPSILON), 0.0, 1.0) * weight;
+        }
+        depthclip = clamp(1.0f - Wdepth, 0.0, 1.0);
+    }
+
+    half2  prev_luma_diff = Conifer_Upscaler_LumaHistory.Gather(linearClampSampler, PrevUV).w;
+    float  luma_diff      = luma_reference - prev_luma_diff.x;
+    float2 current_luma_diff;
+    if (!(all(PrevUV >= float2(0, 0)) && all(PrevUV <= float2(1, 1)) && depthclip + Conifer_Upscaler_Reset < 0.1)) {
+        current_luma_diff.x = 0.0;
+        current_luma_diff.y = 0.0;
+    } else {
+        current_luma_diff.x = luma_reference;
+        current_luma_diff.y = prev_luma_diff.y != 0.0f ? (sign(luma_diff) == sign(prev_luma_diff.y) ? sign(luma_diff) * min(abs(prev_luma_diff.y), abs(luma_diff)) : prev_luma_diff.y) : luma_diff;
+    }
+
+    mda.w                                              = floor(mda.w) + 0.5f * (current_luma_diff.x != 0.0f && abs(current_luma_diff.y) != abs(luma_diff));
+    Conifer_Upscaler_LumaHistorySink[id.xy]            = current_luma_diff;
+    Conifer_Upscaler_MotionDepthAlphaBufferSink[id.xy] = half4(mda.xy, depthclip, mda.w);
+}

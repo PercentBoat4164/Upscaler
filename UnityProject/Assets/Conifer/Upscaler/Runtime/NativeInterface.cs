@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.1.2                                *
+ * Upscaler v1.2.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -20,9 +20,6 @@ namespace Conifer.Upscaler
     {
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
         internal static extern bool LoadedCorrectly();
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_DlssLoadedCorrectly")]
-        internal static extern bool DlssLoadedCorrectly();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
         internal static extern void SetLogLevel(LogType type);
@@ -66,12 +63,6 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraJitter")]
-        internal static extern Vector2 GetJitter(ushort camera, float inputWidth);
-
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_ResetCameraHistory")]
-        internal static extern void ResetHistory(ushort camera);
-
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscalingImages")]
         internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
 
@@ -95,10 +86,11 @@ namespace Conifer.Upscaler
         private readonly IntPtr _renderingEventCallback;
         private readonly IntPtr _upscaleDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
         private readonly IntPtr _frameGenerateDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<FrameGenerateData>());
+        public bool ShouldResetHistory = true;
 
         private struct UpscaleData
         {
-            internal UpscaleData(Upscaler upscaler, ushort cameraID)
+            internal UpscaleData(Upscaler upscaler, ushort cameraID, bool reset)
             {
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
@@ -120,7 +112,10 @@ namespace Conifer.Upscaler
                 _up = camera.transform.up;
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
-                _orthographic_debugView = (camera.orthographic ? 0b1U : 0U) | (upscaler.upscalingDebugView ? 0b10U : 0U);
+                _jitter = upscaler.Jitter;
+                _orthographic_debugView_reset = (Convert.ToUInt32(camera.orthographic) << 0) |
+                                                (Convert.ToUInt32(upscaler.upscalingDebugView)  << 1) |
+                                                (Convert.ToUInt32(reset)               << 2);
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -142,7 +137,8 @@ namespace Conifer.Upscaler
             private Vector3 _up;
             private Vector3 _right;
             private Vector3 _forward;
-            private uint _orthographic_debugView;
+            private Vector2 _jitter;
+            private uint _orthographic_debugView_reset;
         }
 
         private struct FrameGenerateData {
@@ -179,7 +175,9 @@ namespace Conifer.Upscaler
             }
             catch (DllNotFoundException)
             {
-                Debug.LogError("The Upscaler plugin could not be found. Please restart Unity. If this problem persists please reinstall Upscaler or contact Conifer support.");
+                Loaded = false;
+                if (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer)
+                  Debug.LogError("The Upscaler plugin could not be loaded. Please restart Unity. If this problem persists please reinstall Upscaler or contact Conifer support.");
                 return;
             }
 
@@ -203,11 +201,13 @@ namespace Conifer.Upscaler
 
         internal void Upscale(CommandBuffer cb, Upscaler upscaler)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID), _upscaleDataPtr, true);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, ShouldResetHistory), _upscaleDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
+            ShouldResetHistory = false;
         }
 
-        internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler) {
+        internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler)
+        {
             Marshal.StructureToPtr(new FrameGenerateData(upscaler), _frameGenerateDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
@@ -231,20 +231,20 @@ namespace Conifer.Upscaler
             Loaded && Native.IsSupported(type, mode);
 
         internal Upscaler.Status GetStatus() =>
-            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.FatalRuntimeError;
+            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.Success;
 
         internal string GetStatusMessage() => Loaded
             ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID))
-            : "GfxPluginUpscaler shared library not loaded! A restart may resolve the problem.";
+            : "GfxPluginUpscaler shared library not loaded; some upscalers may be unavailable! A restart may resolve the problem if you are on a supported platform.";
 
         internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
             ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))
-            : Upscaler.Status.Success;
+            : Upscaler.Status.LibraryNotLoaded;
 
         internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique,
             Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr) => Loaded
             ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr)
-            : Upscaler.Status.FatalRuntimeError;
+            : Upscaler.Status.LibraryNotLoaded;
 
         internal Vector2Int GetRecommendedResolution() =>
             Loaded ? Native.GetRecommendedResolution(_cameraID) : Vector2Int.zero;
@@ -252,14 +252,6 @@ namespace Conifer.Upscaler
         internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
-
-        internal Vector2 GetJitter(Vector2Int inputResolution) =>
-            Loaded ? Native.GetJitter(_cameraID, inputResolution.x) : Vector2.zero;
-
-        internal void ResetHistory()
-        {
-            if (Loaded) Native.ResetHistory(_cameraID);
-        }
 
         internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
         {
