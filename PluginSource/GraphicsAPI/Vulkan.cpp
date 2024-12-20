@@ -311,24 +311,21 @@ VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCre
 
 void Vulkan::hook_vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) {
     FrameGenerator::removeMapping(swapchain);
-    if (FSR_FrameGenerator::ownsSwapchain(swapchain))
-        return FSR_FrameGenerator::destroySwapchain();
+    if (FSR_FrameGenerator::ownsSwapchain(swapchain)) return FSR_FrameGenerator::destroySwapchain();
     return m_vkDestroySwapchainKHR(device, swapchain, pAllocator);
 }
 
 VkResult Vulkan::hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) {
-    if (FSR_FrameGenerator::ownsSwapchain(swapchain))
-        return m_fxGetSwapchainImagesKHR(device, swapchain, pSwapchainImageCount, pSwapchainImages);
+    if (FSR_FrameGenerator::ownsSwapchain(swapchain)) return m_fxGetSwapchainImagesKHR(device, swapchain, pSwapchainImageCount, pSwapchainImages);
     return m_vkGetSwapchainImagesKHR(device, swapchain, pSwapchainImageCount, pSwapchainImages);
 }
 
 VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
     VkResult   result{VK_SUCCESS};
     const bool isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(swapchain);
+    if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain) return VK_ERROR_OUT_OF_DATE_KHR;
     if (isFsrSwapchain) result = m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     else result = m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
-    if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain)
-        return VK_ERROR_OUT_OF_DATE_KHR;
     return result;
 }
 

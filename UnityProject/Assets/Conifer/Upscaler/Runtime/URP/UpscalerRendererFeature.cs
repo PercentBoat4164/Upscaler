@@ -417,7 +417,6 @@ namespace Conifer.Upscaler.URP
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                if (Time.frameCount == 1) return;
                 var cb = CommandBufferPool.Get("Frame Generate");
                 var srcRes = new Vector2(renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height);
                 var dstRes = srcRes + ExtraResolution;
@@ -426,6 +425,7 @@ namespace Conifer.Upscaler.URP
                 MultipurposeBlit(cb, Shader.GetGlobalTexture(MotionID), _flippedMotion, false, true, Offset, srcRes, dstRes);
                 MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _flippedDepth, true, true, Offset, srcRes, dstRes);
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler);
+                cb.SetRenderTarget(k_CameraTarget);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
             }

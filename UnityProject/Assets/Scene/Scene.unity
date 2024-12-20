@@ -464,7 +464,7 @@ MonoBehaviour:
   showResetIndicator: 0
   onlyPresentGenerated: 0
   upscalingDebugView: 0
-  showRenderingAreaOverlay: 0
+  showRenderingAreaOverlay: 1
   forceHistoryResetEveryFrame: 0
   quality: 0
   technique: 2
