@@ -333,14 +333,12 @@ VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swap
 }
 
 VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
-    VkResult result{VK_SUCCESS};
-    bool isFsrSwapchain = false;
-    if (pPresentInfo->swapchainCount == 0) return result;
-    if (pPresentInfo->swapchainCount == 1 && ((isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0])))) result = m_fxQueuePresentKHR(queue, pPresentInfo);
-    else result = m_vkQueuePresentKHR(queue, pPresentInfo);
-    if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == pPresentInfo->pSwapchains[0])
-        return VK_ERROR_OUT_OF_DATE_KHR;
-    return result;
+    if (pPresentInfo->swapchainCount > 0) {
+        const bool isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0]);
+        if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == pPresentInfo->pSwapchains[0]) return VK_ERROR_OUT_OF_DATE_KHR;
+        if (pPresentInfo->swapchainCount == 1 && isFsrSwapchain) return m_fxQueuePresentKHR(queue, pPresentInfo);
+    }
+    return m_vkQueuePresentKHR(queue, pPresentInfo);
 }
 
 void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, const uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata) {

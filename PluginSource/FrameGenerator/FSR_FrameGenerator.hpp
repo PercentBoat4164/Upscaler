@@ -64,6 +64,9 @@ public:
         createContextDescFrameGeneration.backBufferFormat = ffxApiGetSurfaceFormatVK(pCreateInfo->imageFormat);
         std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
 
+        ffx::CreateContextDescFrameGenerationHudless createContextDescFrameGenerationHudless{};
+        createContextDescFrameGenerationHudless.hudlessBackBufferFormat = createContextDescFrameGeneration.backBufferFormat;
+
         ffx::CreateBackendVKDesc createBackendVkDesc {};
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
         createBackendVkDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
@@ -103,11 +106,11 @@ public:
             configureDescFrameGeneration.frameID                            = 0;
             if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
                 Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
-            ffx::DestroyContext(context, nullptr);
         }
-        context = nullptr;
         if (swapchainContext != nullptr) ffx::DestroyContext(swapchainContext, nullptr);
         swapchainContext = nullptr;
+        if (context != nullptr) ffx::DestroyContext(context, nullptr);
+        context = nullptr;
         swapchain.vulkan = VK_NULL_HANDLE;
     }
 

@@ -573,6 +573,8 @@ namespace Conifer.Upscaler
                 _frameGeneration = frameGeneration;
             }
 
+            if (forceHistoryResetEveryFrame) ResetHistory();
+
             if (!Failure(CurrentStatus)) return;
             if (ErrorCallback is not null)
             {

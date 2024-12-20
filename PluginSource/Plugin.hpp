@@ -27,10 +27,10 @@ inline void log(std::string_view msg, const UnityLogType severity) {
     }
     for (auto& [msg, severity] : history)
         if (severity <= logLevel)
-            Unity::logInterface->Log(severity, msg.c_str(), "Conifer - Upscaler C++ Library: 'GfxPluginUpscaler.dll'", 0);
+            Unity::logInterface->Log(severity, msg.c_str(), "Conifer - Upscaler native library: 'GfxPluginUpscaler.dll'", 0);
     history.clear();
     if (!msg.empty() && severity <= logLevel)
-        Unity::logInterface->Log(severity, msg.data(), "Conifer - Upscaler C++ Library: 'GfxPluginUpscaler.dll'", 0);
+        Unity::logInterface->Log(severity, msg.data(), "Conifer - Upscaler native library: 'GfxPluginUpscaler.dll'", 0);
 }
 
 enum ImageID : uint8_t {

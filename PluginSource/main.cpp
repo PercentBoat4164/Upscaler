@@ -174,7 +174,7 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
     Upscaler& upscaler = *upscalers[camera];
     upscaler.settings.autoReactive = useReactiveMask;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});

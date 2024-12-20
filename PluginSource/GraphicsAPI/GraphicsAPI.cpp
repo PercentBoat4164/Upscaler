@@ -37,7 +37,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
               .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
-            eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
+            // eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
             Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             break;
         }
@@ -52,7 +52,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
               .ensureActiveRenderTextureIsBound = false
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
-            eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
+            // eventConfig.flags |= static_cast<unsigned>(kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission);
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
 #    ifdef ENABLE_DLSS
             DLSS_Upscaler::load(DX12);
