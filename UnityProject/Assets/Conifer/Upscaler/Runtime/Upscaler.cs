@@ -163,6 +163,8 @@ namespace Conifer.Upscaler
         public bool showTearLines;
         /// Displays an indicator whenever a frame generation history reset occurs. Only works when <see cref="frameGeneration"/> is enabled.
         public bool showResetIndicator;
+        /// @todo:
+        public bool showPacingIndicator;
         /// Only presents generated frames onto the screen. This allows easy visualization of generated frame quality. Only works when <see cref="frameGeneration"/> is enabled.
         public bool onlyPresentGenerated;
         /// Enables displaying upscaling input images. Will be affected by postprocessing effects. Only works when <see cref="Technique.FidelityFXSuperResolution"/> is the active technique.

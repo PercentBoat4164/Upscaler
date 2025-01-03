@@ -14,13 +14,14 @@
 
 #include <IUnityGraphicsVulkan.h>
 
+#include <array>
 
 struct VqsQueueSelection;
 
 class FSR_FrameGenerator final : protected FrameGenerator {
     static ffx::Context swapchainContext;
     static ffx::Context context;
-    static FfxApiResource hudlessColorResource;
+    static std::array<FfxApiResource, 2> hudlessColorResource;
     static FfxApiResource depthResource;
     static FfxApiResource motionResource;
     static VkFormat backBufferFormat;
@@ -36,8 +37,11 @@ public:
         if (selection.size() >= 2) {
             std::construct_at(&imageAcquire, selection[0].queueFamilyIndex, selection[0].queueIndex);
             std::construct_at(&present, selection[1].queueFamilyIndex, selection[1].queueIndex);
+            if (selection.size() == 3) {
+                std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
+                // asyncComputeSupported = true;
+            }
         }
-        if (selection.size() == 3) std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
     }
 
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
@@ -57,7 +61,8 @@ public:
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
 
         ffx::CreateContextDescFrameGeneration createContextDescFrameGeneration{};
-        createContextDescFrameGeneration.flags = static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED) |
+        createContextDescFrameGeneration.flags = (asyncComputeSupported ? FFX_FRAMEGENERATION_ENABLE_ASYNC_WORKLOAD_SUPPORT : 0U) |
+                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED) |
                                                  static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE) |
                                                  static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS);
         std::construct_at(&createContextDescFrameGeneration.displaySize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
@@ -65,9 +70,11 @@ public:
         std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
 
         ffx::CreateContextDescFrameGenerationHudless createContextDescFrameGenerationHudless{};
+        createContextDescFrameGenerationHudless.header.pNext            = &createContextDescFrameGeneration.header;
         createContextDescFrameGenerationHudless.hudlessBackBufferFormat = createContextDescFrameGeneration.backBufferFormat;
 
         ffx::CreateBackendVKDesc createBackendVkDesc {};
+        createBackendVkDesc.header.pNext     = &createContextDescFrameGenerationHudless.header;
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
         createBackendVkDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createBackendVkDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
@@ -114,11 +121,24 @@ public:
         swapchain.vulkan = VK_NULL_HANDLE;
     }
 
-    static void useImages(VkImage color, VkImage depth, VkImage motion) {
+    static void useImages(VkImage color0, VkImage color1, VkImage depth, VkImage motion) {
         UnityVulkanImage image{};
-        Vulkan::getGraphicsInterface()->AccessTexture(color, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
-        hudlessColorResource.resource = image.image;
-        hudlessColorResource.description = {
+        Vulkan::getGraphicsInterface()->AccessTexture(color0, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        hudlessColorResource.at(0).resource = image.image;
+        hudlessColorResource.at(0).description = {
+            .type     = FFX_API_RESOURCE_TYPE_TEXTURE2D,
+            .format   = ffxApiGetSurfaceFormatVK(image.format),
+            .width    = image.extent.width,
+            .height   = image.extent.height,
+            .depth    = image.extent.depth,
+            .mipCount = 1U,
+            .flags    = FFX_API_RESOURCE_FLAGS_ALIASABLE,
+            .usage    = static_cast<uint32_t>(FFX_API_RESOURCE_USAGE_READ_ONLY),
+          };
+        hudlessColorResource.at(0).state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        Vulkan::getGraphicsInterface()->AccessTexture(color1, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        hudlessColorResource.at(1).resource = image.image;
+        hudlessColorResource.at(1).description = {
           .type     = FFX_API_RESOURCE_TYPE_TEXTURE2D,
           .format   = ffxApiGetSurfaceFormatVK(image.format),
           .width    = image.extent.width,
@@ -128,7 +148,7 @@ public:
           .flags    = FFX_API_RESOURCE_FLAGS_ALIASABLE,
           .usage    = static_cast<uint32_t>(FFX_API_RESOURCE_USAGE_READ_ONLY),
         };
-        hudlessColorResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        hudlessColorResource.at(1).state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
         image = {};
         Vulkan::getGraphicsInterface()->AccessTexture(depth, UnityVulkanWholeImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
         depthResource.resource = image.image;
@@ -159,11 +179,9 @@ public:
         motionResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
 
-    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned options) {
+    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
+        static uint32_t frameNumber;
         if (swapchain.vulkan == VK_NULL_HANDLE) return;
-        UnityVulkanRecordingState state {};
-        Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
-        state.currentFrameNumber >>= 2U;
 
         ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
@@ -171,19 +189,24 @@ public:
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
         configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t { return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header); };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
-        configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
-        configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x10U) != 0U && asyncComputeSupported;
-        configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource;
+        configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.at(index).description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
+        configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x20U) != 0U && asyncComputeSupported;
+        configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource.at(index);
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
                                                                           ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
-                                                                          ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U);
-        configureDescFrameGeneration.onlyPresentGenerated               = (options & 0x8U) != 0U;
+                                                                          ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U) |
+                                                                          ((options & 0x8U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES : 0U) &
+                                                                          ~static_cast<unsigned>(FFX_FRAMEGENERATION_FLAG_NO_SWAPCHAIN_CONTEXT_NOTIFY);
+        configureDescFrameGeneration.onlyPresentGenerated               = (options & 0x10U) != 0U;
         configureDescFrameGeneration.generationRect                     = generationRect;
-        configureDescFrameGeneration.frameID                            = state.currentFrameNumber;
+        configureDescFrameGeneration.frameID                            = frameNumber;
         if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
             Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
 
         if (configureDescFrameGeneration.frameGenerationEnabled) {
+            UnityVulkanRecordingState state {};
+            Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
+
             ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
             dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
             dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
@@ -202,6 +225,7 @@ public:
             if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
                 Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
         }
+        ++frameNumber;
     }
 
     static bool ownsSwapchain(VkSwapchainKHR swapchain) {

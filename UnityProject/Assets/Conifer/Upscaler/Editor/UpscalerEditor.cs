@@ -49,6 +49,7 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _frameGenerationDebugView;
         private SerializedProperty _showTearLines;
         private SerializedProperty _showResetIndicator;
+        private SerializedProperty _showPacingIndicator;
         private SerializedProperty _onlyPresentGenerated;
 
         private SerializedProperty _forceHistoryResetEveryFrame;
@@ -79,6 +80,7 @@ namespace Conifer.Upscaler.Editor
             _frameGenerationDebugView = serializedObject.FindProperty("frameGenerationDebugView");
             _showTearLines = serializedObject.FindProperty("showTearLines");
             _showResetIndicator = serializedObject.FindProperty("showResetIndicator");
+            _showPacingIndicator = serializedObject.FindProperty("showPacingIndicator");
             _onlyPresentGenerated = serializedObject.FindProperty("onlyPresentGenerated");
 
             _forceHistoryResetEveryFrame = serializedObject.FindProperty("forceHistoryResetEveryFrame");
@@ -248,6 +250,10 @@ namespace Conifer.Upscaler.Editor
                         new GUIContent("Show Reset Indicator",
                             "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
                         _showResetIndicator.boolValue);
+                    _showPacingIndicator.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("Show Pacing Indicator",
+                            "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
+                        _showPacingIndicator.boolValue);
                     _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("Only Present Generated Frames",
                             "Presents only the generated frames."),

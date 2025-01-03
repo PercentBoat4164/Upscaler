@@ -43,6 +43,7 @@ struct alignas(64) FrameGenerateData {
     float farPlane;
     float nearPlane;
     float verticalFOV;
+    unsigned index;
     unsigned options;
 };
 
@@ -85,6 +86,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
                 data.farPlane,
                 data.nearPlane,
                 data.verticalFOV,
+                data.index,
                 data.options
             );
             break;
@@ -180,8 +182,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscaling
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGenerationImages(void* color, void* depth, void* motion) {
-    FSR_FrameGenerator::useImages(static_cast<VkImage>(color), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGenerationImages(void* color0, void* color1, void* depth, void* motion) {
+    FSR_FrameGenerator::useImages(static_cast<VkImage>(color0), static_cast<VkImage>(color1), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
 }
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {

@@ -73,12 +73,10 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
     }
     if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
         m_vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
-        // return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateWin32SurfaceKHR);
         return reinterpret_cast<PFN_vkVoidFunction>(m_vkCreateWin32SurfaceKHR);
     }
     if (strcmp(name, "vkDestroySurfaceKHR") == 0) {
         m_vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(m_vkGetInstanceProcAddr(instance, name));
-        // return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySurfaceKHR);
         return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroySurfaceKHR);
     }
     if (strcmp(name, "vkGetPhysicalDeviceQueueFamilyProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkGetPhysicalDeviceQueueFamilyProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(m_vkGetInstanceProcAddr(instance, name)));
@@ -198,12 +196,12 @@ VkResult Vulkan::hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, 
 VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
     static VkDeviceCreateInfo createInfo = *pCreateInfo;
     void* hwnd = nullptr;
-    const VqsQueueRequirements asyncRequirements[] {
-      {VK_QUEUE_TRANSFER_BIT, 0.9F, VK_NULL_HANDLE},
-      {0,                     1.0F, createDummySurface(hwnd)},
-      {VK_QUEUE_COMPUTE_BIT,  1.0F, VK_NULL_HANDLE}
+    const std::array asyncRequirements {
+      VqsQueueRequirements{VK_QUEUE_TRANSFER_BIT, 0.9F, VK_NULL_HANDLE},
+      VqsQueueRequirements{0,                     1.0F, createDummySurface(hwnd)},
+      VqsQueueRequirements{VK_QUEUE_COMPUTE_BIT,  1.0F, VK_NULL_HANDLE}
     };
-    const VqsQueueRequirements noAsyncRequirements[] {
+    const std::array noAsyncRequirements {
         asyncRequirements[0],
         asyncRequirements[1]
     };
@@ -220,10 +218,10 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
         .vkGetPhysicalDeviceSurfaceSupportKHR = m_vkGetPhysicalDeviceSurfaceSupportKHR
     };
 
-    VqsQueryCreateInfo queryCreateInfo{
+    VqsQueryCreateInfo queryCreateInfo {
         .physicalDevice = physicalDevice,
         .queueRequirementCount = std::size(asyncRequirements),
-        .pQueueRequirements = asyncRequirements,
+        .pQueueRequirements = asyncRequirements.data(),
         .pVulkanFunctions = &vkFuncs
     };
 
@@ -234,7 +232,7 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
     if (vqsPerformQuery(query) != VK_SUCCESS) {
         vqsDestroyQuery(query);
         queryCreateInfo.queueRequirementCount = std::size(noAsyncRequirements);
-        queryCreateInfo.pQueueRequirements = noAsyncRequirements;
+        queryCreateInfo.pQueueRequirements = noAsyncRequirements.data();
         vqsCreateQuery(&queryCreateInfo, &query);
         if (vqsPerformQuery(query) == VK_SUCCESS) {
             selections.resize(std::size(noAsyncRequirements));
