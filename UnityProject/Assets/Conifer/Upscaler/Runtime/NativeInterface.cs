@@ -71,7 +71,7 @@ namespace Conifer.Upscaler
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetBackBufferFormat")]
         internal static extern GraphicsFormat GetBackBufferFormat();
-
+        
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
         internal static extern void UnregisterCamera(ushort camera);
     }
@@ -142,7 +142,7 @@ namespace Conifer.Upscaler
         }
 
         private struct FrameGenerateData {
-            internal FrameGenerateData(Upscaler upscaler, uint i)
+            internal FrameGenerateData(Upscaler upscaler, uint imageIndex)
             {
                 _enable = upscaler.frameGeneration;
                 _generationRect = Application.isEditor ? new Rect(1, 40, Screen.width, Screen.height) : new Rect(0, 0, Screen.width, Screen.height);
@@ -153,7 +153,7 @@ namespace Conifer.Upscaler
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
                 _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
-                _index = i;
+                _index = imageIndex;
                 _options = (upscaler.frameGenerationDebugView ? 0x1U : 0U) |
                            (upscaler.showTearLines ? 0x2U : 0U) |
                            (upscaler.showResetIndicator ? 0x4U : 0U) |
@@ -212,9 +212,9 @@ namespace Conifer.Upscaler
             ShouldResetHistory = false;
         }
 
-        internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint i)
+        internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
         {
-            Marshal.StructureToPtr(new FrameGenerateData(upscaler, i), _frameGenerateDataPtr, true);
+            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex), _frameGenerateDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 

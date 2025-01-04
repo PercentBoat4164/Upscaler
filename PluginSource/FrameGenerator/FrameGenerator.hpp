@@ -1,4 +1,8 @@
 #pragma once
+
+#include <vcruntime.h>
+
+#include <IUnityRenderingExtensions.h>
 #ifdef ENABLE_FRAME_GENERATION
 #    ifdef ENABLE_VULKAN
 #        include <vulkan/vulkan.h>
@@ -9,6 +13,7 @@
 class FrameGenerator {
 protected:
     static std::unordered_map<uint64_t, VkSwapchainKHR> SizeToVkSwapchainKHR;
+    static UnityRenderingExtTextureFormat backBufferFormat;
 
     static union Swapchain {
 #    ifdef ENABLE_VULKAN
@@ -24,8 +29,9 @@ public:
     FrameGenerator& operator=(FrameGenerator&&)      = delete;
     virtual ~FrameGenerator()                        = default;
 
-    static void           addMapping(uint64_t size, VkSwapchainKHR swapchain);
-    static void           removeMapping(VkSwapchainKHR swapchain);
-    static VkSwapchainKHR getSwapchain(uint64_t size);
+    static void                           addMapping(uint64_t size, VkSwapchainKHR swapchain);
+    static void                           removeMapping(VkSwapchainKHR swapchain);
+    static VkSwapchainKHR                 getSwapchain(uint64_t size);
+    static UnityRenderingExtTextureFormat getBackBufferFormat();
 };
 #endif

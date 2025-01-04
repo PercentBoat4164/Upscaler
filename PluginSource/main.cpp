@@ -1,6 +1,6 @@
+#include "FrameGenerator/FSR_FrameGenerator.hpp"
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
-#include "FrameGenerator/FSR_FrameGenerator.hpp"
 
 #include "IUnityRenderingExtensions.h"
 
@@ -99,10 +99,6 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrec
     return Plugin::loadedCorrectly;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_DlssLoadedCorrectly() {
-    return Plugin::dlssLoadedCorrectly;
-}
-
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(const UnityLogType type) {
     Plugin::logLevel = type;
     Plugin::log("", type);
@@ -187,7 +183,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGene
 }
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {
-    return FSR_FrameGenerator::getBackBufferFormat();
+    return FrameGenerator::getBackBufferFormat();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {

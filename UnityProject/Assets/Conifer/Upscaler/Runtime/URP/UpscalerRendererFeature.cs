@@ -383,12 +383,12 @@ namespace Conifer.Upscaler.URP
 
         private class FrameGenerate : ScriptableRenderPass
         {
-            private static RTHandle[] _hudless = new RTHandle[2];
+            private static readonly RTHandle[] Hudless = new RTHandle[2];
+            private static uint _hudlessBufferIndex;
             private static RTHandle _flippedDepth;
             private static RTHandle _flippedMotion;
             private static readonly Vector2Int Offset = new(1, 1);
             private static readonly Vector2Int ExtraResolution = new(2, 42);
-            private static uint _i = 0;
 
             public FrameGenerate() => renderPassEvent = (RenderPassEvent)int.MaxValue;
 
@@ -400,8 +400,8 @@ namespace Conifer.Upscaler.URP
                 descriptor.width += ExtraResolution.x;
                 descriptor.height += ExtraResolution.y;
                 var needsUpdate = _renderTargetsUpdated;
-                needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _hudless[0], descriptor, name: "Conifer_FrameGenHUDLessTarget");
-                needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _hudless[1], descriptor, name: "Conifer_FrameGenHUDLessTarget");
+                needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref Hudless[0], descriptor, name: "Conifer_FrameGenHUDLessTarget0");
+                needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref Hudless[1], descriptor, name: "Conifer_FrameGenHUDLessTarget1");
                 descriptor = _cameraOutputResolutionColorTarget.rt.descriptor;
                 descriptor.width += ExtraResolution.x;
                 descriptor.height += ExtraResolution.y;
@@ -414,7 +414,7 @@ namespace Conifer.Upscaler.URP
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _flippedDepth, descriptor, isShadowMap: true, name: "Conifer_FrameGenFlippedDepthTarget");
 
                 if (!needsUpdate) return;
-                NativeInterface.SetFrameGenerationImages(_hudless[0].rt.GetNativeTexturePtr(), _hudless[1].rt.GetNativeTexturePtr(), _flippedDepth.rt.GetNativeTexturePtr(), _flippedMotion.rt.GetNativeTexturePtr());
+                NativeInterface.SetFrameGenerationImages(Hudless[0].rt.GetNativeTexturePtr(), Hudless[1].rt.GetNativeTexturePtr(), _flippedDepth.rt.GetNativeTexturePtr(), _flippedMotion.rt.GetNativeTexturePtr());
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -423,22 +423,23 @@ namespace Conifer.Upscaler.URP
                 var srcRes = new Vector2(renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height);
                 var dstRes = srcRes + ExtraResolution;
                 cb.Blit(null, _cameraOutputResolutionColorTarget);
-                cb.CopyTexture(_cameraOutputResolutionColorTarget, 0, 0, 0, 0, renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height, _hudless[_i], 0, 0, 1, 40);
+                cb.CopyTexture(_cameraOutputResolutionColorTarget, 0, 0, 0, 0, renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height, Hudless[_hudlessBufferIndex], 0, 0, 1, 40);
                 MultipurposeBlit(cb, Shader.GetGlobalTexture(MotionID), _flippedMotion, false, true, Offset, srcRes, dstRes);
                 MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _flippedDepth, true, true, Offset, srcRes, dstRes);
-                _upscaler.NativeInterface.FrameGenerate(cb, _upscaler, _i);
-                cb.SetRenderTarget(k_CameraTarget);
+                
+                _upscaler.NativeInterface.FrameGenerate(cb, _upscaler, _hudlessBufferIndex);
+                cb.SetRenderTarget(k_CameraTarget);cb.SetRenderTarget(k_CameraTarget);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
-                _i = (_i + 1U) % (uint)_hudless.Length;
+                _hudlessBufferIndex = (_hudlessBufferIndex + 1U) % (uint)Hudless.Length;
             }
 
             public static void FreeMemory()
             {
-                _hudless[0]?.Release();
-                _hudless[0] = null;
-                _hudless[1]?.Release();
-                _hudless[1] = null;
+                Hudless[0]?.Release();
+                Hudless[0] = null;
+                Hudless[1]?.Release();
+                Hudless[1] = null;
                 _flippedDepth?.Release();
                 _flippedDepth = null;
                 _flippedMotion?.Release();
@@ -498,7 +499,7 @@ namespace Conifer.Upscaler.URP
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             if (_upscaler.IsTemporal()) renderer.EnqueuePass(_setMipBias);
             renderer.EnqueuePass(_upscale);
-            // if (_upscaler.frameGeneration)
+            if (_upscaler.frameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
                 renderer.EnqueuePass(_frameGenerate);
             _renderTargetsUpdated = false;
         }

@@ -321,7 +321,7 @@ VkResult Vulkan::hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR sw
 VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
     VkResult   result{VK_SUCCESS};
     const bool isFsrSwapchain = FSR_FrameGenerator::ownsSwapchain(swapchain);
-    if ((isFsrSwapchain && Plugin::frameGenerationProvider != Plugin::FSR) || FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain) return VK_ERROR_OUT_OF_DATE_KHR;
+    if (isFsrSwapchain ^ Plugin::frameGenerationProvider == Plugin::FSR && FrameGenerator::getSwapchain(SizeOfSwapchainToRecreate) == swapchain) return VK_ERROR_OUT_OF_DATE_KHR;
     if (isFsrSwapchain) result = m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     else result = m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
     return result;

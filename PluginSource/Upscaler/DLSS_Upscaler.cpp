@@ -238,11 +238,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetP
         case GraphicsAPI::DX11: pref.renderAPI = sl::RenderAPI::eD3D11; break;
         default: supported = Unsupported; return;
     }
-    if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk)) {
-        supported = Unsupported;
-        return;
-    }
-    Plugin::dlssLoadedCorrectly = true;
+    if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk)) supported = Unsupported;
 }
 
 void DLSS_Upscaler::shutdown() {

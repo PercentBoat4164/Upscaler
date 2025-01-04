@@ -24,7 +24,6 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     static std::array<FfxApiResource, 2> hudlessColorResource;
     static FfxApiResource depthResource;
     static FfxApiResource motionResource;
-    static VkFormat backBufferFormat;
 
     static struct alignas(8) QueueData {
         uint32_t family{}, index{};
@@ -69,20 +68,14 @@ public:
         createContextDescFrameGeneration.backBufferFormat = ffxApiGetSurfaceFormatVK(pCreateInfo->imageFormat);
         std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
 
-        ffx::CreateContextDescFrameGenerationHudless createContextDescFrameGenerationHudless{};
-        createContextDescFrameGenerationHudless.header.pNext            = &createContextDescFrameGeneration.header;
-        createContextDescFrameGenerationHudless.hudlessBackBufferFormat = createContextDescFrameGeneration.backBufferFormat;
-
         ffx::CreateBackendVKDesc createBackendVkDesc {};
-        createBackendVkDesc.header.pNext     = &createContextDescFrameGenerationHudless.header;
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
         createBackendVkDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createBackendVkDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
-
-        if (CreateContext(context, nullptr, createContextDescFrameGeneration, createBackendVkDesc) != ffx::ReturnCode::Ok)
+        if (CreateContext(context, nullptr, createContextDescFrameGeneration, createBackendVkDesc) != ffx::ReturnCode::Ok || context == nullptr)
             return Plugin::log("Failed to create frame generation context.", kUnityLogTypeError);
         swapchain.vulkan = *pSwapchain;
-        backBufferFormat = pCreateInfo->imageFormat;
+        backBufferFormat = vkFormatToUnityFormat(pCreateInfo->imageFormat);
 
         ffx::QueryDescSwapchainReplacementFunctionsVK replacementFunctionsVk{};
         if (Query(swapchainContext, replacementFunctionsVk) != ffx::ReturnCode::Ok)
@@ -119,6 +112,7 @@ public:
         if (context != nullptr) ffx::DestroyContext(context, nullptr);
         context = nullptr;
         swapchain.vulkan = VK_NULL_HANDLE;
+        backBufferFormat = kUnityRenderingExtFormatNone;
     }
 
     static void useImages(VkImage color0, VkImage color1, VkImage depth, VkImage motion) {
@@ -181,7 +175,6 @@ public:
 
     static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
         static uint32_t frameNumber;
-        if (swapchain.vulkan == VK_NULL_HANDLE) return;
 
         ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
@@ -189,7 +182,7 @@ public:
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
         configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t { return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header); };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
-        configureDescFrameGeneration.frameGenerationEnabled             = enable && hudlessColorResource.at(index).description.format == ffxApiGetSurfaceFormatVK(backBufferFormat);
+        configureDescFrameGeneration.frameGenerationEnabled             = enable;
         configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x20U) != 0U && asyncComputeSupported;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource.at(index);
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
@@ -211,9 +204,9 @@ public:
             dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
             dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
             dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
-            std::construct_at(&dispatchDescFrameGenerationPrepare.renderSize, depthResource.description.width, depthResource.description.height);
+            std::construct_at(&dispatchDescFrameGenerationPrepare.renderSize, generationRect.width, generationRect.height);
             dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
-            std::construct_at(&dispatchDescFrameGenerationPrepare.motionVectorScale, -static_cast<float>(motionResource.description.width), -static_cast<float>(motionResource.description.height));
+            std::construct_at(&dispatchDescFrameGenerationPrepare.motionVectorScale, -static_cast<float>(generationRect.width), -static_cast<float>(generationRect.height));
             dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
             dispatchDescFrameGenerationPrepare.unused_reset            = false;
             dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
@@ -236,8 +229,8 @@ public:
         return &swapchainContext;
     }
 
-    static UnityRenderingExtTextureFormat getBackBufferFormat() {
-        switch (backBufferFormat) {
+    static UnityRenderingExtTextureFormat vkFormatToUnityFormat(const VkFormat format) {
+        switch (format) {
             case VK_FORMAT_R8_UNORM: return kUnityRenderingExtFormatR8_UNorm;
             case VK_FORMAT_R8_SNORM: return kUnityRenderingExtFormatR8_SNorm;
             case VK_FORMAT_R8_UINT: return kUnityRenderingExtFormatR8_UInt;
@@ -316,6 +309,89 @@ public:
             case VK_FORMAT_A2B10G10R10_UINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UIntPack32;
             case VK_FORMAT_A2B10G10R10_SINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_SIntPack32;
             default: return kUnityRenderingExtFormatNone;
+        }
+    }
+
+    static VkFormat unityFormatToVkFormat(const UnityRenderingExtTextureFormat format) {
+        switch (format) {
+            case kUnityRenderingExtFormatR8_UNorm: return VK_FORMAT_R8_UNORM;
+            case kUnityRenderingExtFormatR8_SNorm: return VK_FORMAT_R8_SNORM;
+            case kUnityRenderingExtFormatR8_UInt: return VK_FORMAT_R8_UINT;
+            case kUnityRenderingExtFormatR8_SInt: return VK_FORMAT_R8_SINT;
+            case kUnityRenderingExtFormatR8_SRGB: return VK_FORMAT_R8_SRGB;
+            case kUnityRenderingExtFormatR8G8_UNorm: return VK_FORMAT_R8G8_UNORM;
+            case kUnityRenderingExtFormatR8G8_SNorm: return VK_FORMAT_R8G8_SNORM;
+            case kUnityRenderingExtFormatR8G8_UInt: return VK_FORMAT_R8G8_UINT;
+            case kUnityRenderingExtFormatR8G8_SInt: return VK_FORMAT_R8G8_SINT;
+            case kUnityRenderingExtFormatR8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
+            case kUnityRenderingExtFormatR8G8B8_UNorm: return VK_FORMAT_R8G8B8_UNORM;
+            case kUnityRenderingExtFormatR8G8B8_SNorm: return VK_FORMAT_R8G8B8_SNORM;
+            case kUnityRenderingExtFormatR8G8B8_UInt: return VK_FORMAT_R8G8B8_UINT;
+            case kUnityRenderingExtFormatR8G8B8_SInt: return VK_FORMAT_R8G8B8_SINT;
+            case kUnityRenderingExtFormatR8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
+            case kUnityRenderingExtFormatB8G8R8_UNorm: return VK_FORMAT_B8G8R8_UNORM;
+            case kUnityRenderingExtFormatB8G8R8_SNorm: return VK_FORMAT_B8G8R8_SNORM;
+            case kUnityRenderingExtFormatB8G8R8_UInt: return VK_FORMAT_B8G8R8_UINT;
+            case kUnityRenderingExtFormatB8G8R8_SInt: return VK_FORMAT_B8G8R8_SINT;
+            case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
+            case kUnityRenderingExtFormatR8G8B8A8_UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
+            case kUnityRenderingExtFormatR8G8B8A8_SNorm: return VK_FORMAT_R8G8B8A8_SNORM;
+            case kUnityRenderingExtFormatR8G8B8A8_UInt: return VK_FORMAT_R8G8B8A8_UINT;
+            case kUnityRenderingExtFormatR8G8B8A8_SInt: return VK_FORMAT_R8G8B8A8_SINT;
+            case kUnityRenderingExtFormatR8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+            case kUnityRenderingExtFormatB8G8R8A8_UNorm: return VK_FORMAT_B8G8R8A8_UNORM;
+            case kUnityRenderingExtFormatB8G8R8A8_SNorm: return VK_FORMAT_B8G8R8A8_SNORM;
+            case kUnityRenderingExtFormatB8G8R8A8_UInt: return VK_FORMAT_B8G8R8A8_UINT;
+            case kUnityRenderingExtFormatB8G8R8A8_SInt: return VK_FORMAT_B8G8R8A8_SINT;
+            case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+            case kUnityRenderingExtFormatR16_UNorm: return VK_FORMAT_R16_UNORM;
+            case kUnityRenderingExtFormatR16_SNorm: return VK_FORMAT_R16_SNORM;
+            case kUnityRenderingExtFormatR16_UInt: return VK_FORMAT_R16_UINT;
+            case kUnityRenderingExtFormatR16_SInt: return VK_FORMAT_R16_SINT;
+            case kUnityRenderingExtFormatR16_SFloat: return VK_FORMAT_R16_SFLOAT;
+            case kUnityRenderingExtFormatR16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
+            case kUnityRenderingExtFormatR16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
+            case kUnityRenderingExtFormatR16G16_UInt: return VK_FORMAT_R16G16_UINT;
+            case kUnityRenderingExtFormatR16G16_SInt: return VK_FORMAT_R16G16_SINT;
+            case kUnityRenderingExtFormatR16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
+            case kUnityRenderingExtFormatR16G16B16_UNorm: return VK_FORMAT_R16G16B16_UNORM;
+            case kUnityRenderingExtFormatR16G16B16_SNorm: return VK_FORMAT_R16G16B16_SNORM;
+            case kUnityRenderingExtFormatR16G16B16_UInt: return VK_FORMAT_R16G16B16_UINT;
+            case kUnityRenderingExtFormatR16G16B16_SInt: return VK_FORMAT_R16G16B16_SINT;
+            case kUnityRenderingExtFormatR16G16B16_SFloat: return VK_FORMAT_R16G16B16_SFLOAT;
+            case kUnityRenderingExtFormatR16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
+            case kUnityRenderingExtFormatR16G16B16A16_SNorm: return VK_FORMAT_R16G16B16A16_SNORM;
+            case kUnityRenderingExtFormatR16G16B16A16_UInt: return VK_FORMAT_R16G16B16A16_UINT;
+            case kUnityRenderingExtFormatR16G16B16A16_SInt: return VK_FORMAT_R16G16B16A16_SINT;
+            case kUnityRenderingExtFormatR16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
+            case kUnityRenderingExtFormatR32_UInt: return VK_FORMAT_R32_UINT;
+            case kUnityRenderingExtFormatR32_SInt: return VK_FORMAT_R32_SINT;
+            case kUnityRenderingExtFormatR32_SFloat: return VK_FORMAT_R32_SFLOAT;
+            case kUnityRenderingExtFormatR32G32_UInt: return VK_FORMAT_R32G32_UINT;
+            case kUnityRenderingExtFormatR32G32_SInt: return VK_FORMAT_R32G32_SINT;
+            case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
+            case kUnityRenderingExtFormatR32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
+            case kUnityRenderingExtFormatR32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
+            case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
+            case kUnityRenderingExtFormatR32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
+            case kUnityRenderingExtFormatR32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
+            case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case kUnityRenderingExtFormatR4G4B4A4_UNormPack16: return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+            case kUnityRenderingExtFormatB4G4R4A4_UNormPack16: return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+            case kUnityRenderingExtFormatR5G6B5_UNormPack16: return VK_FORMAT_R5G6B5_UNORM_PACK16;
+            case kUnityRenderingExtFormatB5G6R5_UNormPack16: return VK_FORMAT_B5G6R5_UNORM_PACK16;
+            case kUnityRenderingExtFormatR5G5B5A1_UNormPack16: return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+            case kUnityRenderingExtFormatB5G5R5A1_UNormPack16: return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+            case kUnityRenderingExtFormatA1R5G5B5_UNormPack16: return VK_FORMAT_A1R5G5B5_UNORM_PACK16;
+            case kUnityRenderingExtFormatE5B9G9R9_UFloatPack32: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+            case kUnityRenderingExtFormatB10G11R11_UFloatPack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+            case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
+            case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
+            case kUnityRenderingExtFormatA2B10G10R10_UNormPack32: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case kUnityRenderingExtFormatA2B10G10R10_UIntPack32: return VK_FORMAT_A2B10G10R10_UINT_PACK32;
+            case kUnityRenderingExtFormatA2B10G10R10_SIntPack32: return VK_FORMAT_A2B10G10R10_SINT_PACK32;
+            default: return VK_FORMAT_UNDEFINED;
         }
     }
 };

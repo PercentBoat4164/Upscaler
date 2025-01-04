@@ -5,7 +5,6 @@ ffx::Context FSR_FrameGenerator::context {nullptr};
 std::array<FfxApiResource, 2> FSR_FrameGenerator::hudlessColorResource {};
 FfxApiResource FSR_FrameGenerator::depthResource {};
 FfxApiResource FSR_FrameGenerator::motionResource {};
-VkFormat FSR_FrameGenerator::backBufferFormat {};
 
 FSR_FrameGenerator::QueueData FSR_FrameGenerator::asyncCompute{}, FSR_FrameGenerator::present{}, FSR_FrameGenerator::imageAcquire{};
 bool FSR_FrameGenerator::supported{false};

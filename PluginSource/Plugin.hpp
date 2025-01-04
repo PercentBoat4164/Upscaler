@@ -55,5 +55,4 @@ inline enum FrameGenerationProvider : uint8_t {
 constexpr std::size_t NumBaseImages = 4;
 constexpr std::size_t NumImages = 6;
 inline bool loadedCorrectly = false;
-inline bool dlssLoadedCorrectly = false;
 }  // namespace Plugin

@@ -568,11 +568,9 @@ namespace Conifer.Upscaler
                 _screenWidth = Screen.width;
                 _screenHeight = Screen.height;
             }
-
-            if (frameGeneration != _frameGeneration)
+            else
             {
                 NativeInterface.SetFrameGeneration(frameGeneration);
-                _frameGeneration = frameGeneration;
             }
 
             if (forceHistoryResetEveryFrame) ResetHistory();
