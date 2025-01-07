@@ -259,7 +259,7 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
         vqsEnumerateDeviceQueueCreateInfos(query, &queueCreateInfoCount, queueCreateInfos.data(), &queuePriorityCount, priorities.data());
         uint32_t queueCount{};
         for (uint32_t i{}; i < createInfo.queueCreateInfoCount; ++i)
-            for (VkDeviceQueueCreateInfo& queueCreateInfo : queueCreateInfos)
+            for (const VkDeviceQueueCreateInfo& queueCreateInfo : queueCreateInfos)
                 queueCount += queueCreateInfo.queueCount + createInfo.pQueueCreateInfos[i].queueCount;
         allPriorities.resize(queueCount);
         queueCount = 0;
@@ -280,8 +280,7 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
     }
     vqsDestroyQuery(query);
 
-    if (m_slCreateDevice != VK_NULL_HANDLE)
-        return m_slCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
+    if (m_slCreateDevice != VK_NULL_HANDLE) return m_slCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
     return m_vkCreateDevice(physicalDevice, &createInfo, pAllocator, pDevice);
 }
 

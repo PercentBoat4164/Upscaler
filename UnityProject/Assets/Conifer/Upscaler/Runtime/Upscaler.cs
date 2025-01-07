@@ -555,7 +555,7 @@ namespace Conifer.Upscaler
         private int _screenHeight = Screen.height;
         internal bool DisableUpscaling;
 
-        protected void Update()
+        protected void LateUpdate()
         {
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();

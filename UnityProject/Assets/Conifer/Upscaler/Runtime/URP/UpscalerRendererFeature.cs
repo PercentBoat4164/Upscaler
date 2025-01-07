@@ -426,7 +426,6 @@ namespace Conifer.Upscaler.URP
                 cb.CopyTexture(_cameraOutputResolutionColorTarget, 0, 0, 0, 0, renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height, Hudless[_hudlessBufferIndex], 0, 0, 1, 40);
                 MultipurposeBlit(cb, Shader.GetGlobalTexture(MotionID), _flippedMotion, false, true, Offset, srcRes, dstRes);
                 MultipurposeBlit(cb, _cameraOutputResolutionDepthTarget, _flippedDepth, true, true, Offset, srcRes, dstRes);
-                
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler, _hudlessBufferIndex);
                 cb.SetRenderTarget(k_CameraTarget);cb.SetRenderTarget(k_CameraTarget);
                 context.ExecuteCommandBuffer(cb);
@@ -499,7 +498,7 @@ namespace Conifer.Upscaler.URP
             _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
             if (_upscaler.IsTemporal()) renderer.EnqueuePass(_setMipBias);
             renderer.EnqueuePass(_upscale);
-            if (_upscaler.frameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
+            if (NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
                 renderer.EnqueuePass(_frameGenerate);
             _renderTargetsUpdated = false;
         }

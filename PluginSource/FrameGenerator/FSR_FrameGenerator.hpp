@@ -37,8 +37,8 @@ public:
             std::construct_at(&imageAcquire, selection[0].queueFamilyIndex, selection[0].queueIndex);
             std::construct_at(&present, selection[1].queueFamilyIndex, selection[1].queueIndex);
             if (selection.size() == 3) {
-                std::construct_at(&asyncCompute, selection[1].queueFamilyIndex, selection[1].queueIndex);
-                // asyncComputeSupported = true;
+                std::construct_at(&asyncCompute, selection[2].queueFamilyIndex, selection[2].queueIndex);
+                asyncComputeSupported = true;
             }
         }
     }
@@ -188,8 +188,7 @@ public:
         configureDescFrameGeneration.flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
                                                                           ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
                                                                           ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U) |
-                                                                          ((options & 0x8U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES : 0U) &
-                                                                          ~static_cast<unsigned>(FFX_FRAMEGENERATION_FLAG_NO_SWAPCHAIN_CONTEXT_NOTIFY);
+                                                                          ((options & 0x8U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES : 0U);
         configureDescFrameGeneration.onlyPresentGenerated               = (options & 0x10U) != 0U;
         configureDescFrameGeneration.generationRect                     = generationRect;
         configureDescFrameGeneration.frameID                            = frameNumber;
