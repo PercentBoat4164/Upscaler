@@ -590,6 +590,8 @@ namespace Conifer.Upscaler
             ApplySettings(true);
         }
 
+        private void OnDisable() => NativeInterface.SetFrameGeneration(false);
+        
         private void OnGUI()
         {
             if (technique == Technique.None || !showRenderingAreaOverlay) return;

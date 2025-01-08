@@ -22,20 +22,25 @@ namespace Demo
             if (Input.GetKey(KeyCode.U))
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1)) _upscaler.technique = Upscaler.Technique.None;
-                if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.technique = Upscaler.Technique.DeepLearningSuperSampling;
-                if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.technique = Upscaler.Technique.FidelityFXSuperResolution;
-                if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.technique = Upscaler.Technique.XeSuperSampling;
+                else if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.technique = Upscaler.Technique.DeepLearningSuperSampling;
+                else if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.technique = Upscaler.Technique.FidelityFXSuperResolution;
+                else if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.technique = Upscaler.Technique.XeSuperSampling;
             }
             else if (Input.GetKey(KeyCode.Q))
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1)) _upscaler.quality = Upscaler.Quality.Auto;
-                if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.quality = Upscaler.Quality.AntiAliasing;
-                if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.quality = Upscaler.Quality.UltraQualityPlus;
-                if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.quality = Upscaler.Quality.UltraQuality;
-                if (Input.GetKeyDown(KeyCode.Alpha5)) _upscaler.quality = Upscaler.Quality.Quality;
-                if (Input.GetKeyDown(KeyCode.Alpha6)) _upscaler.quality = Upscaler.Quality.Balanced;
-                if (Input.GetKeyDown(KeyCode.Alpha7)) _upscaler.quality = Upscaler.Quality.Performance;
-                if (Input.GetKeyDown(KeyCode.Alpha8)) _upscaler.quality = Upscaler.Quality.UltraPerformance;
+                else if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.quality = Upscaler.Quality.AntiAliasing;
+                else if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.quality = Upscaler.Quality.UltraQualityPlus;
+                else if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.quality = Upscaler.Quality.UltraQuality;
+                else if (Input.GetKeyDown(KeyCode.Alpha5)) _upscaler.quality = Upscaler.Quality.Quality;
+                else if (Input.GetKeyDown(KeyCode.Alpha6)) _upscaler.quality = Upscaler.Quality.Balanced;
+                else if (Input.GetKeyDown(KeyCode.Alpha7)) _upscaler.quality = Upscaler.Quality.Performance;
+                else if (Input.GetKeyDown(KeyCode.Alpha8)) _upscaler.quality = Upscaler.Quality.UltraPerformance;
+            }
+            else if (Input.GetKey(KeyCode.F))
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) _upscaler.frameGeneration = false;
+                else if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.frameGeneration = true;
             }
 
             // Does nothing if settings have not changed.
