@@ -445,7 +445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   acceleration: 25
   accSprintMultiplier: 4
-  lookSensitivity: 2
+  lookSensitivity: 3
   dampingCoefficient: 5
 --- !u!114 &963194234
 MonoBehaviour:
@@ -468,7 +468,7 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 2
+  technique: 1
   frameGeneration: 1
   dlssPreset: 0
   sgsrMethod: 0
@@ -503,7 +503,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1308310398}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
   m_Name: 

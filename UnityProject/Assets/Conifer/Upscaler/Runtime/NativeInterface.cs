@@ -113,7 +113,7 @@ namespace Conifer.Upscaler
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
                 _jitter = upscaler.Jitter;
-                _orthographic_debugView_reset = (Convert.ToUInt32(camera.orthographic) << 0) |
+                _options = (Convert.ToUInt32(camera.orthographic) << 0) |
                                                 (Convert.ToUInt32(upscaler.upscalingDebugView)  << 1) |
                                                 (Convert.ToUInt32(reset)               << 2);
                 upscaler.LastViewToClip = _viewToClip;
@@ -138,7 +138,7 @@ namespace Conifer.Upscaler
             private Vector3 _right;
             private Vector3 _forward;
             private Vector2 _jitter;
-            private uint _orthographic_debugView_reset;
+            private uint _options;
         }
 
         private struct FrameGenerateData {
@@ -146,13 +146,14 @@ namespace Conifer.Upscaler
             {
                 _enable = upscaler.frameGeneration;
                 _generationRect = Application.isEditor ? new Rect(1, 40, Screen.width, Screen.height) : new Rect(0, 0, Screen.width, Screen.height);
-                var camera = upscaler.GetComponent<Camera>();
+                _renderSize = upscaler.InputResolution;
                 _jitterOffset = upscaler.Jitter;
                 _frameTime = Time.deltaTime * 1000.0f;
-                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
+                var projMat = upscaler.GetComponent<Camera>().nonJitteredProjectionMatrix;
+                var planes = projMat.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
-                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / projMat.m11) * 180.0f / (float)Math.PI;
                 _index = imageIndex;
                 _options = (upscaler.frameGenerationDebugView ? 0x1U : 0U) |
                            (upscaler.showTearLines ? 0x2U : 0U) |
@@ -164,6 +165,7 @@ namespace Conifer.Upscaler
 
             private bool _enable;
             private Rect _generationRect;
+            private Vector2 _renderSize;
             private Vector2 _jitterOffset;
             private float _frameTime;
             private float _farPlane;

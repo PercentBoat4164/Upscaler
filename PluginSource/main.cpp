@@ -32,12 +32,13 @@ struct alignas(128) UpscaleData {
     float right[3];
     float forward[3];
     float jitter[2];
-    unsigned orthographic_debugView_reset;
+    unsigned options;
 };
 
 struct alignas(64) FrameGenerateData {
     bool enable;
     float rect[4];
+    float renderSize[2];
     float jitter[2];
     float frameTime;
     float farPlane;
@@ -69,9 +70,9 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             upscaler.settings.reactiveValue     = data.reactiveValue;
             upscaler.settings.reactiveScale     = data.reactiveScale;
             upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-            upscaler.settings.orthographic      = (data.orthographic_debugView_reset & 0b1U) != 0U;
-            upscaler.settings.debugView         = (data.orthographic_debugView_reset & 0b10U) != 0U;
-            upscaler.settings.resetHistory      = (data.orthographic_debugView_reset & 0b100U) != 0U;
+            upscaler.settings.orthographic      = (data.options & 0b1U) != 0U;
+            upscaler.settings.debugView         = (data.options & 0b10U) != 0U;
+            upscaler.settings.resetHistory      = (data.options & 0b100U) != 0U;
             std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
             upscaler.evaluate();
             break;
@@ -81,6 +82,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             FSR_FrameGenerator::evaluate(
                 data.enable,
                 FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
+                FfxApiFloatCoords2D{data.renderSize[0], data.renderSize[1]},
                 FfxApiFloatCoords2D{data.jitter[0], data.jitter[1]},
                 data.frameTime,
                 data.farPlane,

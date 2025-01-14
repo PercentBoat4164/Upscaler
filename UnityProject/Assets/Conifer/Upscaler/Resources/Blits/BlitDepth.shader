@@ -40,7 +40,7 @@
             fixed4 frag (v2f i, out float oDepth : SV_Depth) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-                oDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.texcoord / Conifer_Upscaler_Scale - Conifer_Upscaler_Offset).r;
+                oDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.texcoord * Conifer_Upscaler_Scale + Conifer_Upscaler_Offset).r;
                 return float4(oDepth, 0, 0, 1);
             }
             ENDCG

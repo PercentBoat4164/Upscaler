@@ -173,14 +173,16 @@ public:
         motionResource.state = static_cast<uint32_t>(FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
     }
 
-    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
+    static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D renderSize, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
         static uint32_t frameNumber;
 
         ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
         configureDescFrameGeneration.presentCallback                    = nullptr;
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
-        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t { return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header); };
+        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
+            return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
+        };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
         configureDescFrameGeneration.frameGenerationEnabled             = enable;
         configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x20U) != 0U && asyncComputeSupported;
@@ -203,9 +205,9 @@ public:
             dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
             dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
             dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
-            std::construct_at(&dispatchDescFrameGenerationPrepare.renderSize, generationRect.width, generationRect.height);
+            std::construct_at(&dispatchDescFrameGenerationPrepare.renderSize, static_cast<uint32_t>(renderSize.x), static_cast<uint32_t>(renderSize.y));
             dispatchDescFrameGenerationPrepare.jitterOffset            = jitter;
-            std::construct_at(&dispatchDescFrameGenerationPrepare.motionVectorScale, -static_cast<float>(generationRect.width), -static_cast<float>(generationRect.height));
+            std::construct_at(&dispatchDescFrameGenerationPrepare.motionVectorScale, -static_cast<float>(generationRect.width), static_cast<float>(generationRect.height));
             dispatchDescFrameGenerationPrepare.frameTimeDelta          = frameTime;
             dispatchDescFrameGenerationPrepare.unused_reset            = false;
             dispatchDescFrameGenerationPrepare.cameraNear              = farPlane;
