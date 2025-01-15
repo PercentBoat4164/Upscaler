@@ -187,9 +187,7 @@ Upscaler::Status DLSS_Upscaler::DX11GetCommandBuffer(void*& deviceContext) {
 #    endif
 
 void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFunc) {
-    std::wstring path;
-    if (std::filesystem::exists("sl.interposer.dll")) path = L"sl.interposer.dll";
-    else if (std::filesystem::exists("Assets\\Plugins\\sl.interposer.dll")) path = L"Assets\\Plugins\\sl.interposer.dll";
+    const std::wstring path = Plugin::path/"sl.interposer.dll";
     if (!sl::security::verifyEmbeddedSignature(path.c_str())) {
         supported = Unsupported;
         return;
@@ -212,17 +210,9 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetP
     if (type == GraphicsAPI::VULKAN) *vkGetProcAddrFunc = reinterpret_cast<const void* const>(GetProcAddress(library, "vkGetInstanceProcAddr"));
     streamlineLoaded = slSetFeatureLoaded != nullptr;
 
-    const std::array pathStrings {
-        std::filesystem::current_path().wstring(),
-        (std::filesystem::current_path()/"Assets"/"Plugins").wstring()
-    };
-    std::array paths {
-        pathStrings[0].c_str(),
-        pathStrings[1].c_str()
-    };
-    constexpr std::array features {
-        sl::kFeatureDLSS
-    };
+    const std::array pathStrings { Plugin::path.wstring() };
+    std::array paths { pathStrings[0].c_str() };
+    constexpr std::array features { sl::kFeatureDLSS };
     sl::Preferences pref {};
     pref.logMessageCallback = &DLSS_Upscaler::log;
     pref.logLevel = sl::LogLevel::eVerbose;

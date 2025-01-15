@@ -30,6 +30,10 @@ class FSR_FrameGenerator final : protected FrameGenerator {
     } asyncCompute, present, imageAcquire;
     static bool supported;
     static bool asyncComputeSupported;
+    static alignas(16) struct CallbackContext {
+        ffxContext* context;
+        bool reset;
+    } callbackContext;
 
 public:
     static void useQueues(std::vector<VqsQueueSelection> selection) {
@@ -176,14 +180,17 @@ public:
     static void evaluate(bool enable, FfxApiRect2D generationRect, FfxApiFloatCoords2D renderSize, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
         static uint32_t frameNumber;
 
+        callbackContext.reset = (options & 0x40U) != 0U;
+
         ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
         configureDescFrameGeneration.presentCallback                    = nullptr;
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
-        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void* pUserCtx) -> ffxReturnCode_t {
-            return ffxDispatch(static_cast<ffx::Context*>(pUserCtx), &params->header);
+        configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void*) -> ffxReturnCode_t {
+            if (callbackContext.reset) params->reset = callbackContext.reset;
+            return ffxDispatch(callbackContext.context, &params->header);
         };
-        configureDescFrameGeneration.frameGenerationCallbackUserContext = &context;
+        configureDescFrameGeneration.frameGenerationCallbackUserContext = nullptr;
         configureDescFrameGeneration.frameGenerationEnabled             = enable;
         configureDescFrameGeneration.allowAsyncWorkloads                = (options & 0x20U) != 0U && asyncComputeSupported;
         configureDescFrameGeneration.HUDLessColor                       = hudlessColorResource.at(index);

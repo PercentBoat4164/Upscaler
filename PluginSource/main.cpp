@@ -70,9 +70,9 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             upscaler.settings.reactiveValue     = data.reactiveValue;
             upscaler.settings.reactiveScale     = data.reactiveScale;
             upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-            upscaler.settings.orthographic      = (data.options & 0b1U) != 0U;
-            upscaler.settings.debugView         = (data.options & 0b10U) != 0U;
-            upscaler.settings.resetHistory      = (data.options & 0b100U) != 0U;
+            upscaler.settings.orthographic      = (data.options & 0x1U) != 0U;
+            upscaler.settings.debugView         = (data.options & 0x2U) != 0U;
+            upscaler.settings.resetHistory      = (data.options & 0x4U) != 0U;
             std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
             upscaler.evaluate();
             break;
@@ -220,4 +220,12 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
     Plugin::Unity::interfaces        = nullptr;
     Plugin::Unity::graphicsInterface = nullptr;
+}
+
+extern "C" BOOL WINAPI DllMain(const HINSTANCE dllInstance, const DWORD reason, LPVOID reserved) {
+    if (reason != DLL_PROCESS_ATTACH) return TRUE;
+    char path[MAX_PATH + 1] {};
+    GetModuleFileName(dllInstance, path, std::extent_v<decltype(path)>);
+    Plugin::path = std::filesystem::path(path).parent_path();
+    return TRUE;
 }

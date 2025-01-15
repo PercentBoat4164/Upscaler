@@ -337,8 +337,9 @@ namespace Conifer.Upscaler.URP
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
                 renderingData.cameraData.renderer.ConfigureCameraTarget(_cameraOutputResolutionColorTarget, _cameraOutputResolutionDepthTarget);
-                _upscaler.ShouldResetHistory(false);
             }
+            
+            public override void OnFinishCameraStackRendering(CommandBuffer _) => _upscaler.ShouldResetHistory(false);
 
             public static void FreeMemory()
             {
@@ -404,7 +405,7 @@ namespace Conifer.Upscaler.URP
                 var dstRes = srcRes + ExtraResolution;
                 cb.Blit(null, _cameraOutputResolutionColorTarget);
                 cb.Blit(_cameraOutputResolutionColorTarget, Hudless[_hudlessBufferIndex], dstRes / srcRes, -Offset / srcRes);
-                cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion, dstRes / srcRes * new Vector2(1.0f, -1.0f), Offset / srcRes + new Vector2(0.0f, 1.0f));
+                cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion, new Vector2(1.0f, -1.0f), new Vector2(0.0f, 1.0f));
                 BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth, new Vector2(1.0f, -1.0f), new Vector2(0.0f, 1.0f));
                 _upscaler.NativeInterface.FrameGenerate(cb, _upscaler, _hudlessBufferIndex);
                 cb.SetRenderTarget(k_CameraTarget);
@@ -412,6 +413,8 @@ namespace Conifer.Upscaler.URP
                 CommandBufferPool.Release(cb);
                 _hudlessBufferIndex = (_hudlessBufferIndex + 1U) % (uint)Hudless.Length;
             }
+
+            public override void OnFinishCameraStackRendering(CommandBuffer _) => _upscaler.ShouldResetHistory(false);
 
             public static void FreeMemory()
             {
@@ -454,8 +457,7 @@ namespace Conifer.Upscaler.URP
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             _upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
-            if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game || _upscaler is null ||
-                !_upscaler.isActiveAndEnabled || _upscaler.technique == Upscaler.Technique.None)
+            if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game || _upscaler is null || !_upscaler.isActiveAndEnabled)
             {
                 _cameraRenderResolutionColorTarget?.Release();
                 _cameraRenderResolutionColorTarget = null;
@@ -468,12 +470,21 @@ namespace Conifer.Upscaler.URP
 
             if (renderingData.cameraData.camera.GetUniversalAdditionalCameraData().resetHistory) _upscaler.ResetHistory();
 
-            _setMipBias.ConfigureInput(ScriptableRenderPassInput.None);
-            _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
-            if (_upscaler.IsTemporal()) renderer.EnqueuePass(_setMipBias);
-            renderer.EnqueuePass(_upscale);
+            if (_upscaler.technique != Upscaler.Technique.None)
+            {
+                if (_upscaler.IsTemporal())
+                {
+                    _setMipBias.ConfigureInput(ScriptableRenderPassInput.None);
+                    renderer.EnqueuePass(_setMipBias);
+                }
+                _upscale.ConfigureInput(ScriptableRenderPassInput.Motion);
+                renderer.EnqueuePass(_upscale);
+            }
             if (NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
+            {
+                _frameGenerate.ConfigureInput(ScriptableRenderPassInput.Motion);
                 renderer.EnqueuePass(_frameGenerate);
+            }
             _renderTargetsUpdated = false;
         }
     }

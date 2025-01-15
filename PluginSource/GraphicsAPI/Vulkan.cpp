@@ -63,12 +63,16 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
     }
     if (strcmp(name, "vkCreateInstance") == 0) {
         m_vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_vkGetInstanceProcAddr(instance, name));
-        m_slCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateInstance);
     }
     if (strcmp(name, "vkCreateDevice") == 0) {
         m_vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_vkGetInstanceProcAddr(instance, name));
-        m_slCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateDevice);
     }
     if (strcmp(name, "vkCreateWin32SurfaceKHR") == 0) {
@@ -86,27 +90,37 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
     if (strcmp(name, "vkDestroyImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetInstanceProcAddr(instance, name)));
     if (strcmp(name, "vkCreateSwapchainKHR") == 0) {
         m_vkCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_vkGetInstanceProcAddr(instance, name));
-        m_slCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateSwapchainKHR);
     }
     if (strcmp(name, "vkDestroySwapchainKHR") == 0) {
         m_vkDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_vkGetInstanceProcAddr(instance, name));
-        m_slDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySwapchainKHR);
     }
     if (strcmp(name, "vkGetSwapchainImagesKHR") == 0) {
         m_vkGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_vkGetInstanceProcAddr(instance, name));
-        m_slGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetSwapchainImagesKHR);
     }
     if (strcmp(name, "vkAcquireNextImageKHR") == 0) {
         m_vkAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_vkGetInstanceProcAddr(instance, name));
-        m_slAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkAcquireNextImageKHR);
     }
     if (strcmp(name, "vkQueuePresentKHR") == 0) {
         m_vkQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_vkGetInstanceProcAddr(instance, name));
-        m_slQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_slGetInstanceProcAddr(instance, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_slGetInstanceProcAddr(instance, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkQueuePresentKHR);
     }
     if (strcmp(name, "vkSetHdrMetadataEXT") == 0) {
@@ -114,8 +128,7 @@ PFN_vkVoidFunction Vulkan::hook_vkGetInstanceProcAddr(VkInstance instance, const
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkSetHdrMetadataEXT);
     }
 #    ifdef ENABLE_DLSS
-    if (m_slGetInstanceProcAddr != VK_NULL_HANDLE)
-        return m_slGetInstanceProcAddr(instance, name);
+    if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) return m_slGetInstanceProcAddr(instance, name);
 #    endif
     return m_vkGetInstanceProcAddr(instance, name);
 }
@@ -128,27 +141,37 @@ PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char*
     if (strcmp(name, "vkDestroyImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(m_vkDestroyImageView = reinterpret_cast<PFN_vkDestroyImageView>(m_vkGetDeviceProcAddr(device, name)));
     if (strcmp(name, "vkCreateSwapchainKHR") == 0) {
         m_vkCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_vkGetDeviceProcAddr(device, name));
-        m_slCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_slGetDeviceProcAddr(device, name));
+#    ifdef ENABLE_DLSS
+       if (m_slGetInstanceProcAddr != VK_NULL_HANDLE)  m_slCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(m_slGetDeviceProcAddr(device, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkCreateSwapchainKHR);
     }
     if (strcmp(name, "vkDestroySwapchainKHR") == 0) {
         m_vkDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_vkGetDeviceProcAddr(device, name));
-        m_slDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_slGetDeviceProcAddr(device, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(m_slGetDeviceProcAddr(device, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkDestroySwapchainKHR);
     }
     if (strcmp(name, "vkGetSwapchainImagesKHR") == 0) {
         m_vkGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_vkGetDeviceProcAddr(device, name));
-        m_slGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_slGetDeviceProcAddr(device, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(m_slGetDeviceProcAddr(device, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkGetSwapchainImagesKHR);
     }
     if (strcmp(name, "vkAcquireNextImageKHR") == 0) {
         m_vkAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_vkGetDeviceProcAddr(device, name));
-        m_slAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_slGetDeviceProcAddr(device, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(m_slGetDeviceProcAddr(device, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkAcquireNextImageKHR);
     }
     if (strcmp(name, "vkQueuePresentKHR") == 0) {
         m_vkQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_vkGetDeviceProcAddr(device, name));
-        m_slQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_slGetDeviceProcAddr(device, name));
+#    ifdef ENABLE_DLSS
+        if (m_slGetInstanceProcAddr != VK_NULL_HANDLE) m_slQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(m_slGetDeviceProcAddr(device, name));
+#    endif
         return reinterpret_cast<PFN_vkVoidFunction>(&hook_vkQueuePresentKHR);
     }
     if (strcmp(name, "vkSetHdrMetadataEXT") == 0) {
@@ -163,10 +186,10 @@ PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char*
 
 VkSurfaceKHR Vulkan::createDummySurface(void*& hwnd) {
 #    ifdef WIN32
-    HINSTANCE hInstance = GetModuleHandle(nullptr);
+    const HINSTANCE hInstance = GetModuleHandle(nullptr);
     hwnd = CreateWindow("STATIC", "DummyWindow", 0, 0, 0, 0, 0, nullptr, nullptr, hInstance, nullptr);
-    VkSurfaceKHR surface{VK_NULL_HANDLE};
-    VkWin32SurfaceCreateInfoKHR win32SurfaceCreateInfo {
+    VkSurfaceKHR                      surface{VK_NULL_HANDLE};
+    const VkWin32SurfaceCreateInfoKHR win32SurfaceCreateInfo {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,

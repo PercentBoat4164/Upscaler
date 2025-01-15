@@ -9,3 +9,4 @@ FfxApiResource FSR_FrameGenerator::motionResource {};
 FSR_FrameGenerator::QueueData FSR_FrameGenerator::asyncCompute{}, FSR_FrameGenerator::present{}, FSR_FrameGenerator::imageAcquire{};
 bool FSR_FrameGenerator::supported{false};
 bool FSR_FrameGenerator::asyncComputeSupported{false};
+FSR_FrameGenerator::CallbackContext FSR_FrameGenerator::callbackContext{&FSR_FrameGenerator::context, false};

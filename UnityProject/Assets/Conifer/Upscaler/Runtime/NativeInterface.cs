@@ -113,9 +113,9 @@ namespace Conifer.Upscaler
                 _right = camera.transform.right;
                 _forward = camera.transform.forward;
                 _jitter = upscaler.Jitter;
-                _options = (Convert.ToUInt32(camera.orthographic) << 0) |
-                                                (Convert.ToUInt32(upscaler.upscalingDebugView)  << 1) |
-                                                (Convert.ToUInt32(reset)               << 2);
+                _options = Convert.ToUInt32(camera.orthographic)         << 0 |
+                           Convert.ToUInt32(upscaler.upscalingDebugView) << 1 |
+                           Convert.ToUInt32(reset)                       << 2;
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -142,7 +142,7 @@ namespace Conifer.Upscaler
         }
 
         private struct FrameGenerateData {
-            internal FrameGenerateData(Upscaler upscaler, uint imageIndex)
+            internal FrameGenerateData(Upscaler upscaler, uint imageIndex, bool reset)
             {
                 _enable = upscaler.frameGeneration;
                 _generationRect = Application.isEditor ? new Rect(1, 40, Screen.width, Screen.height) : new Rect(0, 0, Screen.width, Screen.height);
@@ -155,12 +155,13 @@ namespace Conifer.Upscaler
                 _nearPlane = planes.zNear;
                 _verticalFOV = 2.0f * (float)Math.Atan(1.0f / projMat.m11) * 180.0f / (float)Math.PI;
                 _index = imageIndex;
-                _options = (upscaler.frameGenerationDebugView ? 0x1U : 0U) |
-                           (upscaler.showTearLines ? 0x2U : 0U) |
-                           (upscaler.showResetIndicator ? 0x4U : 0U) |
-                           (upscaler.showPacingIndicator ? 0x8U : 0U) |
-                           (upscaler.onlyPresentGenerated ? 0x10U : 0U) |
-                           (upscaler.useAsyncCompute ? 0x20U : 0U);
+                _options = Convert.ToUInt32(upscaler.frameGenerationDebugView) << 0 |
+                           Convert.ToUInt32(upscaler.showTearLines)            << 1 |
+                           Convert.ToUInt32(upscaler.showResetIndicator)       << 2 |
+                           Convert.ToUInt32(upscaler.showPacingIndicator)      << 3 |
+                           Convert.ToUInt32(upscaler.onlyPresentGenerated)     << 4 |
+                           Convert.ToUInt32(upscaler.useAsyncCompute)          << 5 |
+                           Convert.ToUInt32(reset)                             << 6;
             }
 
             private bool _enable;
@@ -211,12 +212,11 @@ namespace Conifer.Upscaler
         {
             Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, ShouldResetHistory), _upscaleDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
-            ShouldResetHistory = false;
         }
 
         internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
         {
-            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex), _frameGenerateDataPtr, true);
+            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex, ShouldResetHistory), _frameGenerateDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 
