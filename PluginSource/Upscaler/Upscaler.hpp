@@ -13,7 +13,7 @@
 #    include <sl_dlss.h>
 #endif
 #ifdef ENABLE_FSR
-#    include <ffx_upscale.hpp>
+#    include <ffx_upscale.h>
 #endif
 #ifdef ENABLE_XESS
 #    include <xess/xess.h>
@@ -191,12 +191,18 @@ protected:
     template<typename... Args> constexpr Status succeed(Args... /*unused*/) {return Success;}
     template<typename T, typename... Args> static constexpr T nullFunc(Args... /*unused*/) {return {};}
 
+    static HMODULE library;
+    static SupportState supported;
+
 public:
 #ifdef ENABLE_VULKAN
     static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
     static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
 #endif
 
+    static void                      load(GraphicsAPI::Type type, void* vkGetProcAddrFunc=nullptr);
+    static void                      shutdown();
+    static void                      unload();
     static bool                      isSupported(Type type);
     static bool                      isSupported(Type type, enum Settings::Quality mode);
     static std::unique_ptr<Upscaler> fromType(Type type);

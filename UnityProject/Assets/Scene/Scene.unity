@@ -447,6 +447,7 @@ MonoBehaviour:
   accSprintMultiplier: 4
   lookSensitivity: 3
   dampingCoefficient: 5
+  focusOnEnable: 1
 --- !u!114 &963194234
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -469,7 +470,7 @@ MonoBehaviour:
   forceHistoryResetEveryFrame: 0
   quality: 0
   technique: 1
-  frameGeneration: 0
+  frameGeneration: 1
   dlssPreset: 0
   sgsrMethod: 0
   sharpness: 0

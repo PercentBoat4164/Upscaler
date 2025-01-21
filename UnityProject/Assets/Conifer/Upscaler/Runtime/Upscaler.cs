@@ -34,9 +34,9 @@ namespace Conifer.Upscaler
             /// Intel's X<sup>e</sup> Super Sampling upscaler, designed to excel on Intel GPUs, but works on any modern GPU with compute.
             XeSuperSampling,
             /// Snapdragon's Snapdragon Game Super Resolution v1, a spatial algorithm designed for mobile devices.
-            SnapdragonGameSuperResolutionSpatial,
+            SnapdragonGameSuperResolution1,
             /// Snapdragon's Snapdragon Game Super Resolution v2, a temporal algorithm with modes designed for anything from mobile to desktop class devices.
-            SnapdragonGameSuperResolutionTemporal
+            SnapdragonGameSuperResolution2
         }
 
         /**
@@ -180,6 +180,10 @@ namespace Conifer.Upscaler
         internal Vector2 Jitter = Vector2.zero;
 
         internal NativeInterface NativeInterface;
+#if UNITY_EDITOR
+        internal static readonly Vector2Int EditorOffset = new(1, 40);
+        internal static readonly Vector2Int EditorExtraResolution = new(2, 42);
+#endif
 
         /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
         /// upscaling. It will have a value of <c>false</c> otherwise.
@@ -219,7 +223,7 @@ namespace Conifer.Upscaler
          * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws. Takes the current
          * <see cref="Status"/>, and the current status message.</summary>
          * <remarks>This callback is only ever called if an error occurs. When that happens it will be called from the
-         * <see cref="Update"/> method during the next frame. If this callback fails to bring the
+         * <see cref="LateUpdate"/> method during the next frame. If this callback fails to bring the
          * <see cref="Technique"/>'s <see cref="Status"/> back to a <see cref="Success"/> value, then the default error
          * handler will reset the current <see cref="Technique"/> to the default <see cref="Technique.None"/>.</remarks>
          * <example><code>upscaler.ErrorCallback = (status, message) => { };</code></example>
@@ -242,7 +246,7 @@ namespace Conifer.Upscaler
         private DlssPreset _dlssPreset;
         /// The current <see cref="SgsrMethod"/>. Defaults to Compute3Pass
         public SgsrMethod sgsrMethod;
-        /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
+        /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public float sharpness;
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool useReactiveMask = true;
@@ -254,21 +258,21 @@ namespace Conifer.Upscaler
         public float reactiveThreshold = 0.3f;
         /// @todo Add documentation for this.
         public bool useAsyncCompute = true;
-        /// Enables the use of Edge Direction. Disabling this increases performance at the cost of visual quality. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.
+        /// Enables the use of Edge Direction. Disabling this increases performance at the cost of visual quality. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public bool useEdgeDirection = true;
         private bool _useEdgeDirection;
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
          *<returns>Returns the 'best' supported technique.</returns>
-         * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/> if on a mobile platform and it is
+         * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolution2"/> if on a mobile platform and it is
          * supported. It otherwise selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
          */
         public static Technique GetBestSupportedTechnique()
         {
-            if (Application.isMobilePlatform && IsSupported(Technique.SnapdragonGameSuperResolutionTemporal)) return Technique.SnapdragonGameSuperResolutionTemporal;
+            if (Application.isMobilePlatform && IsSupported(Technique.SnapdragonGameSuperResolution2)) return Technique.SnapdragonGameSuperResolution2;
             if (IsSupported(Technique.DeepLearningSuperSampling)) return Technique.DeepLearningSuperSampling;
             if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
             return IsSupported(Technique.FidelityFXSuperResolution) ? Technique.FidelityFXSuperResolution : Technique.None;
@@ -309,16 +313,16 @@ namespace Conifer.Upscaler
          * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast every time
          * after that. Support for the <see cref="Technique"/> requested is computed then cached. Any future calls with
          * the same <see cref="Technique"/> will use the cached value. Note that for
-         * <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/> the <see cref="SgsrMethod.Fragment2Pass"/> may
+         * <see cref="Technique.SnapdragonGameSuperResolution2"/> the <see cref="SgsrMethod.Fragment2Pass"/> may
          * be able to be used even if this returns <c>false</c> for
-         * <see cref="Technique.SnapdragonGameSuperResolutionTemporal"/>
-         * so long as it returns <c>true</c> for <see cref="Technique.SnapdragonGameSuperResolutionSpatial"/>.</remarks>
+         * <see cref="Technique.SnapdragonGameSuperResolution2"/>
+         * so long as it returns <c>true</c> for <see cref="Technique.SnapdragonGameSuperResolution1"/>.</remarks>
          * <example><code>bool dlssSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
          * </code></example>
          */
         public static bool IsSupported(Technique type) => type is Technique.None ||
-                                                          (type is Technique.SnapdragonGameSuperResolutionSpatial && SystemInfo.graphicsShaderLevel >= 50) ||
-                                                          (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
+                                                          (type is Technique.SnapdragonGameSuperResolution1 && SystemInfo.graphicsShaderLevel >= 50) ||
+                                                          (type is Technique.SnapdragonGameSuperResolution2 && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
                                                           (PluginLoaded() && NativeInterface.IsSupported(type));
 
         /**
@@ -336,8 +340,8 @@ namespace Conifer.Upscaler
          * );</code></example>
          */
         public static bool IsSupported(Technique type, Quality mode) => type is Technique.None ||
-                                                                        (type is Technique.SnapdragonGameSuperResolutionSpatial && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
-                                                                        (type is Technique.SnapdragonGameSuperResolutionTemporal && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
+                                                                        (type is Technique.SnapdragonGameSuperResolution1 && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
+                                                                        (type is Technique.SnapdragonGameSuperResolution2 && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
                                                                         NativeInterface.IsSupported(type, mode);
 
         /**
@@ -365,8 +369,8 @@ namespace Conifer.Upscaler
          */
         public static bool IsSpatial(Technique type) => type switch
             {
-                Technique.None or Technique.SnapdragonGameSuperResolutionSpatial => true,
-                Technique.DeepLearningSuperSampling or Technique.FidelityFXSuperResolution or Technique.XeSuperSampling or Technique.SnapdragonGameSuperResolutionTemporal => false,
+                Technique.None or Technique.SnapdragonGameSuperResolution1 => true,
+                Technique.DeepLearningSuperSampling or Technique.FidelityFXSuperResolution or Technique.XeSuperSampling or Technique.SnapdragonGameSuperResolution2 => false,
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
             };
 
@@ -417,7 +421,7 @@ namespace Conifer.Upscaler
          */
         public static bool RequiresNativePlugin(Technique type) => type switch
             {
-                Technique.SnapdragonGameSuperResolutionSpatial or Technique.SnapdragonGameSuperResolutionTemporal or Technique.None => false,
+                Technique.SnapdragonGameSuperResolution1 or Technique.SnapdragonGameSuperResolution2 or Technique.None => false,
                 Technique.DeepLearningSuperSampling or Technique.FidelityFXSuperResolution or Technique.XeSuperSampling => true,
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
             };
@@ -509,7 +513,7 @@ namespace Conifer.Upscaler
                             _ => 0.5
                         }; break;
                     case Quality.AntiAliasing:
-                        if (technique == Technique.SnapdragonGameSuperResolutionSpatial) CurrentStatus = Status.RecoverableRuntimeError;
+                        if (technique == Technique.SnapdragonGameSuperResolution1) CurrentStatus = Status.RecoverableRuntimeError;
                         else scale = 1.0;
                         break;
                     case Quality.UltraQualityPlus: scale = 0.769; break;
@@ -553,20 +557,21 @@ namespace Conifer.Upscaler
 
         private int _screenWidth = Screen.width;
         private int _screenHeight = Screen.height;
-        internal bool DisableUpscaling;
+        internal bool IsResizing;
 
         protected void LateUpdate()
         {
             if (!Application.isPlaying) return;
             CurrentStatus = ApplySettings();
 
-            DisableUpscaling = false;
+            IsResizing = false;
             if (Screen.width != _screenWidth || Screen.height != _screenHeight)
             {
-                DisableUpscaling = true;
+                IsResizing = true;
                 ResetHistory();
                 _screenWidth = Screen.width;
                 _screenHeight = Screen.height;
+                NativeInterface.SetFrameGeneration(false);
             }
             else
             {

@@ -29,9 +29,11 @@ cmake_dependent_option(ENABLE_DX12 "Compiles with DX12 support." ON "WIN32" OFF)
 cmake_dependent_option(ENABLE_DX11 "Compiles with DX11 support." ON "WIN32" OFF)
 
 # At least one upscaler must be enabled.
-cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support." ON "NOT UNIX" OFF)
+cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support." ON "WIN32" OFF)
 option(ENABLE_FSR "Compiles with FSR3 support." ON)
 cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support." ON "WIN32" OFF)
+
+#set(ENABLE_XESS OFF)
 
 cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation support." ON "WIN32" OFF)
 
@@ -196,15 +198,10 @@ endif ()
 # Set up the FSR libraries
 if (ENABLE_FSR)
     function (ConiferAddFSRLibrary LIBRARY_NAME LIBRARY_PATH LIBRARY_FILENAME)
-        if (CMAKE_BUILD_TYPE STREQUAL Debug)
-            set(LIBRARY_FILENAME "${LIBRARY_FILENAME}d")
-        endif ()
-        if (CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+        if (CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
             set(LIBRARY_FILENAME "${LIBRARY_FILENAME}drel")
         endif ()
-        add_library(${LIBRARY_NAME} SHARED IMPORTED)
-        set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_LOCATION "${LIBRARY_PATH}/${LIBRARY_FILENAME}.dll")
-        set_target_properties(${LIBRARY_NAME} PROPERTIES IMPORTED_IMPLIB "${LIBRARY_PATH}/${LIBRARY_FILENAME}.lib")
+        add_library(${LIBRARY_NAME} INTERFACE)
         target_include_directories(${LIBRARY_NAME} INTERFACE ${ARGN})
         list(APPEND CONIFER_LIBRARIES ${LIBRARY_NAME})
         set(CONIFER_LIBRARIES ${CONIFER_LIBRARIES} PARENT_SCOPE)

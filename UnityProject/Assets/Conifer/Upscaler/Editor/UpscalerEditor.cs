@@ -216,11 +216,11 @@ namespace Conifer.Upscaler.Editor
                                     "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
                                 (Upscaler.DlssPreset)_dlssPreset.intValue);
                             break;
-                        case Upscaler.Technique.SnapdragonGameSuperResolutionSpatial:
+                        case Upscaler.Technique.SnapdragonGameSuperResolution1:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
-                        case Upscaler.Technique.SnapdragonGameSuperResolutionTemporal:
+                        case Upscaler.Technique.SnapdragonGameSuperResolution2:
                                 _sgsrMethod.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_sgsrMethod.intValue);
                                 break;
                         default: break;

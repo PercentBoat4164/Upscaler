@@ -18,9 +18,6 @@
 #    include "DX11.hpp"
 #endif
 
-#ifdef ENABLE_DLSS
-#    include "Upscaler/DLSS_Upscaler.hpp"
-#endif
 #include "Upscaler/Upscaler.hpp"
 
 GraphicsAPI::Type GraphicsAPI::type = NONE;
@@ -52,9 +49,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
             };
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
-#    ifdef ENABLE_DLSS
-            DLSS_Upscaler::load(DX12);
-#    endif
+            Upscaler::load(DX12);
             break;
         }
 #endif
@@ -62,9 +57,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererD3D11: {
             type = DX11;
             Upscaler::useGraphicsAPI(type);
-#    ifdef ENABLE_DLSS
-            DLSS_Upscaler::load(DX11);
-#    endif
+            Upscaler::load(DX11);
             break;
         }
 #endif
@@ -77,9 +70,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
 }
 
 void GraphicsAPI::shutdown() {
-#ifdef ENABLE_DLSS
-    DLSS_Upscaler::shutdown();
-#endif
+    Upscaler::shutdown();
     type = NONE;
 }
 
@@ -112,8 +103,6 @@ bool GraphicsAPI::unregisterUnityInterfaces() {
 #ifdef ENABLE_DX11
     result &= DX11::unregisterUnityInterfaces();
 #endif
-#ifdef ENABLE_DLSS
-    DLSS_Upscaler::unload();
-#endif
+    Upscaler::unload();
     return result;
 }

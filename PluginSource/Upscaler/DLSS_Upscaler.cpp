@@ -26,11 +26,10 @@
 #    include <filesystem>
 
 HMODULE DLSS_Upscaler::library{nullptr};
-uint32_t  DLSS_Upscaler::users{};
 Upscaler::SupportState DLSS_Upscaler::supported{Untested};
-bool DLSS_Upscaler::streamlineLoaded;
 
 uint64_t DLSS_Upscaler::applicationID{0xDC98EECU};
+uint32_t DLSS_Upscaler::users{0};
 
 void* (*DLSS_Upscaler::fpGetDevice)(){&DLSS_Upscaler::nullFunc<void*>};
 Upscaler::Status (DLSS_Upscaler::*DLSS_Upscaler::fpSetResources)(const std::array<void*, Plugin::NumImages>&){&DLSS_Upscaler::safeFail};
@@ -186,17 +185,11 @@ Upscaler::Status DLSS_Upscaler::DX11GetCommandBuffer(void*& deviceContext) {
 }
 #    endif
 
-void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetProcAddrFunc) {
+void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) {
     const std::wstring path = Plugin::path/"sl.interposer.dll";
-    if (!sl::security::verifyEmbeddedSignature(path.c_str())) {
-        supported = Unsupported;
-        return;
-    }
+    if (!sl::security::verifyEmbeddedSignature(path.c_str())) return (void)(supported = Unsupported);
     library = LoadLibraryW(path.c_str());
-    if (library == nullptr) {
-        supported = Unsupported;
-        return;
-    }
+    if (library == nullptr) return (void)(supported = Unsupported);
     slInit               = reinterpret_cast<decltype(&::slInit)>(GetProcAddress(library, "slInit"));
     slSetD3DDevice       = reinterpret_cast<decltype(&::slSetD3DDevice)>(GetProcAddress(library, "slSetD3DDevice"));
     slSetFeatureLoaded   = reinterpret_cast<decltype(&::slSetFeatureLoaded)>(GetProcAddress(library, "slSetFeatureLoaded"));
@@ -207,8 +200,10 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetP
     slEvaluateFeature    = reinterpret_cast<decltype(&::slEvaluateFeature)>(GetProcAddress(library, "slEvaluateFeature"));
     slFreeResources      = reinterpret_cast<decltype(&::slFreeResources)>(GetProcAddress(library, "slFreeResources"));
     slShutdown           = reinterpret_cast<decltype(&::slShutdown)>(GetProcAddress(library, "slShutdown"));
-    if (type == GraphicsAPI::VULKAN) *vkGetProcAddrFunc = reinterpret_cast<const void* const>(GetProcAddress(library, "vkGetInstanceProcAddr"));
-    streamlineLoaded = slSetFeatureLoaded != nullptr;
+#ifdef ENABLE_VULKAN
+    if (type == GraphicsAPI::VULKAN) *static_cast<PFN_vkGetInstanceProcAddr*>(vkGetProcAddrFunc) = reinterpret_cast<PFN_vkGetInstanceProcAddr>(GetProcAddress(library, "vkGetInstanceProcAddr"));
+#endif
+    if (slInit == nullptr || slSetD3DDevice == nullptr || slSetFeatureLoaded == nullptr || slGetFeatureFunction == nullptr || slSetTag == nullptr || slGetNewFrameToken == nullptr || slSetConstants == nullptr || slEvaluateFeature == nullptr || slFreeResources == nullptr || slShutdown == nullptr) return (void)(supported = Unsupported);
 
     const std::array pathStrings { Plugin::path.wstring() };
     std::array paths { pathStrings[0].c_str() };
@@ -222,13 +217,14 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, const void** const vkGetP
     pref.featuresToLoad = features.data();
     pref.numFeaturesToLoad = features.size();
     pref.applicationId = applicationID;
+    pref.engine = sl::EngineType::eUnity;
     switch (type) {
         case GraphicsAPI::VULKAN: pref.renderAPI = sl::RenderAPI::eVulkan; break;
         case GraphicsAPI::DX12: pref.renderAPI = sl::RenderAPI::eD3D12; break;
         case GraphicsAPI::DX11: pref.renderAPI = sl::RenderAPI::eD3D11; break;
         default: supported = Unsupported; return;
     }
-    if (SL_FAILED(result, slInit(pref, sl::kSDKVersion)) || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk)) supported = Unsupported;
+    if (slInit(pref, sl::kSDKVersion) != sl::Result::eOk || ((type == GraphicsAPI::DX12 || type == GraphicsAPI::DX11) && slSetD3DDevice(fpGetDevice()) != sl::Result::eOk)) supported = Unsupported;
 }
 
 void DLSS_Upscaler::shutdown() {
@@ -289,10 +285,6 @@ void DLSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 }
 
 DLSS_Upscaler::DLSS_Upscaler() : handle(users++) {
-    if (!streamlineLoaded) {
-        --users;
-        RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, "Failed to load streamline. NVIDIA Deep Learning Super Sampling is not available."));
-    }
     if (users != 1U) return;
     RETURN_VOID_ON_FAILURE(setStatus(slSetFeatureLoaded(sl::kFeatureDLSS, true), "Failed to load the NVIDIA Deep Learning Super Sampling feature."));
     void* func{nullptr};
@@ -306,7 +298,6 @@ DLSS_Upscaler::~DLSS_Upscaler() {
 #ifdef ENABLE_VULKAN
     if (GraphicsAPI::getType() == GraphicsAPI::VULKAN) for (const auto& resource : resources) Vulkan::destroyImageView(static_cast<VkImageView>(resource.view));
 #endif
-    if (!streamlineLoaded) return;
     slFreeResources(sl::kFeatureDLSS, handle);
     if (--users == 0) slSetFeatureLoaded(sl::kFeatureDLSS, false);
 }

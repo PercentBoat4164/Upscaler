@@ -11,11 +11,10 @@ struct NVSDK_NGX_DLSS_Create_Params;
 
 class DLSS_Upscaler final : public Upscaler {
     static HMODULE library;
-    static uint32_t users;
     static SupportState supported;
-    static bool streamlineLoaded;
 
     static uint64_t applicationID;
+    static uint32_t users;
 
     static void* (*fpGetDevice)();
     static Status (DLSS_Upscaler::*fpSetResources)(const std::array<void*, Plugin::NumImages>& images);
@@ -59,7 +58,7 @@ class DLSS_Upscaler final : public Upscaler {
 #    endif
 
 public:
-    static void load(GraphicsAPI::Type, const void** vkGetProcAddrFunc=nullptr);
+    static void load(GraphicsAPI::Type type, void* vkGetProcAddrFunc);
     static void shutdown();
     static void unload();
     static bool isSupported();

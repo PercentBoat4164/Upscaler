@@ -11,13 +11,14 @@
 #    include <windows.h>
 
 class XeSS_Upscaler final : public Upscaler {
-    xess_context_handle_t context{nullptr};
-
     static HMODULE library;
-    static std::atomic<uint32_t> users;
+    static SupportState supported;
 
     static Status (XeSS_Upscaler::*fpCreate)(const xess_d3d12_init_params_t*);
     static Status (XeSS_Upscaler::*fpEvaluate)();
+
+    xess_context_handle_t context{nullptr};
+    std::array<void*, Plugin::NumBaseImages> resources{};
 
     static decltype(&xessGetOptimalInputResolution) xessGetOptimalInputResolution;
     static decltype(&xessDestroyContext) xessDestroyContext;
@@ -27,13 +28,9 @@ class XeSS_Upscaler final : public Upscaler {
     static decltype(&xessD3D12Init) xessD3D12Init;
     static decltype(&xessD3D12Execute) xessD3D12Execute;
 
-    static SupportState supported;
-
-    std::array<void*, Plugin::NumBaseImages> resources{};
-
     Status setStatus(xess_result_t t_error, const std::string &t_msg);
 
-    static void log(const char* message, xess_logging_level_t loggingLevel);
+    static void log(const char* msg, xess_logging_level_t loggingLevel);
 
 #    ifdef ENABLE_DX12
     Status DX12Create(const xess_d3d12_init_params_t*);
@@ -41,11 +38,14 @@ class XeSS_Upscaler final : public Upscaler {
 #    endif
 
 public:
+    static void load(GraphicsAPI::Type type, void*);
+    static void shutdown();
+    static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    XeSS_Upscaler();
+    XeSS_Upscaler()                                = default;
     XeSS_Upscaler(const XeSS_Upscaler&)            = delete;
     XeSS_Upscaler(XeSS_Upscaler&&)                 = delete;
     XeSS_Upscaler& operator=(const XeSS_Upscaler&) = delete;

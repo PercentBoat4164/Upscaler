@@ -3,38 +3,49 @@
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
-#    include <ffx_api.hpp>
+#    include <ffx_api.h>
 
 namespace ffx { struct CreateContextDescUpscale; }  // namespace ffx
 struct FfxApiResource;
 
 class FSR_Upscaler final : public Upscaler {
+    static HMODULE library;
     static SupportState supported;
 
-    static Status (FSR_Upscaler::*fpCreate)(ffx::CreateContextDescUpscale&);
+    static Status (FSR_Upscaler::*fpCreate)(ffxCreateContextDescUpscale&);
     static Status (FSR_Upscaler::*fpSetResources)(const std::array<void*, Plugin::NumImages>&);
     static Status (FSR_Upscaler::*fpGetCommandBuffer)(void*&);
 
-    ffx::Context context{};
+    ffxContext context{};
     std::array<FfxApiResource, Plugin::NumImages> resources{};
 
+public:
+    static PfnFfxCreateContext ffxCreateContext;
+    static PfnFfxDestroyContext ffxDestroyContext;
+    static PfnFfxConfigure ffxConfigure;
+    static PfnFfxQuery ffxQuery;
+    static PfnFfxDispatch ffxDispatch;
+
 #    ifdef ENABLE_VULKAN
-    Status VulkanCreate(ffx::CreateContextDescUpscale& createContextDescUpscale);
+    Status VulkanCreate(ffxCreateContextDescUpscale& createContextDescUpscale);
     Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);
     Status VulkanGetCommandBuffer(void*& commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
-    Status DX12Create(ffx::CreateContextDescUpscale& createContextDescUpscale);
+    Status DX12Create(ffxCreateContextDescUpscale& createContextDescUpscale);
     Status DX12SetResources(const std::array<void*, Plugin::NumImages>& images);
     Status DX12GetCommandBuffer(void*& commandList);
 #    endif
 
-    Status setStatus(ffx::ReturnCode t_error, const std::string &t_msg);
+    Status setStatus(ffxReturnCode_t t_error, const std::string& t_msg);
 
     static void log(FfxApiMsgType type, const wchar_t *t_msg);
 
 public:
+    static void load(GraphicsAPI::Type type, void*);
+    static void shutdown();
+    static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
@@ -51,7 +62,7 @@ public:
     }
 
     constexpr std::string getName() override {
-        return "AMD FidelityFx Super Resolution";
+        return "AMD FidelityFX Super Resolution";
     }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;

@@ -1,17 +1,21 @@
-#include "FrameGenerator/FSR_FrameGenerator.hpp"
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
+#include "FrameGenerator/FrameGenerator.hpp"
+#include "FrameGenerator/FSR_FrameGenerator.hpp"
 
 #include "IUnityRenderingExtensions.h"
 
 #include <memory>
 #include <vector>
+#include <GraphicsAPI/Vulkan.hpp>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
+#ifdef ENABLE_FRAME_GENERATION
 static std::unique_ptr<FrameGenerator> frameGenerator{};
+#endif
 
 struct alignas(128) UpscaleData {
     float frameTime;
@@ -73,12 +77,14 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
             upscaler.settings.orthographic      = (data.options & 0x1U) != 0U;
             upscaler.settings.debugView         = (data.options & 0x2U) != 0U;
             upscaler.settings.resetHistory      = (data.options & 0x4U) != 0U;
+            upscaler.settings.autoReactive      = (data.options & 0x8U) != 0U;
             std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
             upscaler.evaluate();
             break;
         }
         case Plugin::FrameGenerate: {
             const auto& data = *static_cast<FrameGenerateData*>(d);
+#ifdef ENABLE_FSR
             FSR_FrameGenerator::evaluate(
                 data.enable,
                 FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
@@ -91,6 +97,7 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
                 data.index,
                 data.options
             );
+#endif
             break;
         }
         default: break;
@@ -174,19 +181,22 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool useReactiveMask) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque) {
     Upscaler& upscaler = *upscalers[camera];
-    upscaler.settings.autoReactive = useReactiveMask;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
 }
 
+#ifdef ENABLE_FRAME_GENERATION
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGenerationImages(void* color0, void* color1, void* depth, void* motion) {
+#ifdef ENABLE_FSR
     FSR_FrameGenerator::useImages(static_cast<VkImage>(color0), static_cast<VkImage>(color1), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
+#endif
 }
 
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {
     return FrameGenerator::getBackBufferFormat();
 }
+#endif
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {
     if (upscalers.size() > camera) upscalers[camera].reset();

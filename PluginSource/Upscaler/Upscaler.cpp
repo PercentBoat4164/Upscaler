@@ -4,6 +4,7 @@
 #include "FSR_Upscaler.hpp"
 #include "None_Upscaler.hpp"
 #include "XeSS_UPscaler.hpp"
+
 #include "GraphicsAPI/GraphicsAPI.hpp"
 
 #include <memory>
@@ -19,6 +20,42 @@ bool Upscaler::failure(const Status t_status) {
 
 bool Upscaler::recoverable(const Status t_status) {
     return (t_status & ERROR_RECOVERABLE) == ERROR_RECOVERABLE;
+}
+
+void Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) {
+#    ifdef ENABLE_DLSS
+    DLSS_Upscaler::load(type, vkGetProcAddrFunc);
+#    endif
+#    ifdef ENABLE_FSR
+    FSR_Upscaler::load(type, nullptr);
+#    endif
+#    ifdef ENABLE_XESS
+    XeSS_Upscaler::load(type, nullptr);
+#    endif
+}
+
+void Upscaler::shutdown() {
+#    ifdef ENABLE_DLSS
+    DLSS_Upscaler::shutdown();
+#    endif
+#    ifdef ENABLE_FSR
+    FSR_Upscaler::shutdown();
+#    endif
+#    ifdef ENABLE_XESS
+    XeSS_Upscaler::shutdown();
+#    endif
+}
+
+void Upscaler::unload() {
+#    ifdef ENABLE_DLSS
+    DLSS_Upscaler::unload();
+#    endif
+#    ifdef ENABLE_FSR
+    FSR_Upscaler::unload();
+#    endif
+#    ifdef ENABLE_XESS
+    XeSS_Upscaler::unload();
+#    endif
 }
 
 bool Upscaler::isSupported(const Type type) {

@@ -64,7 +64,7 @@ namespace Conifer.Upscaler
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscalingImages")]
-        internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
+        internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFrameGenerationImages")]
         internal static extern void SetFrameGenerationImages(IntPtr color0, IntPtr color1, IntPtr depth, IntPtr motion);
@@ -115,7 +115,8 @@ namespace Conifer.Upscaler
                 _jitter = upscaler.Jitter;
                 _options = Convert.ToUInt32(camera.orthographic)         << 0 |
                            Convert.ToUInt32(upscaler.upscalingDebugView) << 1 |
-                           Convert.ToUInt32(reset)                       << 2;
+                           Convert.ToUInt32(reset)                       << 2 |
+                           Convert.ToUInt32(upscaler.useReactiveMask)    << 3;
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -261,9 +262,9 @@ namespace Conifer.Upscaler
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive)
+        internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
         {
-            if (Loaded) Native.SetUpscalingImages(_cameraID, color, depth, motion, output, reactive, opaque, autoReactive);
+            if (Loaded) Native.SetUpscalingImages(_cameraID, color, depth, motion, output, reactive, opaque);
         }
 
         internal static void SetFrameGenerationImages(IntPtr hudless0, IntPtr hudless1, IntPtr depth, IntPtr motion)

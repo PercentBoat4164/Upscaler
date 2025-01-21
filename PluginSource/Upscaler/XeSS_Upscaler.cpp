@@ -13,7 +13,7 @@
 #    endif
 
 HMODULE XeSS_Upscaler::library{nullptr};
-std::atomic<uint32_t> XeSS_Upscaler::users{};
+Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
 Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const xess_d3d12_init_params_t*){&XeSS_Upscaler::safeFail};
 Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(){&XeSS_Upscaler::safeFail};
@@ -25,8 +25,6 @@ decltype(&xessSetLoggingCallback) XeSS_Upscaler::xessSetLoggingCallback{nullptr}
 decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr};
 decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
-
-Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
 Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {
@@ -69,13 +67,13 @@ Upscaler::Status XeSS_Upscaler::DX12Create(const xess_d3d12_init_params_t* param
 }
 
 Upscaler::Status XeSS_Upscaler::DX12Evaluate() {
-    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources[Plugin::Color])->GetDesc();
-    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources[Plugin::Motion])->GetDesc();
+    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources.at(Plugin::Color))->GetDesc();
+    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion))->GetDesc();
     const xess_d3d12_execute_params_t params {
-        .pColorTexture = static_cast<ID3D12Resource*>(resources[Plugin::Color]),
-        .pVelocityTexture = static_cast<ID3D12Resource*>(resources[Plugin::Motion]),
-        .pDepthTexture = static_cast<ID3D12Resource*>(resources[Plugin::Depth]),
-        .pOutputTexture = static_cast<ID3D12Resource*>(resources[Plugin::Output]),
+        .pColorTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Color)),
+        .pVelocityTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion)),
+        .pDepthTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Depth)),
+        .pOutputTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Output)),
         .jitterOffsetX = settings.jitter.x,
         .jitterOffsetY = settings.jitter.y,
         .exposureScale = 1.0F,
@@ -89,6 +87,34 @@ Upscaler::Status XeSS_Upscaler::DX12Evaluate() {
     return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute Intel Xe Super Sampling.");
 }
 #endif
+
+void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
+    if (type != GraphicsAPI::DX12) return (void)(supported = Unsupported);
+    library = LoadLibrary((Plugin::path / "libxess.dll").string().c_str());
+    if (library == nullptr) return (void)(supported = Unsupported);
+    xessGetOptimalInputResolution = reinterpret_cast<decltype(xessGetOptimalInputResolution)>(GetProcAddress(library, "xessGetOptimalInputResolution"));
+    xessDestroyContext            = reinterpret_cast<decltype(xessDestroyContext)>(GetProcAddress(library, "xessDestroyContext"));
+    xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
+    xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
+    xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
+    xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
+    xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
+    if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
+}
+
+void XeSS_Upscaler::shutdown() {}
+
+void XeSS_Upscaler::unload() {
+    xessGetOptimalInputResolution = nullptr;
+    xessDestroyContext = nullptr;
+    xessSetVelocityScale = nullptr;
+    xessSetLoggingCallback = nullptr;
+    xessD3D12CreateContext = nullptr;
+    xessD3D12Init = nullptr;
+    xessD3D12Execute = nullptr;
+    if (library != nullptr) FreeLibrary(library);
+    library = nullptr;
+}
 
 bool XeSS_Upscaler::isSupported() {
     if (supported != Untested) return supported == Supported;
@@ -116,27 +142,9 @@ void XeSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
     }
 }
 
-XeSS_Upscaler::XeSS_Upscaler() {
-    if (++users != 1) return;
-    if (GraphicsAPI::getType() != GraphicsAPI::DX12) RETURN_VOID_ON_FAILURE(Upscaler::setStatus(UnsupportedGraphicsApi, getName() + " only supports DX12."));
-    library = LoadLibrary("libxess.dll");
-    if (library == nullptr) library = LoadLibrary("Assets\\Plugins\\libxess.dll");
-    RETURN_VOID_ON_FAILURE(setStatusIf(library == nullptr, LibraryNotLoaded, "Failed to load 'libxess.dll'"));
-    xessGetOptimalInputResolution = reinterpret_cast<decltype(xessGetOptimalInputResolution)>(GetProcAddress(library, "xessGetOptimalInputResolution"));
-    xessDestroyContext            = reinterpret_cast<decltype(xessDestroyContext)>(GetProcAddress(library, "xessDestroyContext"));
-    xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
-    xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
-    xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
-    xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
-    xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
-    setStatusIf(xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr, LibraryNotLoaded, "'libxess.dll' had missing symbols.");
-}
-
 XeSS_Upscaler::~XeSS_Upscaler() {
     if (context != nullptr) setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context.");
     context = nullptr;
-    if (--users == 0 && library != nullptr) FreeLibrary(library);
-    library = nullptr;
 }
 
 Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolution, const Settings::DLSSPreset /*unused*/, const enum Settings::Quality mode, const bool hdr) {
@@ -169,7 +177,8 @@ Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolutio
 }
 
 Upscaler::Status XeSS_Upscaler::useImages(const std::array<void*, Plugin::NumImages>& images) {
-    std::copy_n(images.begin(), Plugin::NumBaseImages, resources.begin());
+    std::copy_n(images.begin(), resources.size(), resources.begin());
+    for (void*& resource : resources) RETURN_ON_FAILURE(setStatusIf(resource == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
     return Success;
 }
 

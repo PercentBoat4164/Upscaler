@@ -1,14 +1,15 @@
 #pragma once
 #include <vk_queue_selector.h>
+#include <Upscaler/FSR_Upscaler.hpp>
 #if defined(ENABLE_FRAME_GENERATION) && defined(ENABLE_FSR)
 #include "FrameGenerator.hpp"
 
 #include "GraphicsAPI/Vulkan.hpp"
 #include "Plugin.hpp"
 
-#include <ffx_api.hpp>
-#include <ffx_framegeneration.hpp>
-#include <vk/ffx_api_vk.hpp>
+#include <ffx_api.h>
+#include <ffx_framegeneration.h>
+#include <vk/ffx_api_vk.h>
 
 #include <vulkan/vulkan.h>
 
@@ -19,8 +20,8 @@
 struct VqsQueueSelection;
 
 class FSR_FrameGenerator final : protected FrameGenerator {
-    static ffx::Context swapchainContext;
-    static ffx::Context context;
+    static ffxContext swapchainContext;
+    static ffxContext context;
     static std::array<FfxApiResource, 2> hudlessColorResource;
     static FfxApiResource depthResource;
     static FfxApiResource motionResource;
@@ -49,7 +50,8 @@ public:
 
     static void createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwapchainCreateInfoKHR* pCreateInfo, VkAllocationCallbacks* pAllocator, PFN_vkCreateSwapchainFFXAPI* pCreate, PFN_vkDestroySwapchainFFXAPI* pDestroy, PFN_vkGetSwapchainImagesKHR* pGet, PFN_vkAcquireNextImageKHR* pAcquire, PFN_vkQueuePresentKHR* pPresent, PFN_vkSetHdrMetadataEXT* pSet, PFN_getLastPresentCountFFXAPI* pCount) {
         destroySwapchain();
-        ffx::CreateContextDescFrameGenerationSwapChainVK createContextDescFrameGenerationSwapChainVk{};
+        ffxCreateContextDescFrameGenerationSwapChainVK createContextDescFrameGenerationSwapChainVk{};
+        createContextDescFrameGenerationSwapChainVk.header.type    = FFX_API_CREATE_CONTEXT_DESC_TYPE_FGSWAPCHAIN_VK;
         createContextDescFrameGenerationSwapChainVk.physicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createContextDescFrameGenerationSwapChainVk.device         = Vulkan::getGraphicsInterface()->Instance().device;
         createContextDescFrameGenerationSwapChainVk.swapchain      = pSwapchain;
@@ -60,29 +62,34 @@ public:
         std::construct_at(&createContextDescFrameGenerationSwapChainVk.imageAcquireQueue, Vulkan::getQueue(imageAcquire.family, imageAcquire.index), imageAcquire.family, nullptr);
         if (asyncComputeSupported) std::construct_at(&createContextDescFrameGenerationSwapChainVk.asyncComputeQueue, Vulkan::getQueue(asyncCompute.family, asyncCompute.index), asyncCompute.family, nullptr);
 
-        if (CreateContext(swapchainContext, nullptr, createContextDescFrameGenerationSwapChainVk) != ffx::ReturnCode::Ok)
+        if (FSR_Upscaler::ffxCreateContext(&swapchainContext, &createContextDescFrameGenerationSwapChainVk.header, nullptr) != FFX_API_RETURN_OK)
             return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
 
-        ffx::CreateContextDescFrameGeneration createContextDescFrameGeneration{};
-        createContextDescFrameGeneration.flags = (asyncComputeSupported ? FFX_FRAMEGENERATION_ENABLE_ASYNC_WORKLOAD_SUPPORT : 0U) |
-                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED) |
-                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE) |
-                                                 static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS);
+        ffxCreateContextDescFrameGeneration createContextDescFrameGeneration{};
+        createContextDescFrameGeneration.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATION;
+        createContextDescFrameGeneration.flags       = (asyncComputeSupported ? FFX_FRAMEGENERATION_ENABLE_ASYNC_WORKLOAD_SUPPORT : 0U) |
+                                                       static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED) |
+                                                       static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE) |
+                                                       static_cast<unsigned>(FFX_FRAMEGENERATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS);
         std::construct_at(&createContextDescFrameGeneration.displaySize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
         createContextDescFrameGeneration.backBufferFormat = ffxApiGetSurfaceFormatVK(pCreateInfo->imageFormat);
         std::construct_at(&createContextDescFrameGeneration.maxRenderSize, pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height);
 
-        ffx::CreateBackendVKDesc createBackendVkDesc {};
+        ffxCreateBackendVKDesc createBackendVkDesc {};
+        createBackendVkDesc.header.type      = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK;
+        createBackendVkDesc.header.pNext     = nullptr;
         createBackendVkDesc.vkDevice         = Vulkan::getGraphicsInterface()->Instance().device;
         createBackendVkDesc.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
         createBackendVkDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
-        if (CreateContext(context, nullptr, createContextDescFrameGeneration, createBackendVkDesc) != ffx::ReturnCode::Ok || context == nullptr)
+        createContextDescFrameGeneration.header.pNext = &createBackendVkDesc.header;
+        if (FSR_Upscaler::ffxCreateContext(&context, &createContextDescFrameGeneration.header, nullptr) != FFX_API_RETURN_OK || context == nullptr)
             return Plugin::log("Failed to create frame generation context.", kUnityLogTypeError);
         swapchain.vulkan = *pSwapchain;
         backBufferFormat = vkFormatToUnityFormat(pCreateInfo->imageFormat);
 
-        ffx::QueryDescSwapchainReplacementFunctionsVK replacementFunctionsVk{};
-        if (Query(swapchainContext, replacementFunctionsVk) != ffx::ReturnCode::Ok)
+        ffxQueryDescSwapchainReplacementFunctionsVK replacementFunctionsVk{};
+        replacementFunctionsVk.header.type = FFX_API_QUERY_DESC_TYPE_FGSWAPCHAIN_FUNCTIONS_VK;
+        if (FSR_Upscaler::ffxQuery(&swapchainContext, &replacementFunctionsVk.header) != FFX_API_RETURN_OK)
           return Plugin::log("Failed to query swapchain functions.", kUnityLogTypeError);
         if (pCreate != VK_NULL_HANDLE) *pCreate = replacementFunctionsVk.pOutCreateSwapchainFFXAPI;
         if (pDestroy != VK_NULL_HANDLE) *pDestroy = replacementFunctionsVk.pOutDestroySwapchainFFXAPI;
@@ -95,7 +102,8 @@ public:
 
     static void destroySwapchain() {
         if (context != nullptr) {
-            ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
+            ffxConfigureDescFrameGeneration configureDescFrameGeneration {};
+            configureDescFrameGeneration.header.type                        = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION;
             configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
             configureDescFrameGeneration.presentCallback                    = nullptr;
             configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
@@ -108,12 +116,12 @@ public:
             configureDescFrameGeneration.onlyPresentGenerated               = false;
             std::construct_at(&configureDescFrameGeneration.generationRect, 0, 0, 0, 0);
             configureDescFrameGeneration.frameID                            = 0;
-            if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
+            if (FSR_Upscaler::ffxConfigure(&context, &configureDescFrameGeneration.header) != FFX_API_RETURN_OK)
                 Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
         }
-        if (swapchainContext != nullptr) ffx::DestroyContext(swapchainContext, nullptr);
+        if (swapchainContext != nullptr) FSR_Upscaler::ffxDestroyContext(&swapchainContext, nullptr);
         swapchainContext = nullptr;
-        if (context != nullptr) ffx::DestroyContext(context, nullptr);
+        if (context != nullptr) FSR_Upscaler::ffxDestroyContext(&context, nullptr);
         context = nullptr;
         swapchain.vulkan = VK_NULL_HANDLE;
         backBufferFormat = kUnityRenderingExtFormatNone;
@@ -182,13 +190,14 @@ public:
 
         callbackContext.reset = (options & 0x40U) != 0U;
 
-        ffx::ConfigureDescFrameGeneration configureDescFrameGeneration {};
+        ffxConfigureDescFrameGeneration configureDescFrameGeneration {};
+        configureDescFrameGeneration.header.type                        = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION;
         configureDescFrameGeneration.swapChain                          = swapchain.vulkan;
         configureDescFrameGeneration.presentCallback                    = nullptr;
         configureDescFrameGeneration.presentCallbackUserContext         = nullptr;
         configureDescFrameGeneration.frameGenerationCallback            = [](ffxDispatchDescFrameGeneration* params, void*) -> ffxReturnCode_t {
             if (callbackContext.reset) params->reset = callbackContext.reset;
-            return ffxDispatch(callbackContext.context, &params->header);
+            return FSR_Upscaler::ffxDispatch(callbackContext.context, &params->header);
         };
         configureDescFrameGeneration.frameGenerationCallbackUserContext = nullptr;
         configureDescFrameGeneration.frameGenerationEnabled             = enable;
@@ -201,14 +210,15 @@ public:
         configureDescFrameGeneration.onlyPresentGenerated               = (options & 0x10U) != 0U;
         configureDescFrameGeneration.generationRect                     = generationRect;
         configureDescFrameGeneration.frameID                            = frameNumber;
-        if (Configure(context, configureDescFrameGeneration) != ffx::ReturnCode::Ok)
+        if (FSR_Upscaler::ffxConfigure(&context, &configureDescFrameGeneration.header) != FFX_API_RETURN_OK)
             Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
 
         if (configureDescFrameGeneration.frameGenerationEnabled) {
             UnityVulkanRecordingState state {};
             Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare);
 
-            ffx::DispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
+            ffxDispatchDescFrameGenerationPrepare dispatchDescFrameGenerationPrepare {};
+            dispatchDescFrameGenerationPrepare.header.type             = FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE;
             dispatchDescFrameGenerationPrepare.frameID                 = configureDescFrameGeneration.frameID;
             dispatchDescFrameGenerationPrepare.flags                   = configureDescFrameGeneration.flags;
             dispatchDescFrameGenerationPrepare.commandList             = state.commandBuffer;
@@ -223,7 +233,7 @@ public:
             dispatchDescFrameGenerationPrepare.viewSpaceToMetersFactor = 1.0F;
             dispatchDescFrameGenerationPrepare.depth                   = depthResource;
             dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
-            if (Dispatch(context, dispatchDescFrameGenerationPrepare) != ffx::ReturnCode::Ok)
+            if (FSR_Upscaler::ffxDispatch(&context, &dispatchDescFrameGenerationPrepare.header) != FFX_API_RETURN_OK)
                 Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
         }
         ++frameNumber;
@@ -233,7 +243,7 @@ public:
         return FSR_FrameGenerator::swapchain.vulkan != VK_NULL_HANDLE && swapchain == FSR_FrameGenerator::swapchain.vulkan;
     }
 
-    static ffx::Context* getContext() {
+    static ffxContext* getContext() {
         return &swapchainContext;
     }
 

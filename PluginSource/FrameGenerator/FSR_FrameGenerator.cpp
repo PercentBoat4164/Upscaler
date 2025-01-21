@@ -1,7 +1,7 @@
 #include "FSR_FrameGenerator.hpp"
 
-ffx::Context FSR_FrameGenerator::swapchainContext {nullptr};
-ffx::Context FSR_FrameGenerator::context {nullptr};
+ffxContext FSR_FrameGenerator::swapchainContext {nullptr};
+ffxContext FSR_FrameGenerator::context {nullptr};
 std::array<FfxApiResource, 2> FSR_FrameGenerator::hudlessColorResource {};
 FfxApiResource FSR_FrameGenerator::depthResource {};
 FfxApiResource FSR_FrameGenerator::motionResource {};

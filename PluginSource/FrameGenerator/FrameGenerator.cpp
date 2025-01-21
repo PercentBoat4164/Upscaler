@@ -2,8 +2,6 @@
 
 #include "FSR_FrameGenerator.hpp"
 
-#include <ranges>
-
 std::unordered_map<uint64_t, VkSwapchainKHR> FrameGenerator::SizeToVkSwapchainKHR{};
 FrameGenerator::Swapchain FrameGenerator::swapchain{};
 UnityRenderingExtTextureFormat FrameGenerator::backBufferFormat{};
