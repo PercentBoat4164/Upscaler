@@ -18,61 +18,61 @@ namespace Conifer.Upscaler
 
     internal struct Native
     {
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_LoadedCorrectly")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "LoadedCorrectly")]
         internal static extern bool LoadedCorrectly();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetLogLevel")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetLogLevel")]
         internal static extern void SetLogLevel(LogType type);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFrameGeneration")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetFrameGeneration")]
         internal static extern void SetFrameGeneration(int width, int height);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetEventIDBase")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetEventIDBase")]
         internal static extern int GetEventIDBase();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRenderingEventCallback")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetRenderingEventCallback")]
         internal static extern IntPtr GetRenderingEventCallback();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsUpscalerSupported")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "IsUpscalerSupported")]
         internal static extern bool IsSupported(Upscaler.Technique type);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_IsQualitySupported")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "IsQualitySupported")]
         internal static extern bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_RegisterCamera")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "RegisterCamera")]
         internal static extern ushort RegisterCamera();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatus")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatus")]
         internal static extern Upscaler.Status GetStatus(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetCameraUpscalerStatusMessage")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatusMessage")]
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraUpscalerStatus")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraUpscalerStatus")]
         internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetCameraPerFeatureSettings")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraPerFeatureSettings")]
         internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetRecommendedCameraResolution")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetRecommendedCameraResolution")]
         internal static extern Vector2Int GetRecommendedResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMaximumCameraResolution")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetMaximumCameraResolution")]
         internal static extern Vector2Int GetMaximumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetMinimumCameraResolution")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetUpscalingImages")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetUpscalingImages")]
         internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_SetFrameGenerationImages")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetFrameGenerationImages")]
         internal static extern void SetFrameGenerationImages(IntPtr color0, IntPtr color1, IntPtr depth, IntPtr motion);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_GetBackBufferFormat")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "GetBackBufferFormat")]
         internal static extern GraphicsFormat GetBackBufferFormat();
         
-        [DllImport("GfxPluginUpscaler", EntryPoint = "Upscaler_UnregisterCamera")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "UnregisterCamera")]
         internal static extern void UnregisterCamera(ushort camera);
     }
 

@@ -52,7 +52,7 @@ struct alignas(64) FrameGenerateData {
     unsigned options;
 };
 
-void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
+void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
     if (d == nullptr) return;
     switch (event - Plugin::Unity::eventIDBase) {
         case Plugin::Upscale: {
@@ -104,38 +104,38 @@ void UNITY_INTERFACE_API INTERNAL_UpscaleCallback(const int event, void* d) {
     }
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_LoadedCorrectly() {
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectly() {
     return Plugin::loadedCorrectly;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetLogLevel(const UnityLogType type) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetLogLevel(const UnityLogType type) {
     Plugin::logLevel = type;
     Plugin::log("", type);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGeneration(const uint32_t width, const uint32_t height) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(const uint32_t width, const uint32_t height) {
     if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
     Vulkan::requestSwapchainRecreationBySize(static_cast<uint64_t>(width) << 32U | height);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Upscaler_GetEventIDBase() {
+extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API GetEventIDBase() {
     return Plugin::Unity::eventIDBase;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API Upscaler_GetRenderingEventCallback() {
-    return INTERNAL_UpscaleCallback;
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetRenderingEventCallback() {
+    return UpscaleCallback;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsUpscalerSupported(const Upscaler::Type type) {
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsUpscalerSupported(const Upscaler::Type type) {
     return Upscaler::isSupported(type);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Upscaler_IsQualitySupported(const Upscaler::Type type, const enum Upscaler::Settings::Quality mode) {
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsQualitySupported(const Upscaler::Type type, const enum Upscaler::Settings::Quality mode) {
     return Upscaler::isSupported(type, mode);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_RegisterCamera() {
+extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API RegisterCamera() {
     const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
     const uint16_t id = std::distance(upscalers.begin(), iter);
     if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
@@ -143,19 +143,19 @@ extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API Upscaler_Register
     return id;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_GetCameraUpscalerStatus(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API GetCameraUpscalerStatus(const uint16_t camera) {
     return upscalers[camera]->getStatus();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT const char* UNITY_INTERFACE_API Upscaler_GetCameraUpscalerStatusMessage(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT const char* UNITY_INTERFACE_API GetCameraUpscalerStatusMessage(const uint16_t camera) {
     return upscalers[camera]->getErrorMessage().c_str();
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraUpscalerStatus(const uint16_t camera, Upscaler::Status status, const char* message) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetCameraUpscalerStatus(const uint16_t camera, Upscaler::Status status, const char* message) {
     return upscalers[camera]->setStatus(status, message);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_SetCameraPerFeatureSettings(
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetCameraPerFeatureSettings(
   const uint16_t                         camera,
   const Upscaler::Settings::Resolution   resolution,
   const Upscaler::Type                   type,
@@ -169,40 +169,40 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API Upscaler_
     return upscaler->useSettings(resolution, preset, quality, hdr);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetRecommendedCameraResolution(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetRecommendedCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.recommendedInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMaximumCameraResolution(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetMaximumCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.dynamicMaximumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API Upscaler_GetMinimumCameraResolution(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetMinimumCameraResolution(const uint16_t camera) {
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque) {
     Upscaler& upscaler = *upscalers[camera];
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
 }
 
 #ifdef ENABLE_FRAME_GENERATION
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_SetFrameGenerationImages(void* color0, void* color1, void* depth, void* motion) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGenerationImages(void* color0, void* color1, void* depth, void* motion) {
 #ifdef ENABLE_FSR
     FSR_FrameGenerator::useImages(static_cast<VkImage>(color0), static_cast<VkImage>(color1), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
 #endif
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API Upscaler_GetBackBufferFormat() {
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API GetBackBufferFormat() {
     return FrameGenerator::getBackBufferFormat();
 }
 #endif
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Upscaler_UnregisterCamera(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnregisterCamera(const uint16_t camera) {
     if (upscalers.size() > camera) upscalers[camera].reset();
 }
 
-static void UNITY_INTERFACE_API INTERNAL_OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
+static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
     switch (eventType) {
         case kUnityGfxDeviceEventInitialize:
             Plugin::loadedCorrectly = true;
@@ -221,13 +221,13 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
     Plugin::Unity::interfaces        = unityInterfaces;
     Plugin::Unity::logInterface      = unityInterfaces->Get<IUnityLog>();
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
-    Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
+    Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
     Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(1);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     GraphicsAPI::unregisterUnityInterfaces();
-    Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(INTERNAL_OnGraphicsDeviceEvent);
+    Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
     Plugin::Unity::interfaces        = nullptr;
     Plugin::Unity::graphicsInterface = nullptr;
 }
