@@ -113,11 +113,13 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetLogLevel(const Uni
     Plugin::log("", type);
 }
 
+#ifdef ENABLE_FRAME_GENERATION
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(const uint32_t width, const uint32_t height) {
     if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
     Vulkan::requestSwapchainRecreationBySize(static_cast<uint64_t>(width) << 32U | height);
 }
+#endif
 
 extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API GetEventIDBase() {
     return Plugin::Unity::eventIDBase;

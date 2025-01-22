@@ -17,7 +17,7 @@ Texture2D<uint>    Conifer_Upscaler_Luma;
 Texture2D<half4>   Conifer_Upscaler_MotionDepthAlphaBuffer;
 RWTexture2D<half4> Conifer_Upscaler_MotionDepthAlphaBufferSink;
 Texture2D<half2>   Conifer_Upscaler_LumaHistory;
-RWTexture2D<half2> Conifer_Upscaler_LumaHistorySink;
+RWTexture2D<half2> Conifer_Upscaler_LumaSink;
 
 float2 Conifer_Upscaler_OutputSize;
 float2 Conifer_Upscaler_RenderSizeRcp;
@@ -78,6 +78,6 @@ void main(uint3 id : SV_DispatchThreadID) {
     }
 
     mda.w                                              = floor(mda.w) + 0.5f * (current_luma_diff.x != 0.0f && abs(current_luma_diff.y) != abs(luma_diff));
-    Conifer_Upscaler_LumaHistorySink[id.xy]            = current_luma_diff;
+    Conifer_Upscaler_LumaSink[id.xy]                   = current_luma_diff;
     Conifer_Upscaler_MotionDepthAlphaBufferSink[id.xy] = half4(mda.xy, depthclip, mda.w);
 }

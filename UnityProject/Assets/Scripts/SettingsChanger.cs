@@ -25,6 +25,8 @@ namespace Demo
                 else if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.technique = Upscaler.Technique.DeepLearningSuperSampling;
                 else if (Input.GetKeyDown(KeyCode.Alpha3)) _upscaler.technique = Upscaler.Technique.FidelityFXSuperResolution;
                 else if (Input.GetKeyDown(KeyCode.Alpha4)) _upscaler.technique = Upscaler.Technique.XeSuperSampling;
+                else if (Input.GetKeyDown(KeyCode.Alpha5)) _upscaler.technique = Upscaler.Technique.SnapdragonGameSuperResolution1;
+                else if (Input.GetKeyDown(KeyCode.Alpha6)) _upscaler.technique = Upscaler.Technique.SnapdragonGameSuperResolution2;
             }
             else if (Input.GetKey(KeyCode.Q))
             {
@@ -42,9 +44,6 @@ namespace Demo
                 if (Input.GetKeyDown(KeyCode.Alpha1)) _upscaler.frameGeneration = false;
                 else if (Input.GetKeyDown(KeyCode.Alpha2)) _upscaler.frameGeneration = true;
             }
-
-            // Does nothing if settings have not changed.
-            _upscaler.ApplySettings();  // Optional, be sure to handle errors here.
         }
     }
 }

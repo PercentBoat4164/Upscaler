@@ -174,7 +174,7 @@ namespace Conifer.Upscaler
         /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame. Defaults to <c>false</c>
         public bool forceHistoryResetEveryFrame;
 
-        private Camera _camera;
+        internal Camera Camera;
         internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
         internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
         internal Vector2 Jitter = Vector2.zero;
@@ -191,7 +191,7 @@ namespace Conifer.Upscaler
 
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
         /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
-        public Vector2Int OutputResolution => _camera ? Vector2Int.RoundToInt(_camera.pixelRect.size) : Vector2Int.one;
+        public Vector2Int OutputResolution => Camera ? Vector2Int.RoundToInt(Camera.pixelRect.size) : Vector2Int.one;
         private Vector2Int _outputResolution = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
@@ -231,7 +231,7 @@ namespace Conifer.Upscaler
         [NonSerialized] public Action<Status, string> ErrorCallback;
 
         /// The current <see cref="Status"/> for the current <see cref="Technique"/>.
-        public Status CurrentStatus { get; private set; } = Status.Success;
+        public Status CurrentStatus { get; internal set; } = Status.Success;
         /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
         public Quality quality;
         private Quality _quality;
@@ -457,27 +457,14 @@ namespace Conifer.Upscaler
          * probably first called by Upscaler's Inspector GUI.</remarks>
          */
         public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
-
-        /**
-         * <summary>Use the new settings. This does not need to be called when adjusting dynamic resolution. Simply
-         * change <see cref="InputResolution"/>.</summary>
-         * <param name="force">Should the settings be applied even if they are the same as before? Defaults to
-         * <c>false</c>. <b>USE WITH DISCRETION.</b></param>
-         * <returns>The <see cref="Status"/> of the upscaler after attempting to apply settings.</returns>
-         * <remarks>This method is very slow when the settings have changed, or if <see cref="force"/> is set to
-         * <c>true</c>. When that is the case it will update the <see cref="InputResolution"/> based on a query of the
-         * new <see cref="Technique"/>. An important thing to note is that when <see cref="force"/> is set to
-         * <c>true</c> all settings validation is disabled. This is done to ensure that the settings are pushed to the
-         * upscaler, but does mean that using this option <em>can</em> crash Unity.</remarks>
-         * <example><code>upscaler.ApplySettings();</code></example>
-         */
-        public Status ApplySettings(bool force = false)
+        
+        internal Status ApplySettings(bool force = false)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == _quality && useEdgeDirection == _useEdgeDirection && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == _camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == _quality && useEdgeDirection == _useEdgeDirection && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
 
-            var newOutputResolution = Vector2Int.RoundToInt(_camera.pixelRect.size);
-            HDR = _camera.allowHDR;
+            var newOutputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
+            HDR = Camera.allowHDR;
 
             if (!force)
             {
@@ -491,14 +478,15 @@ namespace Conifer.Upscaler
 
             if (RequiresNativePlugin(technique))
             {
-                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, sharpness, HDR);
+                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, HDR);
                 RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
                 MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
                 MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
             }
             else
             {
-                CurrentStatus = NativeInterface.Loaded ? NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, sharpness, HDR) : Status.Success;
+                NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, HDR);
+                CurrentStatus = Status.Success;
                 if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
@@ -545,54 +533,14 @@ namespace Conifer.Upscaler
 
         protected void OnEnable()
         {
-            _camera = GetComponent<Camera>();
-            _camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+            Camera = GetComponent<Camera>();
+            Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
             NativeInterface ??= new NativeInterface();
 
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
             NativeInterface.SetFrameGeneration(frameGeneration);
             ApplySettings();
-        }
-
-        private int _screenWidth = Screen.width;
-        private int _screenHeight = Screen.height;
-        internal bool IsResizing;
-
-        protected void LateUpdate()
-        {
-            if (!Application.isPlaying) return;
-            CurrentStatus = ApplySettings();
-
-            IsResizing = false;
-            if (Screen.width != _screenWidth || Screen.height != _screenHeight)
-            {
-                IsResizing = true;
-                ResetHistory();
-                _screenWidth = Screen.width;
-                _screenHeight = Screen.height;
-                NativeInterface.SetFrameGeneration(false);
-            }
-            else
-            {
-                NativeInterface.SetFrameGeneration(frameGeneration);
-            }
-
-            if (forceHistoryResetEveryFrame) ResetHistory();
-
-            if (!Failure(CurrentStatus)) return;
-            if (ErrorCallback is not null)
-            {
-                ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
-                CurrentStatus = NativeInterface.GetStatus();
-                if (!Failure(CurrentStatus)) return;
-                Debug.LogError("The registered error handler failed to rectify the following error.");
-            }
-
-            Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
-            technique = Technique.None;
-            quality = Quality.Auto;
-            ApplySettings(true);
         }
 
         private void OnDisable() => NativeInterface.SetFrameGeneration(false);

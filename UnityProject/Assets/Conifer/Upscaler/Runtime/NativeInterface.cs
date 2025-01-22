@@ -52,7 +52,7 @@ namespace Conifer.Upscaler
         internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraPerFeatureSettings")]
-        internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr);
+        internal static extern Upscaler.Status SetPerFeatureSettings(ushort camera, Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, bool hdr);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetRecommendedCameraResolution")]
         internal static extern Vector2Int GetRecommendedResolution(ushort camera);
@@ -98,25 +98,24 @@ namespace Conifer.Upscaler
                 _reactiveScale = upscaler.reactiveScale;
                 _reactiveThreshold = upscaler.reactiveThreshold;
                 _camera = cameraID;
-                var camera = upscaler.GetComponent<Camera>();
-                _viewToClip = GL.GetGPUProjectionMatrix(camera.nonJitteredProjectionMatrix, true).inverse;
+                _viewToClip = GL.GetGPUProjectionMatrix(upscaler.Camera.nonJitteredProjectionMatrix, true).inverse;
                 _clipToView = _viewToClip.inverse;
-                var cameraToWorld = GL.GetGPUProjectionMatrix(camera.worldToCameraMatrix, true).inverse;
+                var cameraToWorld = GL.GetGPUProjectionMatrix(upscaler.Camera.worldToCameraMatrix, true).inverse;
                 _clipToPrevClip = _clipToView * cameraToWorld * upscaler.LastWorldToCamera * upscaler.LastViewToClip;
                 _prevClipToClip = _clipToPrevClip.inverse;
-                var planes = camera.nonJitteredProjectionMatrix.decomposeProjection;
+                var planes = upscaler.Camera.nonJitteredProjectionMatrix.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
-                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
-                _position = camera.transform.position;
-                _up = camera.transform.up;
-                _right = camera.transform.right;
-                _forward = camera.transform.forward;
+                _verticalFOV = 2.0f * (float)Math.Atan(1.0f / upscaler.Camera.nonJitteredProjectionMatrix.m11) * 180.0f / (float)Math.PI;
+                _position = upscaler.Camera.transform.position;
+                _up = upscaler.Camera.transform.up;
+                _right = upscaler.Camera.transform.right;
+                _forward = upscaler.Camera.transform.forward;
                 _jitter = upscaler.Jitter;
-                _options = Convert.ToUInt32(camera.orthographic)         << 0 |
-                           Convert.ToUInt32(upscaler.upscalingDebugView) << 1 |
-                           Convert.ToUInt32(reset)                       << 2 |
-                           Convert.ToUInt32(upscaler.useReactiveMask)    << 3;
+                _options = Convert.ToUInt32(upscaler.Camera.orthographic) << 0 |
+                           Convert.ToUInt32(upscaler.upscalingDebugView)  << 1 |
+                           Convert.ToUInt32(reset)                        << 2 |
+                           Convert.ToUInt32(upscaler.useReactiveMask)     << 3;
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -250,9 +249,8 @@ namespace Conifer.Upscaler
             ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))
             : Upscaler.Status.LibraryNotLoaded;
 
-        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique,
-            Upscaler.DlssPreset preset, Upscaler.Quality quality, float sharpness, bool hdr) => Loaded
-            ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, sharpness, hdr)
+        internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, bool hdr) => Loaded
+            ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, hdr)
             : Upscaler.Status.LibraryNotLoaded;
 
         internal Vector2Int GetRecommendedResolution() =>

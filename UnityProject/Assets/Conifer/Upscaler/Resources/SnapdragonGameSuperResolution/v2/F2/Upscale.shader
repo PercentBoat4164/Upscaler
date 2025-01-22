@@ -46,7 +46,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			}
 
 			SamplerState linearClampSampler : register(s0);
-			Texture2D<half3> Conifer_Upscaler_PreviousOutput;
+			Texture2D<half3> Conifer_Upscaler_History;
 			Texture2D<half4> Conifer_Upscaler_MotionDepthAlphaBuffer;
 			Texture2D<half3> _MainTex;
 
@@ -65,7 +65,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			    int2 input_pos = int2(clamp(input.uv + Conifer_Upscaler_JitterOffset * Conifer_Upscaler_OutputSizeRcp, 0.0, 1.0) * Conifer_Upscaler_RenderSize);
 			    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(input_pos, 0)).xyz;
 			    float2 prev_uv = clamp(input.uv - mda.xy, 0.0, 1.0);
-			    half3 history_color = Conifer_Upscaler_PreviousOutput.SampleLevel(linearClampSampler, prev_uv, 0.0).xyz;
+			    half3 history_color = Conifer_Upscaler_History.SampleLevel(linearClampSampler, prev_uv, 0.0).xyz;
 
 			    half4 Upsampledcw = 0.0;
 			    half biasmin = max(1.0f, 0.3 + 0.3 * Conifer_Upscaler_ScaleRatio.x);

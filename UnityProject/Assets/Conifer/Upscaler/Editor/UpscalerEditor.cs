@@ -104,8 +104,7 @@ namespace Conifer.Upscaler.Editor
             var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
                 [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                     .Select((renderer, index) => new { renderer, index })
-                    .First(i => i.renderer == cameraData.scriptableRenderer).index
-                ];
+                    .First(i => i.renderer == cameraData.scriptableRenderer).index];
             if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Vulkan)
             {
                 EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
@@ -217,7 +216,7 @@ namespace Conifer.Upscaler.Editor
                                 (Upscaler.DlssPreset)_dlssPreset.intValue);
                             break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution1:
-                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue - 1, 0, 1) + 1;
+                                _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue, 0, 1);
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution2:
@@ -294,7 +293,6 @@ namespace Conifer.Upscaler.Editor
             EditorGUI.indentLevel -= 1;
 
             serializedObject.ApplyModifiedProperties();
-            upscaler.ApplySettings();
         }
     }
 }
