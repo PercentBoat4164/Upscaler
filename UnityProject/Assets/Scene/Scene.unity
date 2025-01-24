@@ -469,12 +469,12 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 2
+  technique: 1
   frameGeneration: 0
   dlssPreset: 0
   sgsrMethod: 1
   sharpness: 0
-  useReactiveMask: 0
+  autoReactive: 0
   reactiveMax: 0.6
   reactiveScale: 0.9
   reactiveThreshold: 0.3
@@ -523,7 +523,7 @@ Transform:
   m_GameObject: {fileID: 1308310398}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.8880752, y: -0.41809607, z: -2.251998}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -653,6 +653,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 963194228}
   - {fileID: 1441297027}
-  - {fileID: 842695023}
   - {fileID: 1308310400}
   - {fileID: 518298855}
+  - {fileID: 842695023}

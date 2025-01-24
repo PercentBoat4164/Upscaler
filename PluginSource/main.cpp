@@ -1,7 +1,9 @@
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
 #include "FrameGenerator/FrameGenerator.hpp"
+#ifdef ENABLE_FSR
 #include "FrameGenerator/FSR_FrameGenerator.hpp"
+#endif
 
 #include "IUnityRenderingExtensions.h"
 
@@ -77,7 +79,6 @@ void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
             upscaler.settings.orthographic      = (data.options & 0x1U) != 0U;
             upscaler.settings.debugView         = (data.options & 0x2U) != 0U;
             upscaler.settings.resetHistory      = (data.options & 0x4U) != 0U;
-            upscaler.settings.autoReactive      = (data.options & 0x8U) != 0U;
             std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
             upscaler.evaluate();
             break;
@@ -114,10 +115,12 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetLogLevel(const Uni
 }
 
 #ifdef ENABLE_FRAME_GENERATION
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(const uint32_t width, const uint32_t height) {
-    if (width == 0 && height == 0) Plugin::frameGenerationProvider = Plugin::None;
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(HWND hWnd) {
+    if (hWnd == nullptr) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
-    Vulkan::requestSwapchainRecreationBySize(static_cast<uint64_t>(width) << 32U | height);
+#ifdef ENABLE_VULKAN
+    Vulkan::setFrameGenerationHWND(hWnd);
+#endif
 }
 #endif
 
@@ -183,8 +186,9 @@ extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE
     return upscalers[camera]->settings.dynamicMinimumInputResolution;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool autoReactive) {
     Upscaler& upscaler = *upscalers[camera];
+    upscaler.settings.autoReactive = autoReactive;
     upscaler.useImages({color, depth, motion, output, reactive, opaque});
 }
 

@@ -8,7 +8,12 @@
  **************************************************/
 
 using System;
+using System.Collections;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
@@ -18,19 +23,19 @@ namespace Conifer.Upscaler
 
     internal struct Native
     {
-        [DllImport("GfxPluginUpscaler", EntryPoint = "LoadedCorrectly")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern bool LoadedCorrectly();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "SetLogLevel")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern void SetLogLevel(LogType type);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "SetFrameGeneration")]
-        internal static extern void SetFrameGeneration(int width, int height);
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern void SetFrameGeneration(IntPtr hWnd);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "GetEventIDBase")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern int GetEventIDBase();
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "GetRenderingEventCallback")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern IntPtr GetRenderingEventCallback();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "IsUpscalerSupported")]
@@ -39,7 +44,7 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "IsQualitySupported")]
         internal static extern bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "RegisterCamera")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern ushort RegisterCamera();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatus")]
@@ -48,7 +53,7 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatusMessage")]
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraUpscalerStatus")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraPerFeatureSettings")]
@@ -63,23 +68,23 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetMinimumCameraResolution")]
         internal static extern Vector2Int GetMinimumResolution(ushort camera);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "SetUpscalingImages")]
-        internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque);
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern void SetUpscalingImages(ushort camera, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "SetFrameGenerationImages")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern void SetFrameGenerationImages(IntPtr color0, IntPtr color1, IntPtr depth, IntPtr motion);
 
-        [DllImport("GfxPluginUpscaler", EntryPoint = "GetBackBufferFormat")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern GraphicsFormat GetBackBufferFormat();
         
-        [DllImport("GfxPluginUpscaler", EntryPoint = "UnregisterCamera")]
+        [DllImport("GfxPluginUpscaler")]
         internal static extern void UnregisterCamera(ushort camera);
     }
 
     internal class NativeInterface
     {
-        internal readonly Camera Camera;
         internal static readonly bool Loaded;
+        private readonly Camera _camera;
         private readonly ushort _cameraID;
         private static readonly int UpscaleEventID;
         private static readonly int FrameGenerateEventID;
@@ -87,6 +92,10 @@ namespace Conifer.Upscaler
         private readonly IntPtr _upscaleDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
         private readonly IntPtr _frameGenerateDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<FrameGenerateData>());
         public bool ShouldResetHistory = true;
+#if UNITY_EDITOR
+        internal Vector2 EditorOffset;
+        internal Vector2 EditorResolution;
+#endif
 
         private struct UpscaleData
         {
@@ -113,9 +122,8 @@ namespace Conifer.Upscaler
                 _forward = upscaler.Camera.transform.forward;
                 _jitter = upscaler.Jitter;
                 _options = Convert.ToUInt32(upscaler.Camera.orthographic) << 0 |
-                           Convert.ToUInt32(upscaler.upscalingDebugView)  << 1 |
-                           Convert.ToUInt32(reset)                        << 2 |
-                           Convert.ToUInt32(upscaler.useReactiveMask)     << 3;
+                           Convert.ToUInt32(upscaler.upscalingDebugView) << 1 |
+                           Convert.ToUInt32(reset) << 2;
                 upscaler.LastViewToClip = _viewToClip;
                 upscaler.LastWorldToCamera = cameraToWorld.inverse;
             }
@@ -196,9 +204,10 @@ namespace Conifer.Upscaler
             FrameGenerateEventID = ++eventIDBase;
         }
 
-        internal NativeInterface()
+        internal NativeInterface(Camera camera)
         {
             if (!Loaded) return;
+            _camera = camera;
             _cameraID = Native.RegisterCamera();
             _renderingEventCallback = Native.GetRenderingEventCallback();
         }
@@ -225,12 +234,10 @@ namespace Conifer.Upscaler
             if (Loaded) Native.SetLogLevel(type);
         }
 
-        internal static void SetFrameGeneration(bool on) {
+        internal void SetFrameGeneration(bool on)
+        {
             if (!Loaded) return;
-            if (on)
-                if (Application.isEditor) Native.SetFrameGeneration(Screen.width + 2, Screen.height + 42);
-                else Native.SetFrameGeneration(Screen.width, Screen.height);
-            else Native.SetFrameGeneration(0, 0);
+            Native.SetFrameGeneration(on ? GetFrameGenerationTargetHwnd() : IntPtr.Zero);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
@@ -260,16 +267,112 @@ namespace Conifer.Upscaler
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque)
+        internal void SetUpscalingImages(RTHandle color, RTHandle depth, RTHandle motion, RTHandle output, RTHandle reactive, RTHandle opaque, bool autoReactive)
         {
-            if (Loaded) Native.SetUpscalingImages(_cameraID, color, depth, motion, output, reactive, opaque);
+            if (Loaded) Native.SetUpscalingImages(_cameraID, color?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, output?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, reactive?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, opaque?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, autoReactive);
         }
 
-        internal static void SetFrameGenerationImages(IntPtr hudless0, IntPtr hudless1, IntPtr depth, IntPtr motion)
+        internal static void SetFrameGenerationImages(RTHandle hudless0, RTHandle hudless1, RTHandle depth, RTHandle motion)
         {
-            if (Loaded) Native.SetFrameGenerationImages(hudless0, hudless1, depth, motion);
+            if (Loaded) Native.SetFrameGenerationImages(hudless0?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, hudless1?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero);
         }
 
         internal static GraphicsFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : GraphicsFormat.None;
+        
+#if UNITY_EDITOR
+        private delegate bool EnumChildWindowsProc(IntPtr hWnd, ref EnumChildWindowsData lParam);
+        
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildWindowsProc lpEnumFunc, ref EnumChildWindowsData lParam);
+        
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect lpRect);
+        
+        [DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hWnd, out NativeRect lpRect);
+        
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+        
+        [DllImport("user32.dll")]
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+        
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeRect
+        {
+            public int _left;
+            public int _top;
+            public int _right;
+            public int _bottom;
+
+            public NativeRect(float windowRectXMin, float windowRectYMin, float windowRectXMax, float windowRectYMax)
+            {
+                _left = (int)windowRectXMin;
+                _top = (int)windowRectYMin;
+                _right = (int)windowRectXMax;
+                _bottom = (int)windowRectYMax;
+            }
+        }
+        
+        private struct EnumChildWindowsData
+        {
+            public readonly NativeRect Rect;
+            public IntPtr Hwnd;
+
+            public EnumChildWindowsData(NativeRect rect, IntPtr hwnd)
+            {
+                Rect = rect;
+                Hwnd = hwnd;
+            }
+        }
+        
+        private static bool EnumChildWindowsCallback(IntPtr childHwnd, ref EnumChildWindowsData data)
+        {
+            GetWindowRect(childHwnd, out var unityRect);
+            var targetRect = data.Rect;
+            if (!Mathf.Approximately(unityRect._left, targetRect._left) || !Mathf.Approximately(unityRect._top, targetRect._top) || !Mathf.Approximately(unityRect._right, targetRect._right) || !Mathf.Approximately(unityRect._bottom, targetRect._bottom))
+                return true;
+            data.Hwnd = childHwnd;
+            return false;
+        }
+#endif
+
+        private IntPtr GetFrameGenerationTargetHwnd()
+        {
+#if UNITY_EDITOR
+            var playModeView = typeof(Editor).Assembly.GetType("UnityEditor.PlayModeView")!;
+            var targetDisplay = playModeView.GetField("m_TargetDisplay", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var allPlayModeViews = (IEnumerable)playModeView.GetField("s_PlayModeViews", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
+            var camerasPlayModeView = (from EditorWindow window in allPlayModeViews where _camera.targetDisplay == (int)targetDisplay.GetValue(window) select window).FirstOrDefault();
+            if (camerasPlayModeView is null) return IntPtr.Zero;
+            var editorWindow = typeof(Editor).Assembly.GetType("UnityEditor.EditorWindow")!;
+            var viewRect = (Rect)editorWindow.GetField("m_GameViewRect", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
+            EditorOffset = viewRect.position;
+            EditorResolution = viewRect.size;
+            var view = typeof(Editor).Assembly.GetType("UnityEditor.View")!;
+            var position = view.GetField("m_Position", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var parent = editorWindow.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
+            var windowRect = (Rect)position.GetValue(parent);
+            while ((parent = view.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(parent)) is not null)
+            {
+                var thisViewPosition = (Rect)position.GetValue(parent);
+                windowRect.xMin += thisViewPosition.xMin;
+                windowRect.xMax += thisViewPosition.xMin;
+                windowRect.yMin += thisViewPosition.yMin;
+                windowRect.yMax += thisViewPosition.yMin;
+            }
+            var parentHwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+            GetWindowRect(parentHwnd, out var parentRect);
+            GetClientRect(parentHwnd, out var parentClientRect);
+            var x = parentRect._right + parentRect._left - parentClientRect._right;
+            var y = parentRect._bottom + parentRect._top - parentClientRect._bottom;
+            var targetRect = new NativeRect(windowRect.xMin + x, windowRect.yMin + y, windowRect.xMax + x, windowRect.yMax + y);
+            var data = new EnumChildWindowsData(targetRect, IntPtr.Zero);
+            EnumChildWindows(parentHwnd, EnumChildWindowsCallback, ref data);
+            return data.Hwnd;
+#else
+            return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+#endif
+        }
     }
 }

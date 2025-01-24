@@ -81,7 +81,7 @@ Upscaler::Status FSR_Upscaler::VulkanSetResources(const std::array<void*, Plugin
 
 Upscaler::Status FSR_Upscaler::VulkanGetCommandBuffer(void*& commandBuffer) {
     UnityVulkanRecordingState state {};
-    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->EnsureOutsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     commandBuffer = state.commandBuffer;
     return Success;
@@ -106,8 +106,7 @@ Upscaler::Status FSR_Upscaler::DX12Create(ffxCreateContextDescUpscale& createCon
 Upscaler::Status FSR_Upscaler::DX12SetResources(const std::array<void*, Plugin::NumImages>& images) {
     for (Plugin::ImageID id{0}; id < (settings.autoReactive ? Plugin::NumImages : Plugin::NumBaseImages); ++reinterpret_cast<uint8_t&>(id)) {
         FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
-        if (id == Plugin::Output || id == Plugin::Reactive)
-            resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
+        if (id == Plugin::Output || id == Plugin::Reactive) resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
         auto& [resource, description, state] = resources.at(id);
         resource = images.at(id);
         RETURN_ON_FAILURE(setStatusIf(resource == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
@@ -139,8 +138,8 @@ void FSR_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     std::filesystem::path path = Plugin::path;
     switch (type) {
 #ifndef NDEBUG
-        case GraphicsAPI::VULKAN: path /= "amd_fidelityfx_vkdrel.dll"; break;
-        case GraphicsAPI::DX12: path /= "amd_fidelityfx_dx12drel.dll"; break;
+        case GraphicsAPI::VULKAN: path /= "amd_fidelityfx_vkd.dll"; break;
+        case GraphicsAPI::DX12: path /= "amd_fidelityfx_dx12d.dll"; break;
 # else
         case GraphicsAPI::VULKAN: path /= "amd_fidelityfx_vk.dll"; break;
         case GraphicsAPI::DX12: path /= "amd_fidelityfx_dx12.dll"; break;
@@ -156,8 +155,6 @@ void FSR_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     ffxDispatch       = reinterpret_cast<PfnFfxDispatch>(GetProcAddress(library, "ffxDispatch"));
     if (ffxCreateContext == nullptr || ffxDestroyContext == nullptr || ffxConfigure == nullptr || ffxQuery == nullptr || ffxDispatch == nullptr) supported = Unsupported;
 }
-
-void FSR_Upscaler::shutdown() {}
 
 void FSR_Upscaler::unload() {
     ffxCreateContext = nullptr;

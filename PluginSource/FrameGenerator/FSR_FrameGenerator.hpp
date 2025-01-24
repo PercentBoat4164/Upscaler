@@ -1,7 +1,7 @@
 #pragma once
-#include <vk_queue_selector.h>
-#include <Upscaler/FSR_Upscaler.hpp>
 #if defined(ENABLE_FRAME_GENERATION) && defined(ENABLE_FSR)
+#include <vk_queue_selector.h>
+#include "Upscaler/FSR_Upscaler.hpp"
 #include "FrameGenerator.hpp"
 
 #include "GraphicsAPI/Vulkan.hpp"
@@ -237,10 +237,6 @@ public:
                 Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
         }
         ++frameNumber;
-    }
-
-    static bool ownsSwapchain(VkSwapchainKHR swapchain) {
-        return FSR_FrameGenerator::swapchain.vulkan != VK_NULL_HANDLE && swapchain == FSR_FrameGenerator::swapchain.vulkan;
     }
 
     static ffxContext* getContext() {

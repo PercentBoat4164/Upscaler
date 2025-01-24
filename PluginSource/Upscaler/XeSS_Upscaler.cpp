@@ -102,8 +102,6 @@ void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
 }
 
-void XeSS_Upscaler::shutdown() {}
-
 void XeSS_Upscaler::unload() {
     xessGetOptimalInputResolution = nullptr;
     xessDestroyContext = nullptr;

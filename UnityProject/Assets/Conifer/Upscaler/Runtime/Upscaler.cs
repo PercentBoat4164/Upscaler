@@ -180,10 +180,6 @@ namespace Conifer.Upscaler
         internal Vector2 Jitter = Vector2.zero;
 
         internal NativeInterface NativeInterface;
-#if UNITY_EDITOR
-        internal static readonly Vector2Int EditorOffset = new(1, 40);
-        internal static readonly Vector2Int EditorExtraResolution = new(2, 42);
-#endif
 
         /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
         /// upscaling. It will have a value of <c>false</c> otherwise.
@@ -192,7 +188,8 @@ namespace Conifer.Upscaler
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
         /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
         public Vector2Int OutputResolution => Camera ? Vector2Int.RoundToInt(Camera.pixelRect.size) : Vector2Int.one;
-        private Vector2Int _outputResolution = Vector2Int.zero;
+        internal Vector2Int LastOutputResolution = Vector2Int.zero;
+        private Vector2Int _lastOutputResolution = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
@@ -234,33 +231,41 @@ namespace Conifer.Upscaler
         public Status CurrentStatus { get; internal set; } = Status.Success;
         /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
         public Quality quality;
-        private Quality _quality;
+        public Quality PreviousQuality { get; private set; }
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
         public Technique technique = GetBestSupportedTechnique();
-        private Technique _technique;
+        public Technique PreviousTechnique { get; private set; }
+
         /// @todo Add documentation for this.
         public bool frameGeneration;
-        private bool _frameGeneration;
+        public bool PreviousFrameGeneration { get; private set; }
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
         public DlssPreset dlssPreset;
-        private DlssPreset _dlssPreset;
+        public DlssPreset PreviousDlssPreset { get; private set; }
         /// The current <see cref="SgsrMethod"/>. Defaults to Compute3Pass
         public SgsrMethod sgsrMethod;
+        public SgsrMethod PreviousSgsrMethod { get; private set; }
         /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public float sharpness;
+        public float PreviousSharpness { get; private set; }
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
-        public bool useReactiveMask = true;
+        public bool autoReactive = true;
+        public bool PreviousUseReactiveMask { get; private set; }
         /// Maximum reactive value. More reactivity favors newer information. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveMax = 0.6f;
+        public float PreviousReactiveMax { get; private set; }
         /// Value used to scale reactive mask after generation. Larger values result in more reactive pixels. Conifer has found that <c>0.9f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.9f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveScale = 0.9f;
+        public float PreviousReactiveScale { get; private set; }
         /// Minimum reactive threshold. Increase to make more of the image reactive. Conifer has found that <c>0.3f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.3f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveThreshold = 0.3f;
+        public float PreviousReactiveThreshold { get; private set; }
         /// @todo Add documentation for this.
         public bool useAsyncCompute = true;
+        public bool PreviousUseAsyncCompute { get; private set; }
         /// Enables the use of Edge Direction. Disabling this increases performance at the cost of visual quality. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public bool useEdgeDirection = true;
-        private bool _useEdgeDirection;
+        public bool PreviousUseEdgeDirection { get; private set; }
 
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
@@ -338,6 +343,7 @@ namespace Conifer.Upscaler
          *   Upscaler.Technique.DeepLearningSuperSampling,
          *   Upscaler.Quality.AntiAliasing
          * );</code></example>
+         * @todo: Use ComputeShader.IsSupported() to detect support of SGSR.
          */
         public static bool IsSupported(Technique type, Quality mode) => type is Technique.None ||
                                                                         (type is Technique.SnapdragonGameSuperResolution1 && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
@@ -461,7 +467,7 @@ namespace Conifer.Upscaler
         internal Status ApplySettings(bool force = false)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == _quality && useEdgeDirection == _useEdgeDirection && dlssPreset == _dlssPreset && technique == _technique && OutputResolution == _outputResolution && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == LastOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
 
             var newOutputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             HDR = Camera.allowHDR;
@@ -476,9 +482,23 @@ namespace Conifer.Upscaler
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
+            var isResizingThisFrame = OutputResolution != LastOutputResolution;
+            var wasResizingLastFrame = _lastOutputResolution != LastOutputResolution;
+            if (wasResizingLastFrame) ResetHistory();
+            if (frameGeneration)
+                if (isResizingThisFrame) NativeInterface.SetFrameGeneration(false);
+                else if (wasResizingLastFrame) NativeInterface.SetFrameGeneration(true);
+            _lastOutputResolution = LastOutputResolution;
+            if (!isResizingThisFrame && frameGeneration != PreviousFrameGeneration)
+            {
+                if (!wasResizingLastFrame) NativeInterface.SetFrameGeneration(frameGeneration);
+                PreviousFrameGeneration = frameGeneration;
+            }
+
             if (RequiresNativePlugin(technique))
             {
                 CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, HDR);
+                if (Failure(CurrentStatus)) return CurrentStatus;
                 RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
                 MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
                 MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
@@ -490,7 +510,7 @@ namespace Conifer.Upscaler
                 if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
                 if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
-                var scale = 0.769;
+                double scale;
                 switch (quality)
                 {
                     case Quality.Auto:
@@ -501,8 +521,8 @@ namespace Conifer.Upscaler
                             _ => 0.5
                         }; break;
                     case Quality.AntiAliasing:
-                        if (technique == Technique.SnapdragonGameSuperResolution1) CurrentStatus = Status.RecoverableRuntimeError;
-                        else scale = 1.0;
+                        if (technique == Technique.SnapdragonGameSuperResolution1) return CurrentStatus = Status.RecoverableRuntimeError;
+                        scale = 1.0;
                         break;
                     case Quality.UltraQualityPlus: scale = 0.769; break;
                     case Quality.UltraQuality: scale = 0.667; break;
@@ -510,24 +530,21 @@ namespace Conifer.Upscaler
                     case Quality.Balanced: scale = 0.5; break;
                     case Quality.Performance: scale = 0.435; break;
                     case Quality.UltraPerformance: scale = 0.333; break;
-                    default: CurrentStatus = Status.RecoverableRuntimeError; break;
+                    default: return CurrentStatus = Status.RecoverableRuntimeError;
                 }
 
                 RecommendedInputResolution = new Vector2Int((int)Math.Ceiling(OutputResolution.x * scale), (int)Math.Ceiling(OutputResolution.y * scale));
                 MaxInputResolution = OutputResolution;
                 MinInputResolution = Vector2Int.one;
             }
-
-            if (OutputResolution != _outputResolution || technique != _technique || quality != _quality || force)
+            
+            if (OutputResolution != LastOutputResolution || technique != PreviousTechnique || quality != PreviousQuality || force)
                 InputResolution = RecommendedInputResolution;
-            _outputResolution = OutputResolution;
-            if (Failure(CurrentStatus))
-                return CurrentStatus;
-            _quality = quality;
-            _useEdgeDirection = useEdgeDirection;
-            _dlssPreset = dlssPreset;
-            _technique = technique;
-            ResetHistory();
+            LastOutputResolution = OutputResolution;
+            PreviousQuality = quality;
+            PreviousUseEdgeDirection = useEdgeDirection;
+            PreviousDlssPreset = dlssPreset;
+            PreviousTechnique = technique;
             return CurrentStatus;
         }
 
@@ -536,10 +553,9 @@ namespace Conifer.Upscaler
             Camera = GetComponent<Camera>();
             Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
-            NativeInterface ??= new NativeInterface();
+            NativeInterface ??= new NativeInterface(Camera);
 
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
-            NativeInterface.SetFrameGeneration(frameGeneration);
             ApplySettings();
         }
 

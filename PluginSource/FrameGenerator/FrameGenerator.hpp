@@ -12,7 +12,8 @@
 
 class FrameGenerator {
 protected:
-    static std::unordered_map<uint64_t, VkSwapchainKHR> SizeToVkSwapchainKHR;
+    static std::unordered_map<HWND, VkSurfaceKHR> HWNDToSurface;
+    static std::unordered_map<VkSurfaceKHR, VkSwapchainKHR> SurfaceToSwapchain;
     static UnityRenderingExtTextureFormat backBufferFormat;
 
     static union Swapchain {
@@ -29,9 +30,14 @@ public:
     FrameGenerator& operator=(FrameGenerator&&)      = delete;
     virtual ~FrameGenerator()                        = default;
 
-    static void                           addMapping(uint64_t size, VkSwapchainKHR swapchain);
+    static void                           addMapping(HWND hWnd, VkSurfaceKHR surface);
+    static void                           addMapping(VkSurfaceKHR surface, VkSwapchainKHR swapchain);
+    static void                           removeMapping(VkSurfaceKHR surface);
     static void                           removeMapping(VkSwapchainKHR swapchain);
-    static VkSwapchainKHR                 getSwapchain(uint64_t size);
+    static VkSurfaceKHR                   getSurface(HWND hWnd);
+    static VkSwapchainKHR                 getSwapchain(HWND hWnd);
+    static VkSwapchainKHR                 getSwapchain(VkSurfaceKHR hWnd);
     static UnityRenderingExtTextureFormat getBackBufferFormat();
+    static bool                           ownsSwapchain(VkSwapchainKHR swapchain);
 };
 #endif

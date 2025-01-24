@@ -29,7 +29,7 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
             type = VULKAN;
             Upscaler::useGraphicsAPI(type);
             constexpr UnityVulkanPluginEventConfig eventConfig {
-              .renderPassPrecondition = kUnityVulkanRenderPass_EnsureInside,
+              .renderPassPrecondition = kUnityVulkanRenderPass_EnsureOutside,
               .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
               .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
             };

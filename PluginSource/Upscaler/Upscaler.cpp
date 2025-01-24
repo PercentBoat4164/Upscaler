@@ -38,12 +38,6 @@ void Upscaler::shutdown() {
 #    ifdef ENABLE_DLSS
     DLSS_Upscaler::shutdown();
 #    endif
-#    ifdef ENABLE_FSR
-    FSR_Upscaler::shutdown();
-#    endif
-#    ifdef ENABLE_XESS
-    XeSS_Upscaler::shutdown();
-#    endif
 }
 
 void Upscaler::unload() {

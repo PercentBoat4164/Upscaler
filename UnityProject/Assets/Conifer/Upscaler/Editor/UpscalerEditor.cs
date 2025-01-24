@@ -35,7 +35,7 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _dlssPreset;
         private SerializedProperty _sgsrMethod;
         private SerializedProperty _sharpness;
-        private SerializedProperty _useReactiveMask;
+        private SerializedProperty _autoReactive;
         private SerializedProperty _reactiveMax;
         private SerializedProperty _reactiveScale;
         private SerializedProperty _reactiveThreshold;
@@ -66,7 +66,7 @@ namespace Conifer.Upscaler.Editor
             _dlssPreset = serializedObject.FindProperty("dlssPreset");
             _sgsrMethod = serializedObject.FindProperty("sgsrMethod");
             _sharpness = serializedObject.FindProperty("sharpness");
-            _useReactiveMask = serializedObject.FindProperty("useReactiveMask");
+            _autoReactive = serializedObject.FindProperty("autoReactive");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
             _reactiveScale = serializedObject.FindProperty("reactiveScale");
             _reactiveThreshold = serializedObject.FindProperty("reactiveThreshold");
@@ -187,10 +187,10 @@ namespace Conifer.Upscaler.Editor
                             _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness",
                                     "Controls the amount of RCAS sharpening to apply after upscaling. Too much will produce a dirty, crunchy image. Too little will produce a smooth, blurry image. A good balance will produce a clear, clean image\n\nConifer's default: 0.3f"),
                                 _sharpness.floatValue, 0f, 1f);
-                            _useReactiveMask.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Reactive Mask",
+                            _autoReactive.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Reactive Mask",
                                 "Enable the use of an automatically generated reactive mask. This can greatly improve quality if the parameters are refined well for your application."),
-                                _useReactiveMask.boolValue);
-                            if (_useReactiveMask.boolValue)
+                                _autoReactive.boolValue);
+                            if (_autoReactive.boolValue)
                             {
                                 EditorGUI.indentLevel += 1;
                                 _reactiveMax.floatValue = EditorGUILayout.Slider(new GUIContent("Reactivity Max",

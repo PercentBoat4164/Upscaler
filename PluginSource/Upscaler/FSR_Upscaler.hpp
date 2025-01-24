@@ -26,6 +26,7 @@ public:
     static PfnFfxQuery ffxQuery;
     static PfnFfxDispatch ffxDispatch;
 
+private:
 #    ifdef ENABLE_VULKAN
     Status VulkanCreate(ffxCreateContextDescUpscale& createContextDescUpscale);
     Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);
@@ -44,7 +45,6 @@ public:
 
 public:
     static void load(GraphicsAPI::Type type, void*);
-    static void shutdown();
     static void unload();
     static bool isSupported();
     static bool isSupported(enum Settings::Quality mode);
@@ -57,13 +57,8 @@ public:
     FSR_Upscaler& operator=(FSR_Upscaler&&)      = delete;
     ~FSR_Upscaler() override;
 
-    constexpr Type getType() override {
-        return FSR;
-    }
-
-    constexpr std::string getName() override {
-        return "AMD FidelityFX Super Resolution";
-    }
+    constexpr Type getType() override { return FSR; }
+    constexpr std::string getName() override { return "AMD FidelityFX Super Resolution"; }
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
     Status useImages(const std::array<void*, Plugin::NumImages>& images) override;

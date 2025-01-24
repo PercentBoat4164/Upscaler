@@ -125,7 +125,7 @@ Upscaler::Status DLSS_Upscaler::VulkanSetResources(const std::array<void*, Plugi
 
 Upscaler::Status DLSS_Upscaler::VulkanGetCommandBuffer(void*& commandBuffer) {
     UnityVulkanRecordingState state {};
-    Vulkan::getGraphicsInterface()->EnsureInsideRenderPass();
+    Vulkan::getGraphicsInterface()->EnsureOutsideRenderPass();
     RETURN_ON_FAILURE(Upscaler::setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
     commandBuffer = state.commandBuffer;
     return Success;
