@@ -24,7 +24,7 @@ Upscaler::Status None_Upscaler::useImages(const std::array<void*, Plugin::NumIma
     return Success;
 }
 
-Upscaler::Status None_Upscaler::evaluate() {
+Upscaler::Status None_Upscaler::evaluate(Settings::Resolution inputResolution) {
     return getStatus();
 }
 

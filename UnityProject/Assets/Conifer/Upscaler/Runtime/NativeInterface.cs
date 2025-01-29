@@ -53,7 +53,7 @@ namespace Conifer.Upscaler
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatusMessage")]
         internal static extern IntPtr GetStatusMessage(ushort camera);
 
-        [DllImport("GfxPluginUpscaler")]
+        [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraUpscalerStatus")]
         internal static extern Upscaler.Status SetStatus(ushort camera, Upscaler.Status status, IntPtr message);
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "SetCameraPerFeatureSettings")]
@@ -99,7 +99,7 @@ namespace Conifer.Upscaler
 
         private struct UpscaleData
         {
-            internal UpscaleData(Upscaler upscaler, ushort cameraID, bool reset)
+            internal UpscaleData(Upscaler upscaler, ushort cameraID, Vector2Int inputResolution, bool reset)
             {
                 _frameTime = Time.deltaTime * 1000.0F;
                 _sharpness = upscaler.sharpness;
@@ -121,6 +121,7 @@ namespace Conifer.Upscaler
                 _right = upscaler.Camera.transform.right;
                 _forward = upscaler.Camera.transform.forward;
                 _jitter = upscaler.Jitter;
+                _inputResolution = inputResolution;
                 _options = Convert.ToUInt32(upscaler.Camera.orthographic) << 0 |
                            Convert.ToUInt32(upscaler.upscalingDebugView) << 1 |
                            Convert.ToUInt32(reset) << 2;
@@ -146,6 +147,7 @@ namespace Conifer.Upscaler
             private Vector3 _right;
             private Vector3 _forward;
             private Vector2 _jitter;
+            private Vector2Int _inputResolution;
             private uint _options;
         }
 
@@ -217,9 +219,9 @@ namespace Conifer.Upscaler
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal void Upscale(CommandBuffer cb, Upscaler upscaler)
+        internal void Upscale(CommandBuffer cb, Upscaler upscaler, Vector2Int inputResolution=default)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, ShouldResetHistory), _upscaleDataPtr, true);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
         }
 

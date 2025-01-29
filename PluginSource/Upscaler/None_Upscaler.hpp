@@ -24,7 +24,7 @@ public:
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality /*unused*/, bool /*unused*/) override;
     Status useImages(const std::array<void*, Plugin::NumImages>& /*unused*/) override;
-    Status evaluate() override;
+    Status evaluate(Settings::Resolution inputResolution) override;
 
     bool resetStatus() override;
 };

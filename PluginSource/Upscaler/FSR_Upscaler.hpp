@@ -62,6 +62,6 @@ public:
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
     Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
-    Status evaluate() override;
+    Status evaluate(Settings::Resolution inputResolution) override;
 };
 #endif

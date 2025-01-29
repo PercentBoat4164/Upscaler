@@ -18,7 +18,7 @@ MonoBehaviour:
     Downsample: 0
     AfterOpaque: 1
     Source: 1
-    NormalSamples: 1
+    NormalSamples: 2
     Intensity: 1
     DirectLightingStrength: 0.25
     Radius: 0.035
@@ -64,10 +64,10 @@ MonoBehaviour:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
   m_RendererFeatures:
+  - {fileID: -458600672815444585}
   - {fileID: 6976849298338257563}
   - {fileID: -714580593158241458}
-  - {fileID: -458600672815444585}
-  m_RendererFeatureMap: 9b9ae2ce78bfd2604e436a8dbc4c15f6978d142b1eb9a2f9
+  m_RendererFeatureMap: 978d142b1eb9a2f99b9ae2ce78bfd2604e436a8dbc4c15f6
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -103,7 +103,7 @@ MonoBehaviour:
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
   m_DepthPrimingMode: 0
-  m_CopyDepthMode: 1
+  m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
 --- !u!114 &6976849298338257563

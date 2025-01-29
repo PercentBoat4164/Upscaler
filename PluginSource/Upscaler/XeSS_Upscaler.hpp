@@ -15,7 +15,7 @@ class XeSS_Upscaler final : public Upscaler {
     static SupportState supported;
 
     static Status (XeSS_Upscaler::*fpCreate)(const xess_d3d12_init_params_t*);
-    static Status (XeSS_Upscaler::*fpEvaluate)();
+    static Status (XeSS_Upscaler::*fpEvaluate)(const Settings::Resolution);
 
     xess_context_handle_t context{nullptr};
     std::array<void*, Plugin::NumBaseImages> resources{};
@@ -25,16 +25,16 @@ class XeSS_Upscaler final : public Upscaler {
     static decltype(&xessSetVelocityScale) xessSetVelocityScale;
     static decltype(&xessSetLoggingCallback) xessSetLoggingCallback;
     static decltype(&xessD3D12CreateContext) xessD3D12CreateContext;
+    static decltype(&xessD3D12BuildPipelines) xessD3D12BuildPipelines;
     static decltype(&xessD3D12Init) xessD3D12Init;
     static decltype(&xessD3D12Execute) xessD3D12Execute;
-
     Status setStatus(xess_result_t t_error, const std::string &t_msg);
 
     static void log(const char* msg, xess_logging_level_t loggingLevel);
 
 #    ifdef ENABLE_DX12
     Status DX12Create(const xess_d3d12_init_params_t*);
-    Status DX12Evaluate();
+    Status DX12Evaluate(Settings::Resolution inputResolution);
 #    endif
 
 public:
@@ -62,6 +62,6 @@ public:
 
     Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
     Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
-    Status evaluate() override;
+    Status evaluate(Settings::Resolution inputResolution) override;
 };
 #endif

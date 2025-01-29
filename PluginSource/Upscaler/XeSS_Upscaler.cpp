@@ -16,13 +16,14 @@ HMODULE XeSS_Upscaler::library{nullptr};
 Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
 Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const xess_d3d12_init_params_t*){&XeSS_Upscaler::safeFail};
-Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(const Settings::Resolution){&XeSS_Upscaler::safeFail};
 
 decltype(&xessGetOptimalInputResolution) XeSS_Upscaler::xessGetOptimalInputResolution{nullptr};
 decltype(&xessDestroyContext) XeSS_Upscaler::xessDestroyContext{nullptr};
 decltype(&xessSetVelocityScale) XeSS_Upscaler::xessSetVelocityScale{nullptr};
 decltype(&xessSetLoggingCallback) XeSS_Upscaler::xessSetLoggingCallback{nullptr};
 decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr};
+decltype(&xessD3D12BuildPipelines) XeSS_Upscaler::xessD3D12BuildPipelines{nullptr};
 decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
 
@@ -63,27 +64,27 @@ void XeSS_Upscaler::log(const char* msg, const xess_logging_level_t loggingLevel
 #    ifdef ENABLE_DX12
 Upscaler::Status XeSS_Upscaler::DX12Create(const xess_d3d12_init_params_t* params) {
     RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
+    RETURN_ON_FAILURE(setStatus(xessD3D12BuildPipelines(context, params->pPipelineLibrary, true, params->initFlags), "Failed to build Xe Super Sampling pipelines."));
     return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
 }
 
-Upscaler::Status XeSS_Upscaler::DX12Evaluate() {
-    const D3D12_RESOURCE_DESC colorDescription  = static_cast<ID3D12Resource*>(resources.at(Plugin::Color))->GetDesc();
+Upscaler::Status XeSS_Upscaler::DX12Evaluate(const Settings::Resolution inputResolution) {
     const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion))->GetDesc();
     const xess_d3d12_execute_params_t params {
         .pColorTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Color)),
         .pVelocityTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion)),
         .pDepthTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Depth)),
         .pOutputTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Output)),
-        .jitterOffsetX = settings.jitter.x,
-        .jitterOffsetY = settings.jitter.y,
+        .jitterOffsetX = settings.jitter.x - 0.5F,
+        .jitterOffsetY = settings.jitter.y - 0.5F,
         .exposureScale = 1.0F,
         .resetHistory = static_cast<uint32_t>(settings.resetHistory),
-        .inputWidth = static_cast<uint32_t>(colorDescription.Width),
-        .inputHeight = static_cast<uint32_t>(colorDescription.Height),
+        .inputWidth = static_cast<uint32_t>(inputResolution.width),
+        .inputHeight = static_cast<uint32_t>(inputResolution.height),
     };
     UnityGraphicsD3D12RecordingState state{};
     RETURN_ON_FAILURE(setStatusIf(!DX12::getGraphicsInterface()->CommandRecordingState(&state), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
-    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale"));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale."));
     return setStatus(xessD3D12Execute(context, state.commandList, &params), "Failed to execute Intel Xe Super Sampling.");
 }
 #endif
@@ -97,6 +98,7 @@ void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
     xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
     xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
+    xessD3D12BuildPipelines        = reinterpret_cast<decltype(xessD3D12BuildPipelines)>(GetProcAddress(library, "xessD3D12BuildPipelines"));
     xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
     xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
     if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
@@ -108,6 +110,7 @@ void XeSS_Upscaler::unload() {
     xessSetVelocityScale = nullptr;
     xessSetLoggingCallback = nullptr;
     xessD3D12CreateContext = nullptr;
+    xessD3D12BuildPipelines = nullptr;
     xessD3D12Init = nullptr;
     xessD3D12Execute = nullptr;
     if (library != nullptr) FreeLibrary(library);
@@ -163,7 +166,9 @@ Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolutio
     if (context != nullptr) RETURN_ON_FAILURE(setStatus(xessDestroyContext(context), "Failed to destroy the Intel Xe Super Sampling context."));
     context = nullptr;
     RETURN_ON_FAILURE((this->*fpCreate)(&params));
+#ifndef NDEBUG
     RETURN_ON_FAILURE(setStatus(xessSetLoggingCallback(context, XESS_LOGGING_LEVEL_DEBUG, &XeSS_Upscaler::log), "Failed to set logging callback."));
+#endif
     const xess_2d_t inputResolution {resolution.width, resolution.height};
     xess_2d_t       optimal, min, max;
     RETURN_ON_FAILURE(setStatus(xessGetOptimalInputResolution(context, &inputResolution, params.qualitySetting, &optimal, &min, &max), "Failed to get dynamic resolution parameters."));
@@ -180,7 +185,7 @@ Upscaler::Status XeSS_Upscaler::useImages(const std::array<void*, Plugin::NumIma
     return Success;
 }
 
-Upscaler::Status XeSS_Upscaler::evaluate() {
-    return (this->*fpEvaluate)();
+Upscaler::Status XeSS_Upscaler::evaluate(const Settings::Resolution inputResolution) {
+    return (this->*fpEvaluate)(inputResolution);
 }
 #endif

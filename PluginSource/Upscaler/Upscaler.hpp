@@ -34,8 +34,33 @@
 0
 #define RETURN_VOID_ON_FAILURE(x) if (Upscaler::failure(x)) return
 
-struct alignas(128) UpscalerBase {
+class alignas(128) Upscaler {
     constexpr static uint8_t SamplesPerPixel = 8U;
+    constexpr static uint8_t ERROR_RECOVERABLE = 1U << 7U;
+
+public:
+    enum Status : uint8_t {
+        Success                     = 0U | ERROR_RECOVERABLE,
+        DeviceNotSupported          = 1U,
+        DriversOutOfDate            = 2U,
+        UnsupportedGraphicsApi      = 3U,
+        OperatingSystemNotSupported = 4U,
+        FeatureDenied               = 5U,
+        OutOfMemory                 = 6U | ERROR_RECOVERABLE,
+        LibraryNotLoaded            = 7U,
+        RecoverableRuntimeError     = 8U | ERROR_RECOVERABLE,
+        FatalRuntimeError           = 9U,
+    };
+
+    static bool success(Status);
+    static bool failure(Status);
+    static bool recoverable(Status);
+
+    enum SupportState {
+        Untested,
+        Unsupported,
+        Supported
+    };
 
     enum Type {
         NONE,
@@ -152,34 +177,6 @@ struct alignas(128) UpscalerBase {
         }
 #endif
     } settings;
-};
-
-class Upscaler : public UpscalerBase {
-    constexpr static uint8_t ERROR_RECOVERABLE = 1U << 7U;
-
-public:
-    enum Status : uint8_t {
-        Success                     = 0U | ERROR_RECOVERABLE,
-        DeviceNotSupported          = 1U,
-        DriversOutOfDate            = 2U,
-        UnsupportedGraphicsApi      = 3U,
-        OperatingSystemNotSupported = 4U,
-        FeatureDenied               = 5U,
-        OutOfMemory                 = 6U | ERROR_RECOVERABLE,
-        LibraryNotLoaded            = 7U,
-        RecoverableRuntimeError     = 8U | ERROR_RECOVERABLE,
-        FatalRuntimeError           = 9U,
-    };
-
-    static bool success(Status);
-    static bool failure(Status);
-    static bool recoverable(Status);
-
-    enum SupportState {
-        Untested,
-        Unsupported,
-        Supported
-    };
 
 private:
     Status      status{Success};
@@ -220,7 +217,7 @@ public:
 
     virtual Status useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
     virtual Status useImages(const std::array<void*, Plugin::NumImages>&)                                = 0;
-    virtual Status evaluate()                                                                            = 0;
+    virtual Status evaluate(Settings::Resolution inputResolution)                                        = 0;
 
     [[nodiscard]] Status getStatus() const;
     std::string&         getErrorMessage();

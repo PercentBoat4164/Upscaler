@@ -283,7 +283,7 @@ Upscaler::Status FSR_Upscaler::useImages(const std::array<void*, Plugin::NumImag
     return (this->*fpSetResources)(images);
 }
 
-Upscaler::Status FSR_Upscaler::evaluate() {
+Upscaler::Status FSR_Upscaler::evaluate(const Settings::Resolution inputResolution) {
     void* commandBuffer {};
     RETURN_ON_FAILURE((this->*fpGetCommandBuffer)(commandBuffer));
 
@@ -297,7 +297,7 @@ Upscaler::Status FSR_Upscaler::evaluate() {
           .colorOpaqueOnly = resources.at(Plugin::Opaque),
           .colorPreUpscale = resources.at(Plugin::Color),
           .outReactive     = resources.at(Plugin::Reactive),
-          .renderSize      = FfxApiDimensions2D{resources.at(Plugin::Reactive).description.width, resources.at(Plugin::Reactive).description.height},
+          .renderSize      = FfxApiDimensions2D{inputResolution.width, inputResolution.height},
           .scale           = settings.reactiveScale,
           .cutoffThreshold = settings.reactiveThreshold,
           .binaryValue     = settings.reactiveValue,
@@ -323,7 +323,7 @@ Upscaler::Status FSR_Upscaler::evaluate() {
         .output                     = resources.at(Plugin::Output),
         .jitterOffset               = FfxApiFloatCoords2D {settings.jitter.x, settings.jitter.y},
         .motionVectorScale          = FfxApiFloatCoords2D {-static_cast<float>(resources.at(Plugin::Motion).description.width), -static_cast<float>(resources.at(Plugin::Motion).description.height)},
-        .renderSize                 = FfxApiDimensions2D {resources.at(Plugin::Color).description.width, resources.at(Plugin::Color).description.height},
+        .renderSize                 = FfxApiDimensions2D {inputResolution.width, inputResolution.height},
         .upscaleSize                = FfxApiDimensions2D {resources.at(Plugin::Output).description.width, resources.at(Plugin::Output).description.height},
         .enableSharpening           = settings.sharpness > 0.0F,
         .sharpness                  = settings.sharpness,

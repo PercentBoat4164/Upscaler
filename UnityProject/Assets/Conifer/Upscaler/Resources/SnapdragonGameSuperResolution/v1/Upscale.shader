@@ -63,7 +63,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 			half4 frag(Varyings input) : SV_TARGET {
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
-				pix.xyz = _MainTex.SampleLevel(linearClampSampler, input.uv, 0).xyz;
+				pix.xyz = _MainTex.SampleLevel(linearClampSampler, input.uv * (Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw), 0).xyz;
 
 				float2 imgCoord = input.uv.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
 				float2 imgCoordPixel = floor(imgCoord);

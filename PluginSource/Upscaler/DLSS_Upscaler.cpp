@@ -308,7 +308,7 @@ Upscaler::Status DLSS_Upscaler::useSettings(const Settings::Resolution resolutio
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
     sl::DLSSOptions options;
-    options.mode                 = optimalSettings.getQuality<Upscaler::DLSS>(mode);
+    options.mode                 = optimalSettings.getQuality<DLSS>(mode);
     options.outputWidth          = resolution.width;
     options.outputHeight         = resolution.height;
     options.colorBuffersHDR      = hdr ? sl::eTrue : sl::eFalse;
@@ -354,18 +354,18 @@ Upscaler::Status DLSS_Upscaler::useImages(const std::array<void*, Plugin::NumIma
     return (this->*fpSetResources)(images);
 }
 
-Upscaler::Status DLSS_Upscaler::evaluate() {
+Upscaler::Status DLSS_Upscaler::evaluate(const Settings::Resolution inputResolution) {
     void* commandBuffer {};
     RETURN_ON_FAILURE((this->*fpGetCommandBuffer)(commandBuffer));
-    const sl::Extent colorExtent {0, 0, resources[Plugin::Color].width, resources[Plugin::Color].height};
-    const sl::Extent depthExtent {0, 0, resources[Plugin::Depth].width, resources[Plugin::Depth].height};
-    const sl::Extent motionExtent {0, 0, resources[Plugin::Motion].width, resources[Plugin::Motion].height};
-    const sl::Extent outputExtent {0, 0, resources[Plugin::Output].width, resources[Plugin::Output].height};
+    const sl::Extent colorExtent {0, 0, inputResolution.width, inputResolution.height};
+    const sl::Extent depthExtent {0, 0, inputResolution.width, inputResolution.height};
+    const sl::Extent motionExtent {0, 0, resources.at(Plugin::Motion).width, resources.at(Plugin::Motion).height};
+    const sl::Extent outputExtent {0, 0, resources.at(Plugin::Output).width, resources.at(Plugin::Output).height};
     const std::array tags {
-        sl::ResourceTag {&resources[Plugin::Color], sl::kBufferTypeScalingInputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &colorExtent},
-        sl::ResourceTag {&resources[Plugin::Depth], sl::kBufferTypeDepth, sl::ResourceLifecycle::eValidUntilEvaluate, &depthExtent},
-        sl::ResourceTag {&resources[Plugin::Motion], sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &motionExtent},
-        sl::ResourceTag {&resources[Plugin::Output], sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &outputExtent},
+        sl::ResourceTag {&resources.at(Plugin::Color), sl::kBufferTypeScalingInputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &colorExtent},
+        sl::ResourceTag {&resources.at(Plugin::Depth), sl::kBufferTypeDepth, sl::ResourceLifecycle::eValidUntilEvaluate, &depthExtent},
+        sl::ResourceTag {&resources.at(Plugin::Motion), sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &motionExtent},
+        sl::ResourceTag {&resources.at(Plugin::Output), sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &outputExtent},
     };
     RETURN_ON_FAILURE(setStatus(slSetTag(handle, tags.data(), tags.size(), commandBuffer), "Failed to set Streamline tags."));
     sl::FrameToken* frameToken{nullptr};

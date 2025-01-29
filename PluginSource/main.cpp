@@ -38,6 +38,7 @@ struct alignas(128) UpscaleData {
     float right[3];
     float forward[3];
     float jitter[2];
+    int inputResolution[2];
     unsigned options;
 };
 
@@ -80,7 +81,7 @@ void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
             upscaler.settings.debugView         = (data.options & 0x2U) != 0U;
             upscaler.settings.resetHistory      = (data.options & 0x4U) != 0U;
             std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
-            upscaler.evaluate();
+            upscaler.evaluate({static_cast<uint32_t>(data.inputResolution[0]), static_cast<uint32_t>(data.inputResolution[1])});
             break;
         }
         case Plugin::FrameGenerate: {
