@@ -10,7 +10,7 @@
 
 #define EPSILON 1.19e-07f
 
-SamplerState       linearClampSampler : register(s0);
+SamplerState       pointClampSampler : register(s0);
 Texture2D<uint>    Conifer_Upscaler_Luma;
 Texture2D<half4>   Conifer_Upscaler_MotionDepthAlphaBuffer;
 RWTexture2D<half4> Conifer_Upscaler_OutputSink;
@@ -57,7 +57,7 @@ void main(uint3 id : SV_DispatchThreadID) {
 
     //float2 Motion = texelFetch(MotionDepthClipAlphaBuffer, InputPos, 0).xy;
     float alphab = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(InputPos, 0)).w;
-    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.SampleLevel(linearClampSampler, Jitteruv, 0.0).xyz;
+    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.SampleLevel(pointClampSampler, Jitteruv, 0.0).xyz;
     float2 Motion = mda.xy;
 
     ///ScreenPosToViewportScale&Bias
@@ -67,7 +67,7 @@ void main(uint3 id : SV_DispatchThreadID) {
     float alphamask = (alphab - history_value) * 0.001f;
     history_value *= 2.0;
 
-    float4 History = Conifer_Upscaler_History.SampleLevel(linearClampSampler, PrevUV, 0.0);
+    float4 History = Conifer_Upscaler_History.SampleLevel(pointClampSampler, PrevUV, 0.0);
     float3 HistoryColor = History.xyz;
     float Historyw = History.w;
     float Wfactor = max(clamp(abs(Historyw), 0.0, 1.0), alphamask);
@@ -95,9 +95,9 @@ void main(uint3 id : SV_DispatchThreadID) {
     int2 InputPosBtmRight = 1 + InputPos;
     float2 gatherCoord = float2(InputPos) * Conifer_Upscaler_RenderSizeRcp;
     uint btmRight = Conifer_Upscaler_Luma.Load(int3(InputPosBtmRight, 0)).x;
-    uint4 topleft = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord);
-    uint2 topRight = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x, 0.0)).yz;
-    uint2 bottomLeft = Conifer_Upscaler_Luma.Gather(linearClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y)).xy;
+    uint4 topleft = Conifer_Upscaler_Luma.Gather(pointClampSampler, gatherCoord);
+    uint2 topRight = Conifer_Upscaler_Luma.Gather(pointClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x, 0.0)).yz;
+    uint2 bottomLeft = Conifer_Upscaler_Luma.Gather(pointClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y)).xy;
 
     float3 rectboxmin;
     float3 rectboxmax;

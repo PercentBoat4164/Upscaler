@@ -35,7 +35,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
 				return o;
 			}
 
-			SamplerState linearClampSampler : register(s0);
+			SamplerState pointClampSampler : register(s0);
 			Texture2D<float> _CameraDepthTexture;
 			Texture2D<half2> _MotionVectorTexture;
 
@@ -50,13 +50,13 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Convert"
 			    uint2 InputPos = uint2(input.uv * Conifer_Upscaler_OutputSize);
 			    float2 gatherCoord = input.uv - float2(0.5, 0.5) * Conifer_Upscaler_RenderSizeRcp;
 
-			    float4 btmLeft     = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord, 0);
+			    float4 btmLeft     = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord, 0);
 			    float2 v10         = gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0f, 0.0);
-			    float4 btmRight    = _CameraDepthTexture.Gather(linearClampSampler, v10, 0);
+			    float4 btmRight    = _CameraDepthTexture.Gather(pointClampSampler, v10, 0);
 			    float2 v12         = gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y * 2.0f);
-				float4 topLeft     = _CameraDepthTexture.Gather(linearClampSampler, v12, 0);
+				float4 topLeft     = _CameraDepthTexture.Gather(pointClampSampler, v12, 0);
 				float2 v14         = gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0f, Conifer_Upscaler_RenderSizeRcp.y * 2.0f);
-				float4 topRight    = _CameraDepthTexture.Gather(linearClampSampler, v14, 0);
+				float4 topRight    = _CameraDepthTexture.Gather(pointClampSampler, v14, 0);
 				float  maxC        = max(max(max(btmLeft.z,btmRight.w),topLeft.y),topRight.x);
 				float  btmLeft4    = max(max(max(btmLeft.y,btmLeft.x),btmLeft.z),btmLeft.w);
 

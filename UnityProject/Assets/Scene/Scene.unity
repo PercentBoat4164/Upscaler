@@ -460,7 +460,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5343c05269a4933b97b95acfeb68c47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  frameGenerationDebugView: 0
+  frameGenerationDebugView: 1
   showTearLines: 0
   showResetIndicator: 0
   showPacingIndicator: 0
@@ -468,8 +468,8 @@ MonoBehaviour:
   upscalingDebugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 4
-  technique: 2
+  quality: 1
+  technique: 1
   frameGeneration: 1
   dlssPreset: 0
   sgsrMethod: 1

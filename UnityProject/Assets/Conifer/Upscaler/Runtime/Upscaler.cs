@@ -188,8 +188,8 @@ namespace Conifer.Upscaler
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
         /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
         public Vector2Int OutputResolution => Camera ? Vector2Int.RoundToInt(Camera.pixelRect.size) : Vector2Int.one;
-        internal Vector2Int LastOutputResolution = Vector2Int.zero;
-        private Vector2Int _lastOutputResolution = Vector2Int.zero;
+        public Vector2Int PreviousOutputResolution { get; private set; } = Vector2Int.zero;
+        public Vector2Int PreviousPreviousOutputResolution { get; private set; } = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
@@ -203,6 +203,7 @@ namespace Conifer.Upscaler
             set => _inputResolution = Vector2Int.Max(MinInputResolution, Vector2Int.Min(MaxInputResolution, value));
         }
         private Vector2Int _inputResolution;
+        public Vector2Int PreviousInputResolution { get; private set; } = Vector2Int.zero;
 
         /// The recommended resolution for this <see cref="Quality"/> mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
@@ -250,7 +251,7 @@ namespace Conifer.Upscaler
         public float PreviousSharpness { get; private set; }
         /// Instructs Upscaler to set <see cref="Technique.FidelityFXSuperResolution"/> parameters for automatic reactive mask generation. Defaults to <c>true</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public bool autoReactive = true;
-        public bool PreviousUseReactiveMask { get; private set; }
+        public bool PreviousAutoReactive { get; private set; }
         /// Maximum reactive value. More reactivity favors newer information. Conifer has found that <c>0.6f</c> works well in our Unity testing scene, but please test for your specific title. Defaults to <c>0.6f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/>.
         public float reactiveMax = 0.6f;
         public float PreviousReactiveMax { get; private set; }
@@ -463,11 +464,11 @@ namespace Conifer.Upscaler
          * probably first called by Upscaler's Inspector GUI.</remarks>
          */
         public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
-        
-        internal Status ApplySettings(bool force = false)
+
+        private Status InternalApplySettings(bool force)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == LastOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == PreviousOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
 
             var newOutputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             HDR = Camera.allowHDR;
@@ -482,18 +483,13 @@ namespace Conifer.Upscaler
                 if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
             }
 
-            var isResizingThisFrame = OutputResolution != LastOutputResolution;
-            var wasResizingLastFrame = _lastOutputResolution != LastOutputResolution;
+            var isResizingThisFrame = OutputResolution != PreviousOutputResolution;
+            var wasResizingLastFrame = PreviousPreviousOutputResolution != PreviousOutputResolution;
             if (wasResizingLastFrame) ResetHistory();
             if (frameGeneration)
                 if (isResizingThisFrame) NativeInterface.SetFrameGeneration(false);
                 else if (wasResizingLastFrame) NativeInterface.SetFrameGeneration(true);
-            _lastOutputResolution = LastOutputResolution;
-            if (!isResizingThisFrame && frameGeneration != PreviousFrameGeneration)
-            {
-                if (!wasResizingLastFrame) NativeInterface.SetFrameGeneration(frameGeneration);
-                PreviousFrameGeneration = frameGeneration;
-            }
+            if (!isResizingThisFrame && !wasResizingLastFrame && frameGeneration != PreviousFrameGeneration) NativeInterface.SetFrameGeneration(frameGeneration);
 
             if (RequiresNativePlugin(technique))
             {
@@ -537,14 +533,29 @@ namespace Conifer.Upscaler
                 MaxInputResolution = OutputResolution;
                 MinInputResolution = Vector2Int.one;
             }
-            
-            if (OutputResolution != LastOutputResolution || technique != PreviousTechnique || quality != PreviousQuality || force)
+            return CurrentStatus;
+        }
+        
+        internal Status ApplySettings(bool force = false)
+        {
+            CurrentStatus = InternalApplySettings(force);
+            PreviousInputResolution = InputResolution;
+            if (OutputResolution != PreviousOutputResolution || technique != PreviousTechnique || quality != PreviousQuality || force)
                 InputResolution = RecommendedInputResolution;
-            LastOutputResolution = OutputResolution;
+            PreviousPreviousOutputResolution = PreviousOutputResolution;
+            PreviousOutputResolution = OutputResolution;
             PreviousQuality = quality;
-            PreviousUseEdgeDirection = useEdgeDirection;
-            PreviousDlssPreset = dlssPreset;
             PreviousTechnique = technique;
+            PreviousDlssPreset = dlssPreset;
+            PreviousSgsrMethod = sgsrMethod;
+            PreviousUseEdgeDirection = useEdgeDirection;
+            PreviousSharpness = sharpness;
+            PreviousAutoReactive = autoReactive;
+            PreviousReactiveMax = reactiveMax;
+            PreviousReactiveScale = reactiveScale;
+            PreviousReactiveThreshold = reactiveThreshold;
+            PreviousFrameGeneration = frameGeneration;
+            PreviousUseAsyncCompute = useAsyncCompute;
             return CurrentStatus;
         }
 
@@ -556,7 +567,7 @@ namespace Conifer.Upscaler
             NativeInterface ??= new NativeInterface(Camera);
 
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
-            ApplySettings();
+            InternalApplySettings(true);
         }
 
         private void OnDisable() => NativeInterface.SetFrameGeneration(false);

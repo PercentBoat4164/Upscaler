@@ -36,7 +36,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 				return o;
 			}
 
-            SamplerState linearClampSampler : register(s0);
+            SamplerState pointClampSampler : register(s0);
 			Texture2D    _MainTex : register(t0);
             float        Conifer_Upscaler_UseEdgeDirection;
             float        Conifer_Upscaler_EdgeSharpness;
@@ -63,21 +63,21 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 			half4 frag(Varyings input) : SV_TARGET {
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
-				pix.xyz = _MainTex.SampleLevel(linearClampSampler, input.uv * (Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw), 0).xyz;
+				pix.xyz = _MainTex.SampleLevel(pointClampSampler, input.uv * (Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw), 0).xyz;
 
 				float2 imgCoord = input.uv.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
 				float2 imgCoordPixel = floor(imgCoord);
 				float2 coord = imgCoordPixel * Conifer_Upscaler_ViewportInfo.xy;
 				half2 pl = imgCoord - imgCoordPixel;
-				half4 left = _MainTex.GatherGreen(linearClampSampler, coord);
+				half4 left = _MainTex.GatherGreen(pointClampSampler, coord);
 
 				if (abs(left.z - left.y) + abs(pix[1] - left.y) + abs(pix[1] - left.z) > 8.0 / 255.0) {
 					coord.x += Conifer_Upscaler_ViewportInfo.x;
 
-					half4 right = _MainTex.GatherGreen(linearClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x,  0.0));
+					half4 right = _MainTex.GatherGreen(pointClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x,  0.0));
 					half4 upDown = half4(
-						_MainTex.GatherGreen(linearClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
-						_MainTex.GatherGreen(linearClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
+						_MainTex.GatherGreen(pointClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
+						_MainTex.GatherGreen(pointClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
 					);
 
 					half mean = (left.y + left.z + right.x + right.w) * half(0.25);

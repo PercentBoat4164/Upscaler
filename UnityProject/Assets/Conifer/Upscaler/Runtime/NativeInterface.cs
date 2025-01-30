@@ -17,6 +17,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler
 {

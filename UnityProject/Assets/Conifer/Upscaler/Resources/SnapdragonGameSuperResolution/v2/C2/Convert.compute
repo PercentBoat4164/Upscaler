@@ -12,7 +12,7 @@
 #define SEPARATION 1.37e-05f
 #define TOLERANCE 1.0e-05f
 
-SamplerState       linearClampSampler : register(s0);
+SamplerState       pointClampSampler : register(s0);
 RWTexture2D<uint>  Conifer_Upscaler_LumaSink;
 RWTexture2D<half4> Conifer_Upscaler_MotionDepthAlphaBufferSink;
 Texture2D<float>   _CameraDepthTexture;
@@ -29,10 +29,10 @@ half   Conifer_Upscaler_PreExposure;
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID) {
     float2 gatherCoord = float2(id.xy) * Conifer_Upscaler_RenderSizeRcp.xy;
-    float4 topleft     = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord, 0);
-    float4 topRight    = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0, 0.0), 0);
-    float4 bottomLeft  = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y * 2.0), 0);
-    float4 bottomRight = _CameraDepthTexture.Gather(linearClampSampler, gatherCoord + Conifer_Upscaler_RenderSizeRcp * 2.0, 0);
+    float4 topleft     = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord, 0);
+    float4 topRight    = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x * 2.0, 0.0), 0);
+    float4 bottomLeft  = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y * 2.0), 0);
+    float4 bottomRight = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord + Conifer_Upscaler_RenderSizeRcp * 2.0, 0);
     float  maxC        = min(min(min(topleft.y, topRight.x), bottomLeft.z), bottomRight.w);
 
     float depthclip = 0.0;
