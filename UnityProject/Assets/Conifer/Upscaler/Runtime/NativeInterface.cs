@@ -153,10 +153,14 @@ namespace Conifer.Upscaler
         }
 
         private struct FrameGenerateData {
-            internal FrameGenerateData(Upscaler upscaler, uint imageIndex, bool reset)
+            internal FrameGenerateData(Upscaler upscaler, uint imageIndex, bool reset, Vector2Int offsets)
             {
                 _enable = upscaler.frameGeneration;
-                _generationRect = Application.isEditor ? new Rect(1, 40, Screen.width, Screen.height) : new Rect(0, 0, Screen.width, Screen.height);
+                _generationRect =
+#if UNITY_EDITOR
+                    Application.isEditor ? new Rect(offsets.x, offsets.y, Screen.width, Screen.height) :
+#endif
+                    new Rect(0, 0, Screen.width, Screen.height);
                 _renderSize = upscaler.InputResolution;
                 _jitterOffset = upscaler.Jitter;
                 _frameTime = Time.deltaTime * 1000.0f;
@@ -228,7 +232,7 @@ namespace Conifer.Upscaler
 
         internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
         {
-            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex, ShouldResetHistory), _frameGenerateDataPtr, true);
+            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex, ShouldResetHistory, Vector2Int.RoundToInt(EditorOffset)), _frameGenerateDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 
@@ -351,11 +355,11 @@ namespace Conifer.Upscaler
             var editorWindow = typeof(Editor).Assembly.GetType("UnityEditor.EditorWindow")!;
             var viewRect = (Rect)editorWindow.GetField("m_GameViewRect", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
             EditorOffset = viewRect.position;
-            EditorResolution = viewRect.size;
             var view = typeof(Editor).Assembly.GetType("UnityEditor.View")!;
             var position = view.GetField("m_Position", BindingFlags.NonPublic | BindingFlags.Instance)!;
             var parent = editorWindow.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
             var windowRect = (Rect)position.GetValue(parent);
+            EditorResolution = windowRect.size;
             while ((parent = view.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(parent)) is not null)
             {
                 var thisViewPosition = (Rect)position.GetValue(parent);

@@ -445,7 +445,7 @@ namespace Conifer.Upscaler.URP
                 cb.CopyTexture(_output, renderingData.cameraData.renderer.cameraColorTargetHandle);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
-                var args = new object[] { (Vector2)upscaler.OutputResolution };
+                var args = new object[] { Vector2.one };
                 ScaleFactor.Invoke(renderingData.cameraData.renderer.cameraColorTargetHandle, args);
                 ScaleFactor.Invoke(renderingData.cameraData.renderer.cameraDepthTargetHandle, args);
             }
@@ -544,10 +544,18 @@ namespace Conifer.Upscaler.URP
                 var needsUpdate = RenderingUtils.ReAllocateIfNeeded(ref _hudless[0], descriptor, name: "Conifer_Upscaler_HUDLess0");
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _hudless[1], descriptor, name: "Conifer_Upscaler_HUDLess1");
                 descriptor = renderingData.cameraData.cameraTargetDescriptor;
+#if UNITY_EDITOR
+                descriptor.width = (int)upscaler.NativeInterface.EditorResolution.x;
+                descriptor.height = (int)upscaler.NativeInterface.EditorResolution.y;
+#endif
                 descriptor.depthStencilFormat = GraphicsFormat.None;
                 descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _flippedMotion, descriptor, name: "Conifer_Upscaler_FlippedMotion");
                 descriptor = renderingData.cameraData.cameraTargetDescriptor;
+#if UNITY_EDITOR
+                descriptor.width = (int)upscaler.NativeInterface.EditorResolution.x;
+                descriptor.height = (int)upscaler.NativeInterface.EditorResolution.y;
+#endif
                 descriptor.width = upscaler.InputResolution.x;
                 descriptor.height = upscaler.InputResolution.y;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
@@ -568,11 +576,29 @@ namespace Conifer.Upscaler.URP
                 cb.Blit(null, TempColor);
                 cb.Blit(TempColor, _hudless[_hudlessBufferIndex]
 #if UNITY_EDITOR
-                    , upscaler.NativeInterface.EditorResolution / srcRes, -upscaler.NativeInterface.EditorOffset / srcRes
+                    // , upscaler.NativeInterface.EditorResolution / srcRes
+                    , Vector2.one
+                    , -upscaler.NativeInterface.EditorOffset / srcRes
 #endif
                 );
-                cb.Blit(TempMotion, _flippedMotion, upscaler.NativeInterface.EditorResolution / srcRes * new Vector2(1.0f, -1.0f), upscaler.NativeInterface.EditorOffset / srcRes + new Vector2(0.0f, 1.0f));
-                BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth, new Vector2(1.0f, -1.0f), new Vector2(0.0f, 1.0f));
+                cb.Blit(TempMotion, _flippedMotion,
+#if UNITY_EDITOR
+                    upscaler.NativeInterface.EditorResolution / srcRes *
+#endif
+                    new Vector2(1.0f, -1.0f),
+#if UNITY_EDITOR
+                    upscaler.NativeInterface.EditorOffset / srcRes +
+#endif
+                    new Vector2(0.0f, 1.0f));
+                BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth,
+#if UNITY_EDITOR
+                    upscaler.NativeInterface.EditorResolution / srcRes *
+#endif
+                    new Vector2(1.0f, -1.0f),
+#if UNITY_EDITOR
+                    upscaler.NativeInterface.EditorOffset / srcRes +
+#endif
+                    new Vector2(0.0f, 1.0f));
                 upscaler.NativeInterface.FrameGenerate(cb, upscaler, _hudlessBufferIndex);
                 cb.SetRenderTarget(k_CameraTarget);
                 cb.ReleaseTemporaryRT(TempColor);
