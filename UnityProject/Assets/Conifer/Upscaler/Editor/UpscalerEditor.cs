@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v1.2.0                                *
+ * Upscaler v2.0.0b                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -14,6 +14,7 @@ using System.IO;
 using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.Editor
@@ -27,6 +28,7 @@ namespace Conifer.Upscaler.Editor
 
         [SerializeField] private bool advancedSettingsFoldout;
         [SerializeField] private bool debugSettingsFoldout;
+        [SerializeField] private bool betaSettingsFoldout;
 
         private SerializedProperty _technique;
         private SerializedProperty _quality;
@@ -131,13 +133,6 @@ namespace Conifer.Upscaler.Editor
 
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
-                if (UniversalRenderPipeline.asset?.upscalingFilter is UpscalingFilterSelection.FSR)
-                {
-                    EditorGUILayout.HelpBox("The URP Asset's 'Upscaling Filter' must not be set to 'FidelityFX Super Resolution 1.0'.",
-                        MessageType.Error);
-                    if (GUILayout.Button("Set to 'Automatic'"))
-                        UniversalRenderPipeline.asset!.upscalingFilter = UpscalingFilterSelection.Auto;
-                }
                 if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                 {
                     EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
@@ -149,17 +144,22 @@ namespace Conifer.Upscaler.Editor
                     if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
                 }
             }
-            if (UniversalRenderPipeline.asset?.supportsCameraOpaqueTexture is false)
+
+            if (upscaler.autoReactive && upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
             {
-                EditorGUILayout.HelpBox("Upscaler requires access the 'Opaque Texture'.", MessageType.Warning);
-                if (GUILayout.Button("Enable 'Opaque Texture'"))
-                    UniversalRenderPipeline.asset.supportsCameraOpaqueTexture = true;
-            }
-            if (UniversalRenderPipeline.asset?.opaqueDownsampling is not Downsampling.None)
-            {
-                EditorGUILayout.HelpBox("set 'Opaque Downsampling' to 'None' for best results.", MessageType.Warning);
-                if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
-                    FOpaqueDownsampling.SetValue(UniversalRenderPipeline.asset, Downsampling.None);
+                if (UniversalRenderPipeline.asset?.supportsCameraOpaqueTexture is false)
+                {
+                    EditorGUILayout.HelpBox("FSR's autoReactive mode requires access to the 'Opaque Texture'.", MessageType.Warning);
+                    if (GUILayout.Button("Enable 'Opaque Texture'"))
+                        UniversalRenderPipeline.asset.supportsCameraOpaqueTexture = true;
+                }
+
+                if (UniversalRenderPipeline.asset?.opaqueDownsampling is not Downsampling.None)
+                {
+                    EditorGUILayout.HelpBox("Set 'Opaque Downsampling' to 'None' for best results with FSR's autoReactive mode.", MessageType.Warning);
+                    if (GUILayout.Button("set 'Opaque Downsampling' to 'None'"))
+                        FOpaqueDownsampling.SetValue(UniversalRenderPipeline.asset, Downsampling.None);
+                }
             }
 
             _quality.intValue = (int)(Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
@@ -172,9 +172,7 @@ namespace Conifer.Upscaler.Editor
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None && !dynamicResolutionSupported)
                 EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
-            _frameGeneration.boolValue = EditorGUILayout.Toggle("Enable Frame Generation", _frameGeneration.boolValue);
-
-            if (((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling && (Upscaler.Technique)_technique.intValue != Upscaler.Technique.None) || _frameGeneration.boolValue)
+            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling && (Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
                 EditorGUILayout.Separator();
                 EditorGUI.indentLevel += 1;
@@ -222,13 +220,12 @@ namespace Conifer.Upscaler.Editor
                         case Upscaler.Technique.SnapdragonGameSuperResolution2:
                                 _sgsrMethod.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_sgsrMethod.intValue);
                                 break;
+                        case Upscaler.Technique.None:
+                        case Upscaler.Technique.XeSuperSampling:
                         default: break;
                     }
-                    if (((Upscaler.Technique)_technique.intValue == Upscaler.Technique.XeSuperSampling || (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None) ^ _frameGeneration.boolValue)
+                    if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.XeSuperSampling || (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None)
                         EditorGUILayout.Separator();
-                    if (_frameGeneration.boolValue)
-                        // @todo Ensure that async compute is supported before showing the toggle.
-                        _useAsyncCompute.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Async Compute"), _useAsyncCompute.boolValue);
                 }
             }
 
@@ -236,29 +233,6 @@ namespace Conifer.Upscaler.Editor
             debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
             if (debugSettingsFoldout)
             {
-                if (upscaler.frameGeneration) {
-                    _frameGenerationDebugView.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("View Frame Generation Debug Images",
-                            "Draws extra views over the scene to help understand the inputs to the frame generation process. (Frame Generation only)"),
-                        _frameGenerationDebugView.boolValue);
-                    _showTearLines.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Show Tear Lines",
-                            "Draws flashing lines on the sides of the screen to make screen tears visually apparent. (Frame Generation only)"),
-                        _showTearLines.boolValue);
-                    _showResetIndicator.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Show Reset Indicator",
-                            "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
-                        _showResetIndicator.boolValue);
-                    _showPacingIndicator.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Show Pacing Indicator",
-                            "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
-                        _showPacingIndicator.boolValue);
-                    _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
-                        new GUIContent("Only Present Generated Frames",
-                            "Presents only the generated frames."),
-                        _onlyPresentGenerated.boolValue);
-                    EditorGUILayout.Separator();
-                }
                 if ((Upscaler.Technique)_technique.intValue == Upscaler.Technique.FidelityFXSuperResolution) {
                     _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("View Upscaling Debug Images",
@@ -290,6 +264,44 @@ namespace Conifer.Upscaler.Editor
                 Upscaler.SetLogLevel(logLevel);
             }
 
+            EditorGUILayout.Separator();
+            betaSettingsFoldout = EditorGUILayout.Foldout(betaSettingsFoldout, "Beta Settings");
+            if (betaSettingsFoldout)
+            {
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Vulkan)
+                {
+                    EditorGUILayout.HelpBox("Frame generation is currently only available when using the Vulkan Graphics API.", MessageType.Error);
+                    _frameGeneration.boolValue = false;
+                    GUI.enabled = false;
+                }
+                _frameGeneration.boolValue = EditorGUILayout.Toggle("FSR Frame Generation", _frameGeneration.boolValue);
+                GUI.enabled = _frameGeneration.boolValue;
+                _useAsyncCompute.boolValue = EditorGUILayout.Toggle("Use Async Compute", _useAsyncCompute.boolValue);
+                EditorGUILayout.Separator();
+                _frameGenerationDebugView.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("View Frame Generation Debug Images",
+                        "Draws extra views over the scene to help understand the inputs to the frame generation process. (Frame Generation only)"),
+                    _frameGenerationDebugView.boolValue);
+                _showTearLines.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Show Tear Lines",
+                        "Draws flashing lines on the sides of the screen to make screen tears visually apparent. (Frame Generation only)"),
+                    _showTearLines.boolValue);
+                _showResetIndicator.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Show Reset Indicator",
+                        "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
+                    _showResetIndicator.boolValue);
+                _showPacingIndicator.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Show Pacing Indicator",
+                        "Draws a blue bar across the screen when the frame generation history has been reset. (Frame Generation only)"),
+                    _showPacingIndicator.boolValue);
+                _onlyPresentGenerated.boolValue = EditorGUILayout.Toggle(
+                    new GUIContent("Only Present Generated Frames",
+                        "Presents only the generated frames."),
+                    _onlyPresentGenerated.boolValue);
+                EditorGUILayout.Separator();
+                GUI.enabled = true;
+            }
+            
             EditorGUI.indentLevel -= 1;
 
             serializedObject.ApplyModifiedProperties();
