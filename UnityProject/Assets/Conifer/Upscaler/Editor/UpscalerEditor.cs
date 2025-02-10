@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v2.0.0b                                *
+ * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -60,6 +60,7 @@ namespace Conifer.Upscaler.Editor
         {
             advancedSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:advancedSettingsFoldout", false);
             debugSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:debugSettingsFoldout", false);
+            betaSettingsFoldout = EditorPrefs.GetBool("Conifer:Upscaler:betaSettingsFoldout", false);
 
             _technique = serializedObject.FindProperty("technique");
             _quality = serializedObject.FindProperty("quality");
@@ -96,6 +97,7 @@ namespace Conifer.Upscaler.Editor
         {
             EditorPrefs.SetBool("Conifer:Upscaler:advancedSettingsFoldout", advancedSettingsFoldout);
             EditorPrefs.SetBool("Conifer:Upscaler:debugSettingsFoldout", debugSettingsFoldout);
+            EditorPrefs.SetBool("Conifer:Upscaler:betaSettingsFoldout", betaSettingsFoldout);
         }
 
         public override void OnInspectorGUI()

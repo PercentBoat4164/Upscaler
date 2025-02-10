@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v2.0.0b                                *
+ * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -576,9 +576,7 @@ namespace Conifer.Upscaler.URP
                 cb.Blit(null, TempColor);
                 cb.Blit(TempColor, _hudless[_hudlessBufferIndex]
 #if UNITY_EDITOR
-                    // , upscaler.NativeInterface.EditorResolution / srcRes
-                    , Vector2.one
-                    , -upscaler.NativeInterface.EditorOffset / srcRes
+                    , Vector2.one, -upscaler.NativeInterface.EditorOffset / srcRes
 #endif
                 );
                 cb.Blit(TempMotion, _flippedMotion,

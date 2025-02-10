@@ -33,8 +33,6 @@ cmake_dependent_option(ENABLE_DLSS "Compiles with DLSS support." ON "WIN32" OFF)
 option(ENABLE_FSR "Compiles with FSR3 support." ON)
 cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support." ON "WIN32" OFF)
 
-#set(ENABLE_XESS OFF)
-
 cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation support." ON "WIN32" OFF)
 
 if (ENABLE_DLSS)
@@ -107,7 +105,7 @@ if (NOT ENABLE_VULKAN AND NOT ENABLE_DX12 AND NOT ENABLE_DX11)
     message(FATAL_ERROR "No graphics API(s) were enabled.")
 endif ()
 
-cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/external/Streamline-2.4.15")
+cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/external/Streamline-2.7.2")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/external/ffx_sdk")
 cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/external/XeSS_SDK-1.3.1")
 set(DESIRED_UNITY_VERSION "2022.3.55f1")

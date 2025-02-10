@@ -3,7 +3,7 @@
  **********************************************************************/
 
 /**************************************************
- * Upscaler v2.0.0b                                *
+ * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
  **************************************************/
 
@@ -16,7 +16,7 @@ namespace Conifer.Upscaler
      * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
      * <see cref="UnityEngine.Camera"/> object.
      */
-    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v2.0.0b")]
+    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v2.0.0")]
     public class Upscaler : MonoBehaviour
     {
         /**
@@ -466,7 +466,7 @@ namespace Conifer.Upscaler
         private Status InternalApplySettings(bool force)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == PreviousOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
+            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == PreviousOutputResolution && PreviousOutputResolution == PreviousPreviousOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
 
             var newOutputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             HDR = Camera.allowHDR;
@@ -565,7 +565,7 @@ namespace Conifer.Upscaler
             NativeInterface ??= new NativeInterface(Camera);
 
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
-            InternalApplySettings(true);
+            ApplySettings(true);
         }
 
         private void OnDisable() => NativeInterface.SetFrameGeneration(false);
