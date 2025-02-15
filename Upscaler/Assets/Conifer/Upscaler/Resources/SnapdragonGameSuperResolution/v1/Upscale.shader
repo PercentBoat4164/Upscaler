@@ -14,6 +14,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 
         Pass
         {
+        	Name "Snapdragon Game Super Resolution 1"
             HLSLPROGRAM
             #pragma multi_compile _ CONIFER_UPSCALER_USE_EDGE_DIRECTION
             #pragma target 5.0

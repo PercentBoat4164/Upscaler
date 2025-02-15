@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.URP
@@ -60,7 +61,7 @@ namespace Conifer.Upscaler.URP
 
             public SetupUpscale() => renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
 
-            #if UNITY_6000_0_OR_NEWER
+#if UNITY_6000_0_OR_NEWER
             private class PassData
             {
                 internal Vector2Int Output;
@@ -373,6 +374,53 @@ namespace Conifer.Upscaler.URP
 
             public void SetImages(Upscaler upscaler, ScriptableRenderer renderer) => upscaler.NativeInterface.SetUpscalingImages(renderer.cameraColorTargetHandle, upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution ? _fsrDepth : renderer.cameraDepthTargetHandle, _motion, _output, _reactive, _opaque, upscaler.autoReactive);
 
+#if UNITY_6000_0_OR_NEWER
+            private class PassData
+            {
+                internal Vector2Int Output;
+                internal Vector2Int Input;
+                internal float Sharpness;
+                internal Material Material;
+                internal TextureHandle OutputTexture;
+                internal TextureHandle InputTexture;
+            }
+
+            public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+            {
+                var cameraData = frameData.Get<UniversalCameraData>();
+                var upscaler = cameraData.camera.GetComponent<Upscaler>();
+                var resources = frameData.Get<UniversalResourceData>();
+                if (upscaler.technique == Upscaler.Technique.SnapdragonGameSuperResolution1)
+                {
+                    var output = renderGraph.CreateTexture(resources.cameraColor);
+                    using (var builder = renderGraph.AddUnsafePass<PassData>("Conifer - Upscaler - Snapdragon Game Super Resolution 1", out var data))
+                    {
+                        data.Output = upscaler.OutputResolution;
+                        data.Input = upscaler.OutputResolution;
+                        data.Sharpness = upscaler.sharpness;
+                        data.Material = _sgsr1Upscale;
+                        data.OutputTexture = output;
+                        data.InputTexture = resources.cameraColor;
+                        builder.UseTexture(resources.cameraColor);
+                        builder.UseTexture(output, AccessFlags.Write);
+                        builder.SetRenderFunc((PassData passData, UnsafeGraphContext context) => ExecutePass(passData, context));
+                    }
+                    renderGraph.AddCopyPass(output, resources.cameraColor, passName: "Conifer - Upscaler - Copy Output");
+                }
+            }
+
+            private static void ExecutePass(PassData data, UnsafeGraphContext context)
+            {
+                context.cmd.SetRenderTarget(data.OutputTexture);
+                context.cmd.SetGlobalTexture(BlitID, data.InputTexture);
+                context.cmd.SetViewProjectionMatrices(LookAt, Ortho);
+                context.cmd.SetGlobalVector(ViewportInfoID, new Vector4(1.0f / data.Output.x, 1.0f / data.Output.y, data.Input.x, data.Input.y));
+                context.cmd.SetGlobalFloat(EdgeSharpnessID, data.Sharpness + 1);
+                context.cmd.DrawMesh(_triangle, Matrix4x4.identity, data.Material, 0, 0);
+            }
+
+            [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+#endif
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
@@ -732,8 +780,8 @@ namespace Conifer.Upscaler.URP
                     _setupUpscale.ConfigureInput(ScriptableRenderPassInput.None);
                     renderer.EnqueuePass(_setupUpscale);
                 }
-                // _upscale.ConfigureInput(upscaler.IsTemporal() ? ScriptableRenderPassInput.Motion : ScriptableRenderPassInput.None);
-                // renderer.EnqueuePass(_upscale);
+                _upscale.ConfigureInput((upscaler.IsTemporal() ? ScriptableRenderPassInput.Motion : ScriptableRenderPassInput.None) | ScriptableRenderPassInput.Color);
+                renderer.EnqueuePass(_upscale);
             }
 
             if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)

@@ -473,7 +473,7 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 4
-  technique: 0
+  technique: 4
   frameGeneration: 0
   dlssPreset: 0
   sgsrMethod: 1
