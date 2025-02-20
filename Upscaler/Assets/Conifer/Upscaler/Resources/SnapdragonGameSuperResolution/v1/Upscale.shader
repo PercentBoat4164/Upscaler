@@ -18,27 +18,14 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
             HLSLPROGRAM
             #pragma multi_compile _ CONIFER_UPSCALER_USE_EDGE_DIRECTION
             #pragma target 5.0
-			#pragma vertex vert
-			#pragma fragment frag
 
-            #include "UnityCG.cginc"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-			struct Varyings
-			{
-				float2 uv : TEXCOORD0;
-				float4 pos : POSITION;
-			};
-
-			Varyings vert(float4 pos : POSITION, float2 uv : TEXCOORD)
-			{
-				Varyings o;
-				o.pos = UnityObjectToClipPos(pos);
-				o.uv = uv;
-				return o;
-			}
+			#pragma vertex Vert
+			#pragma fragment Frag
 
             SamplerState pointClampSampler : register(s0);
-			Texture2D    _MainTex : register(t0);
             float        Conifer_Upscaler_UseEdgeDirection;
             float        Conifer_Upscaler_EdgeSharpness;
             float4       Conifer_Upscaler_ViewportInfo : register(b0);
@@ -61,24 +48,24 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 				return half2(w, w * c);
 			}
 
-			half4 frag(Varyings input) : SV_TARGET {
+			half4 Frag(Varyings input) : SV_TARGET {
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
-				pix.xyz = _MainTex.SampleLevel(pointClampSampler, input.uv * (Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw), 0).xyz;
+				pix.xyz = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, pointClampSampler, input.texcoord * Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw, _BlitMipLevel).xyz;
 
-				float2 imgCoord = input.uv.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
+				float2 imgCoord = input.texcoord.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
 				float2 imgCoordPixel = floor(imgCoord);
 				float2 coord = imgCoordPixel * Conifer_Upscaler_ViewportInfo.xy;
 				half2 pl = imgCoord - imgCoordPixel;
-				half4 left = _MainTex.GatherGreen(pointClampSampler, coord);
+				half4 left = GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord);
 
 				if (abs(left.z - left.y) + abs(pix[1] - left.y) + abs(pix[1] - left.z) > 8.0 / 255.0) {
 					coord.x += Conifer_Upscaler_ViewportInfo.x;
 
-					half4 right = _MainTex.GatherGreen(pointClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x,  0.0));
+					half4 right = GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x,  0.0));
 					half4 upDown = half4(
-						_MainTex.GatherGreen(pointClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
-						_MainTex.GatherGreen(pointClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
+						GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
+						GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
 					);
 
 					half mean = (left.y + left.z + right.x + right.w) * half(0.25);

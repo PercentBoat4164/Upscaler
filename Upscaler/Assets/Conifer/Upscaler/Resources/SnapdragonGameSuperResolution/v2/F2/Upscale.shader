@@ -14,41 +14,21 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 
 		Pass
 		{
+			name "Snapdragon Game Super Resolution 2 - Fragment 2 Pass - Upscale"
 			HLSLPROGRAM
 			#pragma target 5.0
-			#pragma vertex vert
-			#pragma fragment frag
 
-			#include "UnityCG.cginc"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+
+			#pragma vertex Vert
+			#pragma fragment Frag
 
 			#define EPSILON 1.19e-07f
-
-			struct Varyings
-			{
-				float2 uv : TEXCOORD0;
-				float4 pos : POSITION;
-			};
-
-			Varyings vert(float4 pos : POSITION, float2 uv : TEXCOORD)
-			{
-				Varyings o;
-				o.pos = UnityObjectToClipPos(pos);
-				o.uv = uv;
-				return o;
-			}
-
-			half FastLanczos(half base)
-			{
-				half y = base - 1.0f;
-				half y2 = y * y;
-				half y_temp = 0.75f * y + y2;
-				return y_temp * y2;
-			}
 
 			SamplerState pointClampSampler : register(s0);
 			Texture2D<half3> Conifer_Upscaler_History;
 			Texture2D<half4> Conifer_Upscaler_MotionDepthAlphaBuffer;
-			Texture2D<half3> _MainTex;
 
 		    float2 Conifer_Upscaler_RenderSize;
 		    float2 Conifer_Upscaler_OutputSize;
@@ -59,13 +39,21 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 		    float  Conifer_Upscaler_Reset;
 		    uint   Conifer_Upscaler_SameCamera;
 
-			half3 frag(Varyings input) : SV_Target
+			half FastLanczos(half base)
+			{
+				half y = base - 1.0f;
+				half y2 = y * y;
+				half y_temp = 0.75f * y + y2;
+				return y_temp * y2;
+			}
+
+			half3 Frag(Varyings input) : SV_Target
 			{
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-			    int2 input_pos = int2(clamp(input.uv + Conifer_Upscaler_JitterOffset * Conifer_Upscaler_OutputSizeRcp, 0.0, 1.0) * Conifer_Upscaler_RenderSize);
-			    float3 mda = Conifer_Upscaler_MotionDepthAlphaBuffer.Load(int3(input_pos, 0)).xyz;
-			    float2 prev_uv = clamp(input.uv - mda.xy, 0.0, 1.0);
-			    half3 history_color = Conifer_Upscaler_History.SampleLevel(pointClampSampler, prev_uv, 0.0).xyz;
+			    int2 input_pos = int2(clamp(input.texcoord + Conifer_Upscaler_JitterOffset * Conifer_Upscaler_OutputSizeRcp, 0.0, 1.0) * Conifer_Upscaler_RenderSize);
+			    float3 mda = LOAD_TEXTURE2D_X_LOD(Conifer_Upscaler_MotionDepthAlphaBuffer, input_pos, 0).xyz;
+			    float2 prev_uv = clamp(input.texcoord - mda.xy, 0.0, 1.0);
+			    half3 history_color = SAMPLE_TEXTURE2D_X_LOD(Conifer_Upscaler_History, pointClampSampler, prev_uv, 0.0).xyz;
 
 			    half4 Upsampledcw = 0.0;
 			    half biasmin = max(1.0f, 0.3 + 0.3 * Conifer_Upscaler_ScaleRatio.x);
@@ -81,11 +69,11 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 
 			    kernelbias *= 0.5f;
 			    half kernelbias2 = kernelbias * kernelbias;
-			    half2 srcpos_srcOutputPos = srcpos - input.uv * Conifer_Upscaler_RenderSize;
+			    half2 srcpos_srcOutputPos = srcpos - input.texcoord * Conifer_Upscaler_RenderSize;
 			    half3 rectboxmin;
 			    half3 rectboxmax;
-			    half3 topMid = _MainTex.Load(int3(input_pos + int2(0, 1), 0)).xyz;
 			    {
+					half3 topMid = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(0, 1), 0).xyz;
 			        half3 samplecolor = topMid;
 			        half2 baseoffset = srcpos_srcOutputPos + half2(0.0, 1.0);
 			        half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -100,8 +88,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			        rectboxvar += samplecolor * wsample;
 			        rectboxweight += boxweight;
 			    }
-			    half3 rightMid = _MainTex.Load(int3(input_pos + int2(1, 0), 0)).xyz;
 			    {
+					half3 rightMid = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(1, 0), 0).xyz;
 			        half3 samplecolor = rightMid;
 			        half2 baseoffset = srcpos_srcOutputPos + half2(1.0, 0.0);
 			        half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -116,8 +104,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			        rectboxvar += samplecolor * wsample;
 			        rectboxweight += boxweight;
 			    }
-			    half3 leftMid = _MainTex.Load(int3(input_pos + int2(-1, 0), 0)).xyz;
 			    {
+					half3 leftMid = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(-1, 0), 0).xyz;
 			        half3 samplecolor = leftMid;
 			        half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, 0.0);
 			        half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -132,8 +120,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			        rectboxvar += samplecolor * wsample;
 			        rectboxweight += boxweight;
 			    }
-			    half3 centerMid = _MainTex.Load(int3(input_pos + int2(0, 0), 0)).xyz;
 			    {
+					half3 centerMid = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(0, 0), 0).xyz;
 			        half3 samplecolor = centerMid;
 			        half2 baseoffset = srcpos_srcOutputPos;
 			        half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -148,8 +136,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			        rectboxvar += samplecolor * wsample;
 			        rectboxweight += boxweight;
 			    }
-			    half3 btmMid = _MainTex.Load(int3(input_pos + int2(0, -1), 0)).xyz;
 			    {
+					half3 btmMid = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(0, -1), 0).xyz;
 			        half3 samplecolor = btmMid;
 			        half2 baseoffset = srcpos_srcOutputPos + half2(0.0, -1.0);
 			        half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -168,7 +156,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			    if (Conifer_Upscaler_SameCamera)
 			    {
 			        {
-			            half3 topRight = _MainTex.Load(int3(input_pos + int2(1, 1), 0)).xyz;
+			            half3 topRight = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(1, 1), 0).xyz;
 			            half3 samplecolor = topRight;
 			            half2 baseoffset = srcpos_srcOutputPos + half2(1.0, 1.0);
 			            half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -184,7 +172,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			            rectboxweight += boxweight;
 			        }
 			        {
-			            half3 topLeft = _MainTex.Load(int3(input_pos + int2(-1, 1), 0)).xyz;
+			            half3 topLeft = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(-1, 1), 0).xyz;
 			            half3 samplecolor = topLeft;
 			            half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, 1.0);
 			            half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -200,7 +188,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			            rectboxweight += boxweight;
 			        }
 			        {
-			            half3 btmRight = _MainTex.Load(int3(input_pos + int2(1, -1) , 0)).xyz;
+			            half3 btmRight = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(1, -1) , 0).xyz;
 			            half3 samplecolor = btmRight;
 			            half2 baseoffset = srcpos_srcOutputPos + half2(1.0, -1.0);
 			            half baseoffset_dot = dot(baseoffset, baseoffset);
@@ -217,7 +205,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v2/F2/Upscale"
 			        }
 
 			        {
-			            half3 btmLeft = _MainTex.Load(int3(input_pos + int2(-1, -1) , 0)).xyz;
+			            half3 btmLeft = LOAD_TEXTURE2D_X_LOD(_BlitTexture, input_pos + int2(-1, -1) , 0).xyz;
 			            half3 samplecolor = btmLeft;
 			            half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, -1.0);
 			            half baseoffset_dot = dot(baseoffset, baseoffset);

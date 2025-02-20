@@ -109,7 +109,7 @@ namespace Conifer.Upscaler.Editor
                 [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
                     .Select((renderer, index) => new { renderer, index })
                     .First(i => i.renderer == cameraData.scriptableRenderer).index];
-            if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Vulkan)
+            if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
             {
                 EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
                 if (GUILayout.Button("Disable 'Native RenderPass'.")) activeRenderer.useNativeRenderPass = false;
