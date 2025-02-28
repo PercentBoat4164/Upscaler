@@ -472,11 +472,11 @@ MonoBehaviour:
   upscalingDebugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 1
-  technique: 1
+  quality: 7
+  technique: 5
   frameGeneration: 0
   dlssPreset: 0
-  sgsrMethod: 0
+  sgsrMethod: 1
   sharpness: 0
   autoReactive: 0
   reactiveMax: 0.6

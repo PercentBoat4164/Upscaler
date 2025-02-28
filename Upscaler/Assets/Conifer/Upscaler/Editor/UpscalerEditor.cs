@@ -251,12 +251,13 @@ namespace Conifer.Upscaler.Editor
                     upscaler.InputResolution = new Vector2Int((int)Math.Round(resolution),
                         (int)Math.Round(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                 }
-                EditorGUILayout.Separator();
-                _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
-                    new GUIContent("Force History Reset",
-                        "Forces the active upscaler to ignore it's internal history buffer."),
-                    _forceHistoryResetEveryFrame.boolValue);
-                EditorGUILayout.Separator();
+                if (upscaler.IsTemporal())
+                {
+                    _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
+                        new GUIContent("Force History Reset",
+                            "Forces the active upscaler to ignore it's internal history buffer."),
+                        _forceHistoryResetEveryFrame.boolValue);
+                }
                 var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
                 EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
                 Upscaler.SetLogLevel(logLevel);
@@ -266,6 +267,11 @@ namespace Conifer.Upscaler.Editor
             betaSettingsFoldout = EditorGUILayout.Foldout(betaSettingsFoldout, "Beta Settings");
             if (betaSettingsFoldout)
             {
+#if UNITY_6000_0_OR_NEWER
+                EditorGUILayout.HelpBox("Frame generation is currently unavailable in Unity 6000.", MessageType.Error);
+                _frameGeneration.boolValue = false;
+                GUI.enabled = false;
+#endif
                 if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Vulkan)
                 {
                     EditorGUILayout.HelpBox("Frame generation is currently only available when using the Vulkan Graphics API.", MessageType.Error);

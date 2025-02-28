@@ -18,15 +18,18 @@ namespace Conifer.Upscaler.URP
     [DisallowMultipleRendererFeature("Upscaler Renderer Feature")]
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
-        private static Mesh _triangle;
         private static Material _depthBlitMaterial;
         private static readonly int OffsetID = Shader.PropertyToID("Conifer_Upscaler_Offset");
         private static readonly int ScaleID = Shader.PropertyToID("Conifer_Upscaler_Scale");
 
         private static readonly int BlitID = Shader.PropertyToID("_BlitTexture");
+        private static readonly int BlitScaleBiasID = Shader.PropertyToID("_BlitScaleBias");
         private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
         private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
         private static readonly int ColorID = Shader.PropertyToID("_CameraColorTexture");
+#if !UNITY_6000_0_OR_NEWER
+        private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
+#endif
 
         private static readonly Matrix4x4 Ortho = Matrix4x4.Ortho(-1, 1, 1, -1, 1, -1);
         private static readonly Matrix4x4 LookAt = Matrix4x4.LookAt(Vector3.back, Vector3.forward, Vector3.up);
@@ -42,7 +45,7 @@ namespace Conifer.Upscaler.URP
             cb.SetGlobalTexture(BlitID, src);
             cb.SetGlobalVector(OffsetID, offset ?? Vector2.zero);
             cb.SetGlobalVector(ScaleID, scale ?? Vector2.one);
-            cb.DrawMesh(_triangle, Matrix4x4.identity, _depthBlitMaterial);
+            cb.DrawProcedural(Matrix4x4.identity, _depthBlitMaterial, 0, MeshTopology.Triangles, 3);
         }
 
         private class SetupUpscale : ScriptableRenderPass
@@ -192,8 +195,12 @@ namespace Conifer.Upscaler.URP
             private static readonly int EdgeSharpnessID = Shader.PropertyToID("Conifer_Upscaler_EdgeSharpness");
             private static readonly int MotionDepthAlphaBufferID = Shader.PropertyToID("Conifer_Upscaler_MotionDepthAlphaBuffer");
             private static readonly int MotionDepthAlphaBufferSinkID = Shader.PropertyToID("Conifer_Upscaler_MotionDepthAlphaBufferSink");
+            private static readonly int TempMotionDepthAlphaBuffer0ID = Shader.PropertyToID("Conifer_Upscaler_TempMotionDepthAlphaBuffer0");
+            private static readonly int TempMotionDepthAlphaBuffer1ID = Shader.PropertyToID("Conifer_Upscaler_TempMotionDepthAlphaBuffer1");
             private static readonly int LumaID = Shader.PropertyToID("Conifer_Upscaler_Luma");
             private static readonly int LumaSinkID = Shader.PropertyToID("Conifer_Upscaler_LumaSink");
+            private static readonly int TempLuma0ID = Shader.PropertyToID("Conifer_Upscaler_TempLuma0");
+            private static readonly int TempLuma1ID = Shader.PropertyToID("Conifer_Upscaler_TempLuma1");
             private static readonly int LumaHistoryID = Shader.PropertyToID("Conifer_Upscaler_LumaHistory");
             private static readonly int HistoryID = Shader.PropertyToID("Conifer_Upscaler_History");
             private static readonly int NextHistoryID = Shader.PropertyToID("Conifer_Upscaler_NextHistory");
@@ -777,10 +784,11 @@ namespace Conifer.Upscaler.URP
                     case Upscaler.Technique.SnapdragonGameSuperResolution1:
                         cb.SetRenderTarget(_output);
                         cb.SetGlobalTexture(BlitID, renderingData.cameraData.renderer.cameraColorTargetHandle);
+                        cb.SetGlobalVector(BlitScaleBiasID, new Vector4(1, 1, 0, 0));
                         cb.SetViewProjectionMatrices(LookAt, Ortho);
                         cb.SetGlobalVector(ViewportInfoID, new Vector4(1.0f / upscaler.OutputResolution.x, 1.0f / upscaler.OutputResolution.y, upscaler.InputResolution.x, upscaler.InputResolution.y));
                         cb.SetGlobalFloat(EdgeSharpnessID, upscaler.sharpness + 1);
-                        cb.DrawMesh(_triangle, Matrix4x4.identity, _sgsr1Upscale, 0, 0);
+                        cb.DrawProcedural(Matrix4x4.identity, _sgsr1Upscale, 0, MeshTopology.Triangles, 3);
                         break;
                     case Upscaler.Technique.SnapdragonGameSuperResolution2:
                         var current = renderingData.cameraData.camera.cameraToWorldMatrix * renderingData.cameraData.camera.projectionMatrix;
@@ -809,74 +817,77 @@ namespace Conifer.Upscaler.URP
                         descriptor = cameraTextureDescriptor;
                         descriptor.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
                         descriptor.depthStencilFormat = GraphicsFormat.None;
-                        cb.GetTemporaryRT(MotionDepthAlphaBufferID, descriptor);
+                        descriptor.enableRandomWrite = true;
+                        cb.GetTemporaryRT(TempMotionDepthAlphaBuffer0ID, descriptor);
                         switch (upscaler.sgsrMethod)
                         {
                             case Upscaler.SgsrMethod.Compute3Pass:
                             {
                                 descriptor.enableRandomWrite = true;
-                                cb.GetTemporaryRT(MotionDepthAlphaBufferSinkID, descriptor);
+                                cb.GetTemporaryRT(TempMotionDepthAlphaBuffer1ID, descriptor);
                                 descriptor = _lumaHistory.rt.descriptor;
-                                cb.GetTemporaryRT(LumaID, descriptor);
                                 descriptor.enableRandomWrite = true;
-                                cb.GetTemporaryRT(LumaSinkID, descriptor);
+                                cb.GetTemporaryRT(TempLuma0ID, descriptor);
+                                cb.GetTemporaryRT(TempLuma1ID, descriptor);
                                 cb.SetGlobalTexture(ColorID, renderingData.cameraData.renderer.cameraColorTargetHandle);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferSinkID, TempMotionDepthAlphaBuffer0ID);
+                                cb.SetGlobalTexture(LumaSinkID, TempLuma0ID);
+                                cb.DispatchCompute(_sgsr2C3Convert, 0, threadGroups.x, threadGroups.y, threadGroups.z);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferSinkID, TempMotionDepthAlphaBuffer1ID);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferID, TempMotionDepthAlphaBuffer0ID);
+                                cb.SetGlobalTexture(LumaID, TempLuma0ID);
+                                cb.SetGlobalTexture(LumaSinkID, TempLuma1ID);
                                 cb.SetGlobalTexture(LumaHistoryID, _lumaHistory);
+                                cb.DispatchCompute(_sgsr2C3Activate, 0, threadGroups.x, threadGroups.y, threadGroups.z);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferID, TempMotionDepthAlphaBuffer1ID);
                                 cb.SetGlobalTexture(HistoryID, _history);
                                 cb.SetGlobalTexture(OutputSinkID, _output);
-                                cb.DispatchCompute(_sgsr2C3Convert, 0, threadGroups.x, threadGroups.y, threadGroups.z);
-                                cb.CopyTexture(LumaSinkID, LumaID);
-                                cb.CopyTexture(MotionDepthAlphaBufferSinkID, MotionDepthAlphaBufferID);
-                                cb.DispatchCompute(_sgsr2C3Activate, 0, threadGroups.x, threadGroups.y, threadGroups.z);
-                                cb.CopyTexture(LumaSinkID, _lumaHistory);
-                                cb.CopyTexture(MotionDepthAlphaBufferSinkID, MotionDepthAlphaBufferID);
                                 threadGroups = Vector3Int.CeilToInt(new Vector3(upscaler.OutputResolution.x, upscaler.OutputResolution.y, 1) / 8);
                                 cb.DispatchCompute(_sgsr2C3Upscale, 0, threadGroups.x, threadGroups.y, threadGroups.z);
-                                cb.CopyTexture(LumaID, _lumaHistory);
                                 cb.CopyTexture(NextHistoryID, _history);
-                                cb.ReleaseTemporaryRT(MotionDepthAlphaBufferSinkID);
-                                cb.ReleaseTemporaryRT(LumaID);
-                                cb.ReleaseTemporaryRT(LumaSinkID);
+                                cb.CopyTexture(TempLuma1ID, _lumaHistory);
+                                cb.ReleaseTemporaryRT(TempMotionDepthAlphaBuffer1ID);
+                                cb.ReleaseTemporaryRT(TempLuma0ID);
+                                cb.ReleaseTemporaryRT(TempLuma1ID);
                                 break;
                             }
                             case Upscaler.SgsrMethod.Compute2Pass:
                             {
-                                descriptor.enableRandomWrite = true;
-                                cb.GetTemporaryRT(MotionDepthAlphaBufferSinkID, descriptor);
                                 descriptor = _lumaHistory.rt.descriptor;
-                                cb.GetTemporaryRT(LumaID, descriptor);
                                 descriptor.enableRandomWrite = true;
-                                cb.GetTemporaryRT(LumaSinkID, descriptor);
+                                cb.GetTemporaryRT(TempLuma0ID, descriptor);
                                 cb.SetGlobalTexture(ColorID, renderingData.cameraData.renderer.cameraColorTargetHandle);
-                                cb.SetGlobalTexture(HistoryID, _history);
-                                cb.SetGlobalTexture(OutputSinkID, _output);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferSinkID, TempMotionDepthAlphaBuffer0ID);
+                                cb.SetGlobalTexture(LumaSinkID, TempLuma0ID);
                                 cb.DispatchCompute(_sgsr2C2Convert, 0, threadGroups.x, threadGroups.y, threadGroups.z);
                                 threadGroups = Vector3Int.CeilToInt(new Vector3(upscaler.OutputResolution.x, upscaler.OutputResolution.y, 1) / 8);
-                                cb.CopyTexture(LumaSinkID, LumaID);
-                                cb.CopyTexture(MotionDepthAlphaBufferSinkID, MotionDepthAlphaBufferID);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferID, TempMotionDepthAlphaBuffer0ID);
+                                cb.SetGlobalTexture(LumaID, TempLuma0ID);
+                                cb.SetGlobalTexture(HistoryID, _history);
+                                cb.SetGlobalTexture(OutputSinkID, _output);
                                 cb.DispatchCompute(_sgsr2C2Upscale, 0, threadGroups.x, threadGroups.y, threadGroups.z);
                                 cb.CopyTexture(NextHistoryID, _history);
-                                cb.ReleaseTemporaryRT(MotionDepthAlphaBufferSinkID);
-                                cb.ReleaseTemporaryRT(LumaID);
-                                cb.ReleaseTemporaryRT(LumaSinkID);
+                                cb.ReleaseTemporaryRT(TempLuma0ID);
                                 break;
                             }
                             case Upscaler.SgsrMethod.Fragment2Pass:
                             {
+                                cb.SetGlobalVector(BlitScaleBiasID, new Vector4(1, 1, 0, 0));
                                 cb.SetViewProjectionMatrices(LookAt, Ortho);
-                                cb.SetRenderTarget(MotionDepthAlphaBufferID);
-                                cb.DrawMesh(_triangle, Matrix4x4.identity, _sgsr2F2Convert);
+                                cb.SetRenderTarget(TempMotionDepthAlphaBuffer0ID);
+                                cb.DrawProcedural(Matrix4x4.identity, _sgsr2F2Convert, 0, MeshTopology.Triangles, 3);
+                                cb.SetGlobalTexture(MotionDepthAlphaBufferID, TempMotionDepthAlphaBuffer0ID);
                                 cb.SetGlobalTexture(HistoryID, _history);
                                 cb.SetGlobalTexture(BlitID, renderingData.cameraData.renderer.cameraColorTargetHandle);
                                 cb.SetRenderTarget(_output);
-                                cb.DrawMesh(_triangle, Matrix4x4.identity, _sgsr2F2Upscale);
+                                cb.DrawProcedural(Matrix4x4.identity, _sgsr2F2Upscale, 0, MeshTopology.Triangles, 3);
                                 cb.Blit(_output, _history);
                                 break;
                             }
                             default: throw new ArgumentOutOfRangeException(nameof(upscaler.sgsrMethod), upscaler.sgsrMethod, null);
                         }
                         cb.ReleaseTemporaryRT(NextHistoryID);
-                        cb.ReleaseTemporaryRT(MotionDepthAlphaBufferID);
+                        cb.ReleaseTemporaryRT(TempMotionDepthAlphaBuffer0ID);
                         break;
                     case Upscaler.Technique.FidelityFXSuperResolution:
                         if (upscaler.autoReactive) cb.Blit(Shader.GetGlobalTexture(OpaqueID) ?? Texture2D.blackTexture, _opaque);
@@ -890,7 +901,7 @@ namespace Conifer.Upscaler.URP
                         upscaler.NativeInterface.Upscale(cb, upscaler, renderingData.cameraData.renderer.cameraColorTargetHandle.GetScaledSize());
                         break;
                     case Upscaler.Technique.None:
-                    default: throw new NotImplementedException();
+                    default:  throw new ArgumentOutOfRangeException(nameof(upscaler.technique), upscaler.technique, null);
                 }
                 cb.CopyTexture(_output, renderingData.cameraData.renderer.cameraColorTargetHandle);
                 context.ExecuteCommandBuffer(cb);
@@ -963,6 +974,9 @@ namespace Conifer.Upscaler.URP
         {
             public SetupGenerate() => renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
+#if UNITY_6000_0_OR_NEWER
+            [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+#endif
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var descriptor = renderingData.cameraData.cameraTargetDescriptor;
@@ -987,6 +1001,9 @@ namespace Conifer.Upscaler.URP
 
             public Generate() => renderPassEvent = (RenderPassEvent)int.MaxValue;
 
+#if UNITY_6000_0_OR_NEWER
+            [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+#endif
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
@@ -1021,6 +1038,9 @@ namespace Conifer.Upscaler.URP
                 NativeInterface.SetFrameGenerationImages(_hudless[0], _hudless[1], _flippedDepth, _flippedMotion);
             }
 
+#if UNITY_6000_0_OR_NEWER
+            [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+#endif
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
@@ -1104,13 +1124,6 @@ namespace Conifer.Upscaler.URP
         public override void Create()
         {
             name = "Upscaler";
-            _triangle = new Mesh
-            {
-                vertices = new Vector3[] { new(-1, -1, 0), new(3, -1, 0), new(-1, 3, 0) },
-                uv = new Vector2[] { new(0, 1), new(2, 1), new(0, -1) },
-                triangles = new[] { 0, 1, 2 }
-            };
-
             _depthBlitMaterial = new Material(Shader.Find("Hidden/BlitDepth"));
         }
 
@@ -1145,7 +1158,6 @@ namespace Conifer.Upscaler.URP
                 _upscale.ConfigureInput((upscaler.IsTemporal() ? ScriptableRenderPassInput.Motion | ScriptableRenderPassInput.Depth : ScriptableRenderPassInput.None) | ScriptableRenderPassInput.Color);
                 renderer.EnqueuePass(_upscale);
             }
-
 #if !UNITY_6000_0_OR_NEWER
             if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
             {
