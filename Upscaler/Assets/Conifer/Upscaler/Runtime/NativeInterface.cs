@@ -1,7 +1,3 @@
-/**********************************************************************
- * This software contains source code provided by NVIDIA Corporation. *
- **********************************************************************/
-
 /**************************************************
  * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
@@ -229,6 +225,14 @@ namespace Conifer.Upscaler
             Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
         }
+
+#if UNITY_6000_0_OR_NEWER
+        internal void Upscale(ComputeCommandBuffer cb, Upscaler upscaler, Vector2Int inputResolution=default)
+        {
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
+        }
+#endif
 
         internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
         {

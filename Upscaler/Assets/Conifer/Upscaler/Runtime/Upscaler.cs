@@ -1,7 +1,3 @@
-/**********************************************************************
- * This software contains source code provided by NVIDIA Corporation. *
- **********************************************************************/
-
 /**************************************************
  * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
@@ -178,6 +174,7 @@ namespace Conifer.Upscaler
         internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
         internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
         internal Vector2 Jitter = Vector2.zero;
+        internal int JitterIndex = 0;
         internal NativeInterface NativeInterface;
 
         /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR

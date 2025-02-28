@@ -21,7 +21,7 @@ half   Conifer_Upscaler_PreExposure;
 
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID) {
-    float2 gatherCoord = float2(id.xy) * Conifer_Upscaler_RenderSizeRcp.xy;
+    float2 gatherCoord = id.xy * Conifer_Upscaler_RenderSizeRcp.xy;
 
     half2 motion = _MotionVectorTexture.SampleLevel(pointClampSampler, gatherCoord, 0);
 

@@ -1,15 +1,16 @@
-#include "Plugin.hpp"
-#include "Upscaler/Upscaler.hpp"
 #include "FrameGenerator/FrameGenerator.hpp"
 #ifdef ENABLE_FSR
 #include "FrameGenerator/FSR_FrameGenerator.hpp"
 #endif
+#include "GraphicsAPI/Vulkan.hpp"
+#include "Plugin.hpp"
+#include "Upscaler/Upscaler.hpp"
 
 #include "IUnityRenderingExtensions.h"
+#include "IUnityShaderCompilerAccess.h"
 
 #include <memory>
 #include <vector>
-#include <GraphicsAPI/Vulkan.hpp>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.

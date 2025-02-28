@@ -26,9 +26,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 			#pragma fragment Frag
 
             SamplerState pointClampSampler : register(s0);
-            float        Conifer_Upscaler_UseEdgeDirection;
             float        Conifer_Upscaler_EdgeSharpness;
-            float4       Conifer_Upscaler_ViewportInfo : register(b0);
+            float4       Conifer_Upscaler_ViewportInfo;
 
 #if defined(CONIFER_UPSCALER_USE_EDGE_DIRECTION)
 			half2 weightY(half dx, half dy, half c, half3 data) {

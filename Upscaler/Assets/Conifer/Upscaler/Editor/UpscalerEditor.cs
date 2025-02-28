@@ -1,7 +1,3 @@
-/**********************************************************************
- * This software contains source code provided by NVIDIA Corporation. *
- **********************************************************************/
-
 /**************************************************
  * Upscaler v2.0.0                                *
  * See the UserManual.pdf for more information    *
@@ -252,8 +248,8 @@ namespace Conifer.Upscaler.Editor
                             "Sets the width of the rendering (input) resolution."),
                         upscaler.InputResolution.x, upscaler.MinInputResolution.x,
                         upscaler.MaxInputResolution.x);
-                    upscaler.InputResolution = new Vector2Int((int)Math.Ceiling(resolution),
-                        (int)Math.Ceiling(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
+                    upscaler.InputResolution = new Vector2Int((int)Math.Round(resolution),
+                        (int)Math.Round(resolution / upscaler.OutputResolution.x * upscaler.OutputResolution.y));
                 }
                 EditorGUILayout.Separator();
                 _forceHistoryResetEveryFrame.boolValue = EditorGUILayout.Toggle(
