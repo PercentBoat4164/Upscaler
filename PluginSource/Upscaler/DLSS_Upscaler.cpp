@@ -341,7 +341,7 @@ Upscaler::Status DLSS_Upscaler::useSettings(const Settings::Resolution resolutio
     options.useAutoExposure = sl::Boolean::eTrue;
     sl::DLSSOptimalSettings slOptimalSettings;
     RETURN_ON_FAILURE(setStatus(slDLSSGetOptimalSettings(options, slOptimalSettings), "Failed to get NVIDIA Deep Learning Super Sampling optimal settings."));
-    // options.sharpness = settings.sharpness;
+    options.sharpness = settings.sharpness;
     RETURN_ON_FAILURE(setStatus(slDLSSSetOptions(handle, options), "Failed to set NVIDIA Deep Learning Super Sampling options."));
     settings                               = optimalSettings;
     settings.recommendedInputResolution    = Settings::Resolution{slOptimalSettings.optimalRenderWidth, slOptimalSettings.optimalRenderHeight};

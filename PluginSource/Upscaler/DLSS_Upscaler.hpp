@@ -73,7 +73,7 @@ public:
     ~DLSS_Upscaler() override;
 
     constexpr Type getType() override {
-        return Upscaler::DLSS;
+        return DLSS;
     }
 
     constexpr std::string getName() override {

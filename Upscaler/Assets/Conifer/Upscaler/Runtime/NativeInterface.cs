@@ -236,7 +236,13 @@ namespace Conifer.Upscaler
 
         internal void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
         {
-            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex, ShouldResetHistory, Vector2Int.RoundToInt(EditorOffset)), _frameGenerateDataPtr, true);
+            Marshal.StructureToPtr(new FrameGenerateData(upscaler, imageIndex, ShouldResetHistory,
+#if UNITY_EDITOR
+                Vector2Int.RoundToInt(EditorOffset)
+#else
+                Vector2Int.zero
+#endif
+                ), _frameGenerateDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 

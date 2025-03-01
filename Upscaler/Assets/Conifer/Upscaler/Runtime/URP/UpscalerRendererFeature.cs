@@ -9,8 +9,10 @@ using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+#if UNITY_6000_0_OR_NEWER
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
+#endif
 using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.URP
@@ -19,8 +21,6 @@ namespace Conifer.Upscaler.URP
     public class UpscalerRendererFeature : ScriptableRendererFeature
     {
         private static Material _depthBlitMaterial;
-        private static readonly int OffsetID = Shader.PropertyToID("Conifer_Upscaler_Offset");
-        private static readonly int ScaleID = Shader.PropertyToID("Conifer_Upscaler_Scale");
 
         private static readonly int BlitID = Shader.PropertyToID("_BlitTexture");
         private static readonly int BlitScaleBiasID = Shader.PropertyToID("_BlitScaleBias");
@@ -38,13 +38,14 @@ namespace Conifer.Upscaler.URP
         private static readonly MethodInfo ScaleFactor = typeof(RTHandle).GetProperty("scaleFactor", BindingFlags.Instance | BindingFlags.Public)?.SetMethod!;
         private static readonly MethodInfo ReferenceSize = typeof(RTHandle).GetProperty("referenceSize", BindingFlags.Instance | BindingFlags.Public)?.SetMethod!;
 
-        private static void BlitDepth(CommandBuffer cb, RenderTargetIdentifier src, RenderTargetIdentifier dst, Vector2? scale = null, Vector2? offset = null)
+        private static void BlitDepth(CommandBuffer cb, RenderTargetIdentifier src, RenderTargetIdentifier dst, Vector2 scale = default, Vector2 offset = default)
         {
+            if (scale == default) scale = Vector2.one;
+            if (offset == default) offset = Vector2.zero;
             cb.SetViewProjectionMatrices(LookAt, Ortho);
             cb.SetRenderTarget(dst);
             cb.SetGlobalTexture(BlitID, src);
-            cb.SetGlobalVector(OffsetID, offset ?? Vector2.zero);
-            cb.SetGlobalVector(ScaleID, scale ?? Vector2.one);
+            cb.SetGlobalVector(BlitScaleBiasID, new Vector4(scale.x, scale.y, offset.x, offset.y));
             cb.DrawProcedural(Matrix4x4.identity, _depthBlitMaterial, 0, MeshTopology.Triangles, 3);
         }
 
@@ -232,8 +233,10 @@ namespace Conifer.Upscaler.URP
                         }
                         _depth?.Release();
                         _depth = null;
+#if UNITY_6000_0_OR_NEWER
                         _color?.Release();
                         _color = null;
+#endif
                         if (upscaler.PreviousAutoReactive && upscaler.PreviousTechnique == Upscaler.Technique.FidelityFXSuperResolution)
                         {
                             _reactive?.Release();
@@ -333,7 +336,7 @@ namespace Conifer.Upscaler.URP
 #else
                         renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _motion, descriptor, name: "Conifer_Upscaler_Motion");
 #endif
-                        descriptor = renderTargetDescriptor;
+                        descriptor = displayTargetDescriptor;
                         descriptor.colorFormat = RenderTextureFormat.Depth;
                         descriptor.stencilFormat = GraphicsFormat.None;
 #if UNITY_6000_0_OR_NEWER
@@ -341,11 +344,9 @@ namespace Conifer.Upscaler.URP
 #else
                         renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _depth, descriptor, isShadowMap: true, name: "Conifer_Upscaler_Depth");
 #endif
+#if UNITY_6000_0_OR_NEWER
                         descriptor = renderTargetDescriptor;
                         descriptor.depthStencilFormat = GraphicsFormat.None;
-#if UNITY_6000_0_OR_NEWER
-                        renderTargetsUpdated |= RenderingUtils.ReAllocateHandleIfNeeded(ref _color, descriptor, name: "Conifer_Upscaler_Color");
-#else
                         renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _color, descriptor, name: "Conifer_Upscaler_Color");
 #endif
                         if (upscaler.autoReactive && upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
@@ -420,9 +421,11 @@ namespace Conifer.Upscaler.URP
                 return renderTargetsUpdated;
             }
 
+#if UNITY_6000_0_OR_NEWER
             public void SetImages(Upscaler upscaler) => upscaler.NativeInterface.SetUpscalingImages(_color, _depth, _motion, _output, _reactive, _opaque, upscaler.autoReactive);
 
             [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+#endif
             public void SetImages(Upscaler upscaler, ScriptableRenderer renderer) => upscaler.NativeInterface.SetUpscalingImages(renderer.cameraColorTargetHandle, upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution ? _depth : renderer.cameraDepthTargetHandle, _motion, _output, _reactive, _opaque, upscaler.autoReactive);
 
 #if UNITY_6000_0_OR_NEWER
@@ -892,11 +895,13 @@ namespace Conifer.Upscaler.URP
                     case Upscaler.Technique.FidelityFXSuperResolution:
                         if (upscaler.autoReactive) cb.Blit(Shader.GetGlobalTexture(OpaqueID) ?? Texture2D.blackTexture, _opaque);
                         BlitDepth(cb, renderingData.cameraData.renderer.cameraDepthTargetHandle, _depth, (Vector2)upscaler.InputResolution / upscaler.OutputResolution);
+                        // cb.CopyTexture(MotionID, _motion);
                         cb.Blit(Shader.GetGlobalTexture(MotionID) ?? Texture2D.blackTexture, _motion);
                         upscaler.NativeInterface.Upscale(cb, upscaler, renderingData.cameraData.renderer.cameraColorTargetHandle.GetScaledSize());
                         break;
                     case Upscaler.Technique.DeepLearningSuperSampling:
                     case Upscaler.Technique.XeSuperSampling:
+                        // cb.CopyTexture(MotionID, _motion);
                         cb.Blit(Shader.GetGlobalTexture(MotionID) ?? Texture2D.blackTexture, _motion);
                         upscaler.NativeInterface.Upscale(cb, upscaler, renderingData.cameraData.renderer.cameraColorTargetHandle.GetScaledSize());
                         break;
@@ -1143,15 +1148,17 @@ namespace Conifer.Upscaler.URP
             _renderTargetsUpdated = false;
             var requiresFullReset = upscaler.PreviousTechnique != upscaler.technique || upscaler.PreviousSgsrMethod != upscaler.sgsrMethod || upscaler.PreviousAutoReactive != upscaler.autoReactive || upscaler.PreviousQuality != upscaler.quality || (!_isResizingThisFrame && upscaler.PreviousPreviousOutputResolution != upscaler.PreviousOutputResolution);
             upscaler.CurrentStatus = upscaler.ApplySettings();
-            if (!_isResizingThisFrame && (requiresFullReset || upscaler.InputResolution != upscaler.PreviousInputResolution) || _upscale.Disposed)
+            if ((requiresFullReset || upscaler.InputResolution != upscaler.PreviousInputResolution) || _upscale.Disposed)
             {
                 _upscale.Cleanup(upscaler, !requiresFullReset);
                 _renderTargetsUpdated |= _upscale.Initialize(upscaler, displayResolutionDescriptor);
             }
             if (Upscaler.Failure(upscaler.CurrentStatus)) HandleErrors(displayResolutionDescriptor);
+#if UNITY_6000_0_OR_NEWER
             if (_renderTargetsUpdated && upscaler.RequiresNativePlugin()) _upscale.SetImages(upscaler);
+#endif
 
-            if (!_isResizingThisFrame && upscaler.technique != Upscaler.Technique.None)
+            if (upscaler.technique != Upscaler.Technique.None)
             {
                 _setupUpscale.ConfigureInput(ScriptableRenderPassInput.None);
                 renderer.EnqueuePass(_setupUpscale);
@@ -1204,26 +1211,21 @@ namespace Conifer.Upscaler.URP
         {
             var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
             if (!Application.isPlaying || renderingData.cameraData.cameraType != CameraType.Game || upscaler is null || !upscaler.isActiveAndEnabled || upscaler.technique == Upscaler.Technique.None) return;
-            if (!_isResizingThisFrame && _colorHandle is not null && _depthHandle is not null)
-            {
-                var args = new object[] { (Vector2)upscaler.InputResolution / upscaler.OutputResolution };
-                ScaleFactor.Invoke(_colorHandle, args);
-                ScaleFactor.Invoke(_depthHandle, args);
-                renderer.ConfigureCameraTarget(_colorHandle, _depthHandle);
-            }
-            else
-            {
-                _colorHandle?.Release();
-                _depthHandle?.Release();
-                _colorHandle = RTHandles.Alloc(renderer.cameraColorTargetHandle.rt);
-                _depthHandle = RTHandles.Alloc(renderer.cameraDepthTargetHandle.rt);
-                var args = new object[] { true };
+            object[] args;
+            _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _colorHandle, renderer.cameraColorTargetHandle.rt.descriptor, name: "Conifer_Upscaler_LowResolutionColorTarget");
+            _renderTargetsUpdated |= RenderingUtils.ReAllocateIfNeeded(ref _depthHandle, renderer.cameraDepthTargetHandle.rt.descriptor, name: "Conifer_Upscaler_LowResolutionDepthTarget");
+            if (_renderTargetsUpdated) {
+                args = new object[] { true };
                 UseScaling.Invoke(_colorHandle, args);
                 UseScaling.Invoke(_depthHandle, args);
                 args = new object[] { upscaler.OutputResolution };
                 ReferenceSize.Invoke(_colorHandle, args);
                 ReferenceSize.Invoke(_depthHandle, args);
             }
+            args = new object[] { (Vector2)upscaler.InputResolution / upscaler.OutputResolution };
+            ScaleFactor.Invoke(_colorHandle, args);
+            ScaleFactor.Invoke(_depthHandle, args);
+            renderer.ConfigureCameraTarget(_colorHandle, _depthHandle);
             if (_renderTargetsUpdated && upscaler.RequiresNativePlugin()) _upscale.SetImages(upscaler, renderer);
         }
 
