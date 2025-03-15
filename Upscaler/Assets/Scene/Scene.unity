@@ -473,7 +473,7 @@ MonoBehaviour:
   upscalingDebugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 7
+  quality: 0
   technique: 1
   frameGeneration: 0
   dlssPreset: 0
