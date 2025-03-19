@@ -2,6 +2,11 @@
 #    include "XeSS_Upscaler.hpp"
 
 #    include <xess/xess.h>
+#    ifdef ENABLE_VULKAN
+#        include <GraphicsAPI/Vulkan.hpp>
+
+#        include <IUnityGraphicsVulkan.h>
+#    endif
 #    ifdef ENABLE_DX12
 #        include "GraphicsAPI/DX12.hpp"
 
@@ -15,17 +20,26 @@
 HMODULE XeSS_Upscaler::library{nullptr};
 Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
-Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const xess_d3d12_init_params_t*){&XeSS_Upscaler::safeFail};
-Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(const Settings::Resolution){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const void*){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpSetImages)(const std::array<void*, Plugin::NumImages>&){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpEvaluate)(Settings::Resolution){&XeSS_Upscaler::safeFail};
 
 decltype(&xessGetOptimalInputResolution) XeSS_Upscaler::xessGetOptimalInputResolution{nullptr};
 decltype(&xessDestroyContext) XeSS_Upscaler::xessDestroyContext{nullptr};
 decltype(&xessSetVelocityScale) XeSS_Upscaler::xessSetVelocityScale{nullptr};
 decltype(&xessSetLoggingCallback) XeSS_Upscaler::xessSetLoggingCallback{nullptr};
+#ifdef ENABLE_VULKAN
+decltype(&xessVKCreateContext) XeSS_Upscaler::xessVKCreateContext{nullptr};
+decltype(&xessVKBuildPipelines) XeSS_Upscaler::xessVKBuildPipelines{nullptr};
+decltype(&xessVKInit) XeSS_Upscaler::xessVKInit{nullptr};
+decltype(&xessVKExecute) XeSS_Upscaler::xessVKExecute{nullptr};
+#endif
+#ifdef ENABLE_DX12
 decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr};
 decltype(&xessD3D12BuildPipelines) XeSS_Upscaler::xessD3D12BuildPipelines{nullptr};
 decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
+#endif
 
 Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error, const std::string& t_msg) {
     switch (t_error) {
@@ -61,20 +75,93 @@ void XeSS_Upscaler::log(const char* msg, const xess_logging_level_t loggingLevel
     Plugin::log(msg, unityType);
 }
 
+#    ifdef ENABLE_VULKAN
+Upscaler::Status XeSS_Upscaler::VulkanCreate(const void* params) {
+    const xess_vk_init_params_t* vkParams = static_cast<const xess_vk_init_params_t*>(params);
+    UnityVulkanInstance instance = Vulkan::getGraphicsInterface()->Instance();
+    RETURN_ON_FAILURE(setStatus(xessVKCreateContext(instance.instance, instance.physicalDevice, instance.device, &context), "Failed to create the Intel Xe Super Sampling context."));
+    RETURN_ON_FAILURE(setStatus(xessVKBuildPipelines(context, vkParams->pipelineCache, true, vkParams->initFlags), "Failed to build Xe Super Sampling pipelines."));
+    return setStatus(xessVKInit(context, vkParams), "Failed to initialize the Intel Xe Super Sampling context.");
+}
+
+Upscaler::Status XeSS_Upscaler::VulkanSetImages(const std::array<void*, Plugin::NumImages>& images) {
+    for (Plugin::ImageID id{0}; id < Plugin::NumBaseImages; ++reinterpret_cast<uint8_t&>(id)) {
+        UnityVulkanImage image {};
+        Vulkan::getGraphicsInterface()->AccessTexture(images.at(id), UnityVulkanWholeImage, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, id == Plugin::Output ? VK_ACCESS_SHADER_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT, kUnityVulkanResourceAccess_PipelineBarrier, &image);
+        RETURN_ON_FAILURE(setStatusIf(image.image == VK_NULL_HANDLE, RecoverableRuntimeError, "Unity provided a `VK_NULL_HANDLE` image."));
+        XeSSResource& resource = resources.at(id);
+        Vulkan::destroyImageView(resource.vulkan.imageView);
+        resource = XeSSResource{.vulkan = {
+            .imageView = Vulkan::createImageView(image.image, image.format, image.aspect),
+            .image = image.image,
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            },
+            .format = image.format,
+            .width = image.extent.width,
+            .height = image.extent.height
+        }};
+    }
+    return Success;
+}
+
+Upscaler::Status XeSS_Upscaler::VulkanEvaluate(Settings::Resolution inputResolution) {
+    auto motion = resources.at(Plugin::Motion).vulkan;
+    const xess_vk_execute_params_t params {
+        .colorTexture = resources.at(Plugin::Color).vulkan,
+        .velocityTexture = motion,
+        .depthTexture = resources.at(Plugin::Depth).vulkan,
+        .exposureScaleTexture = VK_NULL_HANDLE,
+        .responsivePixelMaskTexture = VK_NULL_HANDLE,
+        .outputTexture = resources.at(Plugin::Output).vulkan,
+        .jitterOffsetX = settings.jitter.x - 0.5F,
+        .jitterOffsetY = settings.jitter.y - 0.5F,
+        .exposureScale = 1.0F,
+        .resetHistory = settings.resetHistory,
+        .inputWidth = inputResolution.width,
+        .inputHeight = inputResolution.height,
+        .inputColorBase = {0, 0},
+        .inputMotionVectorBase = {0, 0},
+        .inputDepthBase = {0, 0},
+        .inputResponsiveMaskBase = {0, 0},
+        .reserved0 = {0, 0},
+        .outputColorBase = {0, 0}
+    };
+    UnityVulkanRecordingState state{};
+    RETURN_ON_FAILURE(setStatusIf(!Vulkan::getGraphicsInterface()->CommandRecordingState(&state, kUnityVulkanGraphicsQueueAccess_DontCare), FatalRuntimeError, "Unable to obtain a command recording state from Unity. This is fatal."));
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motion.width), -static_cast<float>(motion.height)), "Failed to set motion scale."));
+    return setStatus(xessVKExecute(context, state.commandBuffer, &params), "Failed to execute Intel Xe Super Sampling.");
+}
+#endif
+
 #    ifdef ENABLE_DX12
-Upscaler::Status XeSS_Upscaler::DX12Create(const xess_d3d12_init_params_t* params) {
+Upscaler::Status XeSS_Upscaler::DX12Create(const void* params) {
+    const xess_d3d12_init_params_t* dx12Params = static_cast<const xess_d3d12_init_params_t*>(params);
     RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
-    RETURN_ON_FAILURE(setStatus(xessD3D12BuildPipelines(context, params->pPipelineLibrary, true, params->initFlags), "Failed to build Xe Super Sampling pipelines."));
-    return setStatus(xessD3D12Init(context, params), "Failed to initialize the Intel Xe Super Sampling context.");
+    RETURN_ON_FAILURE(setStatus(xessD3D12BuildPipelines(context, dx12Params->pPipelineLibrary, true, dx12Params->initFlags), "Failed to build Xe Super Sampling pipelines."));
+    return setStatus(xessD3D12Init(context, dx12Params), "Failed to initialize the Intel Xe Super Sampling context.");
+}
+
+Upscaler::Status XeSS_Upscaler::DX12SetImages(const std::array<void*, Plugin::NumImages>& images) {
+    resources.at(Plugin::Color).dx12 = static_cast<ID3D12Resource*>(images.at(Plugin::Color));
+    resources.at(Plugin::Depth).dx12 = static_cast<ID3D12Resource*>(images.at(Plugin::Depth));
+    resources.at(Plugin::Motion).dx12 = static_cast<ID3D12Resource*>(images.at(Plugin::Motion));
+    resources.at(Plugin::Output).dx12 = static_cast<ID3D12Resource*>(images.at(Plugin::Output));
+    for (const XeSSResource& resource : resources) RETURN_ON_FAILURE(setStatusIf(resource.dx12 == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
+    return Success;
 }
 
 Upscaler::Status XeSS_Upscaler::DX12Evaluate(const Settings::Resolution inputResolution) {
-    const D3D12_RESOURCE_DESC motionDescription = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion))->GetDesc();
+    const D3D12_RESOURCE_DESC motionDescription = resources.at(Plugin::Motion).dx12->GetDesc();
     const xess_d3d12_execute_params_t params {
-        .pColorTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Color)),
-        .pVelocityTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Motion)),
-        .pDepthTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Depth)),
-        .pOutputTexture = static_cast<ID3D12Resource*>(resources.at(Plugin::Output)),
+        .pColorTexture = resources.at(Plugin::Color).dx12,
+        .pVelocityTexture = resources.at(Plugin::Motion).dx12,
+        .pDepthTexture = resources.at(Plugin::Depth).dx12,
+        .pOutputTexture = resources.at(Plugin::Output).dx12,
         .jitterOffsetX = settings.jitter.x - 0.5F,
         .jitterOffsetY = settings.jitter.y - 0.5F,
         .exposureScale = 1.0F,
@@ -90,18 +177,34 @@ Upscaler::Status XeSS_Upscaler::DX12Evaluate(const Settings::Resolution inputRes
 #endif
 
 void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
-    if (type != GraphicsAPI::DX12) return (void)(supported = Unsupported);
     library = LoadLibrary((Plugin::path / "libxess.dll").string().c_str());
     if (library == nullptr) return (void)(supported = Unsupported);
     xessGetOptimalInputResolution = reinterpret_cast<decltype(xessGetOptimalInputResolution)>(GetProcAddress(library, "xessGetOptimalInputResolution"));
     xessDestroyContext            = reinterpret_cast<decltype(xessDestroyContext)>(GetProcAddress(library, "xessDestroyContext"));
     xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
     xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
-    xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
-    xessD3D12BuildPipelines        = reinterpret_cast<decltype(xessD3D12BuildPipelines)>(GetProcAddress(library, "xessD3D12BuildPipelines"));
-    xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
-    xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
-    if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr || xessD3D12CreateContext == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
+    if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr) supported = Unsupported;
+    switch (type) {
+#ifdef ENABLE_VULKAN
+        case GraphicsAPI::VULKAN:
+            xessVKCreateContext           = reinterpret_cast<decltype(xessVKCreateContext)>(GetProcAddress(library, "xessVKCreateContext"));
+            xessVKBuildPipelines          = reinterpret_cast<decltype(xessVKBuildPipelines)>(GetProcAddress(library, "xessVKBuildPipelines"));
+            xessVKInit                    = reinterpret_cast<decltype(xessVKInit)>(GetProcAddress(library, "xessVKInit"));
+            xessVKExecute                 = reinterpret_cast<decltype(xessVKExecute)>(GetProcAddress(library, "xessVKExecute"));
+            if (xessVKCreateContext == nullptr || xessVKBuildPipelines == nullptr || xessVKInit == nullptr || xessVKExecute == nullptr) supported = Unsupported;
+            break;
+#endif
+#ifdef ENABLE_DX12
+        case GraphicsAPI::DX12:
+            xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
+            xessD3D12BuildPipelines       = reinterpret_cast<decltype(xessD3D12BuildPipelines)>(GetProcAddress(library, "xessD3D12BuildPipelines"));
+            xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
+            xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
+            if (xessD3D12CreateContext == nullptr || xessD3D12BuildPipelines == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
+            break;
+#endif
+        default: supported = Unsupported;
+    }
 }
 
 void XeSS_Upscaler::unload() {
@@ -109,10 +212,18 @@ void XeSS_Upscaler::unload() {
     xessDestroyContext = nullptr;
     xessSetVelocityScale = nullptr;
     xessSetLoggingCallback = nullptr;
+#ifdef ENABLE_VULKAN
+    xessVKCreateContext = nullptr;
+    xessVKBuildPipelines = nullptr;
+    xessVKInit = nullptr;
+    xessVKExecute = nullptr;
+#endif
+#ifdef ENABLE_DX12
     xessD3D12CreateContext = nullptr;
     xessD3D12BuildPipelines = nullptr;
     xessD3D12Init = nullptr;
     xessD3D12Execute = nullptr;
+#endif
     if (library != nullptr) FreeLibrary(library);
     library = nullptr;
 }
@@ -128,16 +239,26 @@ bool XeSS_Upscaler::isSupported(const enum Settings::Quality mode) {
 
 void XeSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
     switch (type) {
+#    ifdef ENABLE_VULKAN
+        case GraphicsAPI::VULKAN: {
+            fpCreate    = &XeSS_Upscaler::VulkanCreate;
+            fpSetImages = &XeSS_Upscaler::VulkanSetImages;
+            fpEvaluate  = &XeSS_Upscaler::VulkanEvaluate;
+            break;
+        }
+#    endif
 #    ifdef ENABLE_DX12
         case GraphicsAPI::DX12: {
-            fpCreate   = &XeSS_Upscaler::DX12Create;
-            fpEvaluate = &XeSS_Upscaler::DX12Evaluate;
+            fpCreate    = &XeSS_Upscaler::DX12Create;
+            fpSetImages = &XeSS_Upscaler::DX12SetImages;
+            fpEvaluate  = &XeSS_Upscaler::DX12Evaluate;
             break;
         }
 #    endif
         default: {
-            fpCreate   = &XeSS_Upscaler::invalidGraphicsAPIFail;
-            fpEvaluate = &XeSS_Upscaler::invalidGraphicsAPIFail;
+            fpCreate    = &XeSS_Upscaler::invalidGraphicsAPIFail;
+            fpSetImages = &XeSS_Upscaler::invalidGraphicsAPIFail;
+            fpEvaluate  = &XeSS_Upscaler::invalidGraphicsAPIFail;
             break;
         }
     }
@@ -180,8 +301,7 @@ Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolutio
 }
 
 Upscaler::Status XeSS_Upscaler::useImages(const std::array<void*, Plugin::NumImages>& images) {
-    std::copy_n(images.begin(), resources.size(), resources.begin());
-    for (void*& resource : resources) RETURN_ON_FAILURE(setStatusIf(resource == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
+    RETURN_ON_FAILURE((this->*fpSetImages)(images));
     return Success;
 }
 

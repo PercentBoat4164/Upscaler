@@ -4,36 +4,61 @@
 #    include "Upscaler.hpp"
 
 #    include <xess/xess.h>
+#    ifdef ENABLE_VULKAN
+#        include <xess/xess_vk.h>
+#    endif
 #    ifdef ENABLE_DX12
 #        include <xess/xess_d3d12.h>
+#    endif
+#    ifdef ENABLE_DX11
+#        include <xess/xess_d3d11.h>
 #    endif
 
 #    include <windows.h>
 
 class XeSS_Upscaler final : public Upscaler {
+    union XeSSResource {
+        xess_vk_image_view_info vulkan;
+        ID3D12Resource* dx12;
+    };
     static HMODULE library;
     static SupportState supported;
 
-    static Status (XeSS_Upscaler::*fpCreate)(const xess_d3d12_init_params_t*);
+    static Status (XeSS_Upscaler::*fpCreate)(const void*);
+    static Status (XeSS_Upscaler::*fpSetImages)(const std::array<void*, Plugin::NumImages>&);
     static Status (XeSS_Upscaler::*fpEvaluate)(const Settings::Resolution);
 
     xess_context_handle_t context{nullptr};
-    std::array<void*, Plugin::NumBaseImages> resources{};
+    std::array<XeSSResource, Plugin::NumBaseImages> resources{};
 
     static decltype(&xessGetOptimalInputResolution) xessGetOptimalInputResolution;
     static decltype(&xessDestroyContext) xessDestroyContext;
     static decltype(&xessSetVelocityScale) xessSetVelocityScale;
     static decltype(&xessSetLoggingCallback) xessSetLoggingCallback;
+#ifdef ENABLE_VULKAN
+    static decltype(&xessVKCreateContext) xessVKCreateContext;
+    static decltype(&xessVKBuildPipelines) xessVKBuildPipelines;
+    static decltype(&xessVKInit) xessVKInit;
+    static decltype(&xessVKExecute) xessVKExecute;
+#endif
+#ifdef ENABLE_DX12
     static decltype(&xessD3D12CreateContext) xessD3D12CreateContext;
     static decltype(&xessD3D12BuildPipelines) xessD3D12BuildPipelines;
     static decltype(&xessD3D12Init) xessD3D12Init;
     static decltype(&xessD3D12Execute) xessD3D12Execute;
+#endif
     Status setStatus(xess_result_t t_error, const std::string &t_msg);
 
     static void log(const char* msg, xess_logging_level_t loggingLevel);
 
+#    ifdef ENABLE_VULKAN
+    Status VulkanCreate(const void*);
+    Status VulkanSetImages(const std::array<void*, Plugin::NumImages>&);
+    Status VulkanEvaluate(Settings::Resolution inputResolution);
+#    endif
 #    ifdef ENABLE_DX12
-    Status DX12Create(const xess_d3d12_init_params_t*);
+    Status DX12Create(const void*);
+    Status DX12SetImages(const std::array<void*, Plugin::NumImages>&);
     Status DX12Evaluate(Settings::Resolution inputResolution);
 #    endif
 
