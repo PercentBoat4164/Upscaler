@@ -16,8 +16,18 @@
 
 #        include <xess/xess_d3d12.h>
 #    endif
+#    ifdef ENABLE_DX11
+#        include "GraphicsAPI/DX11.hpp"
+
+#        include <d3d11.h>
+
+#        include <IUnityGraphicsD3D11.h>
+
+#        include <xess/xess_d3d11.h>
+#    endif
 
 HMODULE XeSS_Upscaler::library{nullptr};
+HMODULE XeSS_Upscaler::dx11library{nullptr};
 Upscaler::SupportState XeSS_Upscaler::supported{Untested};
 
 Upscaler::Status (XeSS_Upscaler::*XeSS_Upscaler::fpCreate)(const void*){&XeSS_Upscaler::safeFail};
@@ -39,6 +49,11 @@ decltype(&xessD3D12CreateContext) XeSS_Upscaler::xessD3D12CreateContext{nullptr}
 decltype(&xessD3D12BuildPipelines) XeSS_Upscaler::xessD3D12BuildPipelines{nullptr};
 decltype(&xessD3D12Init) XeSS_Upscaler::xessD3D12Init{nullptr};
 decltype(&xessD3D12Execute) XeSS_Upscaler::xessD3D12Execute{nullptr};
+#endif
+#ifdef ENABLE_DX11
+decltype(&xessD3D11CreateContext) XeSS_Upscaler::xessD3D11CreateContext{nullptr};
+decltype(&xessD3D11Init) XeSS_Upscaler::xessD3D11Init{nullptr};
+decltype(&xessD3D11Execute) XeSS_Upscaler::xessD3D11Execute{nullptr};
 #endif
 
 Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error, const std::string& t_msg) {
@@ -140,7 +155,7 @@ Upscaler::Status XeSS_Upscaler::VulkanEvaluate(Settings::Resolution inputResolut
 
 #    ifdef ENABLE_DX12
 Upscaler::Status XeSS_Upscaler::DX12Create(const void* params) {
-    const xess_d3d12_init_params_t* dx12Params = static_cast<const xess_d3d12_init_params_t*>(params);
+    const auto* dx12Params = static_cast<const xess_d3d12_init_params_t*>(params);
     RETURN_ON_FAILURE(setStatus(xessD3D12CreateContext(DX12::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
     RETURN_ON_FAILURE(setStatus(xessD3D12BuildPipelines(context, dx12Params->pPipelineLibrary, true, dx12Params->initFlags), "Failed to build Xe Super Sampling pipelines."));
     return setStatus(xessD3D12Init(context, dx12Params), "Failed to initialize the Intel Xe Super Sampling context.");
@@ -176,6 +191,41 @@ Upscaler::Status XeSS_Upscaler::DX12Evaluate(const Settings::Resolution inputRes
 }
 #endif
 
+#    ifdef ENABLE_DX11
+Upscaler::Status XeSS_Upscaler::DX11Create(const void* params) {
+    RETURN_ON_FAILURE(setStatus(xessD3D11CreateContext(DX11::getGraphicsInterface()->GetDevice(), &context), "Failed to create the Intel Xe Super Sampling context."));
+    return setStatus(xessD3D11Init(context, static_cast<const xess_d3d11_init_params_t*>(params)), "Failed to initialize the Intel Xe Super Sampling context.");
+}
+
+Upscaler::Status XeSS_Upscaler::DX11SetImages(const std::array<void*, Plugin::NumImages>& images) {
+    resources.at(Plugin::Color).dx11 = static_cast<ID3D11Resource*>(images.at(Plugin::Color));
+    resources.at(Plugin::Depth).dx11 = static_cast<ID3D11Resource*>(images.at(Plugin::Depth));
+    resources.at(Plugin::Motion).dx11 = static_cast<ID3D11Resource*>(images.at(Plugin::Motion));
+    resources.at(Plugin::Output).dx11 = static_cast<ID3D11Resource*>(images.at(Plugin::Output));
+    for (const XeSSResource& resource : resources) RETURN_ON_FAILURE(setStatusIf(resource.dx11 == nullptr, RecoverableRuntimeError, "Unity provided a `nullptr` image."));
+    return Success;
+}
+
+Upscaler::Status XeSS_Upscaler::DX11Evaluate(const Settings::Resolution inputResolution) {
+    D3D11_TEXTURE2D_DESC motionDescription;
+    static_cast<ID3D11Texture2D*>(resources.at(Plugin::Motion).dx11)->GetDesc(&motionDescription);
+    const xess_d3d11_execute_params_t params {
+        .pColorTexture = resources.at(Plugin::Color).dx11,
+        .pVelocityTexture = resources.at(Plugin::Motion).dx11,
+        .pDepthTexture = resources.at(Plugin::Depth).dx11,
+        .pOutputTexture = resources.at(Plugin::Output).dx11,
+        .jitterOffsetX = settings.jitter.x - 0.5F,
+        .jitterOffsetY = settings.jitter.y - 0.5F,
+        .exposureScale = 1.0F,
+        .resetHistory = static_cast<uint32_t>(settings.resetHistory),
+        .inputWidth = static_cast<uint32_t>(inputResolution.width),
+        .inputHeight = static_cast<uint32_t>(inputResolution.height),
+    };
+    RETURN_ON_FAILURE(setStatus(xessSetVelocityScale(context, -static_cast<float>(motionDescription.Width), -static_cast<float>(motionDescription.Height)), "Failed to set motion scale."));
+    return setStatus(xessD3D11Execute(context, &params), "Failed to execute Intel Xe Super Sampling.");
+}
+#endif
+
 void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     library = LoadLibrary((Plugin::path / "libxess.dll").string().c_str());
     if (library == nullptr) return (void)(supported = Unsupported);
@@ -183,24 +233,34 @@ void XeSS_Upscaler::load(const GraphicsAPI::Type type, void* /*unused*/) {
     xessDestroyContext            = reinterpret_cast<decltype(xessDestroyContext)>(GetProcAddress(library, "xessDestroyContext"));
     xessSetVelocityScale          = reinterpret_cast<decltype(xessSetVelocityScale)>(GetProcAddress(library, "xessSetVelocityScale"));
     xessSetLoggingCallback        = reinterpret_cast<decltype(xessSetLoggingCallback)>(GetProcAddress(library, "xessSetLoggingCallback"));
-    if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr) supported = Unsupported;
+    if (xessGetOptimalInputResolution == nullptr || xessDestroyContext == nullptr || xessSetVelocityScale == nullptr || xessSetLoggingCallback == nullptr) return (void)(supported = Unsupported);
     switch (type) {
 #ifdef ENABLE_VULKAN
         case GraphicsAPI::VULKAN:
-            xessVKCreateContext           = reinterpret_cast<decltype(xessVKCreateContext)>(GetProcAddress(library, "xessVKCreateContext"));
-            xessVKBuildPipelines          = reinterpret_cast<decltype(xessVKBuildPipelines)>(GetProcAddress(library, "xessVKBuildPipelines"));
-            xessVKInit                    = reinterpret_cast<decltype(xessVKInit)>(GetProcAddress(library, "xessVKInit"));
-            xessVKExecute                 = reinterpret_cast<decltype(xessVKExecute)>(GetProcAddress(library, "xessVKExecute"));
+            xessVKCreateContext  = reinterpret_cast<decltype(xessVKCreateContext)>(GetProcAddress(library, "xessVKCreateContext"));
+            xessVKBuildPipelines = reinterpret_cast<decltype(xessVKBuildPipelines)>(GetProcAddress(library, "xessVKBuildPipelines"));
+            xessVKInit           = reinterpret_cast<decltype(xessVKInit)>(GetProcAddress(library, "xessVKInit"));
+            xessVKExecute        = reinterpret_cast<decltype(xessVKExecute)>(GetProcAddress(library, "xessVKExecute"));
             if (xessVKCreateContext == nullptr || xessVKBuildPipelines == nullptr || xessVKInit == nullptr || xessVKExecute == nullptr) supported = Unsupported;
             break;
 #endif
 #ifdef ENABLE_DX12
         case GraphicsAPI::DX12:
-            xessD3D12CreateContext        = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
-            xessD3D12BuildPipelines       = reinterpret_cast<decltype(xessD3D12BuildPipelines)>(GetProcAddress(library, "xessD3D12BuildPipelines"));
-            xessD3D12Init                 = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
-            xessD3D12Execute              = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
+            xessD3D12CreateContext  = reinterpret_cast<decltype(xessD3D12CreateContext)>(GetProcAddress(library, "xessD3D12CreateContext"));
+            xessD3D12BuildPipelines = reinterpret_cast<decltype(xessD3D12BuildPipelines)>(GetProcAddress(library, "xessD3D12BuildPipelines"));
+            xessD3D12Init           = reinterpret_cast<decltype(xessD3D12Init)>(GetProcAddress(library, "xessD3D12Init"));
+            xessD3D12Execute        = reinterpret_cast<decltype(xessD3D12Execute)>(GetProcAddress(library, "xessD3D12Execute"));
             if (xessD3D12CreateContext == nullptr || xessD3D12BuildPipelines == nullptr || xessD3D12Init == nullptr || xessD3D12Execute == nullptr) supported = Unsupported;
+            break;
+#endif
+#ifdef ENABLE_DX11
+        case GraphicsAPI::DX11:
+            dx11library = LoadLibrary((Plugin::path / "libxess_dx11.dll").string().c_str());
+            if (dx11library == nullptr) return (void)(supported = Unsupported);
+            xessD3D11CreateContext = reinterpret_cast<decltype(xessD3D11CreateContext)>(GetProcAddress(dx11library, "xessD3D11CreateContext"));
+            xessD3D11Init          = reinterpret_cast<decltype(xessD3D11Init)>(GetProcAddress(dx11library, "xessD3D11Init"));
+            xessD3D11Execute       = reinterpret_cast<decltype(xessD3D11Execute)>(GetProcAddress(dx11library, "xessD3D11Execute"));
+            if (xessD3D11CreateContext == nullptr || xessD3D11Init == nullptr || xessD3D11Execute == nullptr) supported = Unsupported;
             break;
 #endif
         default: supported = Unsupported;
@@ -223,6 +283,13 @@ void XeSS_Upscaler::unload() {
     xessD3D12BuildPipelines = nullptr;
     xessD3D12Init = nullptr;
     xessD3D12Execute = nullptr;
+#endif
+#ifdef ENABLE_DX11
+    xessD3D11CreateContext = nullptr;
+    xessD3D11Init = nullptr;
+    xessD3D11Execute = nullptr;
+    if (dx11library != nullptr) FreeLibrary(dx11library);
+    dx11library = nullptr;
 #endif
     if (library != nullptr) FreeLibrary(library);
     library = nullptr;
@@ -255,6 +322,14 @@ void XeSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
             break;
         }
 #    endif
+#    ifdef ENABLE_DX11
+        case GraphicsAPI::DX11: {
+            fpCreate    = &XeSS_Upscaler::DX11Create;
+            fpSetImages = &XeSS_Upscaler::DX11SetImages;
+            fpEvaluate  = &XeSS_Upscaler::DX11Evaluate;
+            break;
+        }
+#    endif
         default: {
             fpCreate    = &XeSS_Upscaler::invalidGraphicsAPIFail;
             fpSetImages = &XeSS_Upscaler::invalidGraphicsAPIFail;
@@ -274,7 +349,6 @@ Upscaler::Status XeSS_Upscaler::useSettings(const Settings::Resolution resolutio
     Settings optimalSettings;
     optimalSettings.outputResolution = resolution;
     optimalSettings.hdr              = hdr;
-
     const xess_d3d12_init_params_t params{
       .outputResolution = {.x = optimalSettings.outputResolution.width, .y = optimalSettings.outputResolution.height},
       .qualitySetting   = optimalSettings.getQuality<XESS>(mode),

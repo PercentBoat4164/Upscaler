@@ -20,13 +20,15 @@ class XeSS_Upscaler final : public Upscaler {
     union XeSSResource {
         xess_vk_image_view_info vulkan;
         ID3D12Resource* dx12;
+        ID3D11Resource* dx11;
     };
     static HMODULE library;
+    static HMODULE dx11library;
     static SupportState supported;
 
     static Status (XeSS_Upscaler::*fpCreate)(const void*);
     static Status (XeSS_Upscaler::*fpSetImages)(const std::array<void*, Plugin::NumImages>&);
-    static Status (XeSS_Upscaler::*fpEvaluate)(const Settings::Resolution);
+    static Status (XeSS_Upscaler::*fpEvaluate)(Settings::Resolution);
 
     xess_context_handle_t context{nullptr};
     std::array<XeSSResource, Plugin::NumBaseImages> resources{};
@@ -47,6 +49,11 @@ class XeSS_Upscaler final : public Upscaler {
     static decltype(&xessD3D12Init) xessD3D12Init;
     static decltype(&xessD3D12Execute) xessD3D12Execute;
 #endif
+#ifdef ENABLE_DX11
+    static decltype(&xessD3D11CreateContext) xessD3D11CreateContext;
+    static decltype(&xessD3D11Init) xessD3D11Init;
+    static decltype(&xessD3D11Execute) xessD3D11Execute;
+#endif
     Status setStatus(xess_result_t t_error, const std::string &t_msg);
 
     static void log(const char* msg, xess_logging_level_t loggingLevel);
@@ -60,6 +67,11 @@ class XeSS_Upscaler final : public Upscaler {
     Status DX12Create(const void*);
     Status DX12SetImages(const std::array<void*, Plugin::NumImages>&);
     Status DX12Evaluate(Settings::Resolution inputResolution);
+#    endif
+#    ifdef ENABLE_DX11
+    Status DX11Create(const void*);
+    Status DX11SetImages(const std::array<void*, Plugin::NumImages>&);
+    Status DX11Evaluate(Settings::Resolution inputResolution);
 #    endif
 
 public:

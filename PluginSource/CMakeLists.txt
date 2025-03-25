@@ -222,7 +222,7 @@ if (ENABLE_XESS)
     add_library(xess INTERFACE)
     target_include_directories(xess INTERFACE "${XESS_SDK_DIR}/inc")
     list(APPEND CONIFER_LIBRARIES xess)
-    list(APPEND LIBRARIES_TO_COPY "${XESS_SDK_DIR}/bin/libxess.dll")
+    list(APPEND LIBRARIES_TO_COPY "${XESS_SDK_DIR}/bin/libxess.dll" "${XESS_SDK_DIR}/bin/libxess_dx11.dll")
 endif ()
 
 ##############
