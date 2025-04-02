@@ -1,8 +1,13 @@
-#include "FrameGenerator/FrameGenerator.hpp"
-#ifdef ENABLE_FSR
-#include "FrameGenerator/FSR_FrameGenerator.hpp"
+#ifdef ENABLE_FRAME_GENERATION
+#    include "FrameGenerator/FrameGenerator.hpp"
+#    ifdef ENABLE_FSR
+#        include "FrameGenerator/FSR_FrameGenerator.hpp"
+#    endif
 #endif
-#include "GraphicsAPI/Vulkan.hpp"
+#ifdef ENABLE_VULKAN
+#    include "GraphicsAPI/Vulkan.hpp"
+#endif
+#include "LatencyFleX.hpp"
 #include "Plugin.hpp"
 #include "Upscaler/Upscaler.hpp"
 
@@ -11,14 +16,14 @@
 
 #include <memory>
 #include <vector>
+#include <chrono>
+#include <unordered_set>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
 static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
-#ifdef ENABLE_FRAME_GENERATION
-static std::unique_ptr<FrameGenerator> frameGenerator{};
-#endif
+static std::vector<std::unique_ptr<lfx::LatencyFleX>> latencyReducers = {};
 
 struct alignas(128) UpscaleData {
     float frameTime;
@@ -56,6 +61,52 @@ struct alignas(64) FrameGenerateData {
     unsigned options;
 };
 
+struct alignas(8) EndFrameData {
+    unsigned long frameId;
+    uint16_t camera;
+};
+
+#define exp7           10000000i64     //1E+7     //C-file part
+#define exp9         1000000000i64     //1E+9
+#define w2ux 116444736000000000i64     //1.jan1601 to 1.jan1970
+
+void unix_time(struct timespec* spec) {
+    __int64 wintime;
+    GetSystemTimePreciseAsFileTime(reinterpret_cast<FILETIME*>(&wintime));
+    wintime -= w2ux;
+    spec->tv_sec  = wintime / exp7;
+    spec->tv_nsec = wintime % exp7 * 100;
+}
+
+int clock_gettime(int, timespec* spec) {
+    static struct timespec startspec;
+    static double          ticks2nano;
+    static __int64         startticks, tps = 0;
+    __int64                tmp, curticks;
+    QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&tmp));
+    if (tps != tmp) {
+        tps = tmp;
+        QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&startticks));
+        unix_time(&startspec);
+        ticks2nano = static_cast<double>(exp9) / tps;
+    }
+    QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&curticks));
+    curticks -= startticks;
+    spec->tv_sec  = startspec.tv_sec + curticks / tps;
+    spec->tv_nsec = startspec.tv_nsec + static_cast<double>(curticks % tps) * ticks2nano;
+    if (spec->tv_nsec >= exp9) {
+        spec->tv_sec++;
+        spec->tv_nsec -= exp9;
+    }
+    return 0;
+}
+
+uint64_t getTime() {
+    timespec spec{};
+    (void)clock_gettime(0, &spec);
+    return spec.tv_nsec + spec.tv_sec * 1000000000U;
+}
+
 void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
     if (d == nullptr) return;
     switch (event - Plugin::Unity::eventIDBase) {
@@ -85,9 +136,10 @@ void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
             upscaler.evaluate({static_cast<uint32_t>(data.inputResolution[0]), static_cast<uint32_t>(data.inputResolution[1])});
             break;
         }
+#ifdef ENABLE_FRAME_GENERATION
         case Plugin::FrameGenerate: {
             const auto& data = *static_cast<FrameGenerateData*>(d);
-#ifdef ENABLE_FSR
+#    ifdef ENABLE_FSR
             FSR_FrameGenerator::evaluate(
                 data.enable,
                 FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
@@ -100,8 +152,16 @@ void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
                 data.index,
                 data.options
             );
-#endif
+#    endif
             break;
+        }
+#endif
+        case Plugin::EndFrame: {
+            const auto& data = *static_cast<EndFrameData*>(d);
+            lfx::LatencyFleX& lowLatency = *latencyReducers[data.camera];
+            uint64_t latency{};
+            uint64_t frameTime{};
+            lowLatency.EndFrame(data.frameId, getTime(), &latency, &frameTime);
         }
         default: break;
     }
@@ -109,11 +169,6 @@ void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
 
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectly() {
     return Plugin::loadedCorrectly;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetLogLevel(const UnityLogType type) {
-    Plugin::logLevel = type;
-    Plugin::log("", type);
 }
 
 #ifdef ENABLE_FRAME_GENERATION
@@ -142,11 +197,19 @@ extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsQualitySupported(co
     return Upscaler::isSupported(type, mode);
 }
 
-extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API RegisterCamera() {
+extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API RegisterCameraUpscaler() {
     const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
     const uint16_t id = std::distance(upscalers.begin(), iter);
     if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
     else *iter = Upscaler::fromType(Upscaler::NONE);
+    return id;
+}
+
+extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API RegisterCameraLatencyReducer() {
+    const auto     iter = std::ranges::find_if(latencyReducers, [](const std::unique_ptr<lfx::LatencyFleX>& latencyReducer) { return !latencyReducer; });
+    const uint16_t id = std::distance(latencyReducers.begin(), iter);
+    if (iter == latencyReducers.end()) latencyReducers.emplace_back(std::make_unique<lfx::LatencyFleX>());
+    else *iter = std::make_unique<lfx::LatencyFleX>();
     return id;
 }
 
@@ -206,8 +269,27 @@ extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE
 }
 #endif
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnregisterCamera(const uint16_t camera) {
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API BeginFrame(const uint16_t camera, const uint64_t frameId) {
+    lfx::LatencyFleX& lowLatency = *latencyReducers[camera];
+    const uint64_t target = lowLatency.GetWaitTarget(frameId);
+    uint64_t timestamp = getTime();
+    if (timestamp < target) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(target - timestamp));
+        timestamp = target;
+    }
+    lowLatency.BeginFrame(frameId, target, timestamp);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API EndFrame(const uint16_t camera, const uint64_t frameId) {
+    latencyReducers[camera]->EndFrame(frameId, getTime(), nullptr, nullptr);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnregisterCameraUpscaler(const uint16_t camera) {
     if (upscalers.size() > camera) upscalers[camera].reset();
+}
+
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnregisterCameraLatencyReducer(const uint16_t camera) {
+    if (latencyReducers.size() > camera) latencyReducers[camera].reset();
 }
 
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
@@ -240,9 +322,9 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     Plugin::Unity::graphicsInterface = nullptr;
 }
 
-extern "C" BOOL WINAPI DllMain(const HINSTANCE dllInstance, const DWORD reason, LPVOID reserved) {
+extern "C" BOOL WINAPI DllMain(HINSTANCE dllInstance, const DWORD reason, LPVOID reserved) {
     if (reason != DLL_PROCESS_ATTACH) return TRUE;
-    char path[MAX_PATH + 1] {};
+    char path[MAX_PATH + 1];
     GetModuleFileName(dllInstance, path, std::extent_v<decltype(path)>);
     Plugin::path = std::filesystem::path(path).parent_path();
     return TRUE;

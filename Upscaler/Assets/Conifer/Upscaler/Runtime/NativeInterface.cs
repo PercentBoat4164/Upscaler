@@ -13,7 +13,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler
 {
@@ -22,9 +21,6 @@ namespace Conifer.Upscaler
     {
         [DllImport("GfxPluginUpscaler")]
         internal static extern bool LoadedCorrectly();
-
-        [DllImport("GfxPluginUpscaler")]
-        internal static extern void SetLogLevel(LogType type);
 
         [DllImport("GfxPluginUpscaler")]
         internal static extern void SetFrameGeneration(IntPtr hWnd);
@@ -42,7 +38,10 @@ namespace Conifer.Upscaler
         internal static extern bool IsSupported(Upscaler.Technique type, Upscaler.Quality mode);
 
         [DllImport("GfxPluginUpscaler")]
-        internal static extern ushort RegisterCamera();
+        internal static extern ushort RegisterCameraUpscaler();
+
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern ushort RegisterCameraLatencyReducer();
 
         [DllImport("GfxPluginUpscaler", EntryPoint = "GetCameraUpscalerStatus")]
         internal static extern Upscaler.Status GetStatus(ushort camera);
@@ -73,21 +72,33 @@ namespace Conifer.Upscaler
 
         [DllImport("GfxPluginUpscaler")]
         internal static extern GraphicsFormat GetBackBufferFormat();
+
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern void BeginFrame(ushort camera, ulong frameId);
+
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern void EndFrame(ushort camera, ulong frameId);
         
         [DllImport("GfxPluginUpscaler")]
-        internal static extern void UnregisterCamera(ushort camera);
+        internal static extern void UnregisterCameraUpscaler(ushort camera);
+
+        [DllImport("GfxPluginUpscaler")]
+        internal static extern void UnregisterCameraLatencyReducer(ushort camera);
     }
 
     internal class NativeInterface
     {
         internal static readonly bool Loaded;
         private readonly Camera _camera;
-        private readonly ushort _cameraID;
+        private readonly ushort _cameraUpscalerID;
+        private readonly ushort _cameraLatencyReducerID;
         private static readonly int UpscaleEventID;
         private static readonly int FrameGenerateEventID;
-        private readonly IntPtr _renderingEventCallback;
+        private static readonly int EndFrameEventID;
+        private static readonly IntPtr RenderingEventCallback;
         private readonly IntPtr _upscaleDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UpscaleData>());
         private readonly IntPtr _frameGenerateDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<FrameGenerateData>());
+        private readonly IntPtr _endFrameDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<EndFrameData>());
         public bool ShouldResetHistory = true;
 #if UNITY_EDITOR
         internal Vector2 EditorOffset;
@@ -187,6 +198,17 @@ namespace Conifer.Upscaler
             private uint _options;
         }
 
+        private struct EndFrameData {
+            internal EndFrameData(ushort camera, ulong frameId)
+            {
+                _frameId = frameId;
+                _camera = camera;
+            }
+
+            private ulong _frameId;
+            private ushort _camera;
+        }
+
         static NativeInterface()
         {
             try
@@ -204,26 +226,30 @@ namespace Conifer.Upscaler
             if (!Loaded) return;
             var eventIDBase = Native.GetEventIDBase();
             UpscaleEventID = eventIDBase;
-            FrameGenerateEventID = ++eventIDBase;
+            FrameGenerateEventID = UpscaleEventID + 1;
+            EndFrameEventID = FrameGenerateEventID + 1;
+            RenderingEventCallback = Native.GetRenderingEventCallback();
         }
 
         internal NativeInterface(Camera camera)
         {
             if (!Loaded) return;
             _camera = camera;
-            _cameraID = Native.RegisterCamera();
-            _renderingEventCallback = Native.GetRenderingEventCallback();
+            _cameraUpscalerID = Native.RegisterCameraUpscaler();
+            _cameraLatencyReducerID = Native.RegisterCameraLatencyReducer();
         }
 
         ~NativeInterface()
         {
-            if (Loaded) Native.UnregisterCamera(_cameraID);
+            if (!Loaded) return;
+            Native.UnregisterCameraUpscaler(_cameraUpscalerID);
+            Native.UnregisterCameraLatencyReducer(_cameraLatencyReducerID);
         }
 
         internal void Upscale(CommandBuffer cb, Upscaler upscaler, Vector2Int inputResolution=default)
         {
-            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
-            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
+            Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraUpscalerID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(RenderingEventCallback, UpscaleEventID, _upscaleDataPtr);
         }
 
 #if UNITY_6000_0_OR_NEWER
@@ -243,18 +269,18 @@ namespace Conifer.Upscaler
                 Vector2Int.zero
 #endif
                 ), _frameGenerateDataPtr, true);
-            if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
+            if (Loaded) cb.IssuePluginEventAndData(RenderingEventCallback, FrameGenerateEventID, _frameGenerateDataPtr);
         }
 
-        internal static void SetLogLevel(LogType type)
+        internal void EndFrame(CommandBuffer cb, ulong frameId)
         {
-            if (Loaded) Native.SetLogLevel(type);
+            Marshal.StructureToPtr(new EndFrameData(_cameraLatencyReducerID, frameId), _endFrameDataPtr, true);
+            if (Loaded) cb.IssuePluginEventAndData(RenderingEventCallback, EndFrameEventID, _endFrameDataPtr);
         }
 
         internal void SetFrameGeneration(bool on)
         {
-            if (!Loaded) return;
-            Native.SetFrameGeneration(on ? GetFrameGenerationTargetHwnd() : IntPtr.Zero);
+            if (Loaded) Native.SetFrameGeneration(on ? GetFrameGenerationTargetHwnd() : IntPtr.Zero);
         }
 
         internal static bool IsSupported(Upscaler.Technique type) => Loaded && Native.IsSupported(type);
@@ -263,30 +289,30 @@ namespace Conifer.Upscaler
             Loaded && Native.IsSupported(type, mode);
 
         internal Upscaler.Status GetStatus() =>
-            Loaded ? Native.GetStatus(_cameraID) : Upscaler.Status.Success;
+            Loaded ? Native.GetStatus(_cameraUpscalerID) : Upscaler.Status.Success;
 
         internal string GetStatusMessage() => Loaded
-            ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraID))
+            ? Marshal.PtrToStringAnsi(Native.GetStatusMessage(_cameraUpscalerID))
             : "GfxPluginUpscaler shared library not loaded; some upscalers may be unavailable! A restart may resolve the problem if you are on a supported platform.";
 
         internal Upscaler.Status SetStatus(Upscaler.Status status, string message) => Loaded
-            ? Native.SetStatus(_cameraID, status, Marshal.StringToHGlobalAnsi(message))
+            ? Native.SetStatus(_cameraUpscalerID, status, Marshal.StringToHGlobalAnsi(message))
             : Upscaler.Status.LibraryNotLoaded;
 
         internal Upscaler.Status SetPerFeatureSettings(Vector2Int resolution, Upscaler.Technique technique, Upscaler.DlssPreset preset, Upscaler.Quality quality, bool hdr) => Loaded
-            ? Native.SetPerFeatureSettings(_cameraID, resolution, technique, preset, quality, hdr)
+            ? Native.SetPerFeatureSettings(_cameraUpscalerID, resolution, technique, preset, quality, hdr)
             : Upscaler.Status.LibraryNotLoaded;
 
         internal Vector2Int GetRecommendedResolution() =>
-            Loaded ? Native.GetRecommendedResolution(_cameraID) : Vector2Int.zero;
+            Loaded ? Native.GetRecommendedResolution(_cameraUpscalerID) : Vector2Int.zero;
 
-        internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraID) : Vector2Int.zero;
+        internal Vector2Int GetMaximumResolution() => Loaded ? Native.GetMaximumResolution(_cameraUpscalerID) : Vector2Int.zero;
 
-        internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
+        internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraUpscalerID) : Vector2Int.zero;
 
         internal void SetUpscalingImages(RTHandle color, RTHandle depth, RTHandle motion, RTHandle output, RTHandle reactive, RTHandle opaque, bool autoReactive)
         {
-            if (Loaded) Native.SetUpscalingImages(_cameraID, color?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, output?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, reactive?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, opaque?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, autoReactive);
+            if (Loaded) Native.SetUpscalingImages(_cameraUpscalerID, color?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, output?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, reactive?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, opaque?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, autoReactive);
         }
 
         internal static void SetFrameGenerationImages(RTHandle hudless0, RTHandle hudless1, RTHandle depth, RTHandle motion)
@@ -295,7 +321,17 @@ namespace Conifer.Upscaler
         }
 
         internal static GraphicsFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : GraphicsFormat.None;
-        
+
+        internal void BeginFrame(ulong frameId)
+        {
+            if (Loaded) Native.BeginFrame(_cameraLatencyReducerID, frameId);
+        }
+
+        internal void EndFrame(ulong frameId)
+        {
+            if (Loaded) Native.EndFrame(_cameraLatencyReducerID, frameId);
+        }
+
 #if UNITY_EDITOR
         private delegate bool EnumChildWindowsProc(IntPtr hWnd, ref EnumChildWindowsData lParam);
         

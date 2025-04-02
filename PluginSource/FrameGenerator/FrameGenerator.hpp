@@ -1,5 +1,6 @@
 #pragma once
 
+#define NOMINMAX
 #include <vcruntime.h>
 
 #include <IUnityRenderingExtensions.h>

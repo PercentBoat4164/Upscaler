@@ -258,9 +258,6 @@ namespace Conifer.Upscaler.Editor
                             "Forces the active upscaler to ignore it's internal history buffer."),
                         _forceHistoryResetEveryFrame.boolValue);
                 }
-                var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
-                EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
-                Upscaler.SetLogLevel(logLevel);
             }
 
             EditorGUILayout.Separator();

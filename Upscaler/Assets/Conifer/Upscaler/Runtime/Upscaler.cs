@@ -4,7 +4,11 @@
  **************************************************/
 
 using System;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.LowLevel;
+using UnityEngine.PlayerLoop;
+using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler
 {
@@ -450,16 +454,6 @@ namespace Conifer.Upscaler
          */
         public static bool PluginLoaded() => NativeInterface.Loaded;
 
-        /**
-         * <summary>Sets the log level filter for the C++ backend.</summary>
-         * <param name="level">The minimum log level that messages must be before they are logged.</param>
-         * <remarks>This applies to all instances of the Upscaler script globally. This method is very fast. The first
-         * time this method is called all previously recorded messages (usually messages from Upscaler's startup
-         * process) will be filtered, then pushed. This method is probably first called by Upscaler's Inspector GUI when
-         * in the Unity Editor.</remarks>
-         */
-        public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
-
         private Status InternalApplySettings(bool force)
         {
             if (!Application.isPlaying || NativeInterface is null) return Status.Success;
@@ -554,6 +548,8 @@ namespace Conifer.Upscaler
             return CurrentStatus;
         }
 
+        private void LowLatencyEndFrameMarker(ScriptableRenderContext context, Camera[] cameras) => NativeInterface.EndFrame((ulong)Time.frameCount);
+
         protected void OnEnable()
         {
             Camera = GetComponent<Camera>();
@@ -561,12 +557,53 @@ namespace Conifer.Upscaler
 
             NativeInterface ??= new NativeInterface(Camera);
 
+            RenderPipelineManager.endFrameRendering += LowLatencyEndFrameMarker;
+
             if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
             ApplySettings(true);
+
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+            for (uint i = 0; i < playerLoop.subSystemList.Length; ++i)
+            {
+                ref var system = ref playerLoop.subSystemList[i];
+                if (system.type != typeof(EarlyUpdate)) continue;
+                for (uint j = 0; j < system.subSystemList.Length; ++j)
+                {
+                    ref var subSystem = ref system.subSystemList[j];
+                    if (subSystem.type != typeof(EarlyUpdate.UpdateInputManager)) continue;
+                    Array.Resize(ref system.subSystemList, system.subSystemList.Length + 1);
+                    Array.Copy(system.subSystemList, j, system.subSystemList, j + 1, system.subSystemList.Length - j - 1);
+                    system.subSystemList[j] = new PlayerLoopSystem
+                    {
+                        type = typeof(Upscaler),
+                        updateDelegate = () => NativeInterface.BeginFrame((ulong)Time.frameCount)
+                    };
+                    break;
+                }
+                break;
+            }
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
         }
 
-        private void OnDisable() => NativeInterface.SetFrameGeneration(false);
-        
+        private void OnDisable()
+        {
+            NativeInterface.SetFrameGeneration(false);
+            NativeInterface = null;
+
+            RenderPipelineManager.endFrameRendering -= LowLatencyEndFrameMarker;
+
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+            for (uint i = 0; i < playerLoop.subSystemList.Length; ++i)
+            {
+                ref var system = ref playerLoop.subSystemList[i];
+                if (system.type != typeof(EarlyUpdate)) continue;
+                system.subSystemList = system.subSystemList.Where(lowLatencySystem => !ReferenceEquals(lowLatencySystem.updateDelegate?.Target, this)).ToArray();
+                break;
+            }
+            PlayerLoop.SetPlayerLoop(playerLoop);
+        }
+
         private void OnGUI()
         {
             if (technique == Technique.None || !showRenderingAreaOverlay) return;
