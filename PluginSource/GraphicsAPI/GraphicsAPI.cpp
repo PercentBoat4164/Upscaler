@@ -17,7 +17,9 @@
 #ifdef ENABLE_DX11
 #    include "DX11.hpp"
 #endif
-
+#ifdef ENABLE_FRAME_GENERATION
+#    include "FrameGenerator/FrameGenerator.hpp"
+#endif
 #include "Upscaler/Upscaler.hpp"
 
 GraphicsAPI::Type GraphicsAPI::type = NONE;
@@ -50,6 +52,9 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
             DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             Upscaler::load(DX12);
+#    ifdef ENABLE_FRAME_GENERATION
+            FrameGenerator::load(DX12);
+#    endif
             break;
         }
 #endif
@@ -58,6 +63,9 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
             type = DX11;
             Upscaler::useGraphicsAPI(type);
             Upscaler::load(DX11);
+#    ifdef ENABLE_FRAME_GENERATION
+            FrameGenerator::load(DX11);
+#    endif
             break;
         }
 #endif
@@ -104,5 +112,8 @@ bool GraphicsAPI::unregisterUnityInterfaces() {
     result &= DX11::unregisterUnityInterfaces();
 #endif
     Upscaler::unload();
+#ifdef ENABLE_FRAME_GENERATION
+    FrameGenerator::unload();
+#endif
     return result;
 }

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #ifdef ENABLE_FRAME_GENERATION
 #    include "FrameGenerator/FrameGenerator.hpp"
 #    ifdef ENABLE_FSR

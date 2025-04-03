@@ -979,9 +979,12 @@ namespace Conifer.Upscaler.URP
 #endif
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
+                var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
                 var descriptor = renderingData.cameraData.cameraTargetDescriptor;
                 descriptor.depthStencilFormat = GraphicsFormat.None;
                 descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
+                descriptor.width = upscaler.InputResolution.x;
+                descriptor.height = upscaler.InputResolution.y;
                 var cb = CommandBufferPool.Get("Generate");
                 cb.GetTemporaryRT(Generate.TempMotion, descriptor);
                 cb.Blit(Shader.GetGlobalTexture(MotionID) ?? Texture2D.blackTexture, Generate.TempMotion);
@@ -1052,7 +1055,7 @@ namespace Conifer.Upscaler.URP
                 cb.Blit(null, TempColor);
                 cb.Blit(TempColor, _hudless[_hudlessBufferIndex]
 #if UNITY_EDITOR
-                    , Vector2.one, -upscaler.NativeInterface.EditorOffset / srcRes
+                    , Vector2.one, -(upscaler.NativeInterface.EditorOffset - new Vector2(0, 2)) / srcRes
 #endif
                 );
                 cb.Blit(TempMotion, _flippedMotion,
@@ -1061,18 +1064,24 @@ namespace Conifer.Upscaler.URP
 #endif
                     new Vector2(1.0f, -1.0f),
 #if UNITY_EDITOR
-                    upscaler.NativeInterface.EditorOffset / srcRes +
+                    (upscaler.NativeInterface.EditorOffset - new Vector2(0, 2)) / srcRes +
 #endif
-                    new Vector2(0.0f, 1.0f));
+                    new Vector2(0.0f, 1.0f)
+
+                    // Vector2.zero
+                );
                 BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth,
 #if UNITY_EDITOR
                     upscaler.NativeInterface.EditorResolution / srcRes *
 #endif
                     new Vector2(1.0f, -1.0f),
 #if UNITY_EDITOR
-                    upscaler.NativeInterface.EditorOffset / srcRes +
+                    // (upscaler.NativeInterface.EditorOffset - new Vector2(0, 2)) / srcRes +
 #endif
-                    new Vector2(0.0f, 1.0f));
+                    // new Vector2(0.0f, 1.0f)
+
+                    Vector2.zero
+                );
                 upscaler.NativeInterface.FrameGenerate(cb, upscaler, _hudlessBufferIndex);
                 cb.SetRenderTarget(k_CameraTarget);
                 cb.ReleaseTemporaryRT(TempColor);

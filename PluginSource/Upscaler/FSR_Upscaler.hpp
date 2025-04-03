@@ -19,14 +19,12 @@ class FSR_Upscaler final : public Upscaler {
     ffxContext context{};
     std::array<FfxApiResource, Plugin::NumImages> resources{};
 
-public:
     static PfnFfxCreateContext ffxCreateContext;
     static PfnFfxDestroyContext ffxDestroyContext;
     static PfnFfxConfigure ffxConfigure;
     static PfnFfxQuery ffxQuery;
     static PfnFfxDispatch ffxDispatch;
 
-private:
 #    ifdef ENABLE_VULKAN
     Status VulkanCreate(ffxCreateContextDescUpscale& createContextDescUpscale);
     Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);

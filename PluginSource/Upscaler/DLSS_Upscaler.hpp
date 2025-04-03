@@ -3,7 +3,8 @@
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
 
-#    include <Windows.h>
+#    define NOMINMAX
+#    include <windows.h>
 
 struct NVSDK_NGX_Resource_VK;
 struct NVSDK_NGX_Parameter;

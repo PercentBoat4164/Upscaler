@@ -1,4 +1,3 @@
-#include <iostream>
 #ifdef ENABLE_VULKAN
 #    include "Vulkan.hpp"
 
@@ -8,13 +7,14 @@
 #    endif
 #    ifdef ENABLE_FSR
 #        include <FrameGenerator/FSR_FrameGenerator.hpp>
-#        include <Upscaler/FSR_Upscaler.hpp>
 #    endif
 
 #    include <IUnityGraphicsVulkan.h>
 
 #    define VQS_IMPLEMENTATION
 #    include <vk_queue_selector.h>
+
+#    include <iostream>
 
 PFN_vkGetInstanceProcAddr    Vulkan::m_vkGetInstanceProcAddr{VK_NULL_HANDLE};
 PFN_vkCreateInstance         Vulkan::m_vkCreateInstance{VK_NULL_HANDLE};
@@ -412,6 +412,7 @@ void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, const uint32_t swapchainC
 PFN_vkGetInstanceProcAddr Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {
     m_vkGetInstanceProcAddr = t_getInstanceProcAddr;
     Upscaler::load(VULKAN, &m_slGetInstanceProcAddr);
+    FrameGenerator::load(VULKAN);
     return &hook_vkGetInstanceProcAddr;
 }
 

@@ -1,15 +1,25 @@
 #include "FrameGenerator.hpp"
 
-#include <ranges>
-
 #ifdef ENABLE_FSR
-#include "FSR_FrameGenerator.hpp"
+#    include "FSR_FrameGenerator.hpp"
 #endif
 
 std::unordered_map<HWND, VkSurfaceKHR> FrameGenerator::HWNDToSurface{};
 std::unordered_map<VkSurfaceKHR, VkSwapchainKHR> FrameGenerator::SurfaceToSwapchain{};
 FrameGenerator::Swapchain FrameGenerator::swapchain{};
-UnityRenderingExtTextureFormat FrameGenerator::backBufferFormat{};
+UnityRenderingExtTextureFormat                   FrameGenerator::backBufferFormat{};
+
+void FrameGenerator::load(const GraphicsAPI::Type type) {
+#ifdef ENABLE_FSR
+    FSR_FrameGenerator::load(type);
+#endif
+}
+
+void FrameGenerator::unload() {
+#ifdef ENABLE_FSR
+    FSR_FrameGenerator::unload();
+#endif
+}
 
 void FrameGenerator::addMapping(HWND hWnd, VkSurfaceKHR surface) {
     HWNDToSurface[hWnd] = surface;

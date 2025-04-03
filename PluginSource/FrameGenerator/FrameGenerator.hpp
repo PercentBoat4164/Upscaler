@@ -1,13 +1,13 @@
 #pragma once
 
-#define NOMINMAX
-#include <vcruntime.h>
-
-#include <IUnityRenderingExtensions.h>
 #ifdef ENABLE_FRAME_GENERATION
 #    ifdef ENABLE_VULKAN
 #        include <vulkan/vulkan.h>
 #    endif
+
+#    include <GraphicsAPI/GraphicsAPI.hpp>
+
+#    include <IUnityRenderingExtensions.h>
 
 #    include <unordered_map>
 
@@ -24,6 +24,9 @@ protected:
     } swapchain;
 
 public:
+    static void load(GraphicsAPI::Type);
+    static void unload();
+
     FrameGenerator()                                 = default;
     FrameGenerator(const FrameGenerator&)            = delete;
     FrameGenerator(FrameGenerator&&)                 = delete;
