@@ -1,10 +1,15 @@
 ﻿Shader "Hidden/BlitDepth" {
     SubShader {
+        PackageRequirements {
+    		"com.unity.render-pipelines.universal"
+    		"com.unity.render-pipelines.core"
+    	}
+    	Tags {"RenderPipeline" = "UniversalPipeline"}
+    	ZTest Always Cull Off ZWrite On ColorMask 0
         Pass {
-            ZTest Always Cull Off ZWrite On ColorMask 0
             Name "Blit Depth"
             HLSLPROGRAM
-            #pragma multi_compile _ CONIFER_UPSCALER_USE_EDGE_DIRECTION
+            #pragma multi_compile _ CONIFER__UPSCALER__USE_EDGE_DIRECTION
             #pragma target 5.0
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"

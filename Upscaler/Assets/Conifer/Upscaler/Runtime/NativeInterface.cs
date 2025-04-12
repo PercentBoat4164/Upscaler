@@ -13,11 +13,9 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler
 {
-
     internal struct Native
     {
         [DllImport("GfxPluginUpscaler")]
@@ -220,7 +218,7 @@ namespace Conifer.Upscaler
             if (Loaded) Native.UnregisterCamera(_cameraID);
         }
 
-        internal void Upscale(CommandBuffer cb, Upscaler upscaler, Vector2Int inputResolution=default)
+        internal void Upscale(in CommandBuffer cb, in Upscaler upscaler, Vector2Int inputResolution=default)
         {
             Marshal.StructureToPtr(new UpscaleData(upscaler, _cameraID, inputResolution, ShouldResetHistory), _upscaleDataPtr, true);
             if (Loaded) cb.IssuePluginEventAndData(_renderingEventCallback, UpscaleEventID, _upscaleDataPtr);
@@ -284,14 +282,14 @@ namespace Conifer.Upscaler
 
         internal Vector2Int GetMinimumResolution() => Loaded ? Native.GetMinimumResolution(_cameraID) : Vector2Int.zero;
 
-        internal void SetUpscalingImages(RTHandle color, RTHandle depth, RTHandle motion, RTHandle output, RTHandle reactive, RTHandle opaque, bool autoReactive)
+        internal void SetUpscalingImages(IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive=default, IntPtr opaque=default, bool autoReactive=false)
         {
-            if (Loaded) Native.SetUpscalingImages(_cameraID, color?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, output?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, reactive?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, opaque?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, autoReactive);
+            if (Loaded) Native.SetUpscalingImages(_cameraID, color, depth, motion, output, reactive, opaque, autoReactive);
         }
 
-        internal static void SetFrameGenerationImages(RTHandle hudless0, RTHandle hudless1, RTHandle depth, RTHandle motion)
+        internal static void SetFrameGenerationImages(IntPtr hudless0, IntPtr hudless1, IntPtr depth, IntPtr motion)
         {
-            if (Loaded) Native.SetFrameGenerationImages(hudless0?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, hudless1?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, depth?.rt.GetNativeTexturePtr() ?? IntPtr.Zero, motion?.rt.GetNativeTexturePtr() ?? IntPtr.Zero);
+            if (Loaded) Native.SetFrameGenerationImages(hudless0, hudless1, depth, motion);
         }
 
         internal static GraphicsFormat GetBackBufferFormat() => Loaded ? Native.GetBackBufferFormat() : GraphicsFormat.None;

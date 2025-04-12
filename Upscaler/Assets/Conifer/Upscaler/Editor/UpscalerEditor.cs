@@ -4,23 +4,27 @@
  **************************************************/
 
 using System;
-using System.Linq;
-using System.Reflection;
 using System.IO;
-using Conifer.Upscaler.URP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if CONIFER_UPSCALER_USE_URP
 using UnityEngine.Rendering.Universal;
+using System.Linq;
+using System.Reflection;
+using Conifer.Upscaler.URP;
+#endif
 
 namespace Conifer.Upscaler.Editor
 {
     [CustomEditor(typeof(Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
+#if CONIFER_UPSCALER_USE_URP
         private static readonly FieldInfo FRenderDataList = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FRenderers = typeof(UniversalRenderPipelineAsset).GetField("m_Renderers", BindingFlags.NonPublic | BindingFlags.Instance)!;
         private static readonly FieldInfo FOpaqueDownsampling = typeof(UniversalRenderPipelineAsset).GetField("m_OpaqueDownsampling", BindingFlags.NonPublic | BindingFlags.Instance)!;
+#endif
 
         [SerializeField] private bool advancedSettingsFoldout;
         [SerializeField] private bool debugSettingsFoldout;
@@ -100,6 +104,7 @@ namespace Conifer.Upscaler.Editor
         {
             var upscaler = (Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
+#if CONIFER_UPSCALER_USE_URP
             var cameraData = camera.GetUniversalAdditionalCameraData();
             var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
                 [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
@@ -125,10 +130,10 @@ namespace Conifer.Upscaler.Editor
                 EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
                 if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
             }
-
+#endif
             if (!Upscaler.IsSupported((Upscaler.Technique)_technique.intValue)) _technique.intValue = (int)Upscaler.GetBestSupportedTechnique();
             _technique.intValue = (int)(Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), (Upscaler.Technique)_technique.intValue, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
-
+#if CONIFER_UPSCALER_USE_URP
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
                 if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
@@ -136,11 +141,13 @@ namespace Conifer.Upscaler.Editor
                     EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
                 }
+#endif
                 if (camera.allowMSAA)
                 {
                     EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
                 }
+#if CONIFER_UPSCALER_USE_URP
             }
 
             if (upscaler.autoReactive && upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
@@ -159,6 +166,7 @@ namespace Conifer.Upscaler.Editor
                         FOpaqueDownsampling.SetValue(UniversalRenderPipeline.asset, Downsampling.None);
                 }
             }
+#endif
 
             _quality.intValue = (int)(Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +

@@ -6,30 +6,35 @@
 //
 //============================================================================================================
 
-Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
+Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1"
 {
+	Properties
+	{
+		_MainTex ("Texture", 2D) = "" {}
+	}
+
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
 
         Pass
         {
-        	Name "Snapdragon Game Super Resolution 1"
-            HLSLPROGRAM
-            #pragma multi_compile _ CONIFER_UPSCALER_USE_EDGE_DIRECTION
+        	Name "Conifer | Upscaler | Snapdragon Game Super Resolution 1"
+            CGPROGRAM
+            #pragma multi_compile_local _ CONIFER__UPSCALER__USE_EDGE_DIRECTION
             #pragma target 5.0
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+            #include "UnityCG.cginc"
 
-			#pragma vertex Vert
-			#pragma fragment Frag
+			#pragma vertex vert_img
+			#pragma fragment frag
 
-            SamplerState pointClampSampler : register(s0);
-            float        Conifer_Upscaler_EdgeSharpness;
-            float4       Conifer_Upscaler_ViewportInfo;
+            SamplerState linearClampSampler : register(s0);
+            Texture2D    _MainTex : register(t0);
+            float4       Conifer_Upscaler_ViewportInfo : register(b0);
+            float        Conifer_Upscaler_Sharpness;
 
-#if defined(CONIFER_UPSCALER_USE_EDGE_DIRECTION)
+#if defined(CONIFER__UPSCALER__USE_EDGE_DIRECTION)
 			half2 weightY(half dx, half dy, half c, half3 data) {
 				half  std     = data.x;
 				half2 dir     = data.yz;
@@ -47,24 +52,24 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 				return half2(w, w * c);
 			}
 
-			half4 Frag(Varyings input) : SV_TARGET {
+			half4 frag(v2f_img input) : SV_TARGET {
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
-				pix.xyz = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, pointClampSampler, input.texcoord * Conifer_Upscaler_ViewportInfo.xy * Conifer_Upscaler_ViewportInfo.zw, _BlitMipLevel).xyz;
+				pix.xyz = _MainTex.Sample(linearClampSampler, input.uv).xyz;
 
-				float2 imgCoord = input.texcoord.xy * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
+				float2 imgCoord = input.uv * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);
 				float2 imgCoordPixel = floor(imgCoord);
 				float2 coord = imgCoordPixel * Conifer_Upscaler_ViewportInfo.xy;
 				half2 pl = imgCoord - imgCoordPixel;
-				half4 left = GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord);
+				half4 left = _MainTex.GatherGreen(linearClampSampler, coord);
 
 				if (abs(left.z - left.y) + abs(pix[1] - left.y) + abs(pix[1] - left.z) > 8.0 / 255.0) {
 					coord.x += Conifer_Upscaler_ViewportInfo.x;
 
-					half4 right = GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x,  0.0));
+					half4 right = _MainTex.GatherGreen(linearClampSampler, coord + float2(Conifer_Upscaler_ViewportInfo.x, 0.0));
 					half4 upDown = half4(
-						GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
-						GATHER_GREEN_TEXTURE2D_X(_BlitTexture, pointClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
+						_MainTex.GatherGreen(linearClampSampler, coord + float2(0.0, -Conifer_Upscaler_ViewportInfo.y)).wz,
+						_MainTex.GatherGreen(linearClampSampler, coord + float2(0.0,  Conifer_Upscaler_ViewportInfo.y)).yx
 					);
 
 					half mean = (left.y + left.z + right.x + right.w) * half(0.25);
@@ -76,7 +81,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 					half std = half(2.181818) / (abs(left.x) + abs(left.y) + abs(left.z) + abs(left.w) +
 						       					 abs(right.x) + abs(right.y) + abs(right.z) + abs(right.w) +
 						       					 abs(upDown.x) + abs(upDown.y) + abs(upDown.z) + abs(upDown.w));
-#if defined(CONIFER_UPSCALER_USE_EDGE_DIRECTION)
+#if defined(CONIFER__UPSCALER__USE_EDGE_DIRECTION)
 					half  RxLz = right.x + -left.z;
 					half  RwLy = right.w + -left.y;
 					half2 delta = half2(RxLz + RwLy, RxLz + -RwLy);
@@ -104,7 +109,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 
 					half max4 = max(max(left.y, left.z), max(right.x, right.w));
 					half min4 = min(min(left.y, left.z), min(right.x, right.w));
-					finalY = clamp(Conifer_Upscaler_EdgeSharpness * finalY, min4, max4);
+					finalY = clamp(Conifer_Upscaler_Sharpness * finalY, min4, max4);
 
 					half deltaY = finalY - pix.w;
 
@@ -115,7 +120,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1/Upscale"
 				pix.w = 1.0;
 				return pix;
 			}
-			ENDHLSL
+			ENDCG
         }
     }
 }

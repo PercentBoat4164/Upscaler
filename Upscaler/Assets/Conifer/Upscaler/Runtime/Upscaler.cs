@@ -4,7 +4,11 @@
  **************************************************/
 
 using System;
+using System.Reflection;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Conifer.Upscaler
 {
@@ -174,7 +178,7 @@ namespace Conifer.Upscaler
         internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
         internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
         internal Vector2 Jitter = Vector2.zero;
-        internal int JitterIndex = 0;
+        internal int JitterIndex;
         internal NativeInterface NativeInterface;
 
         /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
@@ -202,15 +206,15 @@ namespace Conifer.Upscaler
 
         /// The recommended resolution for this <see cref="Quality"/> mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int RecommendedInputResolution { get; private set; }
+        public Vector2Int RecommendedInputResolution { get; internal set; }
 
         /// The maximum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int MaxInputResolution { get; private set; }
+        public Vector2Int MaxInputResolution { get; internal set; }
 
         /// The minimum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int MinInputResolution { get; private set; }
+        public Vector2Int MinInputResolution { get; internal set; }
 
         /**
          * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws. Takes the current
@@ -263,6 +267,7 @@ namespace Conifer.Upscaler
         public bool useEdgeDirection = true;
         public bool PreviousUseEdgeDirection { get; private set; }
 
+        public UpscalerBackend backend;
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
          *<returns>Returns the 'best' supported technique.</returns>
@@ -486,54 +491,37 @@ namespace Conifer.Upscaler
                 else if (wasResizingLastFrame) NativeInterface.SetFrameGeneration(true);
             if (!isResizingThisFrame && !wasResizingLastFrame && frameGeneration != PreviousFrameGeneration) NativeInterface.SetFrameGeneration(frameGeneration);
 
-            if (RequiresNativePlugin(technique))
+            if (technique != PreviousTechnique)
             {
-                CurrentStatus = NativeInterface.SetPerFeatureSettings(OutputResolution, technique, dlssPreset, quality, HDR);
-                if (Failure(CurrentStatus)) return CurrentStatus;
-                RecommendedInputResolution = Vector2Int.Max(NativeInterface.GetRecommendedResolution(), Vector2Int.one);
-                MaxInputResolution = Vector2Int.Max(NativeInterface.GetMaximumResolution(), Vector2Int.one);
-                MinInputResolution = Vector2Int.Max(NativeInterface.GetMinimumResolution(), Vector2Int.one);
+                backend?.Dispose();
+                if (technique == Technique.SnapdragonGameSuperResolution1) backend = new SGSR1Backend();
+                else if (technique == Technique.SnapdragonGameSuperResolution2) backend = new SGSR2F2Backend();
+                else backend = null;
             }
-            else
-            {
-                NativeInterface.SetPerFeatureSettings(OutputResolution, Technique.None, dlssPreset, quality, HDR);
-                CurrentStatus = Status.Success;
-                if (useEdgeDirection) Shader.EnableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
-                else Shader.DisableKeyword("CONIFER_UPSCALER_USE_EDGE_DIRECTION");
-                if (SystemInfo.graphicsShaderLevel < 50) return CurrentStatus = Status.DeviceNotSupported;
-                double scale;
-                switch (quality)
-                {
-                    case Quality.Auto:
-                        scale = ((uint)OutputResolution.x * (uint)OutputResolution.y) switch
-                        {
-                            <= 2560 * 1440 => 0.769,
-                            <= 3840 * 2160 => 0.667,
-                            _ => 0.5
-                        }; break;
-                    case Quality.AntiAliasing:
-                        if (technique == Technique.SnapdragonGameSuperResolution1) return CurrentStatus = Status.RecoverableRuntimeError;
-                        scale = 1.0;
-                        break;
-                    case Quality.UltraQualityPlus: scale = 0.769; break;
-                    case Quality.UltraQuality: scale = 0.667; break;
-                    case Quality.Quality: scale = 0.588; break;
-                    case Quality.Balanced: scale = 0.5; break;
-                    case Quality.Performance: scale = 0.435; break;
-                    case Quality.UltraPerformance: scale = 0.333; break;
-                    default: return CurrentStatus = Status.RecoverableRuntimeError;
-                }
 
-                RecommendedInputResolution = new Vector2Int((int)Math.Ceiling(OutputResolution.x * scale), (int)Math.Ceiling(OutputResolution.y * scale));
-                MaxInputResolution = OutputResolution;
-                MinInputResolution = Vector2Int.one;
-            }
-            return CurrentStatus;
+            return backend?.ApplySettings(this) ?? Status.Success;
         }
-        
-        internal Status ApplySettings(bool force = false)
+
+        public bool automaticLODBias = true;
+        public float LODBias { get; private set; } = 1;
+
+        internal void ApplySettings(bool force = false)
         {
             CurrentStatus = InternalApplySettings(force);
+            if (Failure(CurrentStatus))
+            {
+                if (ErrorCallback is not null)
+                {
+                    ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
+                    CurrentStatus = InternalApplySettings(force);
+                    if (Failure(CurrentStatus)) Debug.LogError("The registered error handler failed to rectify the following error.");
+                }
+                Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
+                technique = Technique.None;
+                quality = Quality.Auto;
+                CurrentStatus = InternalApplySettings(true);
+            }
+
             PreviousInputResolution = InputResolution;
             if (OutputResolution != PreviousOutputResolution || technique != PreviousTechnique || quality != PreviousQuality || force)
                 InputResolution = RecommendedInputResolution;
@@ -551,13 +539,16 @@ namespace Conifer.Upscaler
             PreviousReactiveThreshold = reactiveThreshold;
             PreviousFrameGeneration = frameGeneration;
             PreviousUseAsyncCompute = useAsyncCompute;
-            return CurrentStatus;
+
+            var bias = (float)OutputResolution.x / InputResolution.x;
+            if (automaticLODBias) QualitySettings.lodBias = QualitySettings.lodBias / LODBias * bias;
+            LODBias = bias;
         }
 
         protected void OnEnable()
         {
             Camera = GetComponent<Camera>();
-            Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+            if (SystemInfo.supportsMotionVectors) Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
 
             NativeInterface ??= new NativeInterface(Camera);
 
@@ -565,8 +556,14 @@ namespace Conifer.Upscaler
             ApplySettings(true);
         }
 
-        private void OnDisable() => NativeInterface.SetFrameGeneration(false);
-        
+        private void OnDisable()
+        {
+            backend?.Dispose();
+            NativeInterface.SetFrameGeneration(false);
+            _source?.Release();
+            _destination?.Release();
+        }
+
         private void OnGUI()
         {
             if (technique == Technique.None || !showRenderingAreaOverlay) return;
@@ -574,5 +571,97 @@ namespace Conifer.Upscaler
             GUI.Box(new Rect(0, OutputResolution.y - InputResolution.y, InputResolution.x, InputResolution.y),
                 Math.Ceiling(scale * 100) + "% per-axis\n" + Math.Ceiling(scale * scale * 100) + "% total");
         }
+
+        #region BRP Integration
+        private bool _originalTargetNull;
+        private RenderTexture _source;
+        private RenderTexture _destination;
+
+        private static float HaltonSequence(int n, int b)
+        {
+            var result = 0f;
+            var f = 1f / b;
+
+            while (n > 0)
+            {
+                result += n % b * f;
+                n /= b;
+                f /= b;
+            }
+
+            return result;
+        }
+
+        private void OnPreCull()
+        {
+            if (!Application.isPlaying || technique == Technique.None) return;
+
+            var outputResolution = OutputResolution;
+            var inputResolution = InputResolution;
+            if (_source == null || inputResolution != PreviousInputResolution)
+            {
+                 _source?.Release();
+                _source = new RenderTexture(inputResolution.x, inputResolution.y, 0, SystemInfo.GetGraphicsFormat(HDR ? DefaultFormat.HDR : DefaultFormat.LDR));
+                _source.Create();
+            }
+            if (_destination == null || outputResolution != PreviousOutputResolution)
+            {
+                _destination?.Release();
+                _destination = new RenderTexture(outputResolution.x, outputResolution.y, 0, SystemInfo.GetGraphicsFormat(HDR ? DefaultFormat.HDR : DefaultFormat.LDR));
+                _destination.Create();
+            }
+
+            if (IsTemporal())
+            {
+                Jitter = new Vector2(HaltonSequence(JitterIndex, 2), HaltonSequence(JitterIndex, 3));
+                JitterIndex = (JitterIndex + 1) % (int)Math.Ceiling(7 * Math.Pow((float)outputResolution.x / inputResolution.x, 2));
+                var clipSpaceJitter = Jitter / inputResolution * 2;
+                Camera.ResetProjectionMatrix();
+                Camera.nonJitteredProjectionMatrix = Camera.projectionMatrix;
+                var projectionMatrix = Camera.projectionMatrix;
+                if (Camera.orthographic)
+                {
+                    projectionMatrix.m03 += clipSpaceJitter.x;
+                    projectionMatrix.m13 += clipSpaceJitter.y;
+                }
+                else
+                {
+                    projectionMatrix.m02 -= clipSpaceJitter.x;
+                    projectionMatrix.m12 -= clipSpaceJitter.y;
+                }
+
+                Camera.projectionMatrix = projectionMatrix;
+                Camera.useJitteredProjectionMatrixForTransparentRendering = true;
+            }
+
+            ApplySettings();  // @todo: Make this return a boolean indicating whether a backend refresh is required.
+            backend.ApplyRefresh(this, _source, _destination);
+            Camera.rect = new Rect(0, 0, (float)inputResolution.x / outputResolution.x, (float)inputResolution.y / outputResolution.y);
+
+            var mipBias = (float)Math.Log((float)inputResolution.x / outputResolution.x, 2f) - 1f;
+            foreach (var texture in FindObjectsByType<Texture2D>(FindObjectsInactive.Include, FindObjectsSortMode.None)) texture.mipMapBias = mipBias;
+        }
+
+        private void OnPostRender()
+        {
+            if (!Application.isPlaying || technique == Technique.None) return;
+            Camera.rect = new Rect(0, 0, 1, 1);
+
+            Graphics.CopyTexture(Camera.activeTexture, _source);
+            backend.Upscale();
+
+            ShouldResetHistory(!forceHistoryResetEveryFrame);
+        }
+
+        private void OnRenderImage(RenderTexture source, RenderTexture destination)
+        {
+            if (destination == null)
+                if (!Application.isPlaying || technique == Technique.None) Graphics.Blit(source, destination);
+                else Graphics.Blit(_destination, destination);
+            else
+                if (!Application.isPlaying || technique == Technique.None) Graphics.CopyTexture(source, destination);
+                else Graphics.CopyTexture(_destination, destination);
+        }
+        #endregion
     }
 }
