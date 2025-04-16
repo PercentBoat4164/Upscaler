@@ -14,7 +14,7 @@ namespace Conifer.Upscaler
             Supported
         }
 
-        protected static readonly int BlitTextureID = Shader.PropertyToID("_BlitTexture");
+        protected static readonly int MainTexID = Shader.PropertyToID("_MainTex");
 #if CONIFER_UPSCALER_USE_URP
         protected static readonly int BlitScaleBiasID = Shader.PropertyToID("_BlitScaleBias");
 #endif
@@ -74,9 +74,9 @@ namespace Conifer.Upscaler
 
         protected ushort Camera;
 
-        public abstract Upscaler.Status ApplySettings(in Upscaler upscaler);
-        public abstract bool ApplyRefresh(in Upscaler upscaler, in Texture input, in Texture output, in Texture depth=null, in Texture motion=null, bool autoReactive=false, in Texture opaque=null, in Texture reactive=null);
-        public abstract void Upscale(in CommandBuffer commandBuffer = null);
+        public abstract Upscaler.Status ComputeInputResolutionConstraints(in Upscaler upscaler);
+        public abstract bool Update(in Upscaler upscaler, in Texture input, in Texture output);
+        public abstract void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null);
 
         public void Dispose() { }
     }

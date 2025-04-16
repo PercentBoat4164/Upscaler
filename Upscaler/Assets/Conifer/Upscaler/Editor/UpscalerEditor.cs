@@ -34,8 +34,8 @@ namespace Conifer.Upscaler.Editor
         private SerializedProperty _quality;
         private SerializedProperty _frameGeneration;
 
-        private SerializedProperty _dlssPreset;
-        private SerializedProperty _sgsrMethod;
+        private SerializedProperty _preset;
+        private SerializedProperty _method;
         private SerializedProperty _sharpness;
         private SerializedProperty _autoReactive;
         private SerializedProperty _reactiveMax;
@@ -66,8 +66,8 @@ namespace Conifer.Upscaler.Editor
             _quality = serializedObject.FindProperty("quality");
             _frameGeneration = serializedObject.FindProperty("frameGeneration");
 
-            _dlssPreset = serializedObject.FindProperty("dlssPreset");
-            _sgsrMethod = serializedObject.FindProperty("sgsrMethod");
+            _preset = serializedObject.FindProperty("preset");
+            _method = serializedObject.FindProperty("method");
             _sharpness = serializedObject.FindProperty("sharpness");
             _autoReactive = serializedObject.FindProperty("autoReactive");
             _reactiveMax = serializedObject.FindProperty("reactiveMax");
@@ -174,9 +174,8 @@ namespace Conifer.Upscaler.Editor
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
                 (Upscaler.Quality)_quality.intValue, x => (Upscaler.Technique)_technique.intValue == Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Quality)x), false);
 
-            var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution) || !Application.isPlaying;
-            if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None && !dynamicResolutionSupported)
-                EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
+            var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution);
+            if (!dynamicResolutionSupported) EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.XeSuperSampling && (Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
@@ -210,21 +209,21 @@ namespace Conifer.Upscaler.Editor
                             }
                             break;
                         case Upscaler.Technique.DeepLearningSuperSampling:
-                            _dlssPreset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
+                            _preset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
                                 new GUIContent("DLSS Preset",
                                     "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
                                     "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
                                     "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
                                     "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
                                     "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
-                                (Upscaler.DlssPreset)_dlssPreset.intValue);
+                                (Upscaler.DlssPreset)_preset.intValue);
                             break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution1:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue, 0, 1);
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution2:
-                                _sgsrMethod.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_sgsrMethod.intValue);
+                                _method.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_method.intValue);
                                 break;
                         case Upscaler.Technique.None:
                         case Upscaler.Technique.XeSuperSampling:

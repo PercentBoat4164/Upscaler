@@ -3,16 +3,14 @@
  * See the UserManual.pdf for more information    *
  **************************************************/
 
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Conifer.Upscaler
 {
-    public class SGSR1Backend : SGSRAbstractBackend
+    public class SnapdragonGameSuperResolutionV1Backend : SnapdragonGameSuperResolutionAbstractBackend
     {
-        private static readonly int ViewportInfoID = Shader.PropertyToID("Conifer_Upscaler_ViewportInfo");
-        private static readonly int EdgeSharpnessID = Shader.PropertyToID("Conifer_Upscaler_Sharpness");
-
         private static SupportState _supported = SupportState.Untested;
 
         public static bool Supported()
@@ -23,7 +21,7 @@ namespace Conifer.Upscaler
             {
                 try
                 {
-                    _ = new SGSR1Backend();
+                    _ = new SnapdragonGameSuperResolutionV1Backend();
                     _supported = SupportState.Supported;
                 }
                 catch
@@ -34,7 +32,7 @@ namespace Conifer.Upscaler
             return _supported == SupportState.Supported;
         }
 
-        private readonly Material _material = new(Resources.Load<Shader>("SnapdragonGameSuperResolution/v1"));
+        private readonly Material _material = new(Resources.Load<Shader>("SnapdragonGameSuperResolution/V1"));
         private Texture _input;
         private Texture _output;
 
@@ -42,11 +40,11 @@ namespace Conifer.Upscaler
         public SGSR1Backend() => _material.SetVector(BlitScaleBiasID, new Vector4(1, 1, 0, 0));
 #endif
 
-        public override bool ApplyRefresh(in Upscaler upscaler, in Texture input, in Texture output, in Texture depth = null, in Texture motion = null, bool autoReactive = false, in Texture opaque = null, in Texture reactive = null)
+        public override bool Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input,
+            [NotNull] in Texture output)
         {
-            var inputResolution = upscaler.InputResolution;
-            _material.SetVector(ViewportInfoID, new Vector4(1.0f / inputResolution.x, 1.0f / inputResolution.y, inputResolution.x, inputResolution.y));
-            _material.SetFloat(EdgeSharpnessID, upscaler.sharpness + 1);
+            _material.SetVector(ViewportInfoID, new Vector4(1.0f / input.width, 1.0f / input.height, input.width, input.height));
+            _material.SetFloat(SharpnessID, upscaler.sharpness + 1);
             if (upscaler.useEdgeDirection) _material.EnableKeyword("CONIFER__UPSCALER__USE_EDGE_DIRECTION");
             else _material.DisableKeyword("CONIFER__UPSCALER__USE_EDGE_DIRECTION");
 
@@ -55,7 +53,7 @@ namespace Conifer.Upscaler
             return true;
         }
 
-        public override void Upscale(in CommandBuffer commandBuffer = null)
+        public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null)
         {
             if (commandBuffer == null) Graphics.Blit(_input, _output as RenderTexture, _material, 0);
             else commandBuffer.Blit(_input, _output, _material, 0);

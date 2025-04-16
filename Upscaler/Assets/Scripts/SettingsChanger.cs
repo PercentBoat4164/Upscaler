@@ -9,12 +9,6 @@ namespace Demo
         private bool _shouldChangeDynamicResolution;
         private float _scale;
 
-        public void OnEnable()
-        {
-            _upscaler = Camera.main!.GetComponent<Upscaler>();
-            _upscaler.ErrorCallback = (_, s) => Debug.Log(s);
-        }
-
         public void Update()
         {
             if (!_upscaler) return;

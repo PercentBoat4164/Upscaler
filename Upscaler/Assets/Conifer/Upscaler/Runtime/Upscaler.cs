@@ -4,11 +4,9 @@
  **************************************************/
 
 using System;
-using System.Reflection;
+using UnityEditor;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace Conifer.Upscaler
 {
@@ -16,7 +14,7 @@ namespace Conifer.Upscaler
      * The unified interface used to interact with the different <see cref="Technique"/>s. It may only be put on a
      * <see cref="UnityEngine.Camera"/> object.
      */
-    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v2.0.1")]
+    [RequireComponent(typeof(Camera)), AddComponentMenu("Rendering/Upscaler v2.0.1"), ExecuteAlways]
     public class Upscaler : MonoBehaviour
     {
         /**
@@ -179,23 +177,19 @@ namespace Conifer.Upscaler
         internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
         internal Vector2 Jitter = Vector2.zero;
         internal int JitterIndex;
-        internal NativeInterface NativeInterface;
 
         /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
         /// upscaling. It will have a value of <c>false</c> otherwise.
         public bool HDR { get; private set; }
 
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
-        /// output resolution Unity requests. This value is a rounded version of <c>Camera.pixelRect.size</c>
-        public Vector2Int OutputResolution => Camera ? Vector2Int.RoundToInt(Camera.pixelRect.size) : Vector2Int.one;
+        /// output resolution Unity requests.
+        public Vector2Int OutputResolution { get; private set; } = Vector2Int.zero;
         public Vector2Int PreviousOutputResolution { get; private set; } = Vector2Int.zero;
-        public Vector2Int PreviousPreviousOutputResolution { get; private set; } = Vector2Int.zero;
 
         /// The current resolution at which the scene is being rendered. This may be set to any value within the bounds
         /// of <see cref="MaxInputResolution"/> and <see cref="MinInputResolution"/>. It is also set to the
-        /// <see cref="RecommendedInputResolution"/> whenever settings are changed. It is never <c>(0, 0)</c>. When the
-        /// <see cref="Technique"/> has a <see cref="Failure"/> <see cref="Status"/> or the <see cref="Technique"/> is
-        /// <see cref="Technique.None"/> it will be the same as <see cref="OutputResolution"/>.
+        /// <see cref="RecommendedInputResolution"/> whenever settings are changed.
         public Vector2Int InputResolution
         {
             get => _inputResolution;
@@ -225,26 +219,26 @@ namespace Conifer.Upscaler
          * <see cref="Technique"/> to <see cref="Technique.None"/>.</remarks>
          * <example><code>upscaler.ErrorCallback = (status, message) => { };</code></example>
          */
-        [NonSerialized] public Action<Status, string> ErrorCallback;
+        [NonSerialized] public Action<Status> ErrorCallback;
 
         /// The current <see cref="Status"/> for the current <see cref="Technique"/>.
         public Status CurrentStatus { get; internal set; } = Status.Success;
         /// The current <see cref="Quality"/> mode. Defaults to <see cref="Quality.Auto"/>.
-        public Quality quality;
+        public Quality quality = Quality.Auto;
         public Quality PreviousQuality { get; private set; }
         /// The current <see cref="Technique"/>. Defaults to <see cref="Technique.None"/>.
-        public Technique technique = GetBestSupportedTechnique();
+        public Technique technique = Technique.None;
         public Technique PreviousTechnique { get; private set; }
 
         /// BETA FEATURE: Frame generation only works while using the Vulkan Graphics API. Set to true to enable frame generation.
         public bool frameGeneration;
         public bool PreviousFrameGeneration { get; private set; }
         /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
-        public DlssPreset dlssPreset;
-        public DlssPreset PreviousDlssPreset { get; private set; }
+        public DlssPreset preset;
+        public DlssPreset PreviousPreset { get; private set; }
         /// The current <see cref="SgsrMethod"/>. Defaults to Compute3Pass
-        public SgsrMethod sgsrMethod;
-        public SgsrMethod PreviousSgsrMethod { get; private set; }
+        public SgsrMethod method;
+        public SgsrMethod PreviousMethod { get; private set; }
         /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public float sharpness;
         public float PreviousSharpness { get; private set; }
@@ -267,7 +261,9 @@ namespace Conifer.Upscaler
         public bool useEdgeDirection = true;
         public bool PreviousUseEdgeDirection { get; private set; }
 
-        public UpscalerBackend backend;
+        public bool shouldHistoryResetThisFrame;
+
+        private UpscalerBackend _backend;
         /**
          * <summary>Request the 'best' technique that is supported by this environment.</summary>
          *<returns>Returns the 'best' supported technique.</returns>
@@ -283,34 +279,6 @@ namespace Conifer.Upscaler
             if (IsSupported(Technique.XeSuperSampling)) return Technique.XeSuperSampling;
             return IsSupported(Technique.FidelityFXSuperResolution) ? Technique.FidelityFXSuperResolution : Technique.None;
         }
-
-        /**
-         * <summary>Tells the <see cref="Technique"/> whether or not to reset the pixel history next upscale.</summary>
-         * <remarks>This method is fast. It just sets a flag that tells the <see cref="Technique"/> to reset the pixel
-         * history during the next upscale. This flag is automatically cleared after each frame. This should be called
-         * with <c>true</c> (<see cref="ResetHistory"/>) everytime there is little or no correlation between what the
-         * camera saw last frame and what it sees this frame. This will be set to <c>true</c> if the <c>resetHistory</c>
-         * flag is on in the <c>UniversalAdditionalCameraData</c>.
-         * </remarks>
-         * <example><code>
-         * SnapCameraToLastFramePosition();
-         * upscaler.ShouldResetHistory(false);
-         * // Or
-         * TurnCameraAround();
-         * upscaler.ShouldResetHistory(true);
-         * </code></example>
-         */
-        public void ShouldResetHistory(bool reset) => NativeInterface.ShouldResetHistory = reset;
-
-        /**
-         * <summary>Tells the <see cref="Technique"/> to reset the pixel history next upscale.</summary>
-         * <remarks>Internally calls the <see cref="ShouldResetHistory"/> function, passing it <c>true</c>.</remarks>
-         * <example><code>
-         * CameraJumpCut(newLocation);
-         * upscaler.ResetHistory();
-         * </code></example>
-         */
-        public void ResetHistory() => NativeInterface.ShouldResetHistory = true;
 
         /**
          * <summary>Check if an <see cref="Technique"/> is supported in the current environment.</summary>
@@ -465,72 +433,68 @@ namespace Conifer.Upscaler
          */
         public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
 
-        private Status InternalApplySettings(bool force)
+        private bool InternalApplySettings(bool force)
         {
-            if (!Application.isPlaying || NativeInterface is null) return Status.Success;
-            if (!force && quality == PreviousQuality && useEdgeDirection == PreviousUseEdgeDirection && dlssPreset == PreviousDlssPreset && technique == PreviousTechnique && OutputResolution == PreviousOutputResolution && PreviousOutputResolution == PreviousPreviousOutputResolution && frameGeneration == PreviousFrameGeneration && HDR == Camera.allowHDR) return NativeInterface.GetStatus();
-
-            var newOutputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
-            HDR = Camera.allowHDR;
-
-            if (!force)
+            var needsUpdate = force;
+            if (force || technique != PreviousTechnique || (technique == Technique.SnapdragonGameSuperResolution2 && method != PreviousMethod))
             {
-                if (!Enum.IsDefined(typeof(Quality), quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not a valid Quality.");
-                if (!Enum.IsDefined(typeof(DlssPreset), dlssPreset)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`dlssPreset`(" + dlssPreset + ") is not a valid DlssPreset.");
-                if (!Enum.IsDefined(typeof(Technique), technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not a valid Technique.");
-                if (!IsSupported(technique)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`technique`(" + technique + ") is not supported.");
-                if (technique == Technique.DeepLearningSuperSampling && Vector2Int.Max(newOutputResolution, new Vector2Int(64, 32)) != newOutputResolution) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "OutputResolution is less than (64, 32).");
-                if (technique != Technique.None && !IsSupported(technique, quality)) return NativeInterface.SetStatus(Status.RecoverableRuntimeError, "`quality`(" + quality + ") is not supported by the `technique`(" + technique + ").");
+                needsUpdate = true;
+                _backend?.Dispose();
+                if (technique == Technique.SnapdragonGameSuperResolution1) _backend = new SnapdragonGameSuperResolutionV1Backend();
+                else if (technique == Technique.SnapdragonGameSuperResolution2)
+                    _backend = method switch
+                    {
+                        SgsrMethod.Fragment2Pass => new SnapdragonGameSuperResolutionV2Fragment2PassBackend(),
+                        SgsrMethod.Compute2Pass => new SnapdragonGameSuperResolutionV2Compute2PassBackend(),
+                        SgsrMethod.Compute3Pass => new SnapdragonGameSuperResolutionV2Compute3PassBackend(),
+                        _ => null
+                    };
+                else _backend = null;
             }
-
-            var isResizingThisFrame = OutputResolution != PreviousOutputResolution;
-            var wasResizingLastFrame = PreviousPreviousOutputResolution != PreviousOutputResolution;
-            if (wasResizingLastFrame) ResetHistory();
-            if (frameGeneration)
-                if (isResizingThisFrame) NativeInterface.SetFrameGeneration(false);
-                else if (wasResizingLastFrame) NativeInterface.SetFrameGeneration(true);
-            if (!isResizingThisFrame && !wasResizingLastFrame && frameGeneration != PreviousFrameGeneration) NativeInterface.SetFrameGeneration(frameGeneration);
-
-            if (technique != PreviousTechnique)
-            {
-                backend?.Dispose();
-                if (technique == Technique.SnapdragonGameSuperResolution1) backend = new SGSR1Backend();
-                else if (technique == Technique.SnapdragonGameSuperResolution2) backend = new SGSR2F2Backend();
-                else backend = null;
-            }
-
-            return backend?.ApplySettings(this) ?? Status.Success;
+            var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
+            if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
+            OutputResolution = outputResolution;
+            _backend?.ComputeInputResolutionConstraints(this);
+            needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution;
+            if (needsUpdate) InputResolution = RecommendedInputResolution;
+            return needsUpdate ||
+                   InputResolution != PreviousInputResolution ||
+                   (technique == Technique.DeepLearningSuperSampling && preset != PreviousPreset) ||
+                   (technique == Technique.SnapdragonGameSuperResolution1 && useEdgeDirection != PreviousUseEdgeDirection) ||
+                   (technique == Technique.FidelityFXSuperResolution && (
+                       autoReactive != PreviousAutoReactive ||
+                       Math.Abs(reactiveMax - PreviousReactiveMax) > 0 ||
+                       Math.Abs(reactiveScale - PreviousReactiveScale) > 0 ||
+                       Math.Abs(reactiveThreshold - PreviousReactiveThreshold) > 0)) ||
+                   (technique is Technique.FidelityFXSuperResolution or Technique.SnapdragonGameSuperResolution1 && Math.Abs(sharpness - PreviousSharpness) > 0);
         }
 
         public bool automaticLODBias = true;
         public float LODBias { get; private set; } = 1;
 
-        internal void ApplySettings(bool force = false)
+        internal bool ApplySettings(bool force)
         {
-            CurrentStatus = InternalApplySettings(force);
+            var needsUpdate = InternalApplySettings(force);
             if (Failure(CurrentStatus))
             {
                 if (ErrorCallback is not null)
                 {
-                    ErrorCallback(CurrentStatus, NativeInterface.GetStatusMessage());
-                    CurrentStatus = InternalApplySettings(force);
+                    ErrorCallback(CurrentStatus);
+                    needsUpdate |= InternalApplySettings(false);
                     if (Failure(CurrentStatus)) Debug.LogError("The registered error handler failed to rectify the following error.");
                 }
-                Debug.LogWarning(NativeInterface.GetStatus() + " | " + NativeInterface.GetStatusMessage());
+                Debug.LogWarning("Conifer | Upscaler | Error: " + CurrentStatus, this);
                 technique = Technique.None;
                 quality = Quality.Auto;
-                CurrentStatus = InternalApplySettings(true);
+                needsUpdate |= InternalApplySettings(true);
             }
 
             PreviousInputResolution = InputResolution;
-            if (OutputResolution != PreviousOutputResolution || technique != PreviousTechnique || quality != PreviousQuality || force)
-                InputResolution = RecommendedInputResolution;
-            PreviousPreviousOutputResolution = PreviousOutputResolution;
             PreviousOutputResolution = OutputResolution;
             PreviousQuality = quality;
             PreviousTechnique = technique;
-            PreviousDlssPreset = dlssPreset;
-            PreviousSgsrMethod = sgsrMethod;
+            PreviousPreset = preset;
+            PreviousMethod = method;
             PreviousUseEdgeDirection = useEdgeDirection;
             PreviousSharpness = sharpness;
             PreviousAutoReactive = autoReactive;
@@ -543,25 +507,21 @@ namespace Conifer.Upscaler
             var bias = (float)OutputResolution.x / InputResolution.x;
             if (automaticLODBias) QualitySettings.lodBias = QualitySettings.lodBias / LODBias * bias;
             LODBias = bias;
+            return needsUpdate;
         }
 
         protected void OnEnable()
         {
             Camera = GetComponent<Camera>();
             if (SystemInfo.supportsMotionVectors) Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
-
-            NativeInterface ??= new NativeInterface(Camera);
-
-            if (!IsSupported(technique)) technique = GetBestSupportedTechnique();
-            ApplySettings(true);
         }
 
         private void OnDisable()
         {
-            backend?.Dispose();
-            NativeInterface.SetFrameGeneration(false);
-            _source?.Release();
-            _destination?.Release();
+            _backend?.Dispose();
+            _backend = null;
+            if (_source != null && _source.IsCreated()) _source.Release();
+            if (_destination != null && _destination.IsCreated()) _destination.Release();
         }
 
         private void OnGUI()
@@ -573,7 +533,10 @@ namespace Conifer.Upscaler
         }
 
         #region BRP Integration
-        private bool _originalTargetNull;
+
+        private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
+        private CommandBuffer _generateOpaque;
+        private CommandBuffer _cleanupOpaque;
         private RenderTexture _source;
         private RenderTexture _destination;
 
@@ -581,86 +544,105 @@ namespace Conifer.Upscaler
         {
             var result = 0f;
             var f = 1f / b;
-
             while (n > 0)
             {
                 result += n % b * f;
                 n /= b;
                 f /= b;
             }
-
             return result;
         }
 
         private void OnPreCull()
         {
-            if (!Application.isPlaying || technique == Technique.None) return;
+            var previousTechnique = PreviousTechnique;
+            var previousMethod = PreviousMethod;
+            var previousAutoReactive = PreviousAutoReactive;
+            var needsUpdate = ApplySettings(false);
 
-            var outputResolution = OutputResolution;
-            var inputResolution = InputResolution;
-            if (_source == null || inputResolution != PreviousInputResolution)
+            if (technique == Technique.None || _backend == null)
             {
-                 _source?.Release();
-                _source = new RenderTexture(inputResolution.x, inputResolution.y, 0, SystemInfo.GetGraphicsFormat(HDR ? DefaultFormat.HDR : DefaultFormat.LDR));
-                _source.Create();
+                if (_source != null && _source.IsCreated()) _source.Release();
+                if (_destination != null && _destination.IsCreated()) _destination.Release();
+                return;
             }
-            if (_destination == null || outputResolution != PreviousOutputResolution)
+
+            if (needsUpdate)
             {
-                _destination?.Release();
-                _destination = new RenderTexture(outputResolution.x, outputResolution.y, 0, SystemInfo.GetGraphicsFormat(HDR ? DefaultFormat.HDR : DefaultFormat.LDR));
+                if (_destination != null && _destination.IsCreated()) _destination.Release();
+                _destination = new RenderTexture(OutputResolution.x, OutputResolution.y, 0, RenderTextureFormat.Default)
+                {
+                    enableRandomWrite = true  //@todo: Only enable this if needed.
+                };
                 _destination.Create();
+                if (_source != null && _source.IsCreated()) _source.Release();
+                _source = new RenderTexture(InputResolution.x, InputResolution.y, 0, RenderTextureFormat.Default);
+                _source.Create();
+                if (!_backend?.Update(this, _source, _destination) ?? true) return;
+                if ((previousTechnique == Technique.SnapdragonGameSuperResolution2 && previousMethod == SgsrMethod.Compute3Pass) ||
+                    (previousTechnique == Technique.FidelityFXSuperResolution && previousAutoReactive))
+                {
+                    Camera.RemoveCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
+                    Camera.RemoveCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
+                    _generateOpaque = null;
+                    _cleanupOpaque = null;
+                }
+                if ((technique == Technique.SnapdragonGameSuperResolution2 && method == SgsrMethod.Compute3Pass) ||
+                    (technique == Technique.FidelityFXSuperResolution && autoReactive))
+                {
+                    _generateOpaque = new CommandBuffer();
+                    _generateOpaque.name = "Conifer | Upscaler | Copy Opaque";
+                    _generateOpaque.GetTemporaryRT(OpaqueID, InputResolution.x, InputResolution.y, 0, FilterMode.Point, RenderTextureFormat.Default);
+                    _generateOpaque.CopyTexture(BuiltinRenderTextureType.CurrentActive, OpaqueID);
+                    Camera.AddCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
+                    _cleanupOpaque = new CommandBuffer();
+                    _cleanupOpaque.name = "Conifer | Upscaler | Clean Up Opaque";
+                    _cleanupOpaque.ReleaseTemporaryRT(OpaqueID);
+                    Camera.AddCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
+                }
             }
+            Camera.rect = new Rect(0, 0, (float)InputResolution.x / OutputResolution.x, (float)InputResolution.y / OutputResolution.y);
 
-            if (IsTemporal())
+            if (IsSpatial()) return;
+            Jitter = new Vector2(HaltonSequence(JitterIndex, 2), HaltonSequence(JitterIndex, 3));
+            JitterIndex = (JitterIndex + 1) % (int)Math.Ceiling(8 * Math.Pow((float)OutputResolution.x / InputResolution.x, 2));
+            var clipSpaceJitter = Jitter / InputResolution * 2;
+            Camera.ResetProjectionMatrix();
+            Camera.nonJitteredProjectionMatrix = Camera.projectionMatrix;
+            var projectionMatrix = Camera.projectionMatrix;
+            if (Camera.orthographic)
             {
-                Jitter = new Vector2(HaltonSequence(JitterIndex, 2), HaltonSequence(JitterIndex, 3));
-                JitterIndex = (JitterIndex + 1) % (int)Math.Ceiling(7 * Math.Pow((float)outputResolution.x / inputResolution.x, 2));
-                var clipSpaceJitter = Jitter / inputResolution * 2;
-                Camera.ResetProjectionMatrix();
-                Camera.nonJitteredProjectionMatrix = Camera.projectionMatrix;
-                var projectionMatrix = Camera.projectionMatrix;
-                if (Camera.orthographic)
-                {
-                    projectionMatrix.m03 += clipSpaceJitter.x;
-                    projectionMatrix.m13 += clipSpaceJitter.y;
-                }
-                else
-                {
-                    projectionMatrix.m02 -= clipSpaceJitter.x;
-                    projectionMatrix.m12 -= clipSpaceJitter.y;
-                }
-
-                Camera.projectionMatrix = projectionMatrix;
-                Camera.useJitteredProjectionMatrixForTransparentRendering = true;
+                projectionMatrix.m03 += clipSpaceJitter.x;
+                projectionMatrix.m13 += clipSpaceJitter.y;
             }
-
-            ApplySettings();  // @todo: Make this return a boolean indicating whether a backend refresh is required.
-            backend.ApplyRefresh(this, _source, _destination);
-            Camera.rect = new Rect(0, 0, (float)inputResolution.x / outputResolution.x, (float)inputResolution.y / outputResolution.y);
-
-            var mipBias = (float)Math.Log((float)inputResolution.x / outputResolution.x, 2f) - 1f;
-            foreach (var texture in FindObjectsByType<Texture2D>(FindObjectsInactive.Include, FindObjectsSortMode.None)) texture.mipMapBias = mipBias;
+            else
+            {
+                projectionMatrix.m02 -= clipSpaceJitter.x;
+                projectionMatrix.m12 -= clipSpaceJitter.y;
+            }
+            Camera.projectionMatrix = projectionMatrix;
+            Camera.useJitteredProjectionMatrixForTransparentRendering = true;
         }
 
         private void OnPostRender()
         {
-            if (!Application.isPlaying || technique == Technique.None) return;
+            if (_backend == null || technique == Technique.None) return;
             Camera.rect = new Rect(0, 0, 1, 1);
 
+            // @todo: Move this to a CommandBuffer that uses the BeforeImageEffects CameraEvent.
             Graphics.CopyTexture(Camera.activeTexture, _source);
-            backend.Upscale();
-
-            ShouldResetHistory(!forceHistoryResetEveryFrame);
+            _backend.Upscale(this);
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
             if (destination == null)
-                if (!Application.isPlaying || technique == Technique.None) Graphics.Blit(source, destination);
+                if (_backend == null || technique == Technique.None) Graphics.Blit(source, destination);
                 else Graphics.Blit(_destination, destination);
             else
-                if (!Application.isPlaying || technique == Technique.None) Graphics.CopyTexture(source, destination);
+                if (_backend == null || technique == Technique.None) Graphics.CopyTexture(source, destination);
                 else Graphics.CopyTexture(_destination, destination);
+            shouldHistoryResetThisFrame = forceHistoryResetEveryFrame;
         }
         #endregion
     }

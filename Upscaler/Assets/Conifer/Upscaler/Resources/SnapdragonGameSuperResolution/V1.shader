@@ -6,20 +6,16 @@
 //
 //============================================================================================================
 
-Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/v1"
+Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V1"
 {
-	Properties
-	{
-		_MainTex ("Texture", 2D) = "" {}
-	}
-
+	Properties { _MainTex ("Texture", 2D) = "" {} }
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
 
         Pass
         {
-        	Name "Conifer | Upscaler | Snapdragon Game Super Resolution 1"
+        	Name "Conifer | Upscaler | Snapdragon Game Super Resolution 1 - Upscale"
             CGPROGRAM
             #pragma multi_compile_local _ CONIFER__UPSCALER__USE_EDGE_DIRECTION
             #pragma target 5.0
