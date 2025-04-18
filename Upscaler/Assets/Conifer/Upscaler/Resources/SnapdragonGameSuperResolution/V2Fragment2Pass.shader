@@ -12,7 +12,6 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V2Fragment2Pass"
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
-
         Pass
 		{
 			name "Conifer | Upscaler | Snapdragon Game Super Resolution 2 - Fragment 2 Pass - Convert"

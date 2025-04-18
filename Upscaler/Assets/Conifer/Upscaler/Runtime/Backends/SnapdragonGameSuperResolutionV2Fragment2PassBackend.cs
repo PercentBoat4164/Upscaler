@@ -49,8 +49,7 @@ namespace Conifer.Upscaler
             _material.SetFloat(PreExposureID, 1.0f);
         }
 
-        public override bool Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input,
-            [NotNull] in Texture output)
+        public override bool Update(in Upscaler upscaler, in Texture input, in Texture output)
         {
             var inputsMatch = _input == input;
             var outputsMatch = _output == output;

@@ -40,8 +40,7 @@ namespace Conifer.Upscaler
         public SGSR1Backend() => _material.SetVector(BlitScaleBiasID, new Vector4(1, 1, 0, 0));
 #endif
 
-        public override bool Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input,
-            [NotNull] in Texture output)
+        public override bool Update(in Upscaler upscaler, in Texture input, in Texture output)
         {
             _material.SetVector(ViewportInfoID, new Vector4(1.0f / input.width, 1.0f / input.height, input.width, input.height));
             _material.SetFloat(SharpnessID, upscaler.sharpness + 1);

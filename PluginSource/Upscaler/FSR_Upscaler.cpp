@@ -265,7 +265,6 @@ Upscaler::Status FSR_Upscaler::useSettings(const Settings::Resolution resolution
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE) |
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |
-            static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) |
             (optimalSettings.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
         .maxRenderSize  = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height},
         .maxUpscaleSize = FfxApiDimensions2D {optimalSettings.outputResolution.width, optimalSettings.outputResolution.height},

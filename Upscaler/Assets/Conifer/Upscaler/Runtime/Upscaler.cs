@@ -178,10 +178,6 @@ namespace Conifer.Upscaler
         internal Vector2 Jitter = Vector2.zero;
         internal int JitterIndex;
 
-        /// Whether the upscaling is HDR aware or not. It will have a value of <c>true</c> if Upscaler is using HDR
-        /// upscaling. It will have a value of <c>false</c> otherwise.
-        public bool HDR { get; private set; }
-
         /// The current output resolution. Upscaler does not control the output resolution but rather adapts to whatever
         /// output resolution Unity requests.
         public Vector2Int OutputResolution { get; private set; } = Vector2Int.zero;
@@ -436,6 +432,9 @@ namespace Conifer.Upscaler
         private bool InternalApplySettings(bool force)
         {
             var needsUpdate = force;
+            var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
+            if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
+            OutputResolution = outputResolution;
             if (force || technique != PreviousTechnique || (technique == Technique.SnapdragonGameSuperResolution2 && method != PreviousMethod))
             {
                 needsUpdate = true;
@@ -449,14 +448,15 @@ namespace Conifer.Upscaler
                         SgsrMethod.Compute3Pass => new SnapdragonGameSuperResolutionV2Compute3PassBackend(),
                         _ => null
                     };
+                else if (technique == Technique.FidelityFXSuperResolution) _backend = new FidelityFXSuperResolutionBackend();
                 else _backend = null;
             }
-            var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
-            if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
-            OutputResolution = outputResolution;
-            _backend?.ComputeInputResolutionConstraints(this);
             needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution;
-            if (needsUpdate) InputResolution = RecommendedInputResolution;
+            if (needsUpdate)
+            {
+                if (Failure(_backend?.ComputeInputResolutionConstraints(this) ?? Status.Success)) return true;
+                InputResolution = RecommendedInputResolution;
+            }
             return needsUpdate ||
                    InputResolution != PreviousInputResolution ||
                    (technique == Technique.DeepLearningSuperSampling && preset != PreviousPreset) ||
@@ -470,7 +470,7 @@ namespace Conifer.Upscaler
         }
 
         public bool automaticLODBias = true;
-        public float LODBias { get; private set; } = 1;
+        public float LODBias { get; private set; }
 
         internal bool ApplySettings(bool force)
         {
@@ -578,7 +578,7 @@ namespace Conifer.Upscaler
                 if (_source != null && _source.IsCreated()) _source.Release();
                 _source = new RenderTexture(InputResolution.x, InputResolution.y, 0, RenderTextureFormat.Default);
                 _source.Create();
-                if (!_backend?.Update(this, _source, _destination) ?? true) return;
+                if (!_backend.Update(this, _source, _destination)) return;
                 if ((previousTechnique == Technique.SnapdragonGameSuperResolution2 && previousMethod == SgsrMethod.Compute3Pass) ||
                     (previousTechnique == Technique.FidelityFXSuperResolution && previousAutoReactive))
                 {

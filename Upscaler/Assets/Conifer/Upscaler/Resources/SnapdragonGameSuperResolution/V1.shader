@@ -12,7 +12,6 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V1"
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
-
         Pass
         {
         	Name "Conifer | Upscaler | Snapdragon Game Super Resolution 1 - Upscale"

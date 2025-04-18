@@ -37,7 +37,7 @@ namespace Conifer.Upscaler
 
         protected bool IsSameCamera(in Camera camera)
         {
-            var current = camera.GetStereoViewMatrix(UnityEngine.Camera.StereoscopicEye.Left) * camera.GetStereoNonJitteredProjectionMatrix(UnityEngine.Camera.StereoscopicEye.Left);
+            var current = camera.GetStereoViewMatrix(Camera.StereoscopicEye.Left) * camera.GetStereoNonJitteredProjectionMatrix(Camera.StereoscopicEye.Left);
             float vpDiff = 0;
             for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++) vpDiff += Math.Abs(current[i, j] - _previousMatrix[i, j]);
             _previousMatrix = current;

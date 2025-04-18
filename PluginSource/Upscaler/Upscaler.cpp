@@ -84,19 +84,19 @@ bool Upscaler::isSupported(const Type type, const enum Settings::Quality mode) {
     }
 }
 
-std::unique_ptr<Upscaler> Upscaler::fromType(const Type type) {
+Upscaler* Upscaler::fromType(const Type type) {
     switch (type) {
-        case NONE: return std::make_unique<None_Upscaler>();
+        case NONE: return nullptr;
 #ifdef ENABLE_DLSS
-        case DLSS: return std::make_unique<DLSS_Upscaler>();
+        case DLSS: return new DLSS_Upscaler();
 #endif
 #ifdef ENABLE_FSR
-        case FSR: return std::make_unique<FSR_Upscaler>();
+        case FSR: return new FSR_Upscaler();
 #endif
 #ifdef ENABLE_XESS
-        case XESS: return std::make_unique<XeSS_Upscaler>();
+        case XESS: return new XeSS_Upscaler();
 #endif
-        default: return std::make_unique<None_Upscaler>();
+        default: return nullptr;
     }
 }
 

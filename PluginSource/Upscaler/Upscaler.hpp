@@ -202,7 +202,7 @@ public:
     static void                      unload();
     static bool                      isSupported(Type type);
     static bool                      isSupported(Type type, enum Settings::Quality mode);
-    static std::unique_ptr<Upscaler> fromType(Type type);
+    static Upscaler*                 fromType(Type type);
     static void                      useGraphicsAPI(GraphicsAPI::Type type);
 
     Upscaler()                           = default;
