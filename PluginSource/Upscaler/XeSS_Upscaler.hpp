@@ -2,84 +2,92 @@
 #ifdef ENABLE_XESS
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
+#    include "Plugin.hpp"
 
-#    include <xess/xess.h>
 #    ifdef ENABLE_VULKAN
+#        define NOMINMAX
 #        include <xess/xess_vk.h>
 #    endif
 #    ifdef ENABLE_DX12
+#        define NOMINMAX
 #        include <xess/xess_d3d12.h>
 #    endif
 #    ifdef ENABLE_DX11
+#        define NOMINMAX
 #        include <xess/xess_d3d11.h>
 #    endif
 
-#    include <windows.h>
+#    define NOMINMAX
+#    include <Windows.h>
+
+#    include <array>
 
 class XeSS_Upscaler final : public Upscaler {
     union XeSSResource {
         xess_vk_image_view_info vulkan;
-        ID3D12Resource* dx12;
-        ID3D11Resource* dx11;
+        ID3D12Resource*         dx12;
+        ID3D11Texture2D*        dx11;
     };
+
     static HMODULE library;
     static HMODULE dx11library;
-    static SupportState supported;
+    static bool    loaded;
 
     static Status (XeSS_Upscaler::*fpCreate)(const void*);
-    static Status (XeSS_Upscaler::*fpSetImages)(const std::array<void*, Plugin::NumImages>&);
-    static Status (XeSS_Upscaler::*fpEvaluate)(Settings::Resolution);
+    static Status (XeSS_Upscaler::*fpSetImages)(const std::array<void*, 4>&);
+    static Status (XeSS_Upscaler::*fpEvaluate)(Resolution) const;
 
-    xess_context_handle_t context{nullptr};
-    std::array<XeSSResource, Plugin::NumBaseImages> resources{};
+    xess_context_handle_t       context{nullptr};
+    std::array<XeSSResource, 4> resources{};
 
     static decltype(&xessGetOptimalInputResolution) xessGetOptimalInputResolution;
-    static decltype(&xessDestroyContext) xessDestroyContext;
-    static decltype(&xessSetVelocityScale) xessSetVelocityScale;
-    static decltype(&xessSetLoggingCallback) xessSetLoggingCallback;
-#ifdef ENABLE_VULKAN
-    static decltype(&xessVKCreateContext) xessVKCreateContext;
-    static decltype(&xessVKBuildPipelines) xessVKBuildPipelines;
-    static decltype(&xessVKInit) xessVKInit;
-    static decltype(&xessVKExecute) xessVKExecute;
-#endif
-#ifdef ENABLE_DX12
-    static decltype(&xessD3D12CreateContext) xessD3D12CreateContext;
-    static decltype(&xessD3D12BuildPipelines) xessD3D12BuildPipelines;
-    static decltype(&xessD3D12Init) xessD3D12Init;
-    static decltype(&xessD3D12Execute) xessD3D12Execute;
-#endif
-#ifdef ENABLE_DX11
-    static decltype(&xessD3D11CreateContext) xessD3D11CreateContext;
-    static decltype(&xessD3D11Init) xessD3D11Init;
-    static decltype(&xessD3D11Execute) xessD3D11Execute;
-#endif
-    Status setStatus(xess_result_t t_error, const std::string &t_msg);
-
-    static void log(const char* msg, xess_logging_level_t loggingLevel);
-
+    static decltype(&xessDestroyContext)            xessDestroyContext;
+    static decltype(&xessSetVelocityScale)          xessSetVelocityScale;
+    static decltype(&xessSetLoggingCallback)        xessSetLoggingCallback;
 #    ifdef ENABLE_VULKAN
-    Status VulkanCreate(const void*);
-    Status VulkanSetImages(const std::array<void*, Plugin::NumImages>&);
-    Status VulkanEvaluate(Settings::Resolution inputResolution);
+    static decltype(&xessVKGetRequiredInstanceExtensions) xessVKGetRequiredInstanceExtensions;
+    static decltype(&xessVKCreateContext)                 xessVKCreateContext;
+    static decltype(&xessVKBuildPipelines)                xessVKBuildPipelines;
+    static decltype(&xessVKInit)                          xessVKInit;
+    static decltype(&xessVKExecute)                       xessVKExecute;
 #    endif
 #    ifdef ENABLE_DX12
-    Status DX12Create(const void*);
-    Status DX12SetImages(const std::array<void*, Plugin::NumImages>&);
-    Status DX12Evaluate(Settings::Resolution inputResolution);
+    static decltype(&xessD3D12CreateContext)  xessD3D12CreateContext;
+    static decltype(&xessD3D12BuildPipelines) xessD3D12BuildPipelines;
+    static decltype(&xessD3D12Init)           xessD3D12Init;
+    static decltype(&xessD3D12Execute)        xessD3D12Execute;
 #    endif
 #    ifdef ENABLE_DX11
-    Status DX11Create(const void*);
-    Status DX11SetImages(const std::array<void*, Plugin::NumImages>&);
-    Status DX11Evaluate(Settings::Resolution inputResolution);
+    static decltype(&xessD3D11CreateContext) xessD3D11CreateContext;
+    static decltype(&xessD3D11Init)          xessD3D11Init;
+    static decltype(&xessD3D11Execute)       xessD3D11Execute;
 #    endif
 
+#    ifdef ENABLE_VULKAN
+    Status               VulkanCreate(const void*);
+    Status               VulkanSetImages(const std::array<void*, 4>&);
+    [[nodiscard]] Status VulkanEvaluate(Resolution inputResolution) const;
+#    endif
+#    ifdef ENABLE_DX12
+    Status               DX12Create(const void*);
+    Status               DX12SetImages(const std::array<void*, 4>&);
+    [[nodiscard]] Status DX12Evaluate(Resolution inputResolution) const;
+#    endif
+#    ifdef ENABLE_DX11
+    Status               DX11Create(const void*);
+    Status               DX11SetImages(const std::array<void*, 4>&);
+    [[nodiscard]] Status DX11Evaluate(Resolution inputResolution) const;
+#    endif
+
+    static Status setStatus(xess_result_t t_error);
+    static void log(const char* msg, xess_logging_level_t /*unused*/);
+
+    [[nodiscard]] xess_quality_settings_t getQuality(enum Quality quality) const;
+
 public:
+    static bool loadedCorrectly();
     static void load(GraphicsAPI::Type type, void*);
-    static void shutdown();
     static void unload();
-    static bool isSupported();
-    static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
     XeSS_Upscaler()                                = default;
@@ -89,16 +97,8 @@ public:
     XeSS_Upscaler& operator=(XeSS_Upscaler&&)      = delete;
     ~XeSS_Upscaler() override;
 
-    constexpr Type getType() override {
-        return XESS;
-    }
-
-    constexpr std::string getName() override {
-        return "Intel Xe Super Sampling";
-    }
-
-    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset /*unused*/, enum Settings::Quality mode, bool hdr) override;
-    Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
-    Status evaluate(Settings::Resolution inputResolution) override;
+    Status useSettings(Resolution resolution, enum Quality mode, bool hdr);
+    Status useImages(const std::array<void*, 4>& images);
+    Status evaluate(Resolution inputResolution);
 };
 #endif

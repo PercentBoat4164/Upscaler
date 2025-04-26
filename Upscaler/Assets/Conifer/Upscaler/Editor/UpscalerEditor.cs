@@ -209,21 +209,21 @@ namespace Conifer.Upscaler.Editor
                             }
                             break;
                         case Upscaler.Technique.DeepLearningSuperSampling:
-                            _preset.intValue = (int)(Upscaler.DlssPreset)EditorGUILayout.EnumPopup(
+                            _preset.intValue = (int)(Upscaler.Preset)EditorGUILayout.EnumPopup(
                                 new GUIContent("DLSS Preset",
                                     "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
                                     "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
                                     "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
                                     "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
                                     "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
-                                (Upscaler.DlssPreset)_preset.intValue);
+                                (Upscaler.Preset)_preset.intValue);
                             break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution1:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue, 0, 1);
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
                         case Upscaler.Technique.SnapdragonGameSuperResolution2:
-                                _method.intValue = (int)(Upscaler.SgsrMethod)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.SgsrMethod)_method.intValue);
+                                _method.intValue = (int)(Upscaler.Method)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.Method)_method.intValue);
                                 break;
                         case Upscaler.Technique.None:
                         case Upscaler.Technique.XeSuperSampling:
@@ -265,9 +265,6 @@ namespace Conifer.Upscaler.Editor
                             "Forces the active upscaler to ignore it's internal history buffer."),
                         _forceHistoryResetEveryFrame.boolValue);
                 }
-                var logLevel = (LogType)EditorGUILayout.EnumPopup(new GUIContent("Global Log Level", "Sets the log level for all Upscaler instances at once."), (LogType)EditorPrefs.GetInt("Conifer:Upscaler:logLevel", (int)LogType.Warning));
-                EditorPrefs.SetInt("Conifer:Upscaler:logLevel", (int)logLevel);
-                Upscaler.SetLogLevel(logLevel);
             }
 
             EditorGUILayout.Separator();

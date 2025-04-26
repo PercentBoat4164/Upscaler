@@ -66,7 +66,7 @@ namespace Conifer.Upscaler
          * Different DLSS models in an effort to help it to deal with your application's idiosyncrasies.
          */
         [Serializable]
-        public enum DlssPreset
+        public enum Preset
         {
             /// Default DLSS behavior. Recommended in most scenarios.
             Default,
@@ -82,7 +82,7 @@ namespace Conifer.Upscaler
          * Different SGSR implementations which trade off quality and performance.
          */
         [Serializable]
-        public enum SgsrMethod
+        public enum Method
         {
             /// Default SGSR behavior. Recommended for most desktop and high-end mobile devices. Slowest method, higher quality than <see cref="Compute2Pass"/>.
             Compute3Pass,
@@ -113,11 +113,11 @@ namespace Conifer.Upscaler
             OperatingSystemNotSupported = 4,
             /// NVIDIA has denied this application the <see cref="Technique.DeepLearningSuperSampling"/> feature. This is a permanently fatal error for the <see cref="Technique"/> that reports this.
             FeatureDenied               = 5,
-            /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory then try again.
+            /// Upscaler attempted an allocation that would overflow either the RAM or VRAM. Free up memory, then try again.
             OutOfMemory                 = 6 | ErrorRecoverable,
             /// The libraries required by this <see cref="Technique"/> were not loaded. Ensure that they have been installed.
             LibraryNotLoaded            = 7,
-            /// This is an error that may have been caused by an invalid configuration (e.g. output resolution too small). Restore a valid configuration then try again.
+            /// This is an error that may have been caused by an invalid configuration (e.g. output resolution too small). Restore a valid configuration, then try again.
             RecoverableRuntimeError     = 8 | ErrorRecoverable,
             /// This error should result only from a bug in Upscaler or in Unity itself.
             FatalRuntimeError           = 9,
@@ -169,12 +169,10 @@ namespace Conifer.Upscaler
         public bool upscalingDebugView;
         /// Enables displaying the Rendering Area overlay. Defaults to <c>false</c>.
         public bool showRenderingAreaOverlay;
-        /// While this is true Upscaler will call <see cref="ResetHistory"/> every frame. Defaults to <c>false</c>.
+        /// While this is <c>true</c> Upscaler will reset the technique's history data every frame. Defaults to <c>false</c>.
         public bool forceHistoryResetEveryFrame;
 
         internal Camera Camera;
-        internal Matrix4x4 LastViewToClip = Matrix4x4.identity;
-        internal Matrix4x4 LastWorldToCamera = Matrix4x4.identity;
         internal Vector2 Jitter = Vector2.zero;
         internal int JitterIndex;
 
@@ -198,18 +196,18 @@ namespace Conifer.Upscaler
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int RecommendedInputResolution { get; internal set; }
 
-        /// The maximum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
-        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
-        public Vector2Int MaxInputResolution { get; internal set; }
-
         /// The minimum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
         /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
         public Vector2Int MinInputResolution { get; internal set; }
 
+        /// The maximum dynamic resolution for this <see cref="Quality"/> mode as given by the selected
+        /// <see cref="Technique"/>. This value will only ever be <c>(0, 0)</c> when Upscaler has yet to be enabled.
+        public Vector2Int MaxInputResolution { get; internal set; }
+
         /**
          * <summary>The callback used to handle any errors that the <see cref="Technique"/> throws. Takes the current
          * <see cref="Status"/>, and the current status message.</summary>
-         * <remarks>This callback is only ever called if an error occurs. When that happens it will be called before
+         * <remarks>This callback is only ever called if an error occurs. When that happens, it will be called before
          * rendering the next frame. If this callback fails to bring the <see cref="Technique"/>'s <see cref="Status"/>
          * back to a <see cref="Success"/> value, then the default error handler will reset the current
          * <see cref="Technique"/> to <see cref="Technique.None"/>.</remarks>
@@ -229,12 +227,12 @@ namespace Conifer.Upscaler
         /// BETA FEATURE: Frame generation only works while using the Vulkan Graphics API. Set to true to enable frame generation.
         public bool frameGeneration;
         public bool PreviousFrameGeneration { get; private set; }
-        /// The current <see cref="DlssPreset"/>. Defaults to <see cref="DlssPreset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
-        public DlssPreset preset;
-        public DlssPreset PreviousPreset { get; private set; }
-        /// The current <see cref="SgsrMethod"/>. Defaults to Compute3Pass
-        public SgsrMethod method;
-        public SgsrMethod PreviousMethod { get; private set; }
+        /// The current <see cref="Preset"/>. Defaults to <see cref="Preset.Default"/>. Only used when <see cref="technique"/> is <see cref="Technique.DeepLearningSuperSampling"/>.
+        public Preset preset;
+        public Preset PreviousPreset { get; private set; }
+        /// The current <see cref="Method"/>. Defaults to Compute3Pass
+        public Method method;
+        public Method PreviousMethod { get; private set; }
         /// The current sharpness value. This should always be in the range of <c>0.0f</c> to <c>1.0f</c>. Defaults to <c>0.0f</c>. Only used when <see cref="technique"/> is <see cref="Technique.FidelityFXSuperResolution"/> or <see cref="Technique.SnapdragonGameSuperResolution1"/>.
         public float sharpness;
         public float PreviousSharpness { get; private set; }
@@ -259,12 +257,16 @@ namespace Conifer.Upscaler
 
         public bool shouldHistoryResetThisFrame;
 
+        private bool _stale;
+        private bool _hdr;
+
         private UpscalerBackend _backend;
         /**
-         * <summary>Request the 'best' technique that is supported by this environment.</summary>
-         *<returns>Returns the 'best' supported technique.</returns>
+         * <summary>Request the 'best' technique supported by this environment.</summary>
+         * <returns>Returns the 'best' supported technique.</returns>
          * <remarks> Selects <see cref="Technique.SnapdragonGameSuperResolution2"/> if on a mobile platform and it is
-         * supported. If it is not supported it selects <see cref="Technique.SnapdragonGameSuperResolution1"/>. If not on a mobile platform it selects the first supported technique as they appear in the following list:
+         * supported. If it is not supported it selects <see cref="Technique.SnapdragonGameSuperResolution1"/>. If not
+         * on a mobile platform it selects the first supported technique as they appear in the following list:
          * <see cref="Technique.DeepLearningSuperSampling"/>, <see cref="Technique.XeSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, <see cref="Technique.None"/></remarks>
          */
@@ -279,21 +281,46 @@ namespace Conifer.Upscaler
         /**
          * <summary>Check if an <see cref="Technique"/> is supported in the current environment.</summary>
          * <param name="type">The <see cref="Technique"/> to query support for.</param>
-         * <returns><c>true</c> if the <see cref="Technique"/> is supported and <c>false</c> if it is not.</returns>
+         * <returns><c>true</c> if the <see cref="Technique"/> is supported or <c>false</c> if it is not.</returns>
+         * <exception cref="ArgumentOutOfRangeException">If the provided <paramref name="type"/> does not match any
+         * valid <see cref="Technique"/> enumeration values.</exception>
          * <remarks>This method is slow the first time it is used for each <see cref="Technique"/>, then fast every time
          * after that. Support for the <see cref="Technique"/> requested is computed then cached. Any future calls with
-         * the same <see cref="Technique"/> will use the cached value. Note that for
-         * <see cref="Technique.SnapdragonGameSuperResolution2"/> the <see cref="SgsrMethod.Fragment2Pass"/> may
-         * be able to be used even if this returns <c>false</c> for
-         * <see cref="Technique.SnapdragonGameSuperResolution2"/>
-         * so long as it returns <c>true</c> for <see cref="Technique.SnapdragonGameSuperResolution1"/>.</remarks>
+         * the same <see cref="Technique"/> will use the cached value. For
+         * <see cref="Technique.SnapdragonGameSuperResolution2"/> this function only checks support for
+         * <see cref="Method.Fragment2Pass"/>, the most likely <see cref="Method"/> to be supported. Use
+         * <see cref="IsSupported(Upscaler.Method)"/> to detect support for others.</remarks>
          * <example><code>bool dlssSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
          * </code></example>
          */
-        public static bool IsSupported(Technique type) => type is Technique.None ||
-                                                          (type is Technique.SnapdragonGameSuperResolution1 && SystemInfo.graphicsShaderLevel >= 50) ||
-                                                          (type is Technique.SnapdragonGameSuperResolution2 && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
-                                                          (PluginLoaded() && NativeInterface.IsSupported(type));
+        public static bool IsSupported(Technique type) => type switch
+        {
+            Technique.None => true,
+            Technique.SnapdragonGameSuperResolution1 => SnapdragonGameSuperResolutionV1Backend.Supported,
+            Technique.SnapdragonGameSuperResolution2 => SnapdragonGameSuperResolutionV2Fragment2PassBackend.Supported,
+            Technique.DeepLearningSuperSampling => DeepLearningSuperSamplingBackend.Supported,
+            Technique.FidelityFXSuperResolution => FidelityFXSuperResolutionBackend.Supported,
+            Technique.XeSuperSampling => XeSuperSamplingBackend.Supported,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
+        };
+
+        /**
+         * <summary>Determines whether the system supports the specified
+         * <see cref="Technique.SnapdragonGameSuperResolution2"/> <see cref="Method"/>.</summary>
+         * <param name="method">The <see cref="Method"/> to check.</param>
+         * <returns><c>true</c> if the specified method is supported or <c>false</c> if it is not.</returns>
+         * <exception cref="ArgumentOutOfRangeException">If the provided <paramref name="method"/> does not match any
+         * valid <see cref="Method"/> enumeration values.</exception>
+         * <example><code>bool dlssSupported = Upscaler.IsSupported(Upscaler.Technique.DeepLearningSuperSampling);
+         * </code></example>
+         */
+        public static bool IsSupported(Method method) => method switch
+        {
+            Method.Fragment2Pass => SnapdragonGameSuperResolutionV2Fragment2PassBackend.Supported,
+            Method.Compute2Pass => SnapdragonGameSuperResolutionV2Compute2PassBackend.Supported,
+            Method.Compute3Pass => SnapdragonGameSuperResolutionV2Compute3PassBackend.Supported,
+            _ => throw new ArgumentOutOfRangeException(nameof(method), method, method + " is not a valid " + nameof(method) + " enum value.")
+        };
 
         /**
          * <summary>Check if a <see cref="Quality"/> mode is supported by a given <see cref="Technique"/>.</summary>
@@ -302,17 +329,39 @@ namespace Conifer.Upscaler
          * <returns><c>true</c> if the <see cref="Technique"/> supports the requested <see cref="Quality"/> mode and
          * <c>false</c> if it does not.</returns>
          * <remarks>This method is always fast. Every <see cref="Technique"/> will
-         * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode. Note the caveats about SGSR
-         * mentioned in the documentation for <see cref="IsSupported(Conifer.Upscaler.Upscaler.Technique)"/>.</remarks>
+         * return <c>true</c> for the <see cref="Quality.Auto"/> <see cref="Quality"/> mode. Note that all
+         * <see cref="Technique.SnapdragonGameSuperResolution2"/> <see cref="Method"/>s support the same
+         * <see cref="Quality"/> modes.</remarks>
          * <example><code>bool dlssSupportsAA = upscaler.IsSupported(
          *   Upscaler.Technique.DeepLearningSuperSampling,
          *   Upscaler.Quality.AntiAliasing
          * );</code></example>
          */
-        public static bool IsSupported(Technique type, Quality mode) => type is Technique.None ||
-                                                                        (type is Technique.SnapdragonGameSuperResolution1 && SystemInfo.graphicsShaderLevel >= 50 && mode != Quality.AntiAliasing) ||
-                                                                        (type is Technique.SnapdragonGameSuperResolution2 && SystemInfo.graphicsShaderLevel >= 50 && SystemInfo.supportsComputeShaders) ||
-                                                                        (PluginLoaded() && NativeInterface.IsSupported(type, mode));
+        public static bool IsSupported(Technique type, Quality mode) => type switch
+        {
+            Technique.None => true,
+            Technique.SnapdragonGameSuperResolution1 => mode switch
+            {
+                Quality.AntiAliasing => false,
+                Quality.Auto or Quality.UltraQualityPlus or Quality.UltraQuality or Quality.Quality or Quality.Balanced or Quality.Performance or Quality.UltraPerformance => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, mode + " is not a valid " + nameof(mode) + " enum value.")
+            },
+            Technique.SnapdragonGameSuperResolution2 => true,
+            Technique.DeepLearningSuperSampling => mode switch
+            {
+                Quality.UltraQualityPlus or Quality.UltraQuality => false,
+                Quality.Auto or Quality.AntiAliasing or Quality.Quality or Quality.Balanced or Quality.Performance or Quality.UltraPerformance => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, mode + " is not a valid " + nameof(mode) + " enum value.")
+            },
+            Technique.FidelityFXSuperResolution => mode switch
+            {
+                Quality.UltraQualityPlus or Quality.UltraQuality => false,
+                Quality.Auto or Quality.AntiAliasing or Quality.Quality or Quality.Balanced or Quality.Performance or Quality.UltraPerformance => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, mode + " is not a valid " + nameof(mode) + " enum value.")
+            },
+            Technique.XeSuperSampling => true,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, type + " is not a valid " + nameof(type) + " enum value.")
+        };
 
         /**
          * <summary>Check if a <see cref="Quality"/> mode is supported by the current <see cref="Technique"/>.</summary>
@@ -415,46 +464,59 @@ namespace Conifer.Upscaler
          * <remarks>When this function returns false <see cref="Technique.DeepLearningSuperSampling"/>,
          * <see cref="Technique.FidelityFXSuperResolution"/>, and <see cref="Technique.XeSuperSampling"/> will all be
          * unavailable.</remarks>
-         * <example><code>bool nativePluginLoaded = Upscaler.PluginLoaded();</code></example>
+         * <example><code>bool nativePluginLoaded = Upscaler.NativePluginLoaded();</code></example>
          */
-        public static bool PluginLoaded() => NativeInterface.Loaded;
+        public static bool NativePluginLoaded() => NativeInterface.Loaded;
 
-        /**
-         * <summary>Sets the log level filter for the C++ backend.</summary>
-         * <param name="level">The minimum log level that messages must be before they are logged.</param>
-         * <remarks>This applies to all instances of the Upscaler script globally. This method is very fast. The first
-         * time this method is called all previously recorded messages (usually messages from Upscaler's startup
-         * process) will be filtered, then pushed. This method is probably first called by Upscaler's Inspector GUI when
-         * in the Unity Editor.</remarks>
-         */
-        public static void SetLogLevel(LogType level) => NativeInterface.SetLogLevel(level);
-
-        private bool InternalApplySettings(bool force)
+        static Upscaler()
         {
-            var needsUpdate = force;
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(DeepLearningSuperSamplingBackend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(FidelityFXSuperResolutionBackend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(XeSuperSamplingBackend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(SnapdragonGameSuperResolutionV1Backend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(SnapdragonGameSuperResolutionV2Compute3PassBackend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(SnapdragonGameSuperResolutionV2Compute2PassBackend).TypeHandle);
+            // System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(SnapdragonGameSuperResolutionV2Fragment2PassBackend).TypeHandle);
+        }
+
+        private bool InternalApplySettings()
+        {
+            var needsUpdate = _stale;
+            _stale = false;
             var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
             OutputResolution = outputResolution;
-            if (force || technique != PreviousTechnique || (technique == Technique.SnapdragonGameSuperResolution2 && method != PreviousMethod))
+            if (needsUpdate || technique != PreviousTechnique || (technique == Technique.SnapdragonGameSuperResolution2 && method != PreviousMethod))
             {
                 needsUpdate = true;
                 _backend?.Dispose();
-                if (technique == Technique.SnapdragonGameSuperResolution1) _backend = new SnapdragonGameSuperResolutionV1Backend();
-                else if (technique == Technique.SnapdragonGameSuperResolution2)
-                    _backend = method switch
+                _backend = technique switch
+                {
+                    Technique.None => null,
+                    Technique.DeepLearningSuperSampling => DeepLearningSuperSamplingBackend.Supported ? new DeepLearningSuperSamplingBackend() : null,
+                    Technique.FidelityFXSuperResolution => FidelityFXSuperResolutionBackend.Supported ? new FidelityFXSuperResolutionBackend() : null,
+                    Technique.XeSuperSampling => XeSuperSamplingBackend.Supported ? new XeSuperSamplingBackend() : null,
+                    Technique.SnapdragonGameSuperResolution1 => SnapdragonGameSuperResolutionV1Backend.Supported ? new SnapdragonGameSuperResolutionV1Backend() : null,
+                    Technique.SnapdragonGameSuperResolution2 => method switch
                     {
-                        SgsrMethod.Fragment2Pass => new SnapdragonGameSuperResolutionV2Fragment2PassBackend(),
-                        SgsrMethod.Compute2Pass => new SnapdragonGameSuperResolutionV2Compute2PassBackend(),
-                        SgsrMethod.Compute3Pass => new SnapdragonGameSuperResolutionV2Compute3PassBackend(),
-                        _ => null
-                    };
-                else if (technique == Technique.FidelityFXSuperResolution) _backend = new FidelityFXSuperResolutionBackend();
-                else _backend = null;
+                        Method.Compute3Pass => SnapdragonGameSuperResolutionV2Compute3PassBackend.Supported ? new SnapdragonGameSuperResolutionV2Compute3PassBackend() : null,
+                        Method.Compute2Pass => SnapdragonGameSuperResolutionV2Compute2PassBackend.Supported ? new SnapdragonGameSuperResolutionV2Compute2PassBackend() : null,
+                        Method.Fragment2Pass => SnapdragonGameSuperResolutionV2Fragment2PassBackend.Supported ? new SnapdragonGameSuperResolutionV2Fragment2PassBackend() : null,
+                        _ => throw new ArgumentOutOfRangeException(nameof(method), method, method + " is not a valid " + nameof(method) + " enum value.")
+                    },
+                    _ => throw new ArgumentOutOfRangeException(nameof(technique), technique, technique + " is not a valid " + nameof(technique) + " enum value.")
+                };
+                if (_backend == null && technique != Technique.None)
+                {
+                    Debug.LogError("Attempted to use unsupported " + nameof(Technique) + ": " + technique);
+                    CurrentStatus = Status.RecoverableRuntimeError;
+                    return false;
+                }
             }
-            needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution;
+            needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution || _hdr != Camera.allowHDR;
             if (needsUpdate)
             {
-                if (Failure(_backend?.ComputeInputResolutionConstraints(this) ?? Status.Success)) return true;
+                if (Failure(CurrentStatus = _backend?.ComputeInputResolutionConstraints(this) ?? Status.Success)) return false;
                 InputResolution = RecommendedInputResolution;
             }
             return needsUpdate ||
@@ -472,21 +534,21 @@ namespace Conifer.Upscaler
         public bool automaticLODBias = true;
         public float LODBias { get; private set; }
 
-        internal bool ApplySettings(bool force)
+        internal bool ApplySettings()
         {
-            var needsUpdate = InternalApplySettings(force);
+            var needsUpdate = InternalApplySettings();
             if (Failure(CurrentStatus))
             {
                 if (ErrorCallback is not null)
                 {
                     ErrorCallback(CurrentStatus);
-                    needsUpdate |= InternalApplySettings(false);
+                    needsUpdate |= InternalApplySettings();
                     if (Failure(CurrentStatus)) Debug.LogError("The registered error handler failed to rectify the following error.");
                 }
                 Debug.LogWarning("Conifer | Upscaler | Error: " + CurrentStatus, this);
                 technique = Technique.None;
                 quality = Quality.Auto;
-                needsUpdate |= InternalApplySettings(true);
+                needsUpdate |= InternalApplySettings();
             }
 
             PreviousInputResolution = InputResolution;
@@ -503,6 +565,7 @@ namespace Conifer.Upscaler
             PreviousReactiveThreshold = reactiveThreshold;
             PreviousFrameGeneration = frameGeneration;
             PreviousUseAsyncCompute = useAsyncCompute;
+            _hdr = Camera.allowHDR;
 
             var bias = (float)OutputResolution.x / InputResolution.x;
             if (automaticLODBias) QualitySettings.lodBias = QualitySettings.lodBias / LODBias * bias;
@@ -514,6 +577,8 @@ namespace Conifer.Upscaler
         {
             Camera = GetComponent<Camera>();
             if (SystemInfo.supportsMotionVectors) Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
+            Camera.ResetProjectionMatrix();
+            _stale = true;
         }
 
         private void OnDisable()
@@ -522,18 +587,25 @@ namespace Conifer.Upscaler
             _backend = null;
             if (_source != null && _source.IsCreated()) _source.Release();
             if (_destination != null && _destination.IsCreated()) _destination.Release();
+            Camera.ResetProjectionMatrix();
         }
 
         private void OnGUI()
         {
             if (technique == Technique.None || !showRenderingAreaOverlay) return;
             var scale = (float)InputResolution.x / OutputResolution.x;
-            GUI.Box(new Rect(0, OutputResolution.y - InputResolution.y, InputResolution.x, InputResolution.y),
-                Math.Ceiling(scale * 100) + "% per-axis\n" + Math.Ceiling(scale * scale * 100) + "% total");
+            GUI.Box(new Rect(0, OutputResolution.y - InputResolution.y, InputResolution.x, InputResolution.y), Math.Ceiling(scale * 100) + "% per-axis\n" + Math.Ceiling(scale * scale * 100) + "% total");
         }
 
-        #region BRP Integration
+#if UNITY_EDITOR
+        [InitializeOnLoadMethod]
+        private static void InitializeOnLoadMethod()
+        {
+            foreach (var upscaler in FindObjectsByType<Upscaler>(FindObjectsSortMode.None)) upscaler._stale = true;
+        }
+#endif
 
+        #region BRP Integration
         private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
         private CommandBuffer _generateOpaque;
         private CommandBuffer _cleanupOpaque;
@@ -558,7 +630,7 @@ namespace Conifer.Upscaler
             var previousTechnique = PreviousTechnique;
             var previousMethod = PreviousMethod;
             var previousAutoReactive = PreviousAutoReactive;
-            var needsUpdate = ApplySettings(false);
+            var needsUpdate = ApplySettings();
 
             if (technique == Technique.None || _backend == null)
             {
@@ -569,36 +641,43 @@ namespace Conifer.Upscaler
 
             if (needsUpdate)
             {
+                var cameraTargetFormat = Camera.allowHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
                 if (_destination != null && _destination.IsCreated()) _destination.Release();
-                _destination = new RenderTexture(OutputResolution.x, OutputResolution.y, 0, RenderTextureFormat.Default)
+                _destination = new RenderTexture(OutputResolution.x, OutputResolution.y, 0, cameraTargetFormat)
                 {
                     enableRandomWrite = true  //@todo: Only enable this if needed.
                 };
                 _destination.Create();
                 if (_source != null && _source.IsCreated()) _source.Release();
-                _source = new RenderTexture(InputResolution.x, InputResolution.y, 0, RenderTextureFormat.Default);
+                _source = new RenderTexture(InputResolution.x, InputResolution.y, 0, cameraTargetFormat);
                 _source.Create();
-                if (!_backend.Update(this, _source, _destination)) return;
-                if ((previousTechnique == Technique.SnapdragonGameSuperResolution2 && previousMethod == SgsrMethod.Compute3Pass) ||
+                if (Failure(CurrentStatus = _backend.Update(this, _source, _destination))) return;
+                if ((previousTechnique == Technique.SnapdragonGameSuperResolution2 && previousMethod == Method.Compute3Pass) ||
                     (previousTechnique == Technique.FidelityFXSuperResolution && previousAutoReactive))
                 {
-                    Camera.RemoveCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
-                    Camera.RemoveCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
+                    if (_generateOpaque != null) Camera.RemoveCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
                     _generateOpaque = null;
+                    if (_cleanupOpaque != null) Camera.RemoveCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
                     _cleanupOpaque = null;
                 }
-                if ((technique == Technique.SnapdragonGameSuperResolution2 && method == SgsrMethod.Compute3Pass) ||
+                if ((technique == Technique.SnapdragonGameSuperResolution2 && method == Method.Compute3Pass) ||
                     (technique == Technique.FidelityFXSuperResolution && autoReactive))
                 {
-                    _generateOpaque = new CommandBuffer();
-                    _generateOpaque.name = "Conifer | Upscaler | Copy Opaque";
-                    _generateOpaque.GetTemporaryRT(OpaqueID, InputResolution.x, InputResolution.y, 0, FilterMode.Point, RenderTextureFormat.Default);
-                    _generateOpaque.CopyTexture(BuiltinRenderTextureType.CurrentActive, OpaqueID);
-                    Camera.AddCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
-                    _cleanupOpaque = new CommandBuffer();
-                    _cleanupOpaque.name = "Conifer | Upscaler | Clean Up Opaque";
-                    _cleanupOpaque.ReleaseTemporaryRT(OpaqueID);
-                    Camera.AddCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
+                    if (_generateOpaque == null)
+                    {
+                        _generateOpaque = new CommandBuffer();
+                        _generateOpaque.name = "Conifer | Upscaler | Copy Opaque";
+                        _generateOpaque.GetTemporaryRT(OpaqueID, InputResolution.x, InputResolution.y, 0, FilterMode.Point, cameraTargetFormat);
+                        _generateOpaque.CopyTexture(BuiltinRenderTextureType.CurrentActive, OpaqueID);
+                        Camera.AddCommandBuffer(CameraEvent.AfterSkybox, _generateOpaque);
+                    }
+                    if (_cleanupOpaque == null)
+                    {
+                        _cleanupOpaque = new CommandBuffer();
+                        _cleanupOpaque.name = "Conifer | Upscaler | Clean Up Opaque";
+                        _cleanupOpaque.ReleaseTemporaryRT(OpaqueID);
+                        Camera.AddCommandBuffer(CameraEvent.AfterEverything, _cleanupOpaque);
+                    }
                 }
             }
             Camera.rect = new Rect(0, 0, (float)InputResolution.x / OutputResolution.x, (float)InputResolution.y / OutputResolution.y);
@@ -607,6 +686,7 @@ namespace Conifer.Upscaler
             Jitter = new Vector2(HaltonSequence(JitterIndex, 2), HaltonSequence(JitterIndex, 3));
             JitterIndex = (JitterIndex + 1) % (int)Math.Ceiling(8 * Math.Pow((float)OutputResolution.x / InputResolution.x, 2));
             var clipSpaceJitter = Jitter / InputResolution * 2;
+            Jitter -= new Vector2(0.5f, 0.5f);
             Camera.ResetProjectionMatrix();
             Camera.nonJitteredProjectionMatrix = Camera.projectionMatrix;
             var projectionMatrix = Camera.projectionMatrix;
@@ -629,8 +709,7 @@ namespace Conifer.Upscaler
             if (_backend == null || technique == Technique.None) return;
             Camera.rect = new Rect(0, 0, 1, 1);
 
-            // @todo: Move this to a CommandBuffer that uses the BeforeImageEffects CameraEvent.
-            Graphics.CopyTexture(Camera.activeTexture, _source);
+            Graphics.Blit(Camera.activeTexture, _source);
             _backend.Upscale(this);
         }
 

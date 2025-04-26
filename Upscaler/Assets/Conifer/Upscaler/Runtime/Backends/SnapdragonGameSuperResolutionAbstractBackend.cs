@@ -66,8 +66,8 @@ namespace Conifer.Upscaler
                 default: return Upscaler.Status.RecoverableRuntimeError;
             }
             upscaler.RecommendedInputResolution = new Vector2Int((int)Math.Round(upscaler.OutputResolution.x * scale), (int)Math.Round(upscaler.OutputResolution.y * scale));
-            upscaler.MaxInputResolution = upscaler.OutputResolution;
             upscaler.MinInputResolution = Vector2Int.one;
+            upscaler.MaxInputResolution = upscaler.OutputResolution;
 
             return Upscaler.Status.Success;
         }

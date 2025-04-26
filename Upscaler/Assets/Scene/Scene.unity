@@ -324,7 +324,7 @@ Camera:
   serializedVersion: 2
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
+  m_projectionMatrixMode: 0
   m_GateFitMode: 2
   m_FOVAxisMode: 0
   m_Iso: 200
@@ -429,10 +429,10 @@ MonoBehaviour:
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
   quality: 0
-  technique: 4
+  technique: 1
   frameGeneration: 0
-  dlssPreset: 0
-  sgsrMethod: 2
+  preset: 0
+  method: 2
   sharpness: 0
   autoReactive: 0
   reactiveMax: 0.6
@@ -440,6 +440,8 @@ MonoBehaviour:
   reactiveThreshold: 0.3
   useAsyncCompute: 1
   useEdgeDirection: 1
+  shouldHistoryResetThisFrame: 0
+  automaticLODBias: 1
 --- !u!1 &1441297024
 GameObject:
   m_ObjectHideFlags: 0

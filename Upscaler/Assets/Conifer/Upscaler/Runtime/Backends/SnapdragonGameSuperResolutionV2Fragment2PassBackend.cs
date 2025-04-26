@@ -13,46 +13,42 @@ namespace Conifer.Upscaler
 {
     public class SnapdragonGameSuperResolutionV2Fragment2PassBackend : SnapdragonGameSuperResolutionAbstractBackend
     {
-        private static SupportState _supported = SupportState.Untested;
-
-        public static bool Supported()
-        {
-            if (_supported != SupportState.Untested) return _supported == SupportState.Supported;
-            if (SystemInfo.graphicsShaderLevel < 50 || !SystemInfo.supportsMotionVectors) _supported = SupportState.Unsupported;
-            else
-            {
-                try
-                {
-                    _ = new SnapdragonGameSuperResolutionV2Fragment2PassBackend();
-                    _supported = SupportState.Supported;
-                }
-                catch
-                {
-                    _supported = SupportState.Unsupported;
-                }
-            }
-            return _supported == SupportState.Supported;
-        }
-
+        public static bool Supported { get; }
         private readonly Material _material = new(Resources.Load<Shader>("SnapdragonGameSuperResolution/V2Fragment2Pass"));
-        private Matrix4x4 _previousMatrix;
         private RenderTexture _history;
         private RenderTexture _motionDepthAlpha;
-        private Texture _input;
-        private Texture _output;
+
+        static SnapdragonGameSuperResolutionV2Fragment2PassBackend()
+        {
+            Supported = true;
+            try
+            {
+                if (!SystemInfo.supportsMotionVectors)
+                {
+                    Supported = false;
+                    return;
+                }
+                var backend = new SnapdragonGameSuperResolutionV2Fragment2PassBackend();
+                Supported = backend._material.shader.isSupported;
+                backend.Dispose();
+            }
+            catch
+            {
+                Supported = false;
+            }
+        }
 
         public SnapdragonGameSuperResolutionV2Fragment2PassBackend()
         {
-#if CONIFER_UPSCALER_USE_URP
-            _material.SetVector(BlitScaleBiasID, new Vector4(1, 1, 0, 0));
-#endif
+            if (!Supported) return;
             _material.SetFloat(PreExposureID, 1.0f);
         }
 
-        public override bool Update(in Upscaler upscaler, in Texture input, in Texture output)
+        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output)
         {
-            var inputsMatch = _input == input;
-            var outputsMatch = _output == output;
+            if (!Supported) return Upscaler.Status.FatalRuntimeError;
+            var inputsMatch = Input == input;
+            var outputsMatch = Output == output;
 
             if (!outputsMatch || _history == null)
             {
@@ -74,16 +70,17 @@ namespace Conifer.Upscaler
             }
             if (!inputsMatch || !outputsMatch) _material.SetVector(ScaleRatioID, new Vector4((float)upscaler.OutputResolution.x / upscaler.InputResolution.x, Mathf.Min(20.0f, Mathf.Pow((float)upscaler.OutputResolution.x * upscaler.OutputResolution.y / (upscaler.InputResolution.x * upscaler.InputResolution.y), 3.0f))));
 
-            _output = output;
-            _input = input;
-            return true;
+            Output = output;
+            Input = input;
+            return Upscaler.Status.Success;
         }
 
         public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null)
         {
+            if (!Supported) return;
             var cameraIsSame = IsSameCamera(upscaler.Camera);
             if (!cameraIsSame)
-                _material.SetFloat(CameraFovAngleHorID, Mathf.Tan(Mathf.Deg2Rad * (upscaler.Camera.fieldOfView / 2)) * _input.width / _input.height);
+                _material.SetFloat(CameraFovAngleHorID, Mathf.Tan(Mathf.Deg2Rad * (upscaler.Camera.fieldOfView / 2)) * Input.width / Input.height);
             _material.SetFloat(MinLerpContributionID, cameraIsSame ? 0.3f : 0.0f);
             _material.SetInt(SameCameraID, cameraIsSame ? 1 : 0);
             _material.SetFloat(ResetID, Convert.ToSingle(upscaler.shouldHistoryResetThisFrame));
@@ -91,21 +88,20 @@ namespace Conifer.Upscaler
 
             if (commandBuffer == null)
             {
-                Graphics.Blit(_input, _motionDepthAlpha, _material, 0);
-                Graphics.Blit(_input, _output as RenderTexture, _material, 1);
-                Graphics.CopyTexture(_output, _history);
+                Graphics.Blit(Input, _motionDepthAlpha, _material, 0);
+                Graphics.Blit(Input, Output as RenderTexture, _material, 1);
+                Graphics.CopyTexture(Output, _history);
             }
             else
             {
-                commandBuffer.Blit(_input, _motionDepthAlpha, _material, 0);
-                commandBuffer.Blit(_input, _output, _material, 1);
-                commandBuffer.CopyTexture(_output, _history);
+                commandBuffer.Blit(Input, _motionDepthAlpha, _material, 0);
+                commandBuffer.Blit(Input, Output, _material, 1);
+                commandBuffer.CopyTexture(Output, _history);
             }
         }
 
-        public new void Dispose()
+        public override void Dispose()
         {
-            base.Dispose();
             if (_history != null && _history.IsCreated()) _history?.Release();
             if (_motionDepthAlpha != null && _motionDepthAlpha.IsCreated()) _motionDepthAlpha?.Release();
         }

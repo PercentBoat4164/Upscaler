@@ -8,40 +8,43 @@ namespace Conifer.Upscaler
 {
     public class SnapdragonGameSuperResolutionV2Compute3PassBackend : SnapdragonGameSuperResolutionAbstractBackend
     {
-        private static SupportState _supported = SupportState.Untested;
-
-        public static bool Supported()
-        {
-            if (_supported != SupportState.Untested) return _supported == SupportState.Supported;
-            if (SystemInfo.graphicsShaderLevel < 50 || !SystemInfo.supportsMotionVectors) _supported = SupportState.Unsupported;
-            else
-            {
-                try
-                {
-                    _ = new SnapdragonGameSuperResolutionV2Compute2PassBackend();
-                    _supported = SupportState.Supported;
-                }
-                catch
-                {
-                    _supported = SupportState.Unsupported;
-                }
-            }
-            return _supported == SupportState.Supported;
-        }
-
+        public static bool Supported { get; }
         private readonly ComputeShader _computeShader = Resources.Load<ComputeShader>("SnapdragonGameSuperResolution/V2Compute3Pass");
         private RenderTexture _history;
         private RenderTexture _lumaHistory;
         private RenderTexture _motionDepthAlpha;
-        private Texture _input;
-        private Texture _output;
 
-        public SnapdragonGameSuperResolutionV2Compute3PassBackend() => _computeShader.SetFloat(PreExposureID, 1.0f);
-
-        public override bool Update(in Upscaler upscaler, in Texture input, in Texture output)
+        static SnapdragonGameSuperResolutionV2Compute3PassBackend()
         {
-            var inputsMatch = _input == input;
-            var outputsMatch = _output == output;
+            Supported = true;
+            try
+            {
+                if (!SystemInfo.supportsMotionVectors || !SystemInfo.supportsComputeShaders)
+                {
+                    Supported = false;
+                    return;
+                }
+                var backend = new SnapdragonGameSuperResolutionV2Compute3PassBackend();
+                Supported = backend._computeShader.IsSupported(0) && backend._computeShader.IsSupported(1) & backend._computeShader.IsSupported(2);
+                backend.Dispose();
+            }
+            catch
+            {
+                Supported = false;
+            }
+        }
+
+        public SnapdragonGameSuperResolutionV2Compute3PassBackend()
+        {
+            if (!Supported) return;
+            _computeShader.SetFloat(PreExposureID, 1.0f);
+        }
+
+        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output)
+        {
+            if (!Supported) return Upscaler.Status.FatalRuntimeError;
+            var inputsMatch = Input == input;
+            var outputsMatch = Output == output;
 
             if (!outputsMatch || _history == null)
             {
@@ -81,15 +84,16 @@ namespace Conifer.Upscaler
             }
             if (!inputsMatch || !outputsMatch) _computeShader.SetVector(ScaleRatioID, new Vector4((float)upscaler.OutputResolution.x / upscaler.InputResolution.x, Mathf.Min(20.0f, Mathf.Pow((float)upscaler.OutputResolution.x * upscaler.OutputResolution.y / (upscaler.InputResolution.x * upscaler.InputResolution.y), 3.0f))));
 
-            _output = output;
-            _input = input;
-            return true;
+            Output = output;
+            Input = input;
+            return Upscaler.Status.Success;
         }
 
         public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null)
         {
+            if (!Supported) return;
             var cameraIsSame = IsSameCamera(upscaler.Camera);
-            if (!cameraIsSame) _computeShader.SetFloat(CameraFovAngleHorID, Mathf.Tan(Mathf.Deg2Rad * (upscaler.Camera.fieldOfView / 2)) * _input.width / _input.height);
+            if (!cameraIsSame) _computeShader.SetFloat(CameraFovAngleHorID, Mathf.Tan(Mathf.Deg2Rad * (upscaler.Camera.fieldOfView / 2)) * Input.width / Input.height);
             _computeShader.SetFloat(MinLerpContributionID, cameraIsSame ? 0.3f : 0.0f);
             _computeShader.SetInt(SameCameraID, cameraIsSame ? 1 : 0);
             _computeShader.SetFloat(ResetID, Convert.ToSingle(upscaler.shouldHistoryResetThisFrame));
@@ -107,9 +111,9 @@ namespace Conifer.Upscaler
                 _computeShader.SetTexture(1, LumaID, luma);
                 _computeShader.SetTexture(2, LumaID, luma);
                 _computeShader.SetTexture(1, LumaHistoryID, lumaHistory);
-                _computeShader.Dispatch(0, Mathf.CeilToInt(_input.width / 8.0f), Mathf.CeilToInt(_input.height / 8.0f), 1);
-                _computeShader.Dispatch(1, Mathf.CeilToInt(_input.width / 8.0f), Mathf.CeilToInt(_input.height / 8.0f), 1);
-                _computeShader.Dispatch(2, Mathf.CeilToInt(_output.width / 8.0f), Mathf.CeilToInt(_output.height / 8.0f), 1);
+                _computeShader.Dispatch(0, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+                _computeShader.Dispatch(1, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+                _computeShader.Dispatch(2, Mathf.CeilToInt(Output.width / 8.0f), Mathf.CeilToInt(Output.height / 8.0f), 1);
                 RenderTexture.ReleaseTemporary(history);
                 RenderTexture.ReleaseTemporary(luma);
                 RenderTexture.ReleaseTemporary(lumaHistory);
@@ -122,13 +126,20 @@ namespace Conifer.Upscaler
                 commandBuffer.GetTemporaryRT(LumaHistoryID, _lumaHistory.descriptor);
                 commandBuffer.CopyTexture(_history, HistoryID);
                 commandBuffer.CopyTexture(_lumaHistory, LumaHistoryID);
-                commandBuffer.DispatchCompute(_computeShader, 0, Mathf.CeilToInt(_input.width / 8.0f), Mathf.CeilToInt(_input.height / 8.0f), 1);
-                commandBuffer.DispatchCompute(_computeShader, 1, Mathf.CeilToInt(_input.width / 8.0f), Mathf.CeilToInt(_input.height / 8.0f), 1);
-                commandBuffer.DispatchCompute(_computeShader, 2, Mathf.CeilToInt(_output.width / 8.0f), Mathf.CeilToInt(_output.height / 8.0f), 1);
+                commandBuffer.DispatchCompute(_computeShader, 0, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+                commandBuffer.DispatchCompute(_computeShader, 1, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+                commandBuffer.DispatchCompute(_computeShader, 2, Mathf.CeilToInt(Output.width / 8.0f), Mathf.CeilToInt(Output.height / 8.0f), 1);
                 commandBuffer.ReleaseTemporaryRT(HistoryID);
                 commandBuffer.ReleaseTemporaryRT(LumaID);
                 commandBuffer.ReleaseTemporaryRT(LumaHistoryID);
             }
+        }
+
+        public override void Dispose()
+        {
+            if (_history != null && _history.IsCreated()) _history?.Release();
+            if (_lumaHistory != null && _lumaHistory.IsCreated()) _lumaHistory?.Release();
+            if (_motionDepthAlpha != null && _motionDepthAlpha.IsCreated()) _motionDepthAlpha?.Release();
         }
     }
 }

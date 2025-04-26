@@ -2,26 +2,28 @@
 #ifdef ENABLE_DLSS
 #    include "GraphicsAPI/GraphicsAPI.hpp"
 #    include "Upscaler.hpp"
+#    include "Plugin.hpp"
+
+#    include <sl.h>
+#    include <sl_dlss.h>
 
 #    include <Windows.h>
 
-struct NVSDK_NGX_Resource_VK;
-struct NVSDK_NGX_Parameter;
-struct NVSDK_NGX_DLSS_Create_Params;
+#    include <array>
 
 class DLSS_Upscaler final : public Upscaler {
     static HMODULE library;
-    static SupportState supported;
+    static bool loaded;
 
     static uint64_t applicationID;
     static uint32_t users;
 
     static void* (*fpGetDevice)();
-    static Status (DLSS_Upscaler::*fpSetResources)(const std::array<void*, Plugin::NumImages>& images);
-    static Status (DLSS_Upscaler::*fpGetCommandBuffer)(void*&);
+    static Status (DLSS_Upscaler::*fpSetResources)(const std::array<void*, 4>& images);
+    static Status (*fpGetCommandBuffer)(void*&);
 
     sl::ViewportHandle handle{0};
-    std::array<sl::Resource, Plugin::NumBaseImages> resources{};
+    std::array<sl::Resource, 4> resources{};
 
     static decltype(&slInit)                   slInit;
     static decltype(&slSetD3DDevice)           slSetD3DDevice;
@@ -36,33 +38,45 @@ class DLSS_Upscaler final : public Upscaler {
     static decltype(&slFreeResources)          slFreeResources;
     static decltype(&slShutdown)               slShutdown;
 
-    Status setStatus(sl::Result t_error, const std::string& t_msg);
-
-    static void log(sl::LogType type, const char* msg);
-
 #    ifdef ENABLE_VULKAN
-    Status VulkanSetResources(const std::array<void*, Plugin::NumImages>& images);
-    Status VulkanGetCommandBuffer(void*& commandBuffer);
+    Status        VulkanSetResources(const std::array<void*, 4>& images);
+    static Status VulkanGetCommandBuffer(void*& commandBuffer);
 #    endif
 
 #    ifdef ENABLE_DX12
-    static void* DX12GetDevice();
-    Status       DX12SetResources(const std::array<void*, Plugin::NumImages>& images);
-    Status       DX12GetCommandBuffer(void*& commandList);
+    static void*  DX12GetDevice();
+    Status        DX12SetResources(const std::array<void*, 4>& images);
+    static Status DX12GetCommandBuffer(void*& commandList);
 #    endif
 
 #    ifdef ENABLE_DX11
-    static void* DX11GetDevice();
-    Status       DX11SetResources(const std::array<void*, Plugin::NumImages>& images);
-    Status       DX11GetCommandBuffer(void*& deviceContext);
+    static void*  DX11GetDevice();
+    Status        DX11SetResources(const std::array<void*, 4>& images);
+    static Status DX11GetCommandBuffer(void*& deviceContext);
 #    endif
 
+    static Status setStatus(sl::Result t_error);
+    static void log(sl::LogType /*unused*/, const char* msg);
+
+    [[nodiscard]] sl::DLSSMode getQuality(enum Quality quality) const;
+
 public:
+    std::array<float, 16> viewToClip;
+    std::array<float, 16> clipToView;
+    std::array<float, 16> clipToPrevClip;
+    std::array<float, 16> prevClipToClip;
+    std::array<float, 3> position;
+    std::array<float, 3> up;
+    std::array<float, 3> right;
+    std::array<float, 3> forward;
+    float farPlane;
+    float nearPlane;
+    float verticalFOV;
+
+    static bool loadedCorrectly();
     static void load(GraphicsAPI::Type type, void* vkGetProcAddrFunc);
     static void shutdown();
     static void unload();
-    static bool isSupported();
-    static bool isSupported(enum Settings::Quality mode);
     static void useGraphicsAPI(GraphicsAPI::Type type);
 
     DLSS_Upscaler();
@@ -72,16 +86,8 @@ public:
     DLSS_Upscaler& operator=(DLSS_Upscaler&&)      = delete;
     ~DLSS_Upscaler() override;
 
-    constexpr Type getType() override {
-        return DLSS;
-    }
-
-    constexpr std::string getName() override {
-        return "NVIDIA Deep Learning Super Sampling";
-    }
-
-    Status useSettings(Settings::Resolution resolution, Settings::DLSSPreset preset, enum Settings::Quality mode, bool hdr) override;
-    Status useImages(const std::array<void*, Plugin::NumImages>& images) override;
-    Status evaluate(Settings::Resolution inputResolution) override;
+    Status useSettings(Resolution resolution, Preset preset, enum Quality mode, bool hdr);
+    Status useImages(const std::array<void*, 4>& images);
+    Status evaluate(Resolution inputResolution);
 };
 #endif

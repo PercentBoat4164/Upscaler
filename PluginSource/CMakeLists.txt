@@ -265,7 +265,6 @@ add_library(GfxPluginUpscaler main.cpp
         ${VULKAN_SOURCES}
 
         GraphicsAPI/GraphicsAPI.cpp
-        Upscaler/None_Upscaler.cpp
         Upscaler/Upscaler.cpp
         Plugin.hpp
         FrameGenerator/FrameGenerator.cpp
