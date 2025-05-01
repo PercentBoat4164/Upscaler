@@ -18,7 +18,7 @@ namespace Conifer.Upscaler
         private static extern IntPtr CreateContextFidelityFXSuperResolution();
 
         [DllImport("GfxPluginUpscaler")]
-        private static extern Upscaler.Status UpdateContextFidelityFXSuperResolution(IntPtr handle, Vector2Int resolution, Upscaler.Quality mode, bool hdr);
+        private static extern Upscaler.Status UpdateContextFidelityFXSuperResolution(IntPtr handle, Vector2Int resolution, Upscaler.Quality mode, Flags flags);
 
         [DllImport("GfxPluginUpscaler")]
         private static extern Upscaler.Status SetImagesFidelityFXSuperResolution(IntPtr handle, IntPtr color, IntPtr depth, IntPtr motion, IntPtr output, IntPtr reactive, IntPtr opaque, bool autoReactive);
@@ -64,7 +64,7 @@ namespace Conifer.Upscaler
                 }
 
                 var backend = new FidelityFXSuperResolutionBackend();
-                var status = UpdateContextFidelityFXSuperResolution(backend._data.handle, new Vector2Int(32, 32), Upscaler.Quality.Auto, false);
+                var status = UpdateContextFidelityFXSuperResolution(backend._data.handle, new Vector2Int(32, 32), Upscaler.Quality.Auto, Flags.None);
                 backend.Dispose();
                 Supported = Upscaler.Success(status);
             }
@@ -84,10 +84,10 @@ namespace Conifer.Upscaler
             };
         }
 
-        public override Upscaler.Status ComputeInputResolutionConstraints(in Upscaler upscaler)
+        public override Upscaler.Status ComputeInputResolutionConstraints(in Upscaler upscaler, Flags flags)
         {
             if (!Supported) return Upscaler.Status.FatalRuntimeError;
-            var status = UpdateContextFidelityFXSuperResolution(_data.handle, upscaler.OutputResolution, upscaler.quality, upscaler.Camera.allowHDR);
+            var status = UpdateContextFidelityFXSuperResolution(_data.handle, upscaler.OutputResolution, upscaler.quality, flags);
             if (Upscaler.Failure(status)) return status;
             upscaler.RecommendedInputResolution = GetRecommendedResolution(_data.handle);
             upscaler.MinInputResolution = GetMinimumResolution(_data.handle);
@@ -95,7 +95,7 @@ namespace Conifer.Upscaler
             return status;
         }
 
-        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output)
+        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output, Flags flags)
         {
             if (!Supported) return Upscaler.Status.FatalRuntimeError;
             var inputsMatch = Input == input;
@@ -112,7 +112,9 @@ namespace Conifer.Upscaler
             {
                 needsImageRefresh = true;
                 Motion?.Release();
-                Motion = new RenderTexture(input.width, input.height, 0, GraphicsFormat.R16G16_SFloat);
+                Motion = (flags & Flags.OutputResolutionMotionVectors) == Flags.OutputResolutionMotionVectors ?
+                    new RenderTexture(output.width, output.height, 0, RenderTextureFormat.RGHalf) :
+                    new RenderTexture(input.width, input.height, 0, RenderTextureFormat.RGHalf);
                 Motion.Create();
             }
             if (upscaler.autoReactive && (!inputsMatch || _reactive == null))
@@ -142,7 +144,7 @@ namespace Conifer.Upscaler
             return needsImageRefresh ? SetImagesFidelityFXSuperResolution(_data.handle, input.GetNativeTexturePtr(), Depth.GetNativeTexturePtr(), Motion.GetNativeTexturePtr(), output.GetNativeTexturePtr(), _reactive?.GetNativeTexturePtr() ?? IntPtr.Zero, _opaque?.GetNativeTexturePtr() ?? IntPtr.Zero, upscaler.autoReactive) : Upscaler.Status.Success;
         }
 
-        public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null)
+        public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer, in Texture depth, in Texture motion, in Texture opaque = null)
         {
             if (!Supported || Upscaler.Failure(upscaler.CurrentStatus)) return;
             var nonJitteredProjectionMatrix = upscaler.Camera.nonJitteredProjectionMatrix;
@@ -157,22 +159,10 @@ namespace Conifer.Upscaler
                             Convert.ToUInt32(upscaler.shouldHistoryResetThisFrame) << 1;
             Marshal.StructureToPtr(_data, DataHandle, true);
 
-            if (commandBuffer == null)
-            {
-                if (upscaler.autoReactive) Graphics.CopyTexture(Shader.GetGlobalTexture(OpaqueID), _opaque);
-                Graphics.Blit(Shader.GetGlobalTexture(DepthID), Depth, CopyDepth, 0);
-                Graphics.CopyTexture(Shader.GetGlobalTexture(MotionVectorsID), Motion);
-                var cmdBuf = new CommandBuffer();
-                cmdBuf.IssuePluginEventAndData(EventCallback, 0, DataHandle);
-                Graphics.ExecuteCommandBuffer(cmdBuf);
-            }
-            else
-            {
-                if (upscaler.autoReactive) commandBuffer.CopyTexture(OpaqueID, _opaque);
-                commandBuffer.Blit(DepthID, Depth, CopyDepth, 0);
-                commandBuffer.CopyTexture(MotionVectorsID, Motion);
-                commandBuffer.IssuePluginEventAndData(EventCallback, 0, DataHandle);
-            }
+            if (depth != Depth) commandBuffer.Blit(depth, Depth, CopyDepth, 0);
+            if (motion != Motion) commandBuffer.CopyTexture(motion, Motion);
+            if (upscaler.autoReactive && motion != null) commandBuffer.CopyTexture(opaque, _opaque);
+            commandBuffer.IssuePluginEventAndData(EventCallback, 0, DataHandle);
         }
 
         public override void Dispose()

@@ -309,13 +309,13 @@ DLSS_Upscaler::~DLSS_Upscaler() {
     if (--users == 0) slSetFeatureLoaded(sl::kFeatureDLSS, false);
 }
 
-Upscaler::Status DLSS_Upscaler::useSettings(const Resolution resolution, const Preset preset, const enum Quality mode, const bool hdr) {
+Upscaler::Status DLSS_Upscaler::useSettings(const Resolution resolution, const Preset preset, const enum Quality mode, const Flags flags) {
     outputResolution = resolution;
     sl::DLSSOptions options;
     options.mode                 = getQuality(mode);
     options.outputWidth          = outputResolution.width;
     options.outputHeight         = outputResolution.height;
-    options.colorBuffersHDR      = hdr ? sl::eTrue : sl::eFalse;
+    options.colorBuffersHDR      = (flags & EnableHDR) == EnableHDR ? sl::eTrue : sl::eFalse;
     options.indicatorInvertAxisY = sl::eTrue;
     options.useAutoExposure      = sl::eTrue;
     switch (preset) {

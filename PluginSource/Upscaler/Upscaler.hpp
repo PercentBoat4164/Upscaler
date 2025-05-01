@@ -72,6 +72,13 @@ public:
         float x;
         float y;
     } jitter{};
+
+    enum Flags : uint8_t {
+        None = 0U,
+        OutputResolutionMotionVectors = 1U << 0U,
+        EnableHDR = 1U << 1U
+    };
+
     bool resetHistory{};
 
 protected:

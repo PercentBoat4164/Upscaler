@@ -239,7 +239,7 @@ FSR_Upscaler::~FSR_Upscaler() {
     context = nullptr;
 }
 
-Upscaler::Status FSR_Upscaler::useSettings(const Resolution resolution, const enum Quality mode, const bool hdr) {
+Upscaler::Status FSR_Upscaler::useSettings(const Resolution resolution, const enum Quality mode, const Flags flags) {
     outputResolution = resolution;
     ffxQueryDescUpscaleGetRenderResolutionFromQualityMode queryDescUpscaleGetRenderResolutionFromQualityMode {
         .header = {
@@ -269,7 +269,8 @@ Upscaler::Status FSR_Upscaler::useSettings(const Resolution resolution, const en
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE) |
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) |
             static_cast<uint32_t>(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) |
-            (hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
+            ((flags & OutputResolutionMotionVectors) == OutputResolutionMotionVectors ? FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS : 0U) |
+            ((flags & EnableHDR) == EnableHDR ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : 0U),
         .maxRenderSize  = FfxApiDimensions2D {outputResolution.width, outputResolution.height},
         .maxUpscaleSize = FfxApiDimensions2D {outputResolution.width, outputResolution.height},
         .fpMessage      = reinterpret_cast<decltype(ffxCreateContextDescUpscale::fpMessage)>(&FSR_Upscaler::log)

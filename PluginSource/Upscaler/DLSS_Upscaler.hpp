@@ -86,7 +86,7 @@ public:
     DLSS_Upscaler& operator=(DLSS_Upscaler&&)      = delete;
     ~DLSS_Upscaler() override;
 
-    Status useSettings(Resolution resolution, Preset preset, enum Quality mode, bool hdr);
+    Status useSettings(Resolution resolution, Preset preset, enum Quality mode, Flags flags);
     Status useImages(const std::array<void*, 4>& images);
     Status evaluate(Resolution inputResolution);
 };

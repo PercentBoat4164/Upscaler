@@ -1,5 +1,4 @@
 ﻿using System;
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -40,7 +39,7 @@ namespace Conifer.Upscaler
             _computeShader.SetFloat(PreExposureID, 1.0f);
         }
 
-        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output)
+        public override Upscaler.Status Update(in Upscaler upscaler, in Texture input, in Texture output, Flags flags)
         {
             if (!Supported) return Upscaler.Status.FatalRuntimeError;
             var inputsMatch = Input == input;
@@ -63,7 +62,7 @@ namespace Conifer.Upscaler
             {
                 _computeShader.SetTexture(0, MainTexID, input);
                 _motionDepthAlpha?.Release();
-                _motionDepthAlpha = new RenderTexture(input.width, input.height, 0, GraphicsFormat.R16G16B16A16_SFloat)
+                _motionDepthAlpha = new RenderTexture(upscaler.InputResolution.x, upscaler.InputResolution.y, 0, GraphicsFormat.R16G16B16A16_SFloat)
                 {
                     enableRandomWrite = true
                 };
@@ -73,7 +72,7 @@ namespace Conifer.Upscaler
                 _computeShader.SetTexture(2, MotionDepthAlphaBufferID, _motionDepthAlpha);
                 _computeShader.SetTexture(1, MotionDepthAlphaBufferSinkID, _motionDepthAlpha);
                 _lumaHistory?.Release();
-                _lumaHistory = new RenderTexture(input.width, input.height, 0, GraphicsFormat.R32_UInt)
+                _lumaHistory = new RenderTexture(upscaler.InputResolution.x, upscaler.InputResolution.y, 0, GraphicsFormat.R32_UInt)
                 {
                     enableRandomWrite = true
                 };
@@ -83,13 +82,15 @@ namespace Conifer.Upscaler
                 _computeShader.SetVector(RenderSizeRcpID, Vector2.one / upscaler.InputResolution);
             }
             if (!inputsMatch || !outputsMatch) _computeShader.SetVector(ScaleRatioID, new Vector4((float)upscaler.OutputResolution.x / upscaler.InputResolution.x, Mathf.Min(20.0f, Mathf.Pow((float)upscaler.OutputResolution.x * upscaler.OutputResolution.y / (upscaler.InputResolution.x * upscaler.InputResolution.y), 3.0f))));
+            if ((flags & Flags.OutputResolutionMotionVectors) == Flags.OutputResolutionMotionVectors) _computeShader.EnableKeyword(UseOutputResolutionMotionVectorsKeyword);
+            else _computeShader.DisableKeyword(UseOutputResolutionMotionVectorsKeyword);
 
             Output = output;
             Input = input;
             return Upscaler.Status.Success;
         }
 
-        public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer = null)
+        public override void Upscale(in Upscaler upscaler, in CommandBuffer commandBuffer, in Texture depth, in Texture motion, in Texture opaque = null)
         {
             if (!Supported) return;
             var cameraIsSame = IsSameCamera(upscaler.Camera);
@@ -98,41 +99,22 @@ namespace Conifer.Upscaler
             _computeShader.SetInt(SameCameraID, cameraIsSame ? 1 : 0);
             _computeShader.SetFloat(ResetID, Convert.ToSingle(upscaler.shouldHistoryResetThisFrame));
             _computeShader.SetVector(JitterOffsetID, upscaler.Jitter);
+            _computeShader.SetTexture(0, DepthID, depth ?? Texture2D.whiteTexture);
+            _computeShader.SetTexture(0, MotionVectorID, motion ?? Texture2D.blackTexture);
+            _computeShader.SetTexture(0, OpaqueID, opaque ?? Texture2D.blackTexture);
 
-            if (commandBuffer == null)
-            {
-                var history = RenderTexture.GetTemporary(_history.descriptor);
-                var luma = RenderTexture.GetTemporary(_lumaHistory.descriptor);
-                var lumaHistory = RenderTexture.GetTemporary(_lumaHistory.descriptor);
-                Graphics.CopyTexture(_history, history);
-                Graphics.CopyTexture(_lumaHistory, lumaHistory);
-                _computeShader.SetTexture(2, HistoryID, history);
-                _computeShader.SetTexture(0, LumaSinkID, luma);
-                _computeShader.SetTexture(1, LumaID, luma);
-                _computeShader.SetTexture(2, LumaID, luma);
-                _computeShader.SetTexture(1, LumaHistoryID, lumaHistory);
-                _computeShader.Dispatch(0, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
-                _computeShader.Dispatch(1, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
-                _computeShader.Dispatch(2, Mathf.CeilToInt(Output.width / 8.0f), Mathf.CeilToInt(Output.height / 8.0f), 1);
-                RenderTexture.ReleaseTemporary(history);
-                RenderTexture.ReleaseTemporary(luma);
-                RenderTexture.ReleaseTemporary(lumaHistory);
-            }
-            else
-            {
-                commandBuffer.GetTemporaryRT(HistoryID, _history.descriptor);
-                commandBuffer.GetTemporaryRT(LumaID, _lumaHistory.descriptor);
-                commandBuffer.SetGlobalTexture(LumaSinkID, LumaID);
-                commandBuffer.GetTemporaryRT(LumaHistoryID, _lumaHistory.descriptor);
-                commandBuffer.CopyTexture(_history, HistoryID);
-                commandBuffer.CopyTexture(_lumaHistory, LumaHistoryID);
-                commandBuffer.DispatchCompute(_computeShader, 0, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
-                commandBuffer.DispatchCompute(_computeShader, 1, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
-                commandBuffer.DispatchCompute(_computeShader, 2, Mathf.CeilToInt(Output.width / 8.0f), Mathf.CeilToInt(Output.height / 8.0f), 1);
-                commandBuffer.ReleaseTemporaryRT(HistoryID);
-                commandBuffer.ReleaseTemporaryRT(LumaID);
-                commandBuffer.ReleaseTemporaryRT(LumaHistoryID);
-            }
+            commandBuffer.GetTemporaryRT(HistoryID, _history.descriptor);
+            commandBuffer.GetTemporaryRT(LumaID, _lumaHistory.descriptor);
+            commandBuffer.SetGlobalTexture(LumaSinkID, LumaID);
+            commandBuffer.GetTemporaryRT(LumaHistoryID, _lumaHistory.descriptor);
+            commandBuffer.CopyTexture(_history, HistoryID);
+            commandBuffer.CopyTexture(_lumaHistory, LumaHistoryID);
+            commandBuffer.DispatchCompute(_computeShader, 0, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+            commandBuffer.DispatchCompute(_computeShader, 1, Mathf.CeilToInt(Input.width / 8.0f), Mathf.CeilToInt(Input.height / 8.0f), 1);
+            commandBuffer.DispatchCompute(_computeShader, 2, Mathf.CeilToInt(Output.width / 8.0f), Mathf.CeilToInt(Output.height / 8.0f), 1);
+            commandBuffer.ReleaseTemporaryRT(HistoryID);
+            commandBuffer.ReleaseTemporaryRT(LumaID);
+            commandBuffer.ReleaseTemporaryRT(LumaHistoryID);
         }
 
         public override void Dispose()

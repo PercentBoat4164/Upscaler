@@ -16,7 +16,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V1"
         {
         	Name "Conifer | Upscaler | Snapdragon Game Super Resolution 1 - Upscale"
             CGPROGRAM
-            #pragma multi_compile_local _ CONIFER__UPSCALER__USE_EDGE_DIRECTION
+            #pragma multi_compile_local_fragment _ CONIFER__UPSCALER__USE_EDGE_DIRECTION
             #pragma target 5.0
 
             #include "UnityCG.cginc"
@@ -26,7 +26,8 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V1"
 
             SamplerState linearClampSampler : register(s0);
             Texture2D    _MainTex : register(t0);
-            float4       Conifer_Upscaler_ViewportInfo : register(b0);
+            float4       Conifer_Upscaler_ViewportInfo;
+            float2       Conifer_Upscaler_InputScale;
             float        Conifer_Upscaler_Sharpness;
 
 #if defined(CONIFER__UPSCALER__USE_EDGE_DIRECTION)
@@ -50,6 +51,7 @@ Shader "Conifer/Upscaler/Snapdragon Game Super Resolution/V1"
 			half4 frag(v2f_img input) : SV_TARGET {
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				half4 pix = half4(0, 0, 0, 1);
+				input.uv = input.uv * Conifer_Upscaler_InputScale.xy;
 				pix.xyz = _MainTex.Sample(linearClampSampler, input.uv).xyz;
 
 				float2 imgCoord = input.uv * Conifer_Upscaler_ViewportInfo.zw + float2(-0.5, 0.5);

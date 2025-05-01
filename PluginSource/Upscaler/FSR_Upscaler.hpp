@@ -70,7 +70,7 @@ public:
 
     ~FSR_Upscaler() override;
 
-    Status useSettings(Resolution resolution, enum Quality mode, bool hdr);
+    Status useSettings(Resolution resolution, enum Quality mode, Flags flags);
     Status useImages(const std::array<void*, 6>& images);
     Status evaluate(Resolution inputResolution);
 };

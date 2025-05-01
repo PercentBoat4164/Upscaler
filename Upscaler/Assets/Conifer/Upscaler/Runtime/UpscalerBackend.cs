@@ -7,17 +7,21 @@ namespace Conifer.Upscaler
 {
     public abstract class UpscalerBackend : IDisposable
     {
-        protected static readonly int MainTexID = Shader.PropertyToID("_MainTex");
-#if CONIFER_UPSCALER_USE_URP
-        protected static readonly int BlitScaleBiasID = Shader.PropertyToID("_BlitScaleBias");
-#endif
+        [Flags]
+        public enum Flags : byte
+        {
+            None = 0,
+            OutputResolutionMotionVectors = 1 << 0,
+            EnableHDR = 1 << 1
+        }
 
         protected Texture Input;
         protected Texture Output;
 
-        public abstract Upscaler.Status ComputeInputResolutionConstraints([NotNull] in Upscaler upscaler);
-        public abstract Upscaler.Status Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input, [NotNull] in Texture output);
-        public abstract void Upscale([NotNull] in Upscaler upscaler, in CommandBuffer commandBuffer = null);
+        public abstract Upscaler.Status ComputeInputResolutionConstraints([NotNull] in Upscaler upscaler, Flags flags);
+        public abstract Upscaler.Status Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input, [NotNull] in Texture output, Flags flags);
+        public abstract void Upscale([NotNull] in Upscaler upscaler, [NotNull] in CommandBuffer commandBuffer,
+            in Texture depth, in Texture motion, in Texture opaque = null);
         public abstract void Dispose();
     }
 }

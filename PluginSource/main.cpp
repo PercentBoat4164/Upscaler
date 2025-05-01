@@ -64,7 +64,7 @@ void UNITY_INTERFACE_API UpscaleCallbackDeepLearningSuperSampling(const int /*un
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackDeepLearningSuperSampling() { return UpscaleCallbackDeepLearningSuperSampling; }
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyDeepLearningSuperSampling() { return DLSS_Upscaler::loadedCorrectly(); }
 extern "C" UNITY_INTERFACE_EXPORT DLSS_Upscaler* UNITY_INTERFACE_API CreateContextDeepLearningSuperSampling() { return new DLSS_Upscaler; }
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextDeepLearningSuperSampling(DLSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const Upscaler::Preset preset, const enum Upscaler::Quality mode, const bool hdr) { return upscaler->useSettings(resolution, preset, mode, hdr); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextDeepLearningSuperSampling(DLSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const Upscaler::Preset preset, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, preset, mode, flags); }
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesDeepLearningSuperSampling(DLSS_Upscaler* upscaler, void* color, void* depth, void* motion, void* output) { return upscaler->useImages({color, depth, motion, output}); }
 #pragma endregion
 #pragma region FidelityFX Super Resolution
@@ -104,7 +104,7 @@ void UNITY_INTERFACE_API UpscaleCallbackFidelityFXSuperResolution(const int /*un
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackFidelityFXSuperResolution() { return UpscaleCallbackFidelityFXSuperResolution; }
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyFidelityFXSuperResolution() { return FSR_Upscaler::loadedCorrectly(); }
 extern "C" UNITY_INTERFACE_EXPORT FSR_Upscaler* UNITY_INTERFACE_API CreateContextFidelityFXSuperResolution() { return new FSR_Upscaler; }
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextFidelityFXSuperResolution(FSR_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const bool hdr) { return upscaler->useSettings(resolution, mode, hdr); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextFidelityFXSuperResolution(FSR_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, mode, flags); }
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesFidelityFXSuperResolution(FSR_Upscaler* upscaler, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool autoReactive) {
     upscaler->autoReactive = autoReactive;
     return upscaler->useImages({color, depth, motion, output, reactive, opaque});
@@ -130,7 +130,7 @@ void UNITY_INTERFACE_API UpscaleCallbackXeSuperSampling(const int /*unused*/, vo
 extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackXeSuperSampling() { return UpscaleCallbackXeSuperSampling; }
 extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyXeSuperSampling() { return XeSS_Upscaler::loadedCorrectly(); }
 extern "C" UNITY_INTERFACE_EXPORT XeSS_Upscaler* UNITY_INTERFACE_API CreateContextXeSuperSampling() { return new XeSS_Upscaler; }
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextXeSuperSampling(XeSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const bool hdr) { return upscaler->useSettings(resolution, mode, hdr); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextXeSuperSampling(XeSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, mode, flags); }
 extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesXeSuperSampling(XeSS_Upscaler* upscaler, void* color, void* depth, void* motion, void* output) { return upscaler->useImages({color, depth, motion, output}); }
 #pragma endregion
 

@@ -9,6 +9,8 @@
 #pragma kernel activate
 #pragma kernel upscale
 
+#pragma multi_compile_local _ CONIFER__UPSCALER__ENABLE_OUTPUT_RESOLUTION_MOTION_VECTORS
+
 #define EPSILON 1.19e-07f
 #define SEPARATION 1.37e-05f
 #define TOLERANCE 1.0e-05f
@@ -19,14 +21,14 @@ RWTexture2D<half4> Conifer_Upscaler_NextHistory;
 Texture2D<half4>   Conifer_Upscaler_MotionDepthAlphaBuffer;
 RWTexture2D<half4> Conifer_Upscaler_MotionDepthAlphaBufferSink;
 Texture2D<uint>    Conifer_Upscaler_Luma;
-RWTexture2D<uint> Conifer_Upscaler_LumaSink;
-Texture2D<uint>   Conifer_Upscaler_LumaHistory;
-RWTexture2D<uint> Conifer_Upscaler_LumaNextHistory;
+RWTexture2D<uint>  Conifer_Upscaler_LumaSink;
+Texture2D<uint>    Conifer_Upscaler_LumaHistory;
+RWTexture2D<uint>  Conifer_Upscaler_LumaNextHistory;
 RWTexture2D<half4> Conifer_Upscaler_OutputSink;
-Texture2D<float>   _CameraDepthTexture;
-Texture2D<half2>   _CameraMotionVectorsTexture;
+Texture2D<float>   Conifer_Upscaler_Depth;
+Texture2D<half2>   Conifer_Upscaler_MotionVectors;
 Texture2D<half4>   _MainTex;
-Texture2D<half3>   _CameraOpaqueTexture;
+Texture2D<half3>   Conifer_Upscaler_Opaque;
 
 float2 Conifer_Upscaler_RenderSize;
 float2 Conifer_Upscaler_RenderSizeRcp;
@@ -42,17 +44,21 @@ half   Conifer_Upscaler_PreExposure;
 void convert(uint3 id : SV_DispatchThreadID) {
     float2 gatherCoord = id.xy * Conifer_Upscaler_RenderSizeRcp.xy;
 
-    half2 motion = _CameraMotionVectorsTexture.SampleLevel(pointClampSampler, gatherCoord, 0);
+#if defined(CONIFER__UPSCALER__ENABLE_OUTPUT_RESOLUTION_MOTION_VECTORS)
+    half2 motion = Conifer_Upscaler_MotionVectors.SampleLevel(pointClampSampler, gatherCoord, 0);
+#else
+    half2 motion = Conifer_Upscaler_MotionVectors.SampleLevel(pointClampSampler, gatherCoord, 0);
+#endif
 
     int2   InputPosBtmRight = int2(1, 1) + int2(id.xy);
-    float  NearestZ         = _CameraDepthTexture.Load(int3(InputPosBtmRight, 0)).x;
-    float4 topleft          = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord);
+    float  NearestZ         = Conifer_Upscaler_Depth.Load(int3(InputPosBtmRight, 0)).x;
+    float4 topleft          = Conifer_Upscaler_Depth.Gather(pointClampSampler, gatherCoord);
     NearestZ                = min(topleft.w, min(topleft.z, min(topleft.y, min(topleft.x, NearestZ))));
 
-    float2 topRight = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x, 0.0)).yz;
+    float2 topRight = Conifer_Upscaler_Depth.Gather(pointClampSampler, gatherCoord + float2(Conifer_Upscaler_RenderSizeRcp.x, 0.0)).yz;
     NearestZ        = min(topRight.y, min(topRight.x, NearestZ));
 
-    float2 bottomLeft = _CameraDepthTexture.Gather(pointClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y)).xy;
+    float2 bottomLeft = Conifer_Upscaler_Depth.Gather(pointClampSampler, gatherCoord + float2(0.0, Conifer_Upscaler_RenderSizeRcp.y)).xy;
     NearestZ          = min(bottomLeft.y, min(bottomLeft.x, NearestZ));
 
     half3 Colorrgb = _MainTex.Load(int3(id.xy, 0)).xyz;
@@ -69,7 +75,7 @@ void convert(uint3 id : SV_DispatchThreadID) {
     uint y11 = uint(Colorycocg.y * 2047.5);
     uint z10 = uint(Colorycocg.z * 1023.5);
 
-    half3 Colorprergb = _CameraOpaqueTexture.Load(int3(id.xy, 0)).xyz;
+    half3 Colorprergb = Conifer_Upscaler_Opaque.Load(int3(id.xy, 0)).xyz;
     Colorprergb /= max(max(Colorprergb.x, Colorprergb.y), Colorprergb.z) + Conifer_Upscaler_PreExposure;
     half3 delta                   = abs(Colorrgb - Colorprergb);
     Conifer_Upscaler_MotionDepthAlphaBufferSink[id.xy] = float4(motion, NearestZ, 350 * max(delta.x, max(delta.y, delta.z)));

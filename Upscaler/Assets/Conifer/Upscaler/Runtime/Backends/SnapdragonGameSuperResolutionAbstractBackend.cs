@@ -10,6 +10,15 @@ namespace Conifer.Upscaler
 {
     public abstract class SnapdragonGameSuperResolutionAbstractBackend : UpscalerBackend
     {
+        protected const string UseEdgeDirectionKeyword = "CONIFER__UPSCALER__USE_EDGE_DIRECTION";
+        protected const string UseOutputResolutionMotionVectorsKeyword = "CONIFER__UPSCALER__ENABLE_OUTPUT_RESOLUTION_MOTION_VECTORS";
+
+        protected static readonly int MainTexID = Shader.PropertyToID("_MainTex");
+        protected static readonly int DepthID = Shader.PropertyToID("Conifer_Upscaler_Depth");
+        protected static readonly int MotionVectorID = Shader.PropertyToID("Conifer_Upscaler_MotionVectors");
+        protected static readonly int OpaqueID = Shader.PropertyToID("Conifer_Upscaler_Opaque");
+
+        protected static readonly int InputScaleID = Shader.PropertyToID("Conifer_Upscaler_InputScale");
         protected static readonly int ViewportInfoID = Shader.PropertyToID("Conifer_Upscaler_ViewportInfo");
         protected static readonly int SharpnessID = Shader.PropertyToID("Conifer_Upscaler_Sharpness");
         protected static readonly int MotionDepthAlphaBufferID = Shader.PropertyToID("Conifer_Upscaler_MotionDepthAlphaBuffer");
@@ -44,7 +53,7 @@ namespace Conifer.Upscaler
             return vpDiff < 1e-5;
         }
 
-        public override Upscaler.Status ComputeInputResolutionConstraints(in Upscaler upscaler)
+        public override Upscaler.Status ComputeInputResolutionConstraints(in Upscaler upscaler, Flags flags)
         {
             double scale;
             switch (upscaler.quality)

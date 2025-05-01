@@ -22,11 +22,8 @@ namespace Conifer.Upscaler
         protected static extern void DestroyContext(IntPtr handle);
 
         protected IntPtr DataHandle;
-        protected RenderTexture Depth;
-        protected RenderTexture Motion;
+        public RenderTexture Depth;
+        public RenderTexture Motion;
         protected readonly Material CopyDepth = new (Shader.Find("Hidden/Conifer/BlitDepth"));
-        protected readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
-        protected readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
-        protected readonly int MotionVectorsID = Shader.PropertyToID("_CameraMotionVectorsTexture");
     }
 }

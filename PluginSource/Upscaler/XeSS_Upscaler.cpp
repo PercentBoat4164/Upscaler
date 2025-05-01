@@ -137,10 +137,10 @@ Upscaler::Status XeSS_Upscaler::VulkanSetImages(const std::array<void*, 4>& imag
 }
 
 Upscaler::Status XeSS_Upscaler::VulkanEvaluate(const Resolution inputResolution) const {
-    const auto motion = resources.at(Plugin::Motion).vulkan;
+    const xess_vk_image_view_info  motion = resources.at(Plugin::Motion).vulkan;
     const xess_vk_execute_params_t params {
       .colorTexture    = resources.at(Plugin::Color).vulkan,
-      .velocityTexture = resources.at(Plugin::Motion).vulkan,
+      .velocityTexture = motion,
       .depthTexture    = resources.at(Plugin::Depth).vulkan,
       .outputTexture   = resources.at(Plugin::Output).vulkan,
       .jitterOffsetX   = jitter.x,
@@ -351,7 +351,7 @@ XeSS_Upscaler::~XeSS_Upscaler() {
     context = nullptr;
 }
 
-Upscaler::Status XeSS_Upscaler::useSettings(const Resolution resolution, const enum Quality mode, const bool hdr) {
+Upscaler::Status XeSS_Upscaler::useSettings(const Resolution resolution, const enum Quality mode, const Flags flags) {
     outputResolution = resolution;
     const xess_d3d12_init_params_t params{
       .outputResolution = {.x = outputResolution.width, .y = outputResolution.height},
@@ -359,7 +359,8 @@ Upscaler::Status XeSS_Upscaler::useSettings(const Resolution resolution, const e
       .initFlags =
         static_cast<uint32_t>(XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE) |
         static_cast<uint32_t>(XESS_INIT_FLAG_INVERTED_DEPTH) |
-        (hdr ? 0U : XESS_INIT_FLAG_LDR_INPUT_COLOR)
+        ((flags & OutputResolutionMotionVectors) == OutputResolutionMotionVectors ? XESS_INIT_FLAG_HIGH_RES_MV : XESS_INIT_FLAG_NONE) |
+        ((flags & EnableHDR) == EnableHDR ? XESS_INIT_FLAG_LDR_INPUT_COLOR : XESS_INIT_FLAG_NONE)
     };
     if (context != nullptr) RETURN_WITH_MESSAGE_IF(setStatus(xessDestroyContext(context)), "Failed to destroy the Intel Xe Super Sampling context.");
     context = nullptr;
