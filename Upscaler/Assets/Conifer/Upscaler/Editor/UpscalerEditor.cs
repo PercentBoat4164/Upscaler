@@ -105,41 +105,46 @@ namespace Conifer.Upscaler.Editor
             var upscaler = (Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
 #if CONIFER_UPSCALER_USE_URP
-            var cameraData = camera.GetUniversalAdditionalCameraData();
-            var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
-                [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
-                    .Select((renderer, index) => new { renderer, index })
-                    .First(i => i.renderer == cameraData.scriptableRenderer).index];
-            if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
-            {
-                EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
-                if (GUILayout.Button("Disable 'Native RenderPass'.")) activeRenderer.useNativeRenderPass = false;
-            }
-            if (activeRenderer.rendererFeatures.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
-                EditorGUILayout.HelpBox("There must be a single UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
-            if (camera.GetComponents<Upscaler>().Length > 1)
-            {
-                EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
-                    MessageType.Error);
-                if (GUILayout.Button("Remove extra Upscaler components."))
-                    foreach (var component in camera.GetComponents<Upscaler>().Skip(1))
-                        DestroyImmediate(component);
-            }
-            if (!cameraData.renderPostProcessing)
-            {
-                EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
-                if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
+            if (GraphicsSettings.renderPipelineAsset?.GetType() == typeof(UniversalRenderPipelineAsset)) {
+                var cameraData = camera.GetUniversalAdditionalCameraData();
+                var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
+                    [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
+                        .Select((renderer, index) => new { renderer, index })
+                        .First(i => i.renderer == cameraData.scriptableRenderer).index];
+                if (activeRenderer.useNativeRenderPass && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
+                {
+                    EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
+                    if (GUILayout.Button("Disable 'Native RenderPass'.")) activeRenderer.useNativeRenderPass = false;
+                }
+                if (activeRenderer.rendererFeatures.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
+                    EditorGUILayout.HelpBox("There must be a single UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
+                if (camera.GetComponents<Upscaler>().Length > 1)
+                {
+                    EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
+                        MessageType.Error);
+                    if (GUILayout.Button("Remove extra Upscaler components."))
+                        foreach (var component in camera.GetComponents<Upscaler>().Skip(1))
+                            DestroyImmediate(component);
+                }
+                if (!cameraData.renderPostProcessing)
+                {
+                    EditorGUILayout.HelpBox("'Post Processing' must be enabled.", MessageType.Error);
+                    if (GUILayout.Button("Enable 'Post Processing'")) cameraData.renderPostProcessing = true;
+                }
             }
 #endif
             if (!Upscaler.IsSupported((Upscaler.Technique)_technique.intValue)) _technique.intValue = (int)Upscaler.GetBestSupportedTechnique();
             _technique.intValue = (int)(Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), (Upscaler.Technique)_technique.intValue, x => Upscaler.IsSupported((Upscaler.Technique)x), false);
-#if CONIFER_UPSCALER_USE_URP
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
-                if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
-                {
-                    EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
-                    if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
+#if CONIFER_UPSCALER_USE_URP
+                if (GraphicsSettings.renderPipelineAsset?.GetType() == typeof(UniversalRenderPipelineAsset)) {
+                    var cameraData = camera.GetUniversalAdditionalCameraData();
+                    if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
+                    {
+                        EditorGUILayout.HelpBox("Set 'Anti-aliasing' to 'No Anti-aliasing' for best results.", MessageType.Warning);
+                        if (GUILayout.Button("Set to 'No Anti-aliasing'")) cameraData.antialiasing = AntialiasingMode.None;
+                    }
                 }
 #endif
                 if (camera.allowMSAA)
@@ -147,9 +152,9 @@ namespace Conifer.Upscaler.Editor
                     EditorGUILayout.HelpBox("Disallow 'MSAA' for best results.", MessageType.Warning);
                     if (GUILayout.Button("Disallow 'MSAA'")) camera.allowMSAA = false;
                 }
-#if CONIFER_UPSCALER_USE_URP
             }
 
+#if CONIFER_UPSCALER_USE_URP
             if (upscaler.autoReactive && upscaler.technique == Upscaler.Technique.FidelityFXSuperResolution)
             {
                 if (UniversalRenderPipeline.asset?.supportsCameraOpaqueTexture is false)
