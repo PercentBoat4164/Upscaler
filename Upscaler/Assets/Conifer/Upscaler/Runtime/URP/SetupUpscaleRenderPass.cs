@@ -1,6 +1,8 @@
+#if CONIFER_UPSCALER_USE_URP
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace Conifer.Upscaler.URP
@@ -43,6 +45,7 @@ namespace Conifer.Upscaler.URP
                     builder.AllowPassCulling(false);
                     builder.AllowGlobalStateModification(true);
                 }
+                upscaler.Jitter -= new Vector2(0.5f, 0.5f);
                 var resources = frameData.Get<UniversalResourceData>();
                 var descriptor = renderGraph.GetTextureDesc(resources.cameraColor);
                 descriptor.width = upscaler.InputResolution.x;
@@ -127,3 +130,4 @@ namespace Conifer.Upscaler.URP
         }
     }
 }
+#endif

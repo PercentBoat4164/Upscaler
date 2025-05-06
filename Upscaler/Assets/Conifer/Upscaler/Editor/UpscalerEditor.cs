@@ -105,7 +105,7 @@ namespace Conifer.Upscaler.Editor
             var upscaler = (Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
 #if CONIFER_UPSCALER_USE_URP
-            if (GraphicsSettings.renderPipelineAsset?.GetType() == typeof(UniversalRenderPipelineAsset)) {
+            if (GraphicsSettings.currentRenderPipelineAssetType == typeof(UniversalRenderPipelineAsset)) {
                 var cameraData = camera.GetUniversalAdditionalCameraData();
                 var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
                     [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
@@ -138,7 +138,7 @@ namespace Conifer.Upscaler.Editor
             if ((Upscaler.Technique)_technique.intValue != Upscaler.Technique.None)
             {
 #if CONIFER_UPSCALER_USE_URP
-                if (GraphicsSettings.renderPipelineAsset?.GetType() == typeof(UniversalRenderPipelineAsset)) {
+                if (GraphicsSettings.currentRenderPipelineAssetType == typeof(UniversalRenderPipelineAsset)) {
                     var cameraData = camera.GetUniversalAdditionalCameraData();
                     if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                     {

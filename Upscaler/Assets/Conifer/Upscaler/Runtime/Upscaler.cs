@@ -470,9 +470,11 @@ namespace Conifer.Upscaler
          */
         public static bool NativePluginLoaded() => NativeInterface.Loaded;
 
+        public UpscalerBackend.Flags PreviousFlags;
+
         private bool InternalApplySettings(UpscalerBackend.Flags flags)
         {
-            var needsUpdate = _stale;
+            var needsUpdate = _stale || flags != PreviousFlags;
             _stale = false;
             var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
@@ -556,6 +558,7 @@ namespace Conifer.Upscaler
             PreviousReactiveThreshold = reactiveThreshold;
             PreviousFrameGeneration = frameGeneration;
             PreviousUseAsyncCompute = useAsyncCompute;
+            PreviousFlags = flags;
             _hdr = Camera.allowHDR;
 
             var bias = (float)OutputResolution.x / InputResolution.x;

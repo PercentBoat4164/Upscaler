@@ -1,3 +1,4 @@
+#if CONIFER_UPSCALER_USE_URP
 using System;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -115,3 +116,4 @@ namespace Conifer.Upscaler.URP
         }
     }
 }
+#endif

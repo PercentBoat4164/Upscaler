@@ -4,9 +4,9 @@
  **************************************************/
 
 #if CONIFER_UPSCALER_USE_URP
+using System;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -34,6 +34,7 @@ namespace Conifer.Upscaler.URP
         }
 
         private bool _isResizingThisFrame;
+        private bool _lastCompatibilityMode;
         private readonly SetupUpscaleRenderPass _setupUpscale = new();
         private readonly UpscaleRenderPass _upscale = new();
 #if !UNITY_6000_0_OR_NEWER
@@ -64,19 +65,34 @@ namespace Conifer.Upscaler.URP
                 return;
             }
 
+            var compatibilityMode = GraphicsSettings.GetRenderPipelineSettings<RenderGraphSettings>().enableRenderCompatibilityMode;
+            needsUpdate |= compatibilityMode != _lastCompatibilityMode;
+            _lastCompatibilityMode = compatibilityMode;
+
             if (needsUpdate)
             {
-                var cameraTargetFormat = upscaler.Camera.allowHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
-                var descriptor = new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, cameraTargetFormat)
+                var descriptor = new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat)
                 {
                     enableRandomWrite = true  //@todo: Only enable this if needed.
                 };
+#if UNITY_6000_0_OR_NEWER
+                RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Output, descriptor, name: "Conifer_Upscaler_Destination");
+                if (compatibilityMode) RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat), name: "Conifer_Upscaler_Source");
+                else RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.InputResolution.x, upscaler.InputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat), name: "Conifer_Upscaler_Source");
+#else
                 RenderingUtils.ReAllocateIfNeeded(ref _upscale.Output, descriptor, name: "Conifer_Upscaler_Destination");
                 RenderingUtils.ReAllocateIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, cameraTargetFormat), name: "Conifer_Upscaler_Source");
+#endif
                 var flags = upscaler.Camera.allowHDR ? UpscalerBackend.Flags.EnableHDR : UpscalerBackend.Flags.None;
                 if (Upscaler.Failure(upscaler.CurrentStatus = upscaler.Backend.Update(upscaler, _upscale.Color, _upscale.Output, flags | UpscalerBackend.Flags.OutputResolutionMotionVectors))) return;
                 if (upscaler.Backend is NativeAbstractBackend backend) _upscale.Depth = RTHandles.Alloc(backend.Depth);
+#if UNITY_6000_0_OR_NEWER
+                else
+                    if (compatibilityMode) RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Depth, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, RenderTextureFormat.Shadowmap, 32));
+                    else RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Depth, new RenderTextureDescriptor(upscaler.InputResolution.x, upscaler.InputResolution.y, RenderTextureFormat.Shadowmap, 32));
+#else
                 else RenderingUtils.ReAllocateIfNeeded(ref _upscale.Depth, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, RenderTextureFormat.Shadowmap, 32));
+#endif
             }
 
             var needsHistoryReset = false;
@@ -105,7 +121,7 @@ namespace Conifer.Upscaler.URP
         }
 
 #if UNITY_6000_0_OR_NEWER
-        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.")]
 #endif
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
@@ -125,8 +141,8 @@ namespace Conifer.Upscaler.URP
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposing) return;
 #if !UNITY_6000_0_OR_NEWER
+            if (!disposing) return;
             _generate.Dispose();
 #endif
         }
