@@ -1,6 +1,7 @@
 #include "GraphicsAPI.hpp"
 
 #include "Plugin.hpp"
+#include "Upscaler/Upscaler.hpp"
 
 #ifdef ENABLE_VULKAN
 #    include "Vulkan.hpp"
@@ -18,7 +19,9 @@
 #    include "DX11.hpp"
 #endif
 
-#include "Upscaler/Upscaler.hpp"
+#ifdef ENABLE_DLSS
+#    include "Upscaler/DLSS_Upscaler.hpp"
+#endif
 
 GraphicsAPI::Type GraphicsAPI::type = NONE;
 
@@ -28,13 +31,6 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererVulkan: {
             type = VULKAN;
             Upscaler::useGraphicsAPI(type);
-            constexpr UnityVulkanPluginEventConfig eventConfig {
-              .renderPassPrecondition = kUnityVulkanRenderPass_EnsureOutside,
-              .graphicsQueueAccess    = kUnityVulkanGraphicsQueueAccess_DontCare,
-              .flags                  = kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState
-            };
-            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
-            Vulkan::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             break;
         }
 #endif
@@ -42,13 +38,6 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
         case kUnityGfxRendererD3D12: {
             type = DX12;
             Upscaler::useGraphicsAPI(type);
-            constexpr UnityD3D12PluginEventConfig eventConfig {
-              .graphicsQueueAccess              = kUnityD3D12GraphicsQueueAccess_DontCare,
-              .flags                            = kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState,
-              .ensureActiveRenderTextureIsBound = false
-            };
-            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::Upscale, &eventConfig);
-            DX12::getGraphicsInterface()->ConfigureEvent(Plugin::Unity::eventIDBase + Plugin::Events::FrameGenerate, &eventConfig);
             Upscaler::load(DX12);
             break;
         }
@@ -70,7 +59,9 @@ void GraphicsAPI::initialize(const UnityGfxRenderer renderer) {
 }
 
 void GraphicsAPI::shutdown() {
-    Upscaler::shutdown();
+#ifdef ENABLE_DLSS
+    DLSS_Upscaler::shutdown();
+#endif
     type = NONE;
 }
 

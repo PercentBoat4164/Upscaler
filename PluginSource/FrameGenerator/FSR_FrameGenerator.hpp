@@ -63,7 +63,7 @@ public:
         if (asyncComputeSupported) std::construct_at(&createContextDescFrameGenerationSwapChainVk.asyncComputeQueue, Vulkan::getQueue(asyncCompute.family, asyncCompute.index), asyncCompute.family, nullptr);
 
         if (FSR_Upscaler::ffxCreateContext(&swapchainContext, &createContextDescFrameGenerationSwapChainVk.header, nullptr) != FFX_API_RETURN_OK)
-            return Plugin::log("Failed to create swapchain context.", kUnityLogTypeError);
+            return Plugin::log("Failed to create swapchain context.");
 
         ffxCreateContextDescFrameGeneration createContextDescFrameGeneration{};
         createContextDescFrameGeneration.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATION;
@@ -83,14 +83,14 @@ public:
         createBackendVkDesc.vkDeviceProcAddr = Vulkan::getDeviceProcAddr();
         createContextDescFrameGeneration.header.pNext = &createBackendVkDesc.header;
         if (FSR_Upscaler::ffxCreateContext(&context, &createContextDescFrameGeneration.header, nullptr) != FFX_API_RETURN_OK || context == nullptr)
-            return Plugin::log("Failed to create frame generation context.", kUnityLogTypeError);
+            return Plugin::log("Failed to create frame generation context.");
         swapchain.vulkan = *pSwapchain;
         backBufferFormat = vkFormatToUnityFormat(pCreateInfo->imageFormat);
 
         ffxQueryDescSwapchainReplacementFunctionsVK replacementFunctionsVk{};
         replacementFunctionsVk.header.type = FFX_API_QUERY_DESC_TYPE_FGSWAPCHAIN_FUNCTIONS_VK;
         if (FSR_Upscaler::ffxQuery(&swapchainContext, &replacementFunctionsVk.header) != FFX_API_RETURN_OK)
-          return Plugin::log("Failed to query swapchain functions.", kUnityLogTypeError);
+          return Plugin::log("Failed to query swapchain functions.");
         if (pCreate != VK_NULL_HANDLE) *pCreate = replacementFunctionsVk.pOutCreateSwapchainFFXAPI;
         if (pDestroy != VK_NULL_HANDLE) *pDestroy = replacementFunctionsVk.pOutDestroySwapchainFFXAPI;
         if (pGet != VK_NULL_HANDLE) *pGet = replacementFunctionsVk.pOutGetSwapchainImagesKHR;
@@ -117,7 +117,7 @@ public:
             std::construct_at(&configureDescFrameGeneration.generationRect, 0, 0, 0, 0);
             configureDescFrameGeneration.frameID                            = 0;
             if (FSR_Upscaler::ffxConfigure(&context, &configureDescFrameGeneration.header) != FFX_API_RETURN_OK)
-                Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
+                Plugin::log("Failed to configure frame generation.");
         }
         if (swapchainContext != nullptr) FSR_Upscaler::ffxDestroyContext(&swapchainContext, nullptr);
         swapchainContext = nullptr;
@@ -211,7 +211,7 @@ public:
         configureDescFrameGeneration.generationRect                     = generationRect;
         configureDescFrameGeneration.frameID                            = frameNumber;
         if (FSR_Upscaler::ffxConfigure(&context, &configureDescFrameGeneration.header) != FFX_API_RETURN_OK)
-            Plugin::log("Failed to configure frame generation.", kUnityLogTypeError);
+            Plugin::log("Failed to configure frame generation.");
 
         if (configureDescFrameGeneration.frameGenerationEnabled) {
             UnityVulkanRecordingState state {};
@@ -234,7 +234,7 @@ public:
             dispatchDescFrameGenerationPrepare.depth                   = depthResource;
             dispatchDescFrameGenerationPrepare.motionVectors           = motionResource;
             if (FSR_Upscaler::ffxDispatch(&context, &dispatchDescFrameGenerationPrepare.header) != FFX_API_RETURN_OK)
-                Plugin::log("Failed to dispatch frame generation prepare command.", kUnityLogTypeError);
+                Plugin::log("Failed to dispatch frame generation prepare command.");
         }
         ++frameNumber;
     }

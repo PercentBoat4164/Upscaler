@@ -15,7 +15,7 @@ include(CMakeDependentOption)
 # Options #
 ###########
 
-function (ConiferOnIfTruthy ITEM_LIST VARIABLE_LIST)
+function (OnIfTruthy ITEM_LIST VARIABLE_LIST)
     foreach (ITEM IN ZIP_LISTS ITEM_LIST VARIABLE_LIST)
         if (${ITEM_1})
             set(${ITEM_0} ON PARENT_SCOPE)
@@ -36,13 +36,13 @@ cmake_dependent_option(ENABLE_XESS "Compiles with XeSS support." ON "WIN32" OFF)
 cmake_dependent_option(ENABLE_FRAME_GENERATION "Compiles with frame generation support." ON "WIN32" OFF)
 
 if (ENABLE_DLSS)
-    ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
+    OnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;ON")
 endif ()
 if (ENABLE_FSR)
-    ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;OFF")
+    OnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "ON;ON;OFF")
 endif ()
 if (ENABLE_XESS)
-    ConiferOnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "OFF;ON;OFF")
+    OnIfTruthy("SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11" "OFF;ON;OFF")
 endif ()
 foreach (ITEM SHOULD_ENABLE_VULKAN;SHOULD_ENABLE_DX12;SHOULD_ENABLE_DX11)
     if (NOT ${ITEM})
@@ -55,7 +55,7 @@ endforeach ()
 # Paths and Warnings #
 ######################
 
-function (ConiferFilterList ITEM_LIST VARIABLE_LIST _OUTPUT_VARIABLE)
+function (FilterList ITEM_LIST VARIABLE_LIST _OUTPUT_VARIABLE)
     set(${_OUTPUT_VARIABLE} "")
     foreach (ITEM IN ZIP_LISTS ITEM_LIST VARIABLE_LIST)
         if (${${ITEM_1}})
@@ -65,7 +65,7 @@ function (ConiferFilterList ITEM_LIST VARIABLE_LIST _OUTPUT_VARIABLE)
     set(${_OUTPUT_VARIABLE} ${${_OUTPUT_VARIABLE}} PARENT_SCOPE)
 endfunction ()
 
-function (ConiferListToString INPUT_LIST _OUTPUT_STRING)
+function (ListToString INPUT_LIST _OUTPUT_STRING)
     set(${_OUTPUT_STRING} "")
     list(LENGTH INPUT_LIST OUTPUT_LIST_LEN)
     if (OUTPUT_LIST_LEN EQUAL ZERO)
@@ -85,11 +85,11 @@ function (ConiferListToString INPUT_LIST _OUTPUT_STRING)
     set(${_OUTPUT_STRING} ${${_OUTPUT_STRING}} PARENT_SCOPE)
 endfunction ()
 
-ConiferFilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
-ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
+FilterList("Vulkan;DirectX 12;DirectX 11" "ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11" FILTERED_LIST)
+ListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with support for ${FINAL_STRING}.")
-ConiferFilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR;ENABLE_XESS" FILTERED_LIST)
-ConiferListToString("${FILTERED_LIST}" FINAL_STRING)
+FilterList("NVIDIA's Deep Learning Super Sampling;AMD's FidelityFX Super Resolution 3;Intel's Xe Super Sampling" "ENABLE_DLSS;ENABLE_FSR;ENABLE_XESS" FILTERED_LIST)
+ListToString("${FILTERED_LIST}" FINAL_STRING)
 message(STATUS "Compiling with ${FINAL_STRING}.")
 if (ENABLE_FRAME_GENERATION)
     message(STATUS "Compiling with Frame Generation.")
@@ -105,7 +105,7 @@ if (NOT ENABLE_VULKAN AND NOT ENABLE_DX12 AND NOT ENABLE_DX11)
     message(FATAL_ERROR "No graphics API(s) were enabled.")
 endif ()
 
-cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/external/Streamline-2.7.2")
+cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/external/streamline-sdk-v2.8.0")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/external/ffx_sdk")
 cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/external/XeSS_SDK_2.0.1")
 set(DESIRED_UNITY_VERSION "2022.3.23f1")
@@ -185,7 +185,7 @@ endif ()
 if (ENABLE_DLSS)
     add_library(streamline INTERFACE)
     target_include_directories(streamline INTERFACE "${STREAMLINE_SDK_DIR}/include")
-    list(APPEND CONIFER_LIBRARIES streamline)
+    list(APPEND UPSCALER_LIBRARIES streamline)
     set(STREAMLINE_DLL_DIR "${STREAMLINE_SDK_DIR}/bin/x64/")
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(STREAMLINE_DLL_DIR "${STREAMLINE_DLL_DIR}development/")
@@ -195,14 +195,14 @@ endif ()
 
 # Set up the FSR libraries
 if (ENABLE_FSR)
-    function (ConiferAddFSRLibrary LIBRARY_NAME LIBRARY_PATH LIBRARY_FILENAME)
+    function (AddFSRLibrary LIBRARY_NAME LIBRARY_PATH LIBRARY_FILENAME)
         if (CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
             set(LIBRARY_FILENAME "${LIBRARY_FILENAME}d")
         endif ()
         add_library(${LIBRARY_NAME} INTERFACE)
         target_include_directories(${LIBRARY_NAME} INTERFACE ${ARGN})
-        list(APPEND CONIFER_LIBRARIES ${LIBRARY_NAME})
-        set(CONIFER_LIBRARIES ${CONIFER_LIBRARIES} PARENT_SCOPE)
+        list(APPEND UPSCALER_LIBRARIES ${LIBRARY_NAME})
+        set(UPSCALER_LIBRARIES ${UPSCALER_LIBRARIES} PARENT_SCOPE)
         list(APPEND LIBRARIES_TO_COPY "${LIBRARY_PATH}/${LIBRARY_FILENAME}.dll")
         if (CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
             list(APPEND LIBRARIES_TO_COPY "${LIBRARY_PATH}/${LIBRARY_FILENAME}.pdb")
@@ -211,17 +211,17 @@ if (ENABLE_FSR)
     endfunction ()
 
     if (ENABLE_VULKAN)
-        ConiferAddFSRLibrary(fsr_vk "${FFX_SDK_DIR}/lib" "amd_fidelityfx_vk" "${FFX_SDK_DIR}/ffx_api" "${FFX_SDK_DIR}")
+        AddFSRLibrary(fsr_vk "${FFX_SDK_DIR}/lib" "amd_fidelityfx_vk" "${FFX_SDK_DIR}/ffx_api" "${FFX_SDK_DIR}")
     endif ()
     if (ENABLE_DX12)
-        ConiferAddFSRLibrary(fsr_dx12 "${FFX_SDK_DIR}/lib" "amd_fidelityfx_dx12" "${FFX_SDK_DIR}/ffx_api" "${FFX_SDK_DIR}")
+        AddFSRLibrary(fsr_dx12 "${FFX_SDK_DIR}/lib" "amd_fidelityfx_dx12" "${FFX_SDK_DIR}/ffx_api" "${FFX_SDK_DIR}")
     endif ()
 endif ()
 
 if (ENABLE_XESS)
     add_library(xess INTERFACE)
     target_include_directories(xess INTERFACE "${XESS_SDK_DIR}/inc")
-    list(APPEND CONIFER_LIBRARIES xess)
+    list(APPEND UPSCALER_LIBRARIES xess)
     list(APPEND LIBRARIES_TO_COPY "${XESS_SDK_DIR}/bin/libxess.dll" "${XESS_SDK_DIR}/bin/libxess_dx11.dll")
 endif ()
 
@@ -265,7 +265,6 @@ add_library(GfxPluginUpscaler main.cpp
         ${VULKAN_SOURCES}
 
         GraphicsAPI/GraphicsAPI.cpp
-        Upscaler/None_Upscaler.cpp
         Upscaler/Upscaler.cpp
         Plugin.hpp
         FrameGenerator/FrameGenerator.cpp
@@ -293,7 +292,7 @@ if (ENABLE_VULKAN)
 endif ()
 
 # Link selected upscaler libraries
-target_link_libraries(GfxPluginUpscaler ${CONIFER_LIBRARIES})
+target_link_libraries(GfxPluginUpscaler ${UPSCALER_LIBRARIES})
 
 # Add compile definitions
 foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR;ENABLE_XESS;ENABLE_FRAME_GENERATION)
@@ -303,7 +302,7 @@ foreach (ITEM ENABLE_VULKAN;ENABLE_DX12;ENABLE_DX11;ENABLE_DLSS;ENABLE_FSR;ENABL
 endforeach ()
 
 # Copy the resulting shared library to the Unity Project's Asset/Plugins directory.
-ConiferListToString("${LIBRARIES_TO_COPY}" LIBRARIES_TO_COPY_STRING)
+ListToString("${LIBRARIES_TO_COPY}" LIBRARIES_TO_COPY_STRING)
 add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Copying ${LIBRARIES_TO_COPY_STRING} to ${PLUGINS_DIR}.")
 add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E rm -rf ${PLUGINS_DIR}/*.dll ${PLUGINS_DIR}/*.pdb ${PLUGINS_DIR}/*.meta)
 add_custom_command(TARGET GfxPluginUpscaler POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${LIBRARIES_TO_COPY} ${PLUGINS_DIR})

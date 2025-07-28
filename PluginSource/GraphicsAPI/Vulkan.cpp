@@ -1,4 +1,3 @@
-#include <iostream>
 #ifdef ENABLE_VULKAN
 #    include "Vulkan.hpp"
 
@@ -9,6 +8,9 @@
 #    ifdef ENABLE_FSR
 #        include <FrameGenerator/FSR_FrameGenerator.hpp>
 #        include <Upscaler/FSR_Upscaler.hpp>
+#    endif
+#    ifdef ENABLE_XESS
+#        include "Upscaler/XeSS_Upscaler.hpp"
 #    endif
 
 #    include <IUnityGraphicsVulkan.h>
@@ -219,10 +221,10 @@ void Vulkan::destroyDummySurface(void* hwnd, VkSurfaceKHR dummySurface) {
 
 VkResult Vulkan::hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) {
     VkResult result{VK_SUCCESS};
-#ifdef ENABLE_DLSS
+#    ifdef ENABLE_DLSS
     if (m_slCreateInstance != VK_NULL_HANDLE) result = m_slCreateInstance(pCreateInfo, pAllocator, pInstance);
     else
-#endif
+#    endif
         result = m_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
     instance = *pInstance;
     return result;

@@ -1,122 +1,179 @@
-#include "FrameGenerator/FrameGenerator.hpp"
-#ifdef ENABLE_FSR
-#include "FrameGenerator/FSR_FrameGenerator.hpp"
+#ifdef ENABLE_FRAME_GENERATION
+#    include "FrameGenerator/FrameGenerator.hpp"
+#    ifdef ENABLE_FSR
+#        include "FrameGenerator/FSR_FrameGenerator.hpp"
+#    endif
 #endif
-#include "GraphicsAPI/Vulkan.hpp"
+#ifdef ENABLE_VULKAN
+    #include "GraphicsAPI/Vulkan.hpp"
+#endif
 #include "Plugin.hpp"
+#include "Upscaler/DLSS_Upscaler.hpp"
 #include "Upscaler/Upscaler.hpp"
+#include "Upscaler/XeSS_UPscaler.hpp"
 
 #include "IUnityRenderingExtensions.h"
 #include "IUnityShaderCompilerAccess.h"
 
-#include <memory>
 #include <vector>
 
 // Use 'handle SIGXCPU SIGPWR SIG35 SIG36 SIG37 nostop noprint' to prevent Unity's signals with GDB on Linux.
 // Use 'pro hand -p true -s false SIGXCPU SIGPWR' for LLDB on Linux.
 
-static std::vector<std::unique_ptr<Upscaler>> upscalers = {};
-#ifdef ENABLE_FRAME_GENERATION
-static std::unique_ptr<FrameGenerator> frameGenerator{};
-#endif
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyPlugin() { return Plugin::loadedCorrectly; }
 
-struct alignas(128) UpscaleData {
+#pragma region Deep Learning Super Sampling
+struct DeepLearningSuperSamplingUpscaleData
+{
+    DLSS_Upscaler* handle;
+    std::array<float, 16> viewToClip;
+    std::array<float, 16> clipToView;
+    std::array<float, 16> clipToPrevClip;
+    std::array<float, 16> prevClipToClip;
+    std::array<float, 3> position;
+    std::array<float, 3> up;
+    std::array<float, 3> right;
+    std::array<float, 3> forward;
+    float farPlane;
+    float nearPlane;
+    float verticalFOV;
+    Upscaler::Jitter jitter;
+    Upscaler::Resolution inputResolution;
+    bool resetHistory;
+};
+
+void UNITY_INTERFACE_API UpscaleCallbackDeepLearningSuperSampling(const int /*unused*/, void* d) {
+    const auto&    data = *static_cast<DeepLearningSuperSamplingUpscaleData*>(d);
+    DLSS_Upscaler& dlss = *data.handle;
+    dlss.viewToClip     = data.viewToClip;
+    dlss.clipToView     = data.clipToView;
+    dlss.clipToPrevClip = data.clipToPrevClip;
+    dlss.prevClipToClip = data.prevClipToClip;
+    dlss.position       = data.position;
+    dlss.up             = data.up;
+    dlss.right          = data.right;
+    dlss.forward        = data.forward;
+    dlss.farPlane       = data.farPlane;
+    dlss.nearPlane      = data.nearPlane;
+    dlss.verticalFOV    = data.verticalFOV;
+    dlss.resetHistory   = data.resetHistory;
+    dlss.jitter         = data.jitter;
+    dlss.evaluate(data.inputResolution);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackDeepLearningSuperSampling() { return UpscaleCallbackDeepLearningSuperSampling; }
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyDeepLearningSuperSampling() { return DLSS_Upscaler::loadedCorrectly(); }
+extern "C" UNITY_INTERFACE_EXPORT DLSS_Upscaler* UNITY_INTERFACE_API CreateContextDeepLearningSuperSampling() { return new DLSS_Upscaler; }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextDeepLearningSuperSampling(DLSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const Upscaler::Preset preset, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, preset, mode, flags); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesDeepLearningSuperSampling(DLSS_Upscaler* upscaler, void* color, void* depth, void* motion, void* output) { return upscaler->useImages({color, depth, motion, output}); }
+#pragma endregion
+#pragma region FidelityFX Super Resolution
+struct FidelityFXSuperResolutionUpscaleData
+{
+    FSR_Upscaler* handle;
     float frameTime;
     float sharpness;
     float reactiveValue;
     float reactiveScale;
     float reactiveThreshold;
-    uint16_t camera;
-    float viewToClip[16];
-    float clipToView[16];
-    float clipToPrevClip[16];
-    float prevClipToClip[16];
     float farPlane;
     float nearPlane;
     float verticalFOV;
-    float position[3];
-    float up[3];
-    float right[3];
-    float forward[3];
-    float jitter[2];
-    int inputResolution[2];
+    Upscaler::Jitter jitter;
+    Upscaler::Resolution inputResolution;
     unsigned options;
 };
 
-struct alignas(64) FrameGenerateData {
-    bool enable;
-    float rect[4];
-    float renderSize[2];
-    float jitter[2];
+void UNITY_INTERFACE_API UpscaleCallbackFidelityFXSuperResolution(const int /*unused*/, void* d) {
+    const auto&   data    = *static_cast<FidelityFXSuperResolutionUpscaleData*>(d);
+    FSR_Upscaler& fsr     = *data.handle;
+    fsr.farPlane          = data.farPlane;
+    fsr.nearPlane         = data.nearPlane;
+    fsr.verticalFOV       = data.verticalFOV;
+    fsr.frameTime         = data.frameTime;
+    fsr.sharpness         = data.sharpness;
+    fsr.reactiveValue     = data.reactiveValue;
+    fsr.reactiveScale     = data.reactiveScale;
+    fsr.reactiveThreshold = data.reactiveThreshold;
+    fsr.debugView         = (data.options & 0x1U) != 0U;
+    fsr.resetHistory      = (data.options & 0x2U) != 0U;
+    fsr.jitter            = data.jitter;
+    fsr.evaluate(data.inputResolution);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackFidelityFXSuperResolution() { return UpscaleCallbackFidelityFXSuperResolution; }
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyFidelityFXSuperResolution() { return FSR_Upscaler::loadedCorrectly(); }
+extern "C" UNITY_INTERFACE_EXPORT FSR_Upscaler* UNITY_INTERFACE_API CreateContextFidelityFXSuperResolution() { return new FSR_Upscaler; }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextFidelityFXSuperResolution(FSR_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, mode, flags); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesFidelityFXSuperResolution(FSR_Upscaler* upscaler, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool autoReactive) {
+    upscaler->autoReactive = autoReactive;
+    return upscaler->useImages({color, depth, motion, output, reactive, opaque});
+}
+#pragma endregion
+#pragma region Xe Super Sampling
+struct XeSuperSamplingUpscaleData
+{
+    XeSS_Upscaler* handle;
+    Upscaler::Jitter jitter;
+    Upscaler::Resolution inputResolution;
+    bool resetHistory;
+};
+
+void UNITY_INTERFACE_API UpscaleCallbackXeSuperSampling(const int /*unused*/, void* d) {
+    const auto&    data = *static_cast<XeSuperSamplingUpscaleData*>(d);
+    XeSS_Upscaler& xess = *data.handle;
+    xess.resetHistory   = data.resetHistory;
+    xess.jitter         = data.jitter;
+    xess.evaluate(data.inputResolution);
+}
+
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetUpscaleCallbackXeSuperSampling() { return UpscaleCallbackXeSuperSampling; }
+extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectlyXeSuperSampling() { return XeSS_Upscaler::loadedCorrectly(); }
+extern "C" UNITY_INTERFACE_EXPORT XeSS_Upscaler* UNITY_INTERFACE_API CreateContextXeSuperSampling() { return new XeSS_Upscaler; }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API UpdateContextXeSuperSampling(XeSS_Upscaler* upscaler, const Upscaler::Resolution resolution, const enum Upscaler::Quality mode, const Upscaler::Flags flags) { return upscaler->useSettings(resolution, mode, flags); }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetImagesXeSuperSampling(XeSS_Upscaler* upscaler, void* color, void* depth, void* motion, void* output) { return upscaler->useImages({color, depth, motion, output}); }
+#pragma endregion
+
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Resolution UNITY_INTERFACE_API GetRecommendedResolution(const Upscaler* const upscaler) { return upscaler->recommendedInputResolution; }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Resolution UNITY_INTERFACE_API GetMinimumResolution(const Upscaler* const upscaler) { return upscaler->dynamicMinimumInputResolution; }
+extern "C" UNITY_INTERFACE_EXPORT Upscaler::Resolution UNITY_INTERFACE_API GetMaximumResolution(const Upscaler* const upscaler) { return upscaler->dynamicMaximumInputResolution; }
+extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API DestroyContext(const Upscaler* upscaler) { delete upscaler; }
+
+#pragma region Frame Generation
+#ifdef ENABLE_FRAME_GENERATION
+#ifdef ENABLE_FSR
+struct alignas(64) FrameGenerateDataFidelityFXSuperResolution {
+    std::array<float, 4> rect;
+    FfxApiFloatCoords2D renderSize;
+    FfxApiFloatCoords2D jitter;
     float frameTime;
     float farPlane;
     float nearPlane;
     float verticalFOV;
     unsigned index;
     unsigned options;
+    bool enable;
 };
 
-void UNITY_INTERFACE_API UpscaleCallback(const int event, void* d) {
-    if (d == nullptr) return;
-    switch (event - Plugin::Unity::eventIDBase) {
-        case Plugin::Upscale: {
-            const auto& data              = *static_cast<UpscaleData*>(d);
-            Upscaler&   upscaler          = *upscalers[data.camera];
-            upscaler.settings.farPlane    = data.farPlane;
-            upscaler.settings.nearPlane   = data.nearPlane;
-            upscaler.settings.verticalFOV = data.verticalFOV;
-            std::ranges::copy(data.viewToClip,     upscaler.settings.viewToClip.begin());
-            std::ranges::copy(data.clipToView,     upscaler.settings.clipToView.begin());
-            std::ranges::copy(data.clipToPrevClip, upscaler.settings.clipToPrevClip.begin());
-            std::ranges::copy(data.prevClipToClip, upscaler.settings.prevClipToClip.begin());
-            std::ranges::copy(data.position,       upscaler.settings.position.begin());
-            std::ranges::copy(data.up,             upscaler.settings.up.begin());
-            std::ranges::copy(data.right,          upscaler.settings.right.begin());
-            std::ranges::copy(data.forward,        upscaler.settings.forward.begin());
-            upscaler.settings.frameTime         = data.frameTime;
-            upscaler.settings.sharpness         = data.sharpness;
-            upscaler.settings.reactiveValue     = data.reactiveValue;
-            upscaler.settings.reactiveScale     = data.reactiveScale;
-            upscaler.settings.reactiveThreshold = data.reactiveThreshold;
-            upscaler.settings.orthographic      = (data.options & 0x1U) != 0U;
-            upscaler.settings.debugView         = (data.options & 0x2U) != 0U;
-            upscaler.settings.resetHistory      = (data.options & 0x4U) != 0U;
-            std::construct_at(&upscaler.settings.jitter, data.jitter[0], data.jitter[1]);
-            upscaler.evaluate({static_cast<uint32_t>(data.inputResolution[0]), static_cast<uint32_t>(data.inputResolution[1])});
-            break;
-        }
-        case Plugin::FrameGenerate: {
-            const auto& data = *static_cast<FrameGenerateData*>(d);
-#ifdef ENABLE_FSR
-            FSR_FrameGenerator::evaluate(
-                data.enable,
-                FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
-                FfxApiFloatCoords2D{data.renderSize[0], data.renderSize[1]},
-                FfxApiFloatCoords2D{data.jitter[0], data.jitter[1]},
-                data.frameTime,
-                data.farPlane,
-                data.nearPlane,
-                data.verticalFOV,
-                data.index,
-                data.options
-            );
+void UNITY_INTERFACE_API GenerateCallbackFidelityFXSuperResolution(const int /*unused*/, void* d) {
+    const auto& data = *static_cast<FrameGenerateDataFidelityFXSuperResolution*>(d);
+    FSR_FrameGenerator::evaluate(
+        data.enable,
+        FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
+        data.renderSize,
+        data.jitter,
+        data.frameTime,
+        data.farPlane,
+        data.nearPlane,
+        data.verticalFOV,
+        data.index,
+        data.options
+    );
 #endif
-            break;
-        }
-        default: break;
-    }
 }
 
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API LoadedCorrectly() {
-    return Plugin::loadedCorrectly;
-}
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetGenerateCallbackFidelityFXSuperResolution() { return GenerateCallbackFidelityFXSuperResolution; }
 
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetLogLevel(const UnityLogType type) {
-    Plugin::logLevel = type;
-    Plugin::log("", type);
-}
-
-#ifdef ENABLE_FRAME_GENERATION
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(HWND hWnd) {
     if (hWnd == nullptr) Plugin::frameGenerationProvider = Plugin::None;
     else Plugin::frameGenerationProvider = Plugin::FSR;
@@ -124,77 +181,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGeneration(HW
     Vulkan::setFrameGenerationHWND(hWnd);
 #endif
 }
-#endif
 
-extern "C" UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API GetEventIDBase() {
-    return Plugin::Unity::eventIDBase;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT UnityRenderingEventAndData UNITY_INTERFACE_API GetRenderingEventCallback() {
-    return UpscaleCallback;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsUpscalerSupported(const Upscaler::Type type) {
-    return Upscaler::isSupported(type);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsQualitySupported(const Upscaler::Type type, const enum Upscaler::Settings::Quality mode) {
-    return Upscaler::isSupported(type, mode);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT uint16_t UNITY_INTERFACE_API RegisterCamera() {
-    const auto     iter = std::ranges::find_if(upscalers, [](const std::unique_ptr<Upscaler>& upscaler) { return !upscaler; });
-    const uint16_t id = std::distance(upscalers.begin(), iter);
-    if (iter == upscalers.end()) upscalers.push_back(Upscaler::fromType(Upscaler::NONE));
-    else *iter = Upscaler::fromType(Upscaler::NONE);
-    return id;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API GetCameraUpscalerStatus(const uint16_t camera) {
-    return upscalers[camera]->getStatus();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT const char* UNITY_INTERFACE_API GetCameraUpscalerStatusMessage(const uint16_t camera) {
-    return upscalers[camera]->getErrorMessage().c_str();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetCameraUpscalerStatus(const uint16_t camera, Upscaler::Status status, const char* message) {
-    return upscalers[camera]->setStatus(status, message);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Status UNITY_INTERFACE_API SetCameraPerFeatureSettings(
-  const uint16_t                         camera,
-  const Upscaler::Settings::Resolution   resolution,
-  const Upscaler::Type                   type,
-  const Upscaler::Settings::DLSSPreset   preset,
-  const enum Upscaler::Settings::Quality quality,
-  const bool                             hdr
-) {
-    std::unique_ptr<Upscaler>& upscaler = upscalers[camera];
-    if (upscaler->getType() != type) upscaler = std::move(Upscaler::fromType(type));
-    else upscaler->resetStatus();
-    return upscaler->useSettings(resolution, preset, quality, hdr);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetRecommendedCameraResolution(const uint16_t camera) {
-    return upscalers[camera]->settings.recommendedInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetMaximumCameraResolution(const uint16_t camera) {
-    return upscalers[camera]->settings.dynamicMaximumInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT Upscaler::Settings::Resolution UNITY_INTERFACE_API GetMinimumCameraResolution(const uint16_t camera) {
-    return upscalers[camera]->settings.dynamicMinimumInputResolution;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetUpscalingImages(const uint16_t camera, void* color, void* depth, void* motion, void* output, void* reactive, void* opaque, const bool autoReactive) {
-    Upscaler& upscaler = *upscalers[camera];
-    upscaler.settings.autoReactive = autoReactive;
-    upscaler.useImages({color, depth, motion, output, reactive, opaque});
-}
-
-#ifdef ENABLE_FRAME_GENERATION
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGenerationImages(void* color0, void* color1, void* depth, void* motion) {
 #ifdef ENABLE_FSR
     FSR_FrameGenerator::useImages(static_cast<VkImage>(color0), static_cast<VkImage>(color1), static_cast<VkImage>(depth), static_cast<VkImage>(motion));
@@ -205,10 +192,7 @@ extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE
     return FrameGenerator::getBackBufferFormat();
 }
 #endif
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnregisterCamera(const uint16_t camera) {
-    if (upscalers.size() > camera) upscalers[camera].reset();
-}
+#pragma endregion
 
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventType eventType) {
     switch (eventType) {
@@ -217,7 +201,6 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventT
             GraphicsAPI::initialize(Plugin::Unity::graphicsInterface->GetRenderer());
             break;
         case kUnityGfxDeviceEventShutdown:
-            upscalers.clear();
             GraphicsAPI::shutdown();
             break;
         default: break;
@@ -230,7 +213,6 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnit
     Plugin::Unity::logInterface      = unityInterfaces->Get<IUnityLog>();
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
     Plugin::Unity::graphicsInterface->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-    Plugin::Unity::eventIDBase = Plugin::Unity::graphicsInterface->ReserveEventIDRange(1);
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
@@ -240,7 +222,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     Plugin::Unity::graphicsInterface = nullptr;
 }
 
-extern "C" BOOL WINAPI DllMain(const HINSTANCE dllInstance, const DWORD reason, LPVOID reserved) {
+extern "C" BOOL WINAPI DllMain(HINSTANCE dllInstance, const DWORD reason, LPVOID reserved) {
     if (reason != DLL_PROCESS_ATTACH) return TRUE;
     char path[MAX_PATH + 1] {};
     GetModuleFileName(dllInstance, path, std::extent_v<decltype(path)>);

@@ -1,0 +1,29 @@
+{
+    "name": "Upscaler.Editor",
+    "rootNamespace": "Upscaler.Editor",
+    "references": [
+        "GUID:15fc0a57446b3144c949da3e2b9737a9",
+        "GUID:58ed9f0751b73475e8851605847b4ea8"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "noEngineReferences": false,
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "0.0",
+            "define": "UPSCALER_USE_URP"
+        }, {
+            "name": "com.unity.render-pipelines.high-definition",
+            "expression": "0.0",
+            "define": "UPSCALER_USE_HDRP"
+        }
+    ]
+}

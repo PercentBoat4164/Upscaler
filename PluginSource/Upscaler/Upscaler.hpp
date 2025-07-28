@@ -1,41 +1,34 @@
 #pragma once
 
-#include "Plugin.hpp"
-
 #include "GraphicsAPI/GraphicsAPI.hpp"
 
-#ifdef ENABLE_VULKAN
-#    include <vulkan/vulkan.h>
-#endif
-
-#ifdef ENABLE_DLSS
-#    include <sl.h>
-#    include <sl_dlss.h>
-#endif
-#ifdef ENABLE_FSR
-#    include <ffx_upscale.h>
-#endif
-#ifdef ENABLE_XESS
-#    include <xess/xess.h>
-#endif
-
-#include <array>
-#include <cmath>
-#include <cstdint>
-#include <memory>
-#include <string>
 #include <vector>
 
-#define RETURN_ON_FAILURE(x)            \
-{                                       \
-    Upscaler::Status _ = x;             \
-    if (Upscaler::failure(_)) return _; \
-}                                       \
-0
-#define RETURN_VOID_ON_FAILURE(x) if (Upscaler::failure(x)) return
+#define RETURN_STATUS_WITH_MESSAGE_IF(x, status, message) \
+if ((bool)(x)) {                                          \
+    Plugin::log(message);                                 \
+    return status;                                        \
+}
+#define RETURN_WITH_MESSAGE_IF(x, message) \
+{                                          \
+    Upscaler::Status status = x;           \
+    if (status != Success) {               \
+        Plugin::log(message);              \
+        return status;                     \
+    }                                      \
+}
+#define RETURN_VOID_WITH_MESSAGE_IF(x, message) \
+if ((x) != Success) {                           \
+    Plugin::log(message);                       \
+    return;                                     \
+}
+#define RETURN_IF(x)                       \
+    {                                      \
+        Upscaler::Status status = x;       \
+        if ((x) != Success) return status; \
+    }
 
-class alignas(128) Upscaler {
-    constexpr static uint8_t SamplesPerPixel = 8U;
+class Upscaler {
     constexpr static uint8_t ERROR_RECOVERABLE = 1U << 7U;
 
 public:
@@ -52,177 +45,51 @@ public:
         FatalRuntimeError           = 9U,
     };
 
-    static bool success(Status);
-    static bool failure(Status);
-    static bool recoverable(Status);
-
-    enum SupportState {
-        Untested,
-        Unsupported,
-        Supported
+    enum Preset : uint8_t {
+        Default,
+        Stable,
+        FastPaced,
+        AnitGhosting,
     };
 
-    enum Type {
-        NONE,
-        DLSS,
-        FSR,
-        XESS,
-        TYPE_MAX_ENUM
+    enum Quality : uint8_t {
+        Auto,
+        AntiAliasing,
+        UltraQualityPlus,
+        UltraQuality,
+        Quality,
+        Balanced,
+        Performance,
+        UltraPerformance,
     };
 
-    struct alignas(128) Settings final {
-        enum DLSSPreset : uint8_t {
-            Default,
-            Stable,
-            FastPaced,
-            AnitGhosting,
-        };
+    struct Resolution {
+        uint32_t width;
+        uint32_t height;
+    } recommendedInputResolution{}, dynamicMaximumInputResolution{}, dynamicMinimumInputResolution{}, outputResolution{};
 
-        enum Quality : uint8_t {
-            Auto,
-            AntiAliasing,
-            UltraQualityPlus,
-            UltraQuality,
-            Quality,
-            Balanced,
-            Performance,
-            UltraPerformance,
-        };
+    struct Jitter {
+        float x;
+        float y;
+    } jitter{};
 
-        struct alignas(8) Resolution {
-            uint32_t width;
-            uint32_t height;
-        } recommendedInputResolution, dynamicMaximumInputResolution, dynamicMinimumInputResolution, outputResolution;
+    enum Flags : uint8_t {
+        None = 0U,
+        OutputResolutionMotionVectors = 1U << 0U,
+        EnableHDR = 1U << 1U
+    };
 
-        struct alignas(8) Jitter { float x, y; } jitter;
-        float reactiveValue{};
-        float reactiveScale{};
-        float reactiveThreshold{};
-        float sharpness{};
-        float frameTime{};
-        float farPlane;
-        float nearPlane;
-        float verticalFOV;
-        std::array<float, 16> viewToClip;
-        std::array<float, 16> clipToView;
-        std::array<float, 16> clipToPrevClip;
-        std::array<float, 16> prevClipToClip;
-        std::array<float, 3> position;
-        std::array<float, 3> up;
-        std::array<float, 3> right;
-        std::array<float, 3> forward;
-        bool autoReactive{};
-        bool orthographic{};
-        bool debugView{};
-        bool hdr{};
-        bool resetHistory{};
-
-#ifdef ENABLE_DLSS
-        template<Type T, typename = std::enable_if_t<T == DLSS>>
-        [[nodiscard]] sl::DLSSMode getQuality(const enum Quality quality) const {
-            switch (quality) {
-                case Auto: {  // See page 7 of 'RTX UI Developer Guidelines.pdf'
-                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U) return sl::DLSSMode::eMaxQuality;
-                    if (pixelCount <= 3840U * 2160U) return sl::DLSSMode::eMaxPerformance;
-                    return sl::DLSSMode::eUltraPerformance;
-                }
-                case AntiAliasing: return sl::DLSSMode::eDLAA;
-                case Quality: return sl::DLSSMode::eMaxQuality;
-                case Balanced: return sl::DLSSMode::eBalanced;
-                case Performance: return sl::DLSSMode::eMaxPerformance;
-                case UltraPerformance: return sl::DLSSMode::eUltraPerformance;
-                default: return static_cast<sl::DLSSMode>(-1);
-            }
-        }
-#endif
-#ifdef ENABLE_FSR
-        template<Type T, typename = std::enable_if_t<T == FSR>>
-        [[nodiscard]] FfxApiUpscaleQualityMode getQuality(const enum Quality quality) const {
-            switch (quality) {
-                case Auto: {
-                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U) return FFX_UPSCALE_QUALITY_MODE_QUALITY;
-                    if (pixelCount <= 3840U * 2160U) return FFX_UPSCALE_QUALITY_MODE_PERFORMANCE;
-                    return FFX_UPSCALE_QUALITY_MODE_ULTRA_PERFORMANCE;
-                }
-                case AntiAliasing: return FFX_UPSCALE_QUALITY_MODE_NATIVEAA;
-                case Quality: return FFX_UPSCALE_QUALITY_MODE_QUALITY;
-                case Balanced: return FFX_UPSCALE_QUALITY_MODE_BALANCED;
-                case Performance: return FFX_UPSCALE_QUALITY_MODE_PERFORMANCE;
-                case UltraPerformance: return FFX_UPSCALE_QUALITY_MODE_ULTRA_PERFORMANCE;
-                default: return static_cast<FfxApiUpscaleQualityMode>(-1);
-            }
-        }
-#endif
-#ifdef ENABLE_XESS
-        template<Type T, typename = std::enable_if_t<T == XESS>>
-        [[nodiscard]] xess_quality_settings_t getQuality(const enum Quality quality) const {
-            switch (quality) {
-                case Auto: {
-                    const uint32_t pixelCount {outputResolution.width * outputResolution.height};
-                    if (pixelCount <= 2560U * 1440U) return XESS_QUALITY_SETTING_QUALITY;
-                    if (pixelCount <= 3840U * 2160U) return XESS_QUALITY_SETTING_PERFORMANCE;
-                    return XESS_QUALITY_SETTING_ULTRA_PERFORMANCE;
-                }
-                case AntiAliasing: return XESS_QUALITY_SETTING_AA;
-                case UltraQualityPlus: return XESS_QUALITY_SETTING_ULTRA_QUALITY_PLUS;
-                case UltraQuality: return XESS_QUALITY_SETTING_ULTRA_QUALITY;
-                case Quality: return XESS_QUALITY_SETTING_QUALITY;
-                case Balanced: return XESS_QUALITY_SETTING_BALANCED;
-                case Performance: return XESS_QUALITY_SETTING_PERFORMANCE;
-                case UltraPerformance: return XESS_QUALITY_SETTING_ULTRA_PERFORMANCE;
-                default: return static_cast<xess_quality_settings_t>(-1);
-            }
-        }
-#endif
-    } settings;
-
-private:
-    Status      status{Success};
-    std::string statusMessage;
+    bool resetHistory{};
 
 protected:
-    template<typename... Args> constexpr Status safeFail(Args... /*unused*/) {return setStatus(RecoverableRuntimeError, "Graphics initialization failed: `safeFail` was called!");}
-    template<typename... Args> constexpr Status invalidGraphicsAPIFail(Args... /*unused*/) {return setStatus(UnsupportedGraphicsApi, getName() + " does not support the current graphics API.");}
-    template<typename... Args> constexpr Status succeed(Args... /*unused*/) {return Success;}
-    template<typename T, typename... Args> static constexpr T nullFunc(Args... /*unused*/) {return {};}
-
-    static HMODULE library;
-    static SupportState supported;
+    template<auto val = FatalRuntimeError, typename... Args> constexpr auto safeFail(Args... /*unused*/) { return val; }
+    template<auto val = FatalRuntimeError, typename... Args> constexpr auto safeFail(Args... /*unused*/) const { return val; }
+    template<auto val = FatalRuntimeError, typename... Args> static constexpr auto staticSafeFail(Args... /*unused*/) { return val; }
 
 public:
-#ifdef ENABLE_VULKAN
-    static std::vector<std::string> requestVulkanInstanceExtensions(const std::vector<std::string>&);
-    static std::vector<std::string> requestVulkanDeviceExtensions(VkInstance, VkPhysicalDevice, const std::vector<std::string>&);
-#endif
+    static void load(GraphicsAPI::Type type, void* vkGetProcAddrFunc=nullptr);
+    static void unload();
+    static void useGraphicsAPI(GraphicsAPI::Type type);
 
-    static void                      load(GraphicsAPI::Type type, void* vkGetProcAddrFunc=nullptr);
-    static void                      shutdown();
-    static void                      unload();
-    static bool                      isSupported(Type type);
-    static bool                      isSupported(Type type, enum Settings::Quality mode);
-    static std::unique_ptr<Upscaler> fromType(Type type);
-    static void                      useGraphicsAPI(GraphicsAPI::Type type);
-
-    Upscaler()                           = default;
-    Upscaler(const Upscaler&)            = delete;
-    Upscaler(Upscaler&&)                 = delete;
-    Upscaler& operator=(const Upscaler&) = delete;
-    Upscaler& operator=(Upscaler&&)      = delete;
-    virtual ~Upscaler()                  = default;
-
-    constexpr virtual Type        getType() = 0;
-    constexpr virtual std::string getName() = 0;
-
-    virtual Status useSettings(Settings::Resolution, Settings::DLSSPreset, enum Settings::Quality, bool) = 0;
-    virtual Status useImages(const std::array<void*, Plugin::NumImages>&)                                = 0;
-    virtual Status evaluate(Settings::Resolution inputResolution)                                        = 0;
-
-    [[nodiscard]] Status getStatus() const;
-    std::string&         getErrorMessage();
-    Status               setStatus(Status, const std::string&);
-    Status               setStatusIf(bool, Status, std::string);
-    virtual bool         resetStatus();
-    void                 forceStatus(Status, std::string);
+    virtual ~Upscaler() = default;
 };
