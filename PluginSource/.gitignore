@@ -1,3 +1,6 @@
 # Build results
 *-build-*
 
+# Proprietary software
+/external/Streamline*
+/external/XeSS_SDK*

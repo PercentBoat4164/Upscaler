@@ -14,7 +14,7 @@ inline IUnityLog*        logInterface      = nullptr;
 
 inline std::filesystem::path path = "";
 
-inline void log(const std::string_view msg) { if (!msg.empty()) Unity::logInterface->Log(kUnityLogTypeWarning, msg.data(), "Conifer - Upscaler native library: 'GfxPluginUpscaler.dll'", 0); }
+inline void log(const std::string_view msg) { if (!msg.empty()) Unity::logInterface->Log(kUnityLogTypeWarning, msg.data(), "Upscaler native library: 'GfxPluginUpscaler.dll'", 0); }
 
 enum ImageID : uint8_t {
     Color,
