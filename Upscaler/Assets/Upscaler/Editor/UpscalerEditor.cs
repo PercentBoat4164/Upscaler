@@ -103,7 +103,7 @@ namespace Upscaler.Editor
             var upscaler = (Upscaler.Runtime.Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
 #if UPSCALER_USE_URP
-            if (GraphicsSettings.currentRenderPipelineAssetType == typeof(UniversalRenderPipelineAsset)) {
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
                 var cameraData = camera.GetUniversalAdditionalCameraData();
                 var activeRenderer = ((ScriptableRendererData[])FRenderDataList.GetValue(UniversalRenderPipeline.asset))
                     [(FRenderers.GetValue(UniversalRenderPipeline.asset) as ScriptableRenderer[])!
@@ -136,7 +136,7 @@ namespace Upscaler.Editor
             if ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue != Upscaler.Runtime.Upscaler.Technique.None)
             {
 #if UPSCALER_USE_URP
-                if (GraphicsSettings.currentRenderPipelineAssetType == typeof(UniversalRenderPipelineAsset)) {
+                if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
                     var cameraData = camera.GetUniversalAdditionalCameraData();
                     if (upscaler.IsTemporal() && cameraData.antialiasing != AntialiasingMode.None)
                     {

@@ -2,8 +2,10 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
+#if UNITY_6000_0_OR_NEWER
+using UnityEngine.Rendering.RenderGraphModule;
+#endif
 
 namespace Upscaler.Runtime.URP
 {

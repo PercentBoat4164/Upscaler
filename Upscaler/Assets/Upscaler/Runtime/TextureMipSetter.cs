@@ -10,7 +10,7 @@ namespace Upscaler.Runtime
     {
         private void OnRenderObject()
         {
-            if (GraphicsSettings.currentRenderPipelineAssetType != null) return;
+            if (GraphicsSettings.currentRenderPipeline != null) return;
 
             var upscaler = Camera.main?.GetComponent<Upscaler>();
             if (upscaler == null) return;

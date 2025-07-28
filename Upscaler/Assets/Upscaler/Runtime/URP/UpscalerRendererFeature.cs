@@ -4,12 +4,16 @@
  ***********************************************/
 
 #if UPSCALER_USE_URP
-using System;
 using System.Reflection;
 using Upscaler.Runtime.Backends;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+#if UNITY_6000_0_OR_NEWER
+using System;
+#else
+using UnityEngine.Experimental.Rendering;
+#endif
 
 namespace Upscaler.Runtime.URP
 {
@@ -66,9 +70,11 @@ namespace Upscaler.Runtime.URP
                 return;
             }
 
+#if UNITY_6000_0_OR_NEWER
             var compatibilityMode = GraphicsSettings.GetRenderPipelineSettings<RenderGraphSettings>().enableRenderCompatibilityMode;
             needsUpdate |= compatibilityMode != _lastCompatibilityMode;
             _lastCompatibilityMode = compatibilityMode;
+#endif
 
             if (needsUpdate)
             {
@@ -82,7 +88,7 @@ namespace Upscaler.Runtime.URP
                 else RenderingUtils.ReAllocateHandleIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.InputResolution.x, upscaler.InputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat), name: "Upscaler_Source");
 #else
                 RenderingUtils.ReAllocateIfNeeded(ref _upscale.Output, descriptor, name: "Upscaler_Destination");
-                RenderingUtils.ReAllocateIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, cameraTargetFormat), name: "Upscaler_Source");
+                RenderingUtils.ReAllocateIfNeeded(ref _upscale.Color, new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat), name: "Upscaler_Source");
 #endif
                 var flags = upscaler.Camera.allowHDR ? UpscalerBackend.Flags.EnableHDR : UpscalerBackend.Flags.None;
                 if (Upscaler.Failure(upscaler.CurrentStatus = upscaler.Backend.Update(upscaler, _upscale.Color, _upscale.Output, flags | UpscalerBackend.Flags.OutputResolutionMotionVectors))) return;
