@@ -24,8 +24,8 @@
 HMODULE FSR_Upscaler::library{nullptr};
 bool FSR_Upscaler::loaded{false};
 
-Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpCreate)(ffxCreateContextDescUpscale&){&safeFail};
-Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpSetResources)(const std::array<void*, 6>&){&safeFail};
+Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpCreate)(ffxCreateContextDescUpscale&){&FSR_Upscaler::safeFail};
+Upscaler::Status (FSR_Upscaler::*FSR_Upscaler::fpSetResources)(const std::array<void*, 6>&){&FSR_Upscaler::safeFail};
 Upscaler::Status (*FSR_Upscaler::fpGetCommandBuffer)(void*&){&staticSafeFail};
 
 PfnFfxCreateContext FSR_Upscaler::ffxCreateContext;
@@ -183,11 +183,15 @@ Upscaler::Status FSR_Upscaler::setStatus(const ffxReturnCode_t t_error) {
     }
 }
 
-void FSR_Upscaler::log(const FfxApiMsgType /*unused*/, const wchar_t* t_msg) {
+void FSR_Upscaler::log(const FfxApiMsgType type, const wchar_t* t_msg) {
     std::wstring message(t_msg);
     std::string  msg(message.length(), 0);
     std::ranges::transform(message, msg.begin(), [](const wchar_t c) { return static_cast<char>(c); });
-    Plugin::log(msg);
+    switch (type) {
+        case FFX_API_MESSAGE_TYPE_ERROR: Plugin::log(kUnityLogTypeError, msg); break;
+        case FFX_API_MESSAGE_TYPE_WARNING: Plugin::log(kUnityLogTypeWarning, msg); break;
+        case FFX_API_MESSAGE_TYPE_COUNT: break;
+    }
 }
 
 FfxApiUpscaleQualityMode FSR_Upscaler::getQuality(const enum Quality quality) const {
@@ -226,8 +230,8 @@ void FSR_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
         }
 #    endif
         default: {
-            fpCreate           = &safeFail<UnsupportedGraphicsApi>;
-            fpSetResources     = &safeFail<UnsupportedGraphicsApi>;
+            fpCreate           = &FSR_Upscaler::safeFail<UnsupportedGraphicsApi>;
+            fpSetResources     = &FSR_Upscaler::safeFail<UnsupportedGraphicsApi>;
             fpGetCommandBuffer = &staticSafeFail<UnsupportedGraphicsApi>;
             break;
         }

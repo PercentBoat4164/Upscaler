@@ -32,7 +32,7 @@ uint64_t DLSS_Upscaler::applicationID{0xDC98EECU};
 uint32_t DLSS_Upscaler::users{0};
 
 void* (*DLSS_Upscaler::fpGetDevice)(){&staticSafeFail<static_cast<void*>(nullptr)>};
-Upscaler::Status (DLSS_Upscaler::*DLSS_Upscaler::fpSetResources)(const std::array<void*, 4>&){&safeFail};
+Upscaler::Status (DLSS_Upscaler::*DLSS_Upscaler::fpSetResources)(const std::array<void*, 4>&){&DLSS_Upscaler::safeFail};
 Upscaler::Status (*DLSS_Upscaler::fpGetCommandBuffer)(void*&){&staticSafeFail};
 
 decltype(&slInit) DLSS_Upscaler::slInit{nullptr};
@@ -41,7 +41,7 @@ decltype(&slSetFeatureLoaded) DLSS_Upscaler::slSetFeatureLoaded{nullptr};
 decltype(&slGetFeatureFunction) DLSS_Upscaler::slGetFeatureFunction{nullptr};
 decltype(&slDLSSGetOptimalSettings) DLSS_Upscaler::slDLSSGetOptimalSettings{nullptr};
 decltype(&slDLSSSetOptions) DLSS_Upscaler::slDLSSSetOptions{nullptr};
-decltype(&slSetTag) DLSS_Upscaler::slSetTag{nullptr};
+decltype(&slSetTagForFrame) DLSS_Upscaler::slSetTagForFrame{nullptr};
 decltype(&slGetNewFrameToken) DLSS_Upscaler::slGetNewFrameToken{nullptr};
 decltype(&slSetConstants) DLSS_Upscaler::slSetConstants{nullptr};
 decltype(&slEvaluateFeature) DLSS_Upscaler::slEvaluateFeature{nullptr};
@@ -174,8 +174,13 @@ Upscaler::Status DLSS_Upscaler::setStatus(const sl::Result t_error) {
     }
 }
 
-void DLSS_Upscaler::log([[maybe_unused]] const sl::LogType /*unused*/, const char* msg) {
-    Plugin::log(msg);
+void DLSS_Upscaler::log([[maybe_unused]] const sl::LogType type, const char* msg) {
+    switch (type) {
+        case sl::LogType::eInfo: Plugin::log(kUnityLogTypeLog, msg); break;
+        case sl::LogType::eWarn: Plugin::log(kUnityLogTypeWarning, msg); break;
+        case sl::LogType::eError: Plugin::log(kUnityLogTypeError, msg); break;
+        case sl::LogType::eCount: break;
+    }
 }
 
 sl::DLSSMode DLSS_Upscaler::getQuality(const enum Quality quality) const {
@@ -208,7 +213,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) 
     slSetD3DDevice       = reinterpret_cast<decltype(&::slSetD3DDevice)>(GetProcAddress(library, "slSetD3DDevice"));
     slSetFeatureLoaded   = reinterpret_cast<decltype(&::slSetFeatureLoaded)>(GetProcAddress(library, "slSetFeatureLoaded"));
     slGetFeatureFunction = reinterpret_cast<decltype(&::slGetFeatureFunction)>(GetProcAddress(library, "slGetFeatureFunction"));
-    slSetTag             = reinterpret_cast<decltype(&::slSetTag)>(GetProcAddress(library, "slSetTag"));
+    slSetTagForFrame     = reinterpret_cast<decltype(&::slSetTagForFrame)>(GetProcAddress(library, "slSetTagForFrame"));
     slGetNewFrameToken   = reinterpret_cast<decltype(&::slGetNewFrameToken)>(GetProcAddress(library, "slGetNewFrameToken"));
     slSetConstants       = reinterpret_cast<decltype(&::slSetConstants)>(GetProcAddress(library, "slSetConstants"));
     slEvaluateFeature    = reinterpret_cast<decltype(&::slEvaluateFeature)>(GetProcAddress(library, "slEvaluateFeature"));
@@ -217,7 +222,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) 
 #ifdef ENABLE_VULKAN
     if (type == GraphicsAPI::VULKAN) *static_cast<PFN_vkGetInstanceProcAddr*>(vkGetProcAddrFunc) = reinterpret_cast<PFN_vkGetInstanceProcAddr>(GetProcAddress(library, "vkGetInstanceProcAddr"));
 #endif
-    if (slInit == nullptr || slSetD3DDevice == nullptr || slSetFeatureLoaded == nullptr || slGetFeatureFunction == nullptr || slSetTag == nullptr || slGetNewFrameToken == nullptr || slSetConstants == nullptr || slEvaluateFeature == nullptr || slFreeResources == nullptr || slShutdown == nullptr) return (void)(loaded = false);
+    if (slInit == nullptr || slSetD3DDevice == nullptr || slSetFeatureLoaded == nullptr || slGetFeatureFunction == nullptr || slSetTagForFrame == nullptr || slGetNewFrameToken == nullptr || slSetConstants == nullptr || slEvaluateFeature == nullptr || slFreeResources == nullptr || slShutdown == nullptr) return (void)(loaded = false);
 
     const std::array pathStrings { Plugin::path.wstring() };
     std::array paths { pathStrings[0].c_str() };
@@ -227,7 +232,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) 
     pref.logLevel = sl::LogLevel::eVerbose;
     pref.pathsToPlugins = paths.data();
     pref.numPathsToPlugins = paths.size();
-    pref.flags |= sl::PreferenceFlags::eUseManualHooking;
+    pref.flags |= sl::PreferenceFlags::eUseManualHooking | sl::PreferenceFlags::eUseFrameBasedResourceTagging;
     pref.featuresToLoad = features.data();
     pref.numFeaturesToLoad = features.size();
     pref.applicationId = applicationID;
@@ -254,7 +259,7 @@ void DLSS_Upscaler::unload() {
     slSetD3DDevice       = nullptr;
     slSetFeatureLoaded   = nullptr;
     slGetFeatureFunction = nullptr;
-    slSetTag             = nullptr;
+    slSetTagForFrame     = nullptr;
     slGetNewFrameToken   = nullptr;
     slSetConstants       = nullptr;
     slEvaluateFeature    = nullptr;
@@ -284,7 +289,7 @@ void DLSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
         }
         case GraphicsAPI::NONE: {
             fpGetDevice        = &staticSafeFail<static_cast<void*>(nullptr)>;
-            fpSetResources     = &safeFail<UnsupportedGraphicsApi>;
+            fpSetResources     = &DLSS_Upscaler::safeFail<UnsupportedGraphicsApi>;
             fpGetCommandBuffer = &staticSafeFail<UnsupportedGraphicsApi>;
             break;
         }
@@ -369,9 +374,9 @@ Upscaler::Status DLSS_Upscaler::evaluate(const Resolution inputResolution) {
         sl::ResourceTag {&resources.at(Plugin::Motion), sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &motionExtent},
         sl::ResourceTag {&resources.at(Plugin::Output), sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &outputExtent},
     };
-    RETURN_WITH_MESSAGE_IF(setStatus(slSetTag(handle, tags.data(), tags.size(), commandBuffer)), "Failed to set Streamline tags.");
     sl::FrameToken* frameToken{nullptr};
     RETURN_WITH_MESSAGE_IF(setStatus(slGetNewFrameToken(frameToken, nullptr)), "Failed to get new Streamline frame token.");
+    RETURN_WITH_MESSAGE_IF(setStatus(slSetTagForFrame(*frameToken, handle, tags.data(), tags.size(), commandBuffer)), "Failed to set Streamline tags.");
     sl::Constants constants {};
     std::ranges::copy(viewToClip, reinterpret_cast<float*>(constants.cameraViewToClip.row));
     std::ranges::copy(clipToView, reinterpret_cast<float*>(constants.clipToCameraView.row));

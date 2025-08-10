@@ -56,11 +56,12 @@ namespace detail
     }
 }
 
-template<class Header>
-Header* LinkHeaders(Header& hdr)
+template<class First, class Second, class... Rest>
+First* LinkHeaders(First& first, Second& second, Rest&... rest)
 {
-    hdr.pNext = nullptr;
-    return &hdr;
+    first.pNext = &second;
+    LinkHeaders(second, rest...);
+    return &first;
 }
 
 template<class First, class Second>
@@ -71,12 +72,11 @@ First* LinkHeaders(First& first, Second& second)
     return &first;
 }
 
-template<class First, class Second, class... Rest>
-First* LinkHeaders(First& first, Second& second, Rest&... rest)
+template<class Header>
+Header* LinkHeaders(Header& hdr)
 {
-    first.pNext = &second;
-    LinkHeaders(second, rest...);
-    return &first;
+    hdr.pNext = nullptr;
+    return &hdr;
 }
 
 template<class... Desc>
@@ -137,6 +137,9 @@ struct struct_type<ffxOverrideVersion> : std::integral_constant<uint64_t, FFX_AP
 
 template<>
 struct struct_type<ffxQueryDescGetVersions> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_GET_VERSIONS> {};
+
+template <>
+struct struct_type<ffxQueryGetProviderVersion> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_GET_PROVIDER_VERSION> {};
 
 template <class Inner, uint64_t type = struct_type<Inner>::value>
 struct InitHelper : public Inner

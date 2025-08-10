@@ -202,13 +202,14 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventT
             break;
         case kUnityGfxDeviceEventShutdown:
             GraphicsAPI::shutdown();
+            Plugin::loadedCorrectly = false;
             break;
         default: break;
     }
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {
-    GraphicsAPI::registerUnityInterfaces(unityInterfaces);
+    GraphicsAPI::registerUnityInterfaces(unityInterfaces); /**@todo: Try moving this up to OnGraphicsDeviceEvent to avoid issues during a multi-boot scenario when starting Unity.*/
     Plugin::Unity::interfaces        = unityInterfaces;
     Plugin::Unity::logInterface      = unityInterfaces->Get<IUnityLog>();
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
@@ -219,6 +220,7 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginUnload() {
     GraphicsAPI::unregisterUnityInterfaces();
     Plugin::Unity::graphicsInterface->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
     Plugin::Unity::interfaces        = nullptr;
+    Plugin::Unity::logInterface      = nullptr;
     Plugin::Unity::graphicsInterface = nullptr;
 }
 

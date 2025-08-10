@@ -100,10 +100,12 @@ struct ffxOverrideVersion
     uint64_t versionId;  ///< Id of version to use. Must be a value returned from a query in ffxQueryDescGetVersions.versionIds array.
 };
 
-enum FfxApiConfigureFrameGenerationSwapChainKey
+#define FFX_API_QUERY_DESC_TYPE_GET_PROVIDER_VERSION 6u
+struct ffxQueryGetProviderVersion
 {
-    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0,                      ///< Sets FfxWaitCallbackFunc
-    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING = 2,                ///< Sets FfxApiSwapchainFramePacingTuning casted from ptr
+    ffxQueryDescHeader header;
+    uint64_t versionId;      ///< Id of provider being used for queried context. 0 if invalid.
+    const char* versionName; ///< Version name for display. If nullptr, the query was invalid.
 };
 
 // Memory allocation function. Must return a valid pointer to at least size bytes of memory aligned to hold any type.
@@ -127,34 +129,29 @@ typedef struct ffxAllocationCallbacks
 // MemCb may be null; the system allocator (malloc/free) will be used in this case.
 FFX_API_ENTRY ffxReturnCode_t ffxCreateContext(ffxContext* context, ffxCreateContextDescHeader* desc, const ffxAllocationCallbacks* memCb);
 typedef ffxReturnCode_t (*PfnFfxCreateContext)(ffxContext* context, ffxCreateContextDescHeader* desc, const ffxAllocationCallbacks* memCb);
-//static inline PfnFfxCreateContext ffxCreateContext;
 
 // Destroys an FFX object context.
 // Non-zero return indicates error code.
 // MemCb must be compatible with the callbacks passed into ffxCreateContext.
 FFX_API_ENTRY ffxReturnCode_t ffxDestroyContext(ffxContext* context, const ffxAllocationCallbacks* memCb);
 typedef ffxReturnCode_t (*PfnFfxDestroyContext)(ffxContext* context, const ffxAllocationCallbacks* memCb);
-//static inline PfnFfxDestroyContext ffxDestroyContext;
 
 // Configures the provided FFX object context.
 // If context is null, configure operates on any global state.
 // Non-zero return indicates error code.
 FFX_API_ENTRY ffxReturnCode_t ffxConfigure(ffxContext* context, const ffxConfigureDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxConfigure)(ffxContext* context, const ffxConfigureDescHeader* desc);
-//static inline PfnFfxConfigure ffxConfigure;
 
 // Queries the provided FFX object context.
 // If context is null, query operates on any global state.
 // Non-zero return indicates error code.
 FFX_API_ENTRY ffxReturnCode_t ffxQuery(ffxContext* context, ffxQueryDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxQuery)(ffxContext* context, ffxQueryDescHeader* desc);
-//static inline PfnFfxQuery ffxQuery;
 
 // Dispatches work on the given FFX object context defined by the dispatch descriptor.
 // Non-zero return indicates error code.
 FFX_API_ENTRY ffxReturnCode_t ffxDispatch(ffxContext* context, const ffxDispatchDescHeader* desc);
 typedef ffxReturnCode_t (*PfnFfxDispatch)(ffxContext* context, const ffxDispatchDescHeader* desc);
-//static inline PfnFfxDispatch ffxDispatch;
 
 #if defined(__cplusplus)
 }

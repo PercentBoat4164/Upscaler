@@ -123,7 +123,7 @@ namespace Upscaler.Runtime.Backends
             Marshal.StructureToPtr(_data, DataHandle, true);
 
             if (depth != Depth) commandBuffer.Blit(depth, Depth, CopyDepth, 0);
-            if (motion != Motion) commandBuffer.CopyTexture(motion, Motion);
+            if (motion != Motion) commandBuffer.Blit(motion, Motion);
             commandBuffer.IssuePluginEventAndData(EventCallback, 0, DataHandle);
         }
 

@@ -380,19 +380,21 @@ VkResult Vulkan::hook_vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR sw
 VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
 #ifdef ENABLE_FSR
     const bool isFsrSwapchain = FrameGenerator::ownsSwapchain(swapchain);
-    if (isFsrSwapchain ^ Plugin::frameGenerationProvider == Plugin::FSR && swapchainToIntercept == swapchain) return VK_ERROR_OUT_OF_DATE_KHR;
+    if (isFsrSwapchain ^ (Plugin::frameGenerationProvider == Plugin::FSR) && swapchainToIntercept == swapchain) return VK_ERROR_OUT_OF_DATE_KHR;
     if (isFsrSwapchain) return m_fxAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
 #endif
     return m_vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, pImageIndex);
 }
 
 VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
+    /**@todo: Split this into two calls, one to m_fxQueuePresentKHR with the FSR swapchain, and one to m_vkQueuePresentKHR with the other swapchains.*/
 #ifdef ENABLE_FSR
-    if (pPresentInfo->swapchainCount > 0) {
-        const bool isFsrSwapchain = FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[0]);
+    if (pPresentInfo->swapchainCount == 1) {
+        VkSwapchainKHR swapchain = pPresentInfo->pSwapchains[0];
+        const bool isFsrSwapchain = FrameGenerator::ownsSwapchain(swapchain);
         const bool isFsrProvider = Plugin::frameGenerationProvider == Plugin::FSR;
-        if ((isFsrSwapchain && !isFsrProvider) || (!isFsrSwapchain && isFsrProvider && swapchainToIntercept == pPresentInfo->pSwapchains[0])) return VK_ERROR_OUT_OF_DATE_KHR;
-        if (pPresentInfo->swapchainCount == 1 && isFsrSwapchain) return m_fxQueuePresentKHR(queue, pPresentInfo);
+        if ((isFsrSwapchain && !isFsrProvider) || (!isFsrSwapchain && isFsrProvider && swapchainToIntercept == swapchain)) return VK_ERROR_OUT_OF_DATE_KHR;
+        if (isFsrSwapchain) return m_fxQueuePresentKHR(queue, pPresentInfo);
     }
 #endif
     return m_vkQueuePresentKHR(queue, pPresentInfo);
@@ -401,6 +403,7 @@ VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* p
 void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, const uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata) {
     const PFN_vkSetHdrMetadataEXT* setHdrMetadataEXT = &m_vkSetHdrMetadataEXT;
 #ifdef ENABLE_FSR
+    /**@todo: Split this into two calls, one to m_fxSetHdrMetadataEXT with the FSR swapchain, and one to vkSetHdrMetadataEXT with the other swapchains.*/
     for (uint32_t i{}; i < swapchainCount; ++i) {
         if (FrameGenerator::ownsSwapchain(pSwapchains[i])) {
             setHdrMetadataEXT = &m_fxSetHdrMetadataEXT;

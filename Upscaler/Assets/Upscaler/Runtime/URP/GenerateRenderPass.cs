@@ -74,7 +74,7 @@ namespace Upscaler.Runtime.URP
                     , Vector2.one, -NativeInterface.EditorOffset / srcRes
 #endif
                 );
-                cb.Blit(TempMotion, _flippedMotion,
+                cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion,
 #if UNITY_EDITOR
                     NativeInterface.EditorResolution / srcRes *
 #endif

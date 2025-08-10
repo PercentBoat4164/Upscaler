@@ -17,9 +17,6 @@ namespace Upscaler.Runtime
         private static extern bool LoadedCorrectlyPlugin();
 
         [DllImport("GfxPluginUpscaler")]
-        private static extern int GetEventIDBase();
-
-        [DllImport("GfxPluginUpscaler")]
         private static extern void SetFrameGeneration(IntPtr hWnd);
 
         [DllImport("GfxPluginUpscaler")]
@@ -27,6 +24,9 @@ namespace Upscaler.Runtime
 
         [DllImport("GfxPluginUpscaler")]
         public static extern GraphicsFormat GetBackBufferFormat();
+
+        [DllImport("GfxPluginUpscaler")]
+        public static extern IntPtr GetGenerateCallbackFidelityFXSuperResolution();
 
         private static bool WarnOnBadLoad()
         {
@@ -43,10 +43,9 @@ namespace Upscaler.Runtime
         }
 
         internal static readonly bool Loaded = WarnOnBadLoad();
-        private static readonly int FrameGenerateEventID = GetEventIDBase() + 1;
-        private static readonly IntPtr _generateCallback = IntPtr.Zero;
+        private static readonly IntPtr _generateCallback = GetGenerateCallbackFidelityFXSuperResolution();
         private static readonly IntPtr _frameGenerateDataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<FrameGenerateData>());
-        public static bool ShouldResetHistory = true;
+        public static bool ShouldResetHistory = false;
 #if UNITY_EDITOR
         internal static Vector2 EditorOffset;
         internal static Vector2 EditorResolution;
@@ -79,7 +78,6 @@ namespace Upscaler.Runtime
                            Convert.ToUInt32(reset)                             << 6;
             }
 
-            private bool _enable;
             private Rect _generationRect;
             private Vector2 _renderSize;
             private Vector2 _jitterOffset;
@@ -89,6 +87,7 @@ namespace Upscaler.Runtime
             private float _verticalFOV;
             private uint _index;
             private uint _options;
+            private bool _enable;
         }
 
         internal static void FrameGenerate(CommandBuffer cb, Upscaler upscaler, uint imageIndex)
@@ -100,7 +99,7 @@ namespace Upscaler.Runtime
                 Vector2Int.zero
 #endif
                 ), _frameGenerateDataPtr, true);
-            if (Loaded) cb.IssuePluginEventAndData(_generateCallback, FrameGenerateEventID, _frameGenerateDataPtr);
+            if (Loaded) cb.IssuePluginEventAndData(_generateCallback, 0, _frameGenerateDataPtr);
         }
 
         internal static void SetFrameGeneration(int display) => SetFrameGeneration(display >= 0 ? GetFrameGenerationTargetWindowHandle(display) : IntPtr.Zero);
@@ -116,6 +115,9 @@ namespace Upscaler.Runtime
         
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr hWnd, out NativeRect lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern int MapWindowPoints(IntPtr hWndFrom, IntPtr hWndTo, ref NativeRect lpPoints, int cPoints=2);
         
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
@@ -131,12 +133,12 @@ namespace Upscaler.Runtime
             public int _right;
             public int _bottom;
 
-            public NativeRect(float windowRectXMin, float windowRectYMin, float windowRectXMax, float windowRectYMax)
+            public NativeRect(int windowRectXMin, int windowRectYMin, int windowRectXMax, int windowRectYMax)
             {
-                _left = (int)windowRectXMin;
-                _top = (int)windowRectYMin;
-                _right = (int)windowRectXMax;
-                _bottom = (int)windowRectYMax;
+                _left = windowRectXMin;
+                _top = windowRectYMin;
+                _right = windowRectXMax;
+                _bottom = windowRectYMax;
             }
         }
 
@@ -157,45 +159,56 @@ namespace Upscaler.Runtime
         {
             GetWindowRect(childHwnd, out var unityRect);
             var targetRect = data.Rect;
-            if (!Mathf.Approximately(unityRect._left, targetRect._left) || !Mathf.Approximately(unityRect._top, targetRect._top) || !Mathf.Approximately(unityRect._right, targetRect._right) || !Mathf.Approximately(unityRect._bottom, targetRect._bottom))
+            if (targetRect._bottom != unityRect._bottom || targetRect._top != unityRect._top || targetRect._left != unityRect._left || targetRect._right != unityRect._right)
                 return true;
             data.Hwnd = childHwnd;
             return false;
         }
+
+        private static readonly Type PlayModeView = typeof(Editor).Assembly.GetType("UnityEditor.PlayModeView")!;
+        private static readonly FieldInfo TargetDisplay = PlayModeView.GetField("m_TargetDisplay", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo PlayModeViews = PlayModeView.GetField("s_PlayModeViews", BindingFlags.NonPublic | BindingFlags.Static)!;
+        private static readonly Type EditorWindow = typeof(Editor).Assembly.GetType("UnityEditor.EditorWindow")!;
+        private static readonly FieldInfo GameViewRect = EditorWindow.GetField("m_GameViewRect", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo EditorWindowParent = EditorWindow.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly Type View = typeof(Editor).Assembly.GetType("UnityEditor.View")!;
+        private static readonly FieldInfo Position = View.GetField("m_Position", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly FieldInfo ViewParent = View.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!;
 #endif
 
         private static IntPtr GetFrameGenerationTargetWindowHandle(int display)
         {
 #if UNITY_EDITOR
-            var playModeView = typeof(Editor).Assembly.GetType("UnityEditor.PlayModeView")!;
-            var targetDisplay = playModeView.GetField("m_TargetDisplay", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            var allPlayModeViews = (IEnumerable)playModeView.GetField("s_PlayModeViews", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
-            var camerasPlayModeView = (from EditorWindow window in allPlayModeViews where display == (int)targetDisplay.GetValue(window) select window).FirstOrDefault();
+
+            var allPlayModeViews = (IEnumerable)PlayModeViews.GetValue(null);
+            var camerasPlayModeView = (from EditorWindow window in allPlayModeViews where display == (int)TargetDisplay.GetValue(window) select window).FirstOrDefault();
             if (camerasPlayModeView is null) return IntPtr.Zero;
-            var editorWindow = typeof(Editor).Assembly.GetType("UnityEditor.EditorWindow")!;
-            var viewRect = (Rect)editorWindow.GetField("m_GameViewRect", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
+            var viewRect = (Rect)GameViewRect.GetValue(camerasPlayModeView);
             EditorOffset = viewRect.position;
-            var view = typeof(Editor).Assembly.GetType("UnityEditor.View")!;
-            var position = view.GetField("m_Position", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            var parent = editorWindow.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(camerasPlayModeView);
-            var windowRect = (Rect)position.GetValue(parent);
+            var parent = EditorWindowParent.GetValue(camerasPlayModeView);
+            var windowRect = (Rect)Position.GetValue(parent);
             EditorResolution = windowRect.size;
-            while ((parent = view.GetField("m_Parent", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(parent)) is not null)
+            while ((parent = ViewParent.GetValue(parent)) is not null)
             {
-                var thisViewPosition = (Rect)position.GetValue(parent);
+                var thisViewPosition = (Rect)Position.GetValue(parent);
                 windowRect.xMin += thisViewPosition.xMin;
                 windowRect.xMax += thisViewPosition.xMin;
                 windowRect.yMin += thisViewPosition.yMin;
                 windowRect.yMax += thisViewPosition.yMin;
             }
             var parentHwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
-            GetWindowRect(parentHwnd, out var parentRect);
-            GetClientRect(parentHwnd, out var parentClientRect);
-            var x = parentRect._right + parentRect._left - parentClientRect._right;
-            var y = parentRect._bottom + parentRect._top - parentClientRect._bottom;
-            var targetRect = new NativeRect(windowRect.xMin + x, windowRect.yMin + y, windowRect.xMax + x, windowRect.yMax + y);
+            var targetRect = new NativeRect((int)windowRect.xMin, (int)windowRect.yMin, (int)windowRect.xMax, (int)windowRect.yMax);
+            MapWindowPoints(parentHwnd, IntPtr.Zero, ref targetRect);
             var data = new EnumChildWindowsData(targetRect, IntPtr.Zero);
             EnumChildWindows(parentHwnd, EnumChildWindowsCallback, ref data);
+            if (data.Hwnd == IntPtr.Zero) Debug.LogError("Could not find target window");
+            else
+            {
+                var length = GetWindowTextLength(data.Hwnd) + 1;
+                var builder = new StringBuilder(length);
+                GetWindowText(data.Hwnd, builder, length);
+                Debug.Log($"Found target window: {builder} (hWnd: {data.Hwnd})");
+            }
             return data.Hwnd;
 #else
             return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;

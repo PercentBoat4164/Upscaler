@@ -6,27 +6,30 @@
 
 #define RETURN_STATUS_WITH_MESSAGE_IF(x, status, message) \
 if ((bool)(x)) {                                          \
-    Plugin::log(message);                                 \
+    Plugin::log(status, message);                         \
     return status;                                        \
 }
 #define RETURN_WITH_MESSAGE_IF(x, message) \
 {                                          \
     Upscaler::Status status = x;           \
     if (status != Success) {               \
-        Plugin::log(message);              \
+        Plugin::log(status, message);      \
         return status;                     \
     }                                      \
 }
 #define RETURN_VOID_WITH_MESSAGE_IF(x, message) \
-if ((x) != Success) {                           \
-    Plugin::log(message);                       \
-    return;                                     \
+{                                               \
+    Upscaler::Status status = x;                \
+    if (status != Success) {                    \
+        Plugin::log(status, message);           \
+        return;                                 \
+    }                                           \
 }
-#define RETURN_IF(x)                       \
-    {                                      \
-        Upscaler::Status status = x;       \
-        if ((x) != Success) return status; \
-    }
+#define RETURN_IF(x)                   \
+{                                      \
+    Upscaler::Status status = x;       \
+    if ((x) != Success) return status; \
+}
 
 class Upscaler {
     constexpr static uint8_t ERROR_RECOVERABLE = 1U << 7U;

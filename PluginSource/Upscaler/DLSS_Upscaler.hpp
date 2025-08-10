@@ -31,7 +31,7 @@ class DLSS_Upscaler final : public Upscaler {
     static decltype(&slGetFeatureFunction)     slGetFeatureFunction;
     static decltype(&slDLSSGetOptimalSettings) slDLSSGetOptimalSettings;
     static decltype(&slDLSSSetOptions)         slDLSSSetOptions;
-    static decltype(&slSetTag)                 slSetTag;
+    static decltype(&slSetTagForFrame)         slSetTagForFrame;
     static decltype(&slGetNewFrameToken)       slGetNewFrameToken;
     static decltype(&slSetConstants)           slSetConstants;
     static decltype(&slEvaluateFeature)        slEvaluateFeature;
@@ -56,7 +56,7 @@ class DLSS_Upscaler final : public Upscaler {
 #    endif
 
     static Status setStatus(sl::Result t_error);
-    static void log(sl::LogType /*unused*/, const char* msg);
+    static void log(sl::LogType type, const char* msg);
 
     [[nodiscard]] sl::DLSSMode getQuality(enum Quality quality) const;
 

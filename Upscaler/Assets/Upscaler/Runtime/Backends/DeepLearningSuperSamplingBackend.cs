@@ -153,8 +153,11 @@ namespace Upscaler.Runtime.Backends
             _lastViewToClip = _data.viewToClip;
             _lastWorldToCamera = cameraToWorld.inverse;
 
+            if (motion == null)
+                Debug.Log("Motion is null");
+
             if (depth != Depth) commandBuffer.Blit(depth, Depth, CopyDepth, 0);
-            if (motion != Motion) commandBuffer.CopyTexture(motion, Motion);
+            if (motion != Motion) commandBuffer.Blit(motion, Motion);
             commandBuffer.IssuePluginEventAndData(EventCallback, 0, DataHandle);
         }
 

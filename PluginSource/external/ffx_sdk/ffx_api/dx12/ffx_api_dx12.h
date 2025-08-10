@@ -103,6 +103,13 @@ struct ffxConfigureDescFrameGenerationSwapChainKeyValueDX12
     void*                   ptr;        ///< Pointer to set or pointer to value to set.
 };
 
+//enum value matches enum FfxFrameInterpolationSwapchainConfigureKey
+enum FfxApiConfigureFrameGenerationSwapChainKeyDX12
+{
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK = 0,                     ///< Sets FfxWaitCallbackFunc
+    FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING = 2,                ///< Sets FfxApiSwapchainFramePacingTuning
+};
+
 #define FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_GPU_MEMORY_USAGE_DX12 0x00030009u
 struct ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageDX12
 {

@@ -507,6 +507,9 @@ namespace Upscaler.Runtime
                     return false;
                 }
             }
+
+            if (frameGeneration != PreviousFrameGeneration) NativeInterface.SetFrameGeneration(frameGeneration ? Camera.targetDisplay : -1);
+
             needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution || _hdr != Camera.allowHDR;
             if (needsUpdate)
             {
@@ -572,6 +575,7 @@ namespace Upscaler.Runtime
             Camera = GetComponent<Camera>();
             if (SystemInfo.supportsMotionVectors) Camera.depthTextureMode |= DepthTextureMode.MotionVectors | DepthTextureMode.Depth;
             Camera.ResetProjectionMatrix();
+            PreviousFrameGeneration = !frameGeneration;
             _stale = true;
         }
 

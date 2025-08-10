@@ -7,7 +7,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Upscaler.Runtime.URP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -15,7 +14,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace Upscaler.Editor
 {
-    [CustomEditor(typeof(Upscaler.Runtime.Upscaler))]
+    [CustomEditor(typeof(Runtime.Upscaler))]
     public class UpscalerEditor : UnityEditor.Editor
     {
 #if UPSCALER_USE_URP
@@ -100,7 +99,7 @@ namespace Upscaler.Editor
 
         public override void OnInspectorGUI()
         {
-            var upscaler = (Upscaler.Runtime.Upscaler)serializedObject.targetObject;
+            var upscaler = (Runtime.Upscaler)serializedObject.targetObject;
             var camera = upscaler.GetComponent<Camera>();
 #if UPSCALER_USE_URP
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
@@ -114,14 +113,14 @@ namespace Upscaler.Editor
                     EditorGUILayout.HelpBox("When using Vulkan, 'Native RenderPass' must be disabled in the active Renderer Data.", MessageType.Error);
                     if (GUILayout.Button("Disable 'Native RenderPass'.")) activeRenderer.useNativeRenderPass = false;
                 }
-                if (activeRenderer.rendererFeatures.Where(feature => feature is UpscalerRendererFeature).ToArray().Length == 0)
+                if (activeRenderer.rendererFeatures.Where(feature => feature is Runtime.URP.UpscalerRendererFeature).ToArray().Length == 0)
                     EditorGUILayout.HelpBox("There must be a single UpscalerRendererFeature in this camera's 'Renderer'.", MessageType.Error);
-                if (camera.GetComponents<Upscaler.Runtime.Upscaler>().Length > 1)
+                if (camera.GetComponents<Runtime.Upscaler>().Length > 1)
                 {
                     EditorGUILayout.HelpBox("There must be only a single 'Upscaler' component on this camera.",
                         MessageType.Error);
                     if (GUILayout.Button("Remove extra Upscaler components."))
-                        foreach (var component in camera.GetComponents<Upscaler.Runtime.Upscaler>().Skip(1))
+                        foreach (var component in camera.GetComponents<Runtime.Upscaler>().Skip(1))
                             DestroyImmediate(component);
                 }
                 if (!cameraData.renderPostProcessing)
@@ -131,9 +130,9 @@ namespace Upscaler.Editor
                 }
             }
 #endif
-            if (!Upscaler.Runtime.Upscaler.IsSupported((Upscaler.Runtime.Upscaler.Technique)_technique.intValue)) _technique.intValue = (int)Upscaler.Runtime.Upscaler.GetBestSupportedTechnique();
-            _technique.intValue = (int)(Upscaler.Runtime.Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), (Upscaler.Runtime.Upscaler.Technique)_technique.intValue, x => Upscaler.Runtime.Upscaler.IsSupported((Upscaler.Runtime.Upscaler.Technique)x), false);
-            if ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue != Upscaler.Runtime.Upscaler.Technique.None)
+            if (!Runtime.Upscaler.IsSupported((Runtime.Upscaler.Technique)_technique.intValue)) _technique.intValue = (int)Runtime.Upscaler.GetBestSupportedTechnique();
+            _technique.intValue = (int)(Runtime.Upscaler.Technique)EditorGUILayout.EnumPopup(new GUIContent("Upscaler"), (Runtime.Upscaler.Technique)_technique.intValue, x => Runtime.Upscaler.IsSupported((Runtime.Upscaler.Technique)x), false);
+            if ((Runtime.Upscaler.Technique)_technique.intValue != Runtime.Upscaler.Technique.None)
             {
 #if UPSCALER_USE_URP
                 if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
@@ -153,7 +152,7 @@ namespace Upscaler.Editor
             }
 
 #if UPSCALER_USE_URP
-            if (upscaler.autoReactive && upscaler.technique == Upscaler.Runtime.Upscaler.Technique.FidelityFXSuperResolution)
+            if (upscaler.autoReactive && upscaler.technique == Runtime.Upscaler.Technique.FidelityFXSuperResolution)
             {
                 if (UniversalRenderPipeline.asset?.supportsCameraOpaqueTexture is false)
                 {
@@ -171,25 +170,25 @@ namespace Upscaler.Editor
             }
 #endif
 
-            _quality.intValue = (int)(Upscaler.Runtime.Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
+            _quality.intValue = (int)(Runtime.Upscaler.Quality)EditorGUILayout.EnumPopup(new GUIContent("Quality",
                     "Choose a Quality mode for the upscaler. Use Auto to automatically select a Quality mode " +
                     "based on output resolution. The Auto quality mode is guaranteed to be supported for all " +
                     "non-None upscalers. Greyed out options are not available for this upscaler."),
-                (Upscaler.Runtime.Upscaler.Quality)_quality.intValue, x => (Upscaler.Runtime.Upscaler.Technique)_technique.intValue == Upscaler.Runtime.Upscaler.Technique.None || upscaler.IsSupported((Upscaler.Runtime.Upscaler.Quality)x), false);
+                (Runtime.Upscaler.Quality)_quality.intValue, x => (Runtime.Upscaler.Technique)_technique.intValue == Runtime.Upscaler.Technique.None || upscaler.IsSupported((Runtime.Upscaler.Quality)x), false);
 
             var dynamicResolutionSupported = !Equals(upscaler.MaxInputResolution, upscaler.MinInputResolution);
             if (!dynamicResolutionSupported) EditorGUILayout.HelpBox("This quality mode does not support Dynamic Resolution.", MessageType.None);
 
-            if ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue != Upscaler.Runtime.Upscaler.Technique.XeSuperSampling && (Upscaler.Runtime.Upscaler.Technique)_technique.intValue != Upscaler.Runtime.Upscaler.Technique.None)
+            if ((Runtime.Upscaler.Technique)_technique.intValue != Runtime.Upscaler.Technique.XeSuperSampling && (Runtime.Upscaler.Technique)_technique.intValue != Runtime.Upscaler.Technique.None)
             {
                 EditorGUILayout.Separator();
                 EditorGUI.indentLevel += 1;
                 advancedSettingsFoldout = EditorGUILayout.Foldout(advancedSettingsFoldout, "Advanced Settings");
                 if (advancedSettingsFoldout)
                 {
-                    switch ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue)
+                    switch ((Runtime.Upscaler.Technique)_technique.intValue)
                     {
-                        case Upscaler.Runtime.Upscaler.Technique.FidelityFXSuperResolution:
+                        case Runtime.Upscaler.Technique.FidelityFXSuperResolution:
                             _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness",
                                     "Controls the amount of RCAS sharpening to apply after upscaling. Too much will produce a dirty, crunchy image. Too little will produce a smooth, blurry image. A good balance will produce a clear, clean image\n\nDefault: 0.3f"),
                                 _sharpness.floatValue, 0f, 1f);
@@ -211,28 +210,28 @@ namespace Upscaler.Editor
                                 EditorGUI.indentLevel -= 1;
                             }
                             break;
-                        case Upscaler.Runtime.Upscaler.Technique.DeepLearningSuperSampling:
-                            _preset.intValue = (int)(Upscaler.Runtime.Upscaler.Preset)EditorGUILayout.EnumPopup(
+                        case Runtime.Upscaler.Technique.DeepLearningSuperSampling:
+                            _preset.intValue = (int)(Runtime.Upscaler.Preset)EditorGUILayout.EnumPopup(
                                 new GUIContent("DLSS Preset",
                                     "Allows choosing a group of DLSS models preselected for optimal quality in various circumstances.\n\n" +
                                     "'Default': The most commonly applicable option. Leaving this option here will probably be fine.\n\n" +
                                     "'Stable': Similar to default. Prioritizes older information for better anti-aliasing quality.\n\n" +
                                     "'Fast Paced': Opposite of 'Stable'. Prioritizes newer information for reduced ghosting.\n\n" +
                                     "'Anti Ghosting': Similar to 'Fast Paced'. Attempts to compensate for objects with missing motion vectors."),
-                                (Upscaler.Runtime.Upscaler.Preset)_preset.intValue);
+                                (Runtime.Upscaler.Preset)_preset.intValue);
                             break;
-                        case Upscaler.Runtime.Upscaler.Technique.SnapdragonGameSuperResolution1:
+                        case Runtime.Upscaler.Technique.SnapdragonGameSuperResolution1:
                                 _sharpness.floatValue = EditorGUILayout.Slider(new GUIContent("Sharpness"), _sharpness.floatValue, 0, 1);
                                 _useEdgeDirection.boolValue = EditorGUILayout.Toggle(new GUIContent("Use Edge Direction"), _useEdgeDirection.boolValue);
                                 break;
-                        case Upscaler.Runtime.Upscaler.Technique.SnapdragonGameSuperResolution2:
-                                _method.intValue = (int)(Upscaler.Runtime.Upscaler.Method)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Upscaler.Runtime.Upscaler.Method)_method.intValue);
+                        case Runtime.Upscaler.Technique.SnapdragonGameSuperResolution2:
+                                _method.intValue = (int)(Runtime.Upscaler.Method)EditorGUILayout.EnumPopup(new GUIContent("SGSR Method"), (Runtime.Upscaler.Method)_method.intValue);
                                 break;
-                        case Upscaler.Runtime.Upscaler.Technique.None:
-                        case Upscaler.Runtime.Upscaler.Technique.XeSuperSampling:
+                        case Runtime.Upscaler.Technique.None:
+                        case Runtime.Upscaler.Technique.XeSuperSampling:
                         default: break;
                     }
-                    if ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue == Upscaler.Runtime.Upscaler.Technique.XeSuperSampling || (Upscaler.Runtime.Upscaler.Technique)_technique.intValue == Upscaler.Runtime.Upscaler.Technique.None)
+                    if ((Runtime.Upscaler.Technique)_technique.intValue == Runtime.Upscaler.Technique.XeSuperSampling || (Runtime.Upscaler.Technique)_technique.intValue == Runtime.Upscaler.Technique.None)
                         EditorGUILayout.Separator();
                 }
             }
@@ -241,7 +240,7 @@ namespace Upscaler.Editor
             debugSettingsFoldout = EditorGUILayout.Foldout(debugSettingsFoldout, "Debug Settings");
             if (debugSettingsFoldout)
             {
-                if ((Upscaler.Runtime.Upscaler.Technique)_technique.intValue == Upscaler.Runtime.Upscaler.Technique.FidelityFXSuperResolution) {
+                if ((Runtime.Upscaler.Technique)_technique.intValue == Runtime.Upscaler.Technique.FidelityFXSuperResolution) {
                     _upscalingDebugView.boolValue = EditorGUILayout.Toggle(
                         new GUIContent("View Upscaling Debug Images",
                             "Draws extra views over the scene to help understand the inputs to the upscaling process. (FSR only)"),

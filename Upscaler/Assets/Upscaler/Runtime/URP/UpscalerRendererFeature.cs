@@ -114,7 +114,7 @@ namespace Upscaler.Runtime.URP
 #if !UNITY_6000_0_OR_NEWER
             if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
             {
-                _setupGenerate.ConfigureInput(ScriptableRenderPassInput.Motion);
+                _setupGenerate.ConfigureInput(ScriptableRenderPassInput.Motion);  /**@todo: Remove the SetupGenerateRenderPass*/
                 renderer.EnqueuePass(_setupGenerate);
                 _generate.ConfigureInput(ScriptableRenderPassInput.None);
                 renderer.EnqueuePass(_generate);

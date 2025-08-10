@@ -1,8 +1,11 @@
 #if UPSCALER_USE_URP
-using System;
+using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+#if UNITY_6000_0_OR_NEWER
+using System;
+#endif
 
 namespace Upscaler.Runtime.URP
 {
@@ -22,7 +25,7 @@ namespace Upscaler.Runtime.URP
                 descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
                 var cb = CommandBufferPool.Get("Generate");
                 cb.GetTemporaryRT(GenerateRenderPass.TempMotion, descriptor);
-                cb.Blit(MotionID, GenerateRenderPass.TempMotion);
+                cb.Blit(Shader.GetGlobalTexture(MotionID), GenerateRenderPass.TempMotion);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
             }

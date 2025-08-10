@@ -80,7 +80,7 @@ class XeSS_Upscaler final : public Upscaler {
 #    endif
 
     static Status setStatus(xess_result_t t_error);
-    static void log(const char* msg, xess_logging_level_t /*unused*/);
+    static void log(const char* msg, xess_logging_level_t type);
 
     [[nodiscard]] xess_quality_settings_t getQuality(enum Quality quality) const;
 

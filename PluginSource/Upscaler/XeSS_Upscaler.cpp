@@ -30,9 +30,9 @@ HMODULE XeSS_Upscaler::library{nullptr};
 HMODULE XeSS_Upscaler::dx11library{nullptr};
 bool    XeSS_Upscaler::loaded{false};
 
-Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpCreate)(const void*){&safeFail};
-Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpSetImages)(const std::array<void*, 4>&){&safeFail};
-Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpEvaluate)(Resolution) const {&safeFail};
+Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpCreate)(const void*){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpSetImages)(const std::array<void*, 4>&){&XeSS_Upscaler::safeFail};
+Upscaler::Status (XeSS_Upscaler::* XeSS_Upscaler::fpEvaluate)(Resolution) const {&XeSS_Upscaler::safeFail};
 
 decltype(&xessGetOptimalInputResolution) XeSS_Upscaler::xessGetOptimalInputResolution{nullptr};
 decltype(&xessDestroyContext)            XeSS_Upscaler::xessDestroyContext{nullptr};
@@ -78,8 +78,13 @@ Upscaler::Status XeSS_Upscaler::setStatus(const xess_result_t t_error) {
     }
 }
 
-void XeSS_Upscaler::log(const char* msg, const xess_logging_level_t /*unused*/) {
-    Plugin::log(msg);
+void XeSS_Upscaler::log(const char* msg, const xess_logging_level_t type) {
+    switch (type) {
+        case XESS_LOGGING_LEVEL_DEBUG: Plugin::log(kUnityLogTypeException, msg); break;
+        case XESS_LOGGING_LEVEL_INFO: Plugin::log(kUnityLogTypeLog, msg); break;
+        case XESS_LOGGING_LEVEL_WARNING: Plugin::log(kUnityLogTypeWarning, msg); break;
+        case XESS_LOGGING_LEVEL_ERROR: Plugin::log(kUnityLogTypeError, msg); break;
+    }
 }
 
 xess_quality_settings_t XeSS_Upscaler::getQuality(const enum Quality quality) const {
@@ -338,9 +343,9 @@ void XeSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
         }
 #    endif
         default: {
-            fpCreate    = &safeFail<UnsupportedGraphicsApi>;
-            fpSetImages = &safeFail<UnsupportedGraphicsApi>;
-            fpEvaluate  = &safeFail<UnsupportedGraphicsApi>;
+            fpCreate    = &XeSS_Upscaler::safeFail<UnsupportedGraphicsApi>;
+            fpSetImages = &XeSS_Upscaler::safeFail<UnsupportedGraphicsApi>;
+            fpEvaluate  = &XeSS_Upscaler::safeFail<UnsupportedGraphicsApi>;
             break;
         }
     }

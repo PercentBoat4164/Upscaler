@@ -107,7 +107,7 @@ endif ()
 
 cmake_path(SET STREAMLINE_SDK_DIR "${CMAKE_SOURCE_DIR}/external/streamline-sdk-v2.8.0")
 cmake_path(SET FFX_SDK_DIR "${CMAKE_SOURCE_DIR}/external/ffx_sdk")
-cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/external/XeSS_SDK_2.0.1")
+cmake_path(SET XESS_SDK_DIR "${CMAKE_SOURCE_DIR}/external/XeSS_SDK_2.1.0")
 set(DESIRED_UNITY_VERSION "2022.3.23f1")
 set(REQUIRE_DESIRED_UNITY_VERSION OFF)
 
