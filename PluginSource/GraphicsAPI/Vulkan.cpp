@@ -387,31 +387,59 @@ VkResult Vulkan::hook_vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swap
 }
 
 VkResult Vulkan::hook_vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
-    /**@todo: Split this into two calls, one to m_fxQueuePresentKHR with the FSR swapchain, and one to m_vkQueuePresentKHR with the other swapchains.*/
-#ifdef ENABLE_FSR
-    if (pPresentInfo->swapchainCount == 1) {
-        VkSwapchainKHR swapchain = pPresentInfo->pSwapchains[0];
-        const bool isFsrSwapchain = FrameGenerator::ownsSwapchain(swapchain);
-        const bool isFsrProvider = Plugin::frameGenerationProvider == Plugin::FSR;
-        if ((isFsrSwapchain && !isFsrProvider) || (!isFsrSwapchain && isFsrProvider && swapchainToIntercept == swapchain)) return VK_ERROR_OUT_OF_DATE_KHR;
-        if (isFsrSwapchain) return m_fxQueuePresentKHR(queue, pPresentInfo);
-    }
-#endif
-    return m_vkQueuePresentKHR(queue, pPresentInfo);
-}
-
-void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, const uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata) {
-    const PFN_vkSetHdrMetadataEXT* setHdrMetadataEXT = &m_vkSetHdrMetadataEXT;
-#ifdef ENABLE_FSR
-    /**@todo: Split this into two calls, one to m_fxSetHdrMetadataEXT with the FSR swapchain, and one to vkSetHdrMetadataEXT with the other swapchains.*/
-    for (uint32_t i{}; i < swapchainCount; ++i) {
-        if (FrameGenerator::ownsSwapchain(pSwapchains[i])) {
-            setHdrMetadataEXT = &m_fxSetHdrMetadataEXT;
-            break;
+#ifdef ENABLE_FRAME_GENERATION
+    const bool intercepting = swapchainToIntercept != nullptr;
+    VkPresentInfoKHR presentInfo = *pPresentInfo;
+    std::vector<VkSwapchainKHR> nativeSwapchains;
+    std::unordered_map<std::size_t, uint32_t> mapping;
+    uint32_t swapchainCount = presentInfo.swapchainCount;
+    nativeSwapchains.reserve(swapchainCount);
+    VkResult swapchainPresentResult = VK_SUCCESS;
+    for (; swapchainCount > 0; --swapchainCount) {
+        const uint32_t index = swapchainCount - 1;
+        const bool isFsrSwapchain = FrameGenerator::ownsSwapchain(pPresentInfo->pSwapchains[index]);
+        if (isFsrSwapchain || swapchainToIntercept == pPresentInfo->pSwapchains[index] && pPresentInfo->pResults != nullptr) mapping[-1] = index;
+        if ((isFsrSwapchain && !intercepting) || (!isFsrSwapchain && swapchainToIntercept == pPresentInfo->pSwapchains[index])) swapchainPresentResult = VK_ERROR_OUT_OF_DATE_KHR;
+        else if (isFsrSwapchain) swapchainPresentResult = m_fxQueuePresentKHR(queue, &presentInfo);
+        else {
+            nativeSwapchains.emplace_back(pPresentInfo->pSwapchains[index]);
+            if (pPresentInfo->pResults != nullptr) mapping[nativeSwapchains.size()] = index;
         }
     }
+    presentInfo.pSwapchains = nativeSwapchains.data();
+    presentInfo.swapchainCount = nativeSwapchains.size();
+    std::vector<VkResult> results(nativeSwapchains.size());
+    presentInfo.pResults = results.data();
+    if (presentInfo.swapchainCount == 0) return swapchainPresentResult;
+    const VkResult result = m_vkQueuePresentKHR(queue, &presentInfo);
+    if (pPresentInfo->pResults != nullptr)
+        for (const auto & [src, dst] : mapping) {
+            if (src == -1) pPresentInfo->pResults[dst] = swapchainPresentResult;
+            else pPresentInfo->pResults[dst] = results[src];
+        }
+    if (result == VK_ERROR_DEVICE_LOST || swapchainPresentResult == VK_ERROR_DEVICE_LOST) return VK_ERROR_DEVICE_LOST;
+    if (result == VK_ERROR_SURFACE_LOST_KHR || swapchainPresentResult == VK_ERROR_SURFACE_LOST_KHR) return VK_ERROR_SURFACE_LOST_KHR;
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || swapchainPresentResult == VK_ERROR_OUT_OF_DATE_KHR) return VK_ERROR_OUT_OF_DATE_KHR;
+    if (result == VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT || swapchainPresentResult == VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT) return VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT;
+    if (result == VK_SUBOPTIMAL_KHR || swapchainPresentResult == VK_SUBOPTIMAL_KHR) return VK_SUBOPTIMAL_KHR;
+    return result;
+#else
+    return m_vkQueuePresentKHR(queue, pPresentInfo);
 #endif
-    return (*setHdrMetadataEXT)(device, swapchainCount, pSwapchains, pMetadata);
+}
+
+void Vulkan::hook_vkSetHdrMetadataEXT(VkDevice device, uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata) {
+#ifdef ENABLE_FRAME_GENERATION
+    std::vector<VkSwapchainKHR> nativeSwapchains;
+    nativeSwapchains.reserve(swapchainCount);
+    for (; swapchainCount > 0; --swapchainCount)
+        if (FrameGenerator::ownsSwapchain(pSwapchains[swapchainCount - 1])) m_fxSetHdrMetadataEXT(device, 1, &pSwapchains[swapchainCount - 1], pMetadata);
+        else nativeSwapchains.emplace_back(pSwapchains[swapchainCount - 1]);
+    pSwapchains = nativeSwapchains.data();
+    swapchainCount = nativeSwapchains.size();
+    if (swapchainCount == 0) return;
+#endif
+    return m_vkSetHdrMetadataEXT(device, swapchainCount, pSwapchains, pMetadata);
 }
 
 PFN_vkGetInstanceProcAddr Vulkan::interceptInitialization(PFN_vkGetInstanceProcAddr t_getInstanceProcAddr, void* /*unused*/) {

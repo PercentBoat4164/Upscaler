@@ -209,7 +209,7 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(const UnityGfxDeviceEventT
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces) {
-    GraphicsAPI::registerUnityInterfaces(unityInterfaces); /**@todo: Try moving this up to OnGraphicsDeviceEvent to avoid issues during a multi-boot scenario when starting Unity.*/
+    GraphicsAPI::registerUnityInterfaces(unityInterfaces);
     Plugin::Unity::interfaces        = unityInterfaces;
     Plugin::Unity::logInterface      = unityInterfaces->Get<IUnityLog>();
     Plugin::Unity::graphicsInterface = unityInterfaces->Get<IUnityGraphics>();
