@@ -54,7 +54,7 @@ Upscaler::Status FSR_Upscaler::VulkanCreate(ffxCreateContextDescUpscale& createC
 Upscaler::Status FSR_Upscaler::VulkanSetResources(const std::array<void*, 6>& images) {
     for (Plugin::ImageID id{0}; id < (autoReactive ? images.size() : 4); ++reinterpret_cast<uint8_t&>(id)) {
         VkAccessFlags      accessFlags{VK_ACCESS_SHADER_READ_BIT};
-        FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
+        FfxApiResourceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
         if (id == Plugin::Output || id == Plugin::Reactive) {
             accessFlags   = VK_ACCESS_SHADER_WRITE_BIT;
             resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
@@ -105,7 +105,7 @@ Upscaler::Status FSR_Upscaler::DX12Create(ffxCreateContextDescUpscale& createCon
 
 Upscaler::Status FSR_Upscaler::DX12SetResources(const std::array<void*, 6>& images) {
     for (Plugin::ImageID id{0}; id < (autoReactive ? images.size() : 4); ++reinterpret_cast<uint8_t&>(id)) {
-        FfxApiResorceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
+        FfxApiResourceUsage resourceUsage{FFX_API_RESOURCE_USAGE_READ_ONLY};
         if (id == Plugin::Output || id == Plugin::Reactive) resourceUsage = FFX_API_RESOURCE_USAGE_UAV;
         auto& [resource, description, state] = resources.at(id);
         resource = images.at(id);
