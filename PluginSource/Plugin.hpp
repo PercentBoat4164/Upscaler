@@ -17,6 +17,7 @@ inline IUnityLog*        logInterface      = nullptr;
 inline std::filesystem::path path = "";
 
 inline void log(const UnityLogType type, const std::string_view msg) {
+    if (type == kUnityLogTypeLog) return;
     Unity::logInterface->Log(type, msg.data(), "Upscaler native library: 'GfxPluginUpscaler.dll'", 0);
 }
 
