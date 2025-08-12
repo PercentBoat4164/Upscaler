@@ -334,7 +334,7 @@ Upscaler::Status FSR_Upscaler::evaluate(const Resolution inputResolution) {
         .upscaleSize                = FfxApiDimensions2D {resources.at(Plugin::Output).description.width, resources.at(Plugin::Output).description.height},
         .enableSharpening           = sharpness > 0.0F,
         .sharpness                  = sharpness,
-        .frameTimeDelta             = frameTime,
+        .frameTimeDelta             = std::max(frameTime, 1.0F),  // Silences warnings about the timing not being in milliseconds, and only gives incorrect results if the frametime is less than 1ms.
         .preExposure                = 1.0F,
         .reset                      = resetHistory,
         .cameraNear                 = farPlane,
