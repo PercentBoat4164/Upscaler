@@ -13,7 +13,9 @@ namespace Upscaler.Runtime.URP
         {
             private readonly RTHandle[] _hudless = new RTHandle[2];
             private uint _hudlessBufferIndex;
+#if UNITY_EDITOR
             private static readonly int TempColor = Shader.PropertyToID("Upscaler_TempColor");
+#endif
             internal static readonly int TempMotion = Shader.PropertyToID("Upscaler_TempMotion");
             internal static readonly int TempDepth = Shader.PropertyToID("Upscaler_TempDepth");
             private RTHandle _flippedDepth;
@@ -68,10 +70,14 @@ namespace Upscaler.Runtime.URP
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
                 var cb = CommandBufferPool.Get("Generate");
                 // Oddity of Unity requires the backbuffer to be blitted to another image before it can be blitted to the hudless image, otherwise the offset does not happen.
+#if UNITY_EDITOR
                 cb.GetTemporaryRT(TempColor, renderingData.cameraData.cameraTargetDescriptor);
                 cb.Blit(null, TempColor);
                 cb.Blit(TempColor, _hudless[_hudlessBufferIndex], NativeInterface.EditorResolution / upscaler.OutputResolution, -NativeInterface.EditorOffset / NativeInterface.EditorResolution);
                 cb.ReleaseTemporaryRT(TempColor);
+#else
+                cb.Blit(null, _hudless[_hudlessBufferIndex]);
+#endif
                 cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion, new Vector2(1, -1), new Vector2(0, 1));
                 BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth, new Vector2(1, -1), new Vector2(0, 1));
                 NativeInterface.FrameGenerate(cb, upscaler, _hudlessBufferIndex);
