@@ -55,6 +55,11 @@ namespace Upscaler.Runtime
             internal FrameGenerateData(Upscaler upscaler, uint imageIndex, bool reset, Vector2Int offsets)
             {
                 _enable = upscaler.frameGeneration;
+                var camera = upscaler.GetComponent<Camera>();
+                _cameraPosition = camera.transform.position;
+                _cameraUp = camera.transform.up;
+                _cameraRight = camera.transform.right;
+                _cameraForward = camera.transform.forward;
                 _generationRect =
 #if UNITY_EDITOR
                     Application.isEditor ? new Rect(offsets.x, offsets.y, Screen.width, Screen.height) :
@@ -63,7 +68,7 @@ namespace Upscaler.Runtime
                 _renderSize = upscaler.InputResolution;
                 _jitterOffset = upscaler.Jitter;
                 _frameTime = Time.deltaTime * 1000.0f;
-                var projMat = upscaler.GetComponent<Camera>().nonJitteredProjectionMatrix;
+                var projMat = camera.nonJitteredProjectionMatrix;
                 var planes = projMat.decomposeProjection;
                 _farPlane = planes.zFar;
                 _nearPlane = planes.zNear;
@@ -79,6 +84,10 @@ namespace Upscaler.Runtime
             }
 
             private Rect _generationRect;
+            private Vector3 _cameraPosition;
+            private Vector3 _cameraUp;
+            private Vector3 _cameraRight;
+            private Vector3 _cameraForward;
             private Vector2 _renderSize;
             private Vector2 _jitterOffset;
             private float _frameTime;

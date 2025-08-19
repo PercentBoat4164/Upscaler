@@ -8,12 +8,10 @@
     #include "GraphicsAPI/Vulkan.hpp"
 #endif
 #include "Plugin.hpp"
-#include "Upscaler/DLSS_Upscaler.hpp"
 #include "Upscaler/Upscaler.hpp"
+#include "Upscaler/DLSS_Upscaler.hpp"
 #include "Upscaler/XeSS_UPscaler.hpp"
-
-#include "IUnityRenderingExtensions.h"
-#include "IUnityShaderCompilerAccess.h"
+#include "Upscaler/FSR_Upscaler.hpp"
 
 #include <vector>
 
@@ -142,8 +140,12 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API DestroyContext(const 
 #pragma region Frame Generation
 #ifdef ENABLE_FRAME_GENERATION
 #ifdef ENABLE_FSR
-struct alignas(64) FrameGenerateDataFidelityFXSuperResolution {
+struct alignas(128) FrameGenerateDataFidelityFXSuperResolution {
     std::array<float, 4> rect;
+    float cameraPosition[3];
+    float cameraUp[3];
+    float cameraRight[3];
+    float cameraForward[3];
     FfxApiFloatCoords2D renderSize;
     FfxApiFloatCoords2D jitter;
     float frameTime;
@@ -158,16 +160,20 @@ struct alignas(64) FrameGenerateDataFidelityFXSuperResolution {
 void UNITY_INTERFACE_API GenerateCallbackFidelityFXSuperResolution(const int /*unused*/, void* d) {
     const auto& data = *static_cast<FrameGenerateDataFidelityFXSuperResolution*>(d);
     FSR_FrameGenerator::evaluate(
-        data.enable,
-        FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
-        data.renderSize,
-        data.jitter,
-        data.frameTime,
-        data.farPlane,
-        data.nearPlane,
-        data.verticalFOV,
-        data.index,
-        data.options
+      data.enable,
+      FfxApiRect2D{static_cast<int32_t>(data.rect[0]), static_cast<int32_t>(data.rect[1]), static_cast<int32_t>(data.rect[2]), static_cast<int32_t>(data.rect[3])},
+      &data.cameraPosition[0],
+      &data.cameraUp[0],
+      &data.cameraRight[0],
+      &data.cameraForward[0],
+      data.renderSize,
+      data.jitter,
+      data.frameTime,
+      data.farPlane,
+      data.nearPlane,
+      data.verticalFOV,
+      data.index,
+      data.options
     );
 #endif
 }
