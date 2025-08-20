@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Upscaler.Runtime
+namespace Upscaler.Runtime.Backends
 {
     public abstract class UpscalerBackend : IDisposable
     {
@@ -15,8 +15,8 @@ namespace Upscaler.Runtime
             EnableHDR = 1 << 1
         }
 
-        public Texture Input;
-        public Texture Output;
+        protected Texture Input;
+        protected Texture Output;
 
         public abstract Upscaler.Status ComputeInputResolutionConstraints([NotNull] in Upscaler upscaler, Flags flags);
         public abstract Upscaler.Status Update([NotNull] in Upscaler upscaler, [NotNull] in Texture input, [NotNull] in Texture output, Flags flags);
