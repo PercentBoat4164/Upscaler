@@ -15,6 +15,7 @@ namespace Upscaler.Runtime.URP
             private uint _hudlessBufferIndex;
             private static readonly int TempColor = Shader.PropertyToID("Upscaler_TempColor");
             internal static readonly int TempMotion = Shader.PropertyToID("Upscaler_TempMotion");
+            internal static readonly int TempDepth = Shader.PropertyToID("Upscaler_TempDepth");
             private RTHandle _flippedDepth;
             private RTHandle _flippedMotion;
 
@@ -26,6 +27,8 @@ namespace Upscaler.Runtime.URP
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
+
+                // Frame generation expects the hudless image to be the size of the swapchain and contain only image data where the viewport is.
                 var descriptor = renderingData.cameraData.cameraTargetDescriptor;
                 descriptor.colorFormat = GraphicsFormatUtility.GetRenderTextureFormat(NativeInterface.GetBackBufferFormat());
                 descriptor.depthStencilFormat = GraphicsFormat.None;
@@ -35,6 +38,8 @@ namespace Upscaler.Runtime.URP
 #endif
                 var needsUpdate = RenderingUtils.ReAllocateIfNeeded(ref _hudless[0], descriptor, name: "Upscaler_HUDLess0");
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _hudless[1], descriptor, name: "Upscaler_HUDLess1");
+
+                // Frame generation expects the motion vector texture to be the size of the swapchain but be entirely filled with motion vectors.
                 descriptor = renderingData.cameraData.cameraTargetDescriptor;
 #if UNITY_EDITOR
                 descriptor.width = (int)NativeInterface.EditorResolution.x;
@@ -43,11 +48,9 @@ namespace Upscaler.Runtime.URP
                 descriptor.depthStencilFormat = GraphicsFormat.None;
                 descriptor.graphicsFormat = GraphicsFormat.R16G16_SFloat;
                 needsUpdate |= RenderingUtils.ReAllocateIfNeeded(ref _flippedMotion, descriptor, name: "Upscaler_FlippedMotion");
+
+                // Frame generation expects the depth texture to be the size of the render resolution (when upscaling).
                 descriptor = renderingData.cameraData.cameraTargetDescriptor;
-#if UNITY_EDITOR
-                descriptor.width = (int)NativeInterface.EditorResolution.x;
-                descriptor.height = (int)NativeInterface.EditorResolution.y;
-#endif
                 descriptor.width = upscaler.InputResolution.x;
                 descriptor.height = upscaler.InputResolution.y;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
@@ -64,38 +67,15 @@ namespace Upscaler.Runtime.URP
             {
                 var upscaler = renderingData.cameraData.camera.GetComponent<Upscaler>();
                 var cb = CommandBufferPool.Get("Generate");
-#if UNITY_EDITOR
-                var srcRes = new Vector2(renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height);
-#endif
-                cb.GetTemporaryRT(TempColor, _hudless[_hudlessBufferIndex].rt.descriptor);
+                // Oddity of Unity requires the backbuffer to be blitted to another image before it can be blitted to the hudless image, otherwise the offset does not happen.
+                cb.GetTemporaryRT(TempColor, renderingData.cameraData.cameraTargetDescriptor);
                 cb.Blit(null, TempColor);
-                cb.Blit(TempColor, _hudless[_hudlessBufferIndex]
-#if UNITY_EDITOR
-                    , Vector2.one, -NativeInterface.EditorOffset / srcRes
-#endif
-                );
-                cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion,
-#if UNITY_EDITOR
-                    NativeInterface.EditorResolution / srcRes *
-#endif
-                    new Vector2(1.0f, -1.0f),
-#if UNITY_EDITOR
-                    NativeInterface.EditorOffset / srcRes +
-#endif
-                    new Vector2(0.0f, 1.0f));
-                BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth,
-#if UNITY_EDITOR
-                    NativeInterface.EditorResolution / srcRes *
-#endif
-                    new Vector2(1.0f, -1.0f),
-#if UNITY_EDITOR
-                    NativeInterface.EditorOffset / srcRes +
-#endif
-                    new Vector2(0.0f, 1.0f));
+                cb.Blit(TempColor, _hudless[_hudlessBufferIndex], NativeInterface.EditorResolution / upscaler.OutputResolution, -NativeInterface.EditorOffset / NativeInterface.EditorResolution);
+                cb.ReleaseTemporaryRT(TempColor);
+                cb.Blit(Shader.GetGlobalTexture(MotionID), _flippedMotion, new Vector2(1, -1), new Vector2(0, 1));
+                BlitDepth(cb, Shader.GetGlobalTexture(DepthID), _flippedDepth, new Vector2(1, -1), new Vector2(0, 1));
                 NativeInterface.FrameGenerate(cb, upscaler, _hudlessBufferIndex);
                 cb.SetRenderTarget(k_CameraTarget);
-                cb.ReleaseTemporaryRT(TempColor);
-                cb.ReleaseTemporaryRT(TempMotion);
                 context.ExecuteCommandBuffer(cb);
                 CommandBufferPool.Release(cb);
                 _hudlessBufferIndex = (_hudlessBufferIndex + 1U) % (uint)_hudless.Length;
