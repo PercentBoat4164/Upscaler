@@ -12,7 +12,7 @@ namespace Upscaler.Runtime.URP
     {
         private class HistoryResetRenderPass : ScriptableRenderPass
         {
-            public HistoryResetRenderPass() => renderPassEvent = RenderPassEvent.AfterRendering;
+            public HistoryResetRenderPass() => renderPassEvent = (RenderPassEvent)int.MaxValue;
 
 #if UNITY_6000_0_OR_NEWER
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData) => frameData.Get<UniversalCameraData>().camera.GetComponent<Upscaler>().shouldHistoryResetThisFrame = false;

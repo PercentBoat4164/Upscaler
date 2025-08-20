@@ -46,8 +46,5 @@ public:
     static void evaluate(bool enable, FfxApiRect2D generationRect, const float cameraPosition[], const float cameraUp[], const float cameraRight[], const float cameraForward[], FfxApiFloatCoords2D renderSize, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options);
 
     static ffxContext* getContext();
-
-    static UnityRenderingExtTextureFormat vkFormatToUnityFormat(VkFormat format);
-    static VkFormat unityFormatToVkFormat(UnityRenderingExtTextureFormat format);
 };
 #endif

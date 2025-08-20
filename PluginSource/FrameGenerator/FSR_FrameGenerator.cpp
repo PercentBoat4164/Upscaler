@@ -77,7 +77,6 @@ void FSR_FrameGenerator::createSwapchain(VkSwapchainKHR* pSwapchain, const VkSwa
         return Plugin::log(kUnityLogTypeError, "Failed to create frame generation context.");
 
     swapchain.vulkan = *pSwapchain;
-    backBufferFormat = vkFormatToUnityFormat(pCreateInfo->imageFormat);
 
     ffxQueryDescSwapchainReplacementFunctionsVK replacementFunctionsVk{
       .header = {
@@ -124,7 +123,6 @@ void FSR_FrameGenerator::destroySwapchain() {
     if (context != nullptr) FSR_Upscaler::ffxDestroyContext(&context, nullptr);
     context          = nullptr;
     swapchain.vulkan = VK_NULL_HANDLE;
-    backBufferFormat = kUnityRenderingExtFormatNone;
 }
 
 void FSR_FrameGenerator::useImages(VkImage color0, VkImage color1, VkImage depth, VkImage motion) {
@@ -186,8 +184,7 @@ void FSR_FrameGenerator::useImages(VkImage color0, VkImage color1, VkImage depth
 }
 
 void FSR_FrameGenerator::evaluate(bool enable, FfxApiRect2D generationRect, const float cameraPosition[3], const float cameraUp[3], const float cameraRight[3], const float cameraForward[3], FfxApiFloatCoords2D renderSize, FfxApiFloatCoords2D jitter, float frameTime, float farPlane, float nearPlane, float verticalFOV, unsigned index, unsigned options) {
-    static uint32_t frameNumber;
-
+    if (context == nullptr) return;
     callbackContext.reset = (options & 0x40U) != 0U;
 
     ffxConfigureDescFrameGeneration configureDescFrameGeneration{
@@ -199,17 +196,22 @@ void FSR_FrameGenerator::evaluate(bool enable, FfxApiRect2D generationRect, cons
       .presentCallback            = nullptr,
       .presentCallbackUserContext = nullptr,
       .frameGenerationCallback    = [](ffxDispatchDescFrameGeneration* params, void*) -> ffxReturnCode_t {
-          if (callbackContext.reset) params->reset = callbackContext.reset;
+          static uint32_t frameNumber;
+          params->reset |= callbackContext.reset;
+          params->frameID = ++frameNumber;
           return FSR_Upscaler::ffxDispatch(callbackContext.context, &params->header);
-                 },
+      },
       .frameGenerationCallbackUserContext = nullptr,
       .frameGenerationEnabled             = enable,
       .allowAsyncWorkloads                = (options & 0x20U) != 0U && asyncComputeSupported,
       .HUDLessColor                       = hudlessColorResource.at(index),
-      .flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) | ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) | ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U) | ((options & 0x8U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES : 0U),
+      .flags                              = ((options & 0x1U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW : 0U) |
+                                            ((options & 0x2U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES : 0U) |
+                                            ((options & 0x4U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS : 0U) |
+                                            ((options & 0x8U) != 0U ? FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES : 0U),
       .onlyPresentGenerated               = (options & 0x10U) != 0U,
       .generationRect                     = generationRect,
-      .frameID                            = frameNumber,
+      .frameID                            = 0,  // This can be set to zero because it is later assigned above.
     };
     if (FSR_Upscaler::ffxConfigure(&context, &configureDescFrameGeneration.header) != FFX_API_RETURN_OK)
         Plugin::log(kUnityLogTypeError, "Failed to configure frame generation.");
@@ -251,176 +253,9 @@ void FSR_FrameGenerator::evaluate(bool enable, FfxApiRect2D generationRect, cons
         if (FSR_Upscaler::ffxDispatch(&context, &dispatchDescFrameGenerationPrepare.header) != FFX_API_RETURN_OK)
             Plugin::log(kUnityLogTypeError, "Failed to dispatch frame generation prepare command.");
     }
-    ++frameNumber;
 }
 
 ffxContext* FSR_FrameGenerator::getContext() {
     return &swapchainContext;
-}
-
-UnityRenderingExtTextureFormat FSR_FrameGenerator::vkFormatToUnityFormat(const VkFormat format) {
-    switch (format) {
-        case VK_FORMAT_R8_UNORM: return kUnityRenderingExtFormatR8_UNorm;
-        case VK_FORMAT_R8_SNORM: return kUnityRenderingExtFormatR8_SNorm;
-        case VK_FORMAT_R8_UINT: return kUnityRenderingExtFormatR8_UInt;
-        case VK_FORMAT_R8_SINT: return kUnityRenderingExtFormatR8_SInt;
-        case VK_FORMAT_R8_SRGB: return kUnityRenderingExtFormatR8_SRGB;
-        case VK_FORMAT_R8G8_UNORM: return kUnityRenderingExtFormatR8G8_UNorm;
-        case VK_FORMAT_R8G8_SNORM: return kUnityRenderingExtFormatR8G8_SNorm;
-        case VK_FORMAT_R8G8_UINT: return kUnityRenderingExtFormatR8G8_UInt;
-        case VK_FORMAT_R8G8_SINT: return kUnityRenderingExtFormatR8G8_SInt;
-        case VK_FORMAT_R8G8_SRGB: return kUnityRenderingExtFormatR8G8_SRGB;
-        case VK_FORMAT_R8G8B8_UNORM: return kUnityRenderingExtFormatR8G8B8_UNorm;
-        case VK_FORMAT_R8G8B8_SNORM: return kUnityRenderingExtFormatR8G8B8_SNorm;
-        case VK_FORMAT_R8G8B8_UINT: return kUnityRenderingExtFormatR8G8B8_UInt;
-        case VK_FORMAT_R8G8B8_SINT: return kUnityRenderingExtFormatR8G8B8_SInt;
-        case VK_FORMAT_R8G8B8_SRGB: return kUnityRenderingExtFormatR8G8B8_SRGB;
-        case VK_FORMAT_B8G8R8_UNORM: return kUnityRenderingExtFormatB8G8R8_UNorm;
-        case VK_FORMAT_B8G8R8_SNORM: return kUnityRenderingExtFormatB8G8R8_SNorm;
-        case VK_FORMAT_B8G8R8_UINT: return kUnityRenderingExtFormatB8G8R8_UInt;
-        case VK_FORMAT_B8G8R8_SINT: return kUnityRenderingExtFormatB8G8R8_SInt;
-        case VK_FORMAT_B8G8R8_SRGB: return kUnityRenderingExtFormatB8G8R8_SRGB;
-        case VK_FORMAT_R8G8B8A8_UNORM: return kUnityRenderingExtFormatR8G8B8A8_UNorm;
-        case VK_FORMAT_R8G8B8A8_SNORM: return kUnityRenderingExtFormatR8G8B8A8_SNorm;
-        case VK_FORMAT_R8G8B8A8_UINT: return kUnityRenderingExtFormatR8G8B8A8_UInt;
-        case VK_FORMAT_R8G8B8A8_SINT: return kUnityRenderingExtFormatR8G8B8A8_SInt;
-        case VK_FORMAT_R8G8B8A8_SRGB: return kUnityRenderingExtFormatR8G8B8A8_SRGB;
-        case VK_FORMAT_B8G8R8A8_UNORM: return kUnityRenderingExtFormatB8G8R8A8_UNorm;
-        case VK_FORMAT_B8G8R8A8_SNORM: return kUnityRenderingExtFormatB8G8R8A8_SNorm;
-        case VK_FORMAT_B8G8R8A8_UINT: return kUnityRenderingExtFormatB8G8R8A8_UInt;
-        case VK_FORMAT_B8G8R8A8_SINT: return kUnityRenderingExtFormatB8G8R8A8_SInt;
-        case VK_FORMAT_B8G8R8A8_SRGB: return kUnityRenderingExtFormatB8G8R8A8_SRGB;
-        case VK_FORMAT_R16_UNORM: return kUnityRenderingExtFormatR16_UNorm;
-        case VK_FORMAT_R16_SNORM: return kUnityRenderingExtFormatR16_SNorm;
-        case VK_FORMAT_R16_UINT: return kUnityRenderingExtFormatR16_UInt;
-        case VK_FORMAT_R16_SINT: return kUnityRenderingExtFormatR16_SInt;
-        case VK_FORMAT_R16_SFLOAT: return kUnityRenderingExtFormatR16_SFloat;
-        case VK_FORMAT_R16G16_UNORM: return kUnityRenderingExtFormatR16G16_UNorm;
-        case VK_FORMAT_R16G16_SNORM: return kUnityRenderingExtFormatR16G16_SNorm;
-        case VK_FORMAT_R16G16_UINT: return kUnityRenderingExtFormatR16G16_UInt;
-        case VK_FORMAT_R16G16_SINT: return kUnityRenderingExtFormatR16G16_SInt;
-        case VK_FORMAT_R16G16_SFLOAT: return kUnityRenderingExtFormatR16G16_SFloat;
-        case VK_FORMAT_R16G16B16_UNORM: return kUnityRenderingExtFormatR16G16B16_UNorm;
-        case VK_FORMAT_R16G16B16_SNORM: return kUnityRenderingExtFormatR16G16B16_SNorm;
-        case VK_FORMAT_R16G16B16_UINT: return kUnityRenderingExtFormatR16G16B16_UInt;
-        case VK_FORMAT_R16G16B16_SINT: return kUnityRenderingExtFormatR16G16B16_SInt;
-        case VK_FORMAT_R16G16B16_SFLOAT: return kUnityRenderingExtFormatR16G16B16_SFloat;
-        case VK_FORMAT_R16G16B16A16_UNORM: return kUnityRenderingExtFormatR16G16B16A16_UNorm;
-        case VK_FORMAT_R16G16B16A16_SNORM: return kUnityRenderingExtFormatR16G16B16A16_SNorm;
-        case VK_FORMAT_R16G16B16A16_UINT: return kUnityRenderingExtFormatR16G16B16A16_UInt;
-        case VK_FORMAT_R16G16B16A16_SINT: return kUnityRenderingExtFormatR16G16B16A16_SInt;
-        case VK_FORMAT_R16G16B16A16_SFLOAT: return kUnityRenderingExtFormatR16G16B16A16_SFloat;
-        case VK_FORMAT_R32_UINT: return kUnityRenderingExtFormatR32_UInt;
-        case VK_FORMAT_R32_SINT: return kUnityRenderingExtFormatR32_SInt;
-        case VK_FORMAT_R32_SFLOAT: return kUnityRenderingExtFormatR32_SFloat;
-        case VK_FORMAT_R32G32_UINT: return kUnityRenderingExtFormatR32G32_UInt;
-        case VK_FORMAT_R32G32_SINT: return kUnityRenderingExtFormatR32G32_SInt;
-        case VK_FORMAT_R32G32_SFLOAT: return kUnityRenderingExtFormatR32G32_SFloat;
-        case VK_FORMAT_R32G32B32_UINT: return kUnityRenderingExtFormatR32G32B32_UInt;
-        case VK_FORMAT_R32G32B32_SINT: return kUnityRenderingExtFormatR32G32B32_SInt;
-        case VK_FORMAT_R32G32B32_SFLOAT: return kUnityRenderingExtFormatR32G32B32_SFloat;
-        case VK_FORMAT_R32G32B32A32_UINT: return kUnityRenderingExtFormatR32G32B32A32_UInt;
-        case VK_FORMAT_R32G32B32A32_SINT: return kUnityRenderingExtFormatR32G32B32A32_SInt;
-        case VK_FORMAT_R32G32B32A32_SFLOAT: return kUnityRenderingExtFormatR32G32B32A32_SFloat;
-        case VK_FORMAT_R4G4B4A4_UNORM_PACK16: return kUnityRenderingExtFormatR4G4B4A4_UNormPack16;
-        case VK_FORMAT_B4G4R4A4_UNORM_PACK16: return kUnityRenderingExtFormatB4G4R4A4_UNormPack16;
-        case VK_FORMAT_R5G6B5_UNORM_PACK16: return kUnityRenderingExtFormatR5G6B5_UNormPack16;
-        case VK_FORMAT_B5G6R5_UNORM_PACK16: return kUnityRenderingExtFormatB5G6R5_UNormPack16;
-        case VK_FORMAT_R5G5B5A1_UNORM_PACK16: return kUnityRenderingExtFormatR5G5B5A1_UNormPack16;
-        case VK_FORMAT_B5G5R5A1_UNORM_PACK16: return kUnityRenderingExtFormatB5G5R5A1_UNormPack16;
-        case VK_FORMAT_A1R5G5B5_UNORM_PACK16: return kUnityRenderingExtFormatA1R5G5B5_UNormPack16;
-        case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: return kUnityRenderingExtFormatE5B9G9R9_UFloatPack32;
-        case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return kUnityRenderingExtFormatB10G11R11_UFloatPack32;
-        case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UNormPack32;
-        case VK_FORMAT_A2R10G10B10_UINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UIntPack32;
-        case VK_FORMAT_A2R10G10B10_SINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_SIntPack32;
-        case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UNormPack32;
-        case VK_FORMAT_A2B10G10R10_UINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UIntPack32;
-        case VK_FORMAT_A2B10G10R10_SINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_SIntPack32;
-        default: return kUnityRenderingExtFormatNone;
-    }
-}
-
-VkFormat FSR_FrameGenerator::unityFormatToVkFormat(const UnityRenderingExtTextureFormat format) {
-    switch (format) {
-        case kUnityRenderingExtFormatR8_UNorm: return VK_FORMAT_R8_UNORM;
-        case kUnityRenderingExtFormatR8_SNorm: return VK_FORMAT_R8_SNORM;
-        case kUnityRenderingExtFormatR8_UInt: return VK_FORMAT_R8_UINT;
-        case kUnityRenderingExtFormatR8_SInt: return VK_FORMAT_R8_SINT;
-        case kUnityRenderingExtFormatR8_SRGB: return VK_FORMAT_R8_SRGB;
-        case kUnityRenderingExtFormatR8G8_UNorm: return VK_FORMAT_R8G8_UNORM;
-        case kUnityRenderingExtFormatR8G8_SNorm: return VK_FORMAT_R8G8_SNORM;
-        case kUnityRenderingExtFormatR8G8_UInt: return VK_FORMAT_R8G8_UINT;
-        case kUnityRenderingExtFormatR8G8_SInt: return VK_FORMAT_R8G8_SINT;
-        case kUnityRenderingExtFormatR8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
-        case kUnityRenderingExtFormatR8G8B8_UNorm: return VK_FORMAT_R8G8B8_UNORM;
-        case kUnityRenderingExtFormatR8G8B8_SNorm: return VK_FORMAT_R8G8B8_SNORM;
-        case kUnityRenderingExtFormatR8G8B8_UInt: return VK_FORMAT_R8G8B8_UINT;
-        case kUnityRenderingExtFormatR8G8B8_SInt: return VK_FORMAT_R8G8B8_SINT;
-        case kUnityRenderingExtFormatR8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
-        case kUnityRenderingExtFormatB8G8R8_UNorm: return VK_FORMAT_B8G8R8_UNORM;
-        case kUnityRenderingExtFormatB8G8R8_SNorm: return VK_FORMAT_B8G8R8_SNORM;
-        case kUnityRenderingExtFormatB8G8R8_UInt: return VK_FORMAT_B8G8R8_UINT;
-        case kUnityRenderingExtFormatB8G8R8_SInt: return VK_FORMAT_B8G8R8_SINT;
-        case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
-        case kUnityRenderingExtFormatR8G8B8A8_UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
-        case kUnityRenderingExtFormatR8G8B8A8_SNorm: return VK_FORMAT_R8G8B8A8_SNORM;
-        case kUnityRenderingExtFormatR8G8B8A8_UInt: return VK_FORMAT_R8G8B8A8_UINT;
-        case kUnityRenderingExtFormatR8G8B8A8_SInt: return VK_FORMAT_R8G8B8A8_SINT;
-        case kUnityRenderingExtFormatR8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-        case kUnityRenderingExtFormatB8G8R8A8_UNorm: return VK_FORMAT_B8G8R8A8_UNORM;
-        case kUnityRenderingExtFormatB8G8R8A8_SNorm: return VK_FORMAT_B8G8R8A8_SNORM;
-        case kUnityRenderingExtFormatB8G8R8A8_UInt: return VK_FORMAT_B8G8R8A8_UINT;
-        case kUnityRenderingExtFormatB8G8R8A8_SInt: return VK_FORMAT_B8G8R8A8_SINT;
-        case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
-        case kUnityRenderingExtFormatR16_UNorm: return VK_FORMAT_R16_UNORM;
-        case kUnityRenderingExtFormatR16_SNorm: return VK_FORMAT_R16_SNORM;
-        case kUnityRenderingExtFormatR16_UInt: return VK_FORMAT_R16_UINT;
-        case kUnityRenderingExtFormatR16_SInt: return VK_FORMAT_R16_SINT;
-        case kUnityRenderingExtFormatR16_SFloat: return VK_FORMAT_R16_SFLOAT;
-        case kUnityRenderingExtFormatR16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
-        case kUnityRenderingExtFormatR16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
-        case kUnityRenderingExtFormatR16G16_UInt: return VK_FORMAT_R16G16_UINT;
-        case kUnityRenderingExtFormatR16G16_SInt: return VK_FORMAT_R16G16_SINT;
-        case kUnityRenderingExtFormatR16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
-        case kUnityRenderingExtFormatR16G16B16_UNorm: return VK_FORMAT_R16G16B16_UNORM;
-        case kUnityRenderingExtFormatR16G16B16_SNorm: return VK_FORMAT_R16G16B16_SNORM;
-        case kUnityRenderingExtFormatR16G16B16_UInt: return VK_FORMAT_R16G16B16_UINT;
-        case kUnityRenderingExtFormatR16G16B16_SInt: return VK_FORMAT_R16G16B16_SINT;
-        case kUnityRenderingExtFormatR16G16B16_SFloat: return VK_FORMAT_R16G16B16_SFLOAT;
-        case kUnityRenderingExtFormatR16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
-        case kUnityRenderingExtFormatR16G16B16A16_SNorm: return VK_FORMAT_R16G16B16A16_SNORM;
-        case kUnityRenderingExtFormatR16G16B16A16_UInt: return VK_FORMAT_R16G16B16A16_UINT;
-        case kUnityRenderingExtFormatR16G16B16A16_SInt: return VK_FORMAT_R16G16B16A16_SINT;
-        case kUnityRenderingExtFormatR16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
-        case kUnityRenderingExtFormatR32_UInt: return VK_FORMAT_R32_UINT;
-        case kUnityRenderingExtFormatR32_SInt: return VK_FORMAT_R32_SINT;
-        case kUnityRenderingExtFormatR32_SFloat: return VK_FORMAT_R32_SFLOAT;
-        case kUnityRenderingExtFormatR32G32_UInt: return VK_FORMAT_R32G32_UINT;
-        case kUnityRenderingExtFormatR32G32_SInt: return VK_FORMAT_R32G32_SINT;
-        case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
-        case kUnityRenderingExtFormatR32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
-        case kUnityRenderingExtFormatR32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
-        case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
-        case kUnityRenderingExtFormatR32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
-        case kUnityRenderingExtFormatR32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
-        case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case kUnityRenderingExtFormatR4G4B4A4_UNormPack16: return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
-        case kUnityRenderingExtFormatB4G4R4A4_UNormPack16: return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
-        case kUnityRenderingExtFormatR5G6B5_UNormPack16: return VK_FORMAT_R5G6B5_UNORM_PACK16;
-        case kUnityRenderingExtFormatB5G6R5_UNormPack16: return VK_FORMAT_B5G6R5_UNORM_PACK16;
-        case kUnityRenderingExtFormatR5G5B5A1_UNormPack16: return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
-        case kUnityRenderingExtFormatB5G5R5A1_UNormPack16: return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
-        case kUnityRenderingExtFormatA1R5G5B5_UNormPack16: return VK_FORMAT_A1R5G5B5_UNORM_PACK16;
-        case kUnityRenderingExtFormatE5B9G9R9_UFloatPack32: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
-        case kUnityRenderingExtFormatB10G11R11_UFloatPack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-        case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-        case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
-        case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
-        case kUnityRenderingExtFormatA2B10G10R10_UNormPack32: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-        case kUnityRenderingExtFormatA2B10G10R10_UIntPack32: return VK_FORMAT_A2B10G10R10_UINT_PACK32;
-        case kUnityRenderingExtFormatA2B10G10R10_SIntPack32: return VK_FORMAT_A2B10G10R10_SINT_PACK32;
-        default: return VK_FORMAT_UNDEFINED;
-    }
 }
 #endif

@@ -20,23 +20,12 @@ namespace Upscaler.Runtime.URP
     [DisallowMultipleRendererFeature("Upscaler Renderer Feature")]
     public partial class UpscalerRendererFeature : ScriptableRendererFeature
     {
-        private static Material _depthBlitMaterial;
-
-        private static readonly int BlitScaleBiasID = Shader.PropertyToID("_BlitScaleBias");
         private static readonly int DepthID = Shader.PropertyToID("_CameraDepthTexture");
         private static readonly int MotionID = Shader.PropertyToID("_MotionVectorTexture");
         private static readonly int OpaqueID = Shader.PropertyToID("_CameraOpaqueTexture");
 
         private static readonly MethodInfo UseScaling = typeof(RTHandle).GetProperty("useScaling", BindingFlags.Instance | BindingFlags.Public)?.SetMethod!;
         private static readonly MethodInfo ScaleFactor = typeof(RTHandle).GetProperty("scaleFactor", BindingFlags.Instance | BindingFlags.Public)?.SetMethod!;
-
-        private static void BlitDepth(CommandBuffer cb, RenderTargetIdentifier src, RenderTargetIdentifier dst, Vector2 scale = default, Vector2 offset = default)
-        {
-            if (scale == default) scale = Vector2.one;
-            if (offset == default) offset = Vector2.zero;
-            cb.SetGlobalVector(BlitScaleBiasID, new Vector4(scale.x, scale.y, offset.x, offset.y));
-            cb.Blit(src, dst, _depthBlitMaterial, 0);
-        }
 
         private bool _isResizingThisFrame;
         private bool _lastCompatibilityMode;
@@ -47,11 +36,7 @@ namespace Upscaler.Runtime.URP
 #endif
         private readonly HistoryResetRenderPass _historyReset = new();
 
-        public override void Create()
-        {
-            name = "Upscaler";
-            _depthBlitMaterial = new Material(Shader.Find("Hidden/Upscaler/BlitDepth"));
-        }
+        public override void Create() => name = "Upscaler";
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
@@ -66,7 +51,6 @@ namespace Upscaler.Runtime.URP
                 _upscale.Color?.Release();
                 _upscale.Output?.Release();
                 _upscale.Depth?.Release();
-                return;
             }
 
 #if UNITY_6000_0_OR_NEWER
@@ -75,7 +59,7 @@ namespace Upscaler.Runtime.URP
             _lastCompatibilityMode = compatibilityMode;
 #endif
 
-            if (needsUpdate)
+            if (needsUpdate && upscaler.technique != Upscaler.Technique.None && upscaler.Backend != null)
             {
                 var descriptor = new RenderTextureDescriptor(upscaler.OutputResolution.x, upscaler.OutputResolution.y, renderingData.cameraData.cameraTargetDescriptor.colorFormat)
                 {
@@ -101,8 +85,15 @@ namespace Upscaler.Runtime.URP
 #endif
             }
 
+#if !UNITY_6000_0_OR_NEWER
+            if (needsUpdate && upscaler.frameGeneration && upscaler.FgBackend != null)
+            {
+                upscaler.FgBackend.Update(upscaler, renderingData.cameraData.cameraTargetDescriptor);
+            }
+#endif
+
             var needsHistoryReset = false;
-            if (!_isResizingThisFrame && upscaler.technique != Upscaler.Technique.None)
+            if (!_isResizingThisFrame && upscaler.technique != Upscaler.Technique.None && upscaler.Backend != null)
             {
                 _setupUpscale.ConfigureInput(ScriptableRenderPassInput.None);
                 renderer.EnqueuePass(_setupUpscale);
@@ -111,7 +102,7 @@ namespace Upscaler.Runtime.URP
                 needsHistoryReset = upscaler.IsTemporal();
             }
 #if !UNITY_6000_0_OR_NEWER
-            if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
+            if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && upscaler.FgBackend != null)
             {
                 _generate.ConfigureInput(ScriptableRenderPassInput.None);
                 renderer.EnqueuePass(_generate);
@@ -141,14 +132,6 @@ namespace Upscaler.Runtime.URP
                 ScaleFactor.Invoke(_upscale.Depth, args);
             }
             renderer.ConfigureCameraTarget(_upscale.Color, _upscale.Depth);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-#if !UNITY_6000_0_OR_NEWER
-            if (!disposing) return;
-            _generate.Dispose();
-#endif
         }
     }
 }

@@ -610,9 +610,9 @@ MonoBehaviour:
   upscalingDebugView: 0
   showRenderingAreaOverlay: 0
   forceHistoryResetEveryFrame: 0
-  quality: 4
+  quality: 0
   technique: 1
-  frameGeneration: 0
+  frameGeneration: 1
   preset: 0
   method: 0
   sharpness: 0

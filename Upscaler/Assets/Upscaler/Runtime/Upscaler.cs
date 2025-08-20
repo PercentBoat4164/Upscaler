@@ -264,6 +264,9 @@ namespace Upscaler.Runtime
         private bool _hdr;
 
         internal UpscalerBackend Backend;
+#if !UNITY_6000_0_OR_NEWER
+        internal FrameGeneratorBackend FgBackend;
+#endif
         /**
          * <summary>Request the 'best' technique supported by this environment.</summary>
          * <returns>Returns the 'best' supported technique.</returns>
@@ -476,10 +479,12 @@ namespace Upscaler.Runtime
         private bool InternalApplySettings(UpscalerBackend.Flags flags)
         {
             var needsUpdate = _stale || flags != PreviousFlags;
+            shouldHistoryResetThisFrame |= _stale;
             _stale = false;
             var outputResolution = Vector2Int.RoundToInt(Camera.pixelRect.size);
             if (outputResolution != OutputResolution) shouldHistoryResetThisFrame = true;
             OutputResolution = outputResolution;
+
             if (needsUpdate || technique != PreviousTechnique || (technique == Technique.SnapdragonGameSuperResolution2 && method != PreviousMethod))
             {
                 needsUpdate = true;
@@ -508,7 +513,24 @@ namespace Upscaler.Runtime
                 }
             }
 
-            if (frameGeneration != PreviousFrameGeneration) NativeInterface.SetFrameGeneration(frameGeneration ? Camera.targetDisplay : -1);
+#if UNITY_6000_0_OR_NEWER
+            if (frameGeneration) Debug.LogError("Frame generation is not supported.");
+#endif
+            frameGeneration &= FrameGeneratorBackend.Supported;
+#if !UNITY_6000_0_OR_NEWER
+            if (needsUpdate || frameGeneration != PreviousFrameGeneration)
+            {
+                needsUpdate = true;
+                FgBackend?.Dispose();
+                FgBackend = frameGeneration ? new FrameGeneratorBackend(Camera.targetDisplay) : null;
+                if (FgBackend == null && frameGeneration)
+                {
+                    Debug.LogError("Frame generation is not supported.");
+                    CurrentStatus = Status.RecoverableRuntimeError;
+                    return false;
+                }
+            }
+#endif
 
             needsUpdate |= quality != PreviousQuality || OutputResolution != PreviousOutputResolution || _hdr != Camera.allowHDR;
             if (needsUpdate)
@@ -529,7 +551,7 @@ namespace Upscaler.Runtime
         }
 
         [NonSerialized] public float MipBias;
-        [NonSerialized] public float PreviousMipBias = 1;
+        [NonSerialized] internal float PreviousMipBias = 1;
 
         internal bool ApplySettings(UpscalerBackend.Flags flags)
         {
@@ -540,11 +562,12 @@ namespace Upscaler.Runtime
                 {
                     ErrorCallback(CurrentStatus);
                     needsUpdate |= InternalApplySettings(flags);
-                    if (Failure(CurrentStatus)) Debug.LogError("The registered error handler failed to rectify the following error.");
+                    if (Failure(CurrentStatus)) Debug.LogError("The registered error handler failed to rectify the following.", this);
                 }
                 Debug.LogWarning("Upscaler | Error: " + CurrentStatus, this);
                 technique = Technique.None;
                 quality = Quality.Auto;
+                frameGeneration = false;
                 needsUpdate |= InternalApplySettings(flags);
             }
 
@@ -564,6 +587,8 @@ namespace Upscaler.Runtime
             PreviousUseAsyncCompute = useAsyncCompute;
             PreviousFlags = flags;
             _hdr = Camera.allowHDR;
+
+            shouldHistoryResetThisFrame |= forceHistoryResetEveryFrame;
 
             PreviousMipBias = MipBias;
             MipBias = (float)Math.Log((float)InputResolution.x / OutputResolution.x, 2f) - 1f;

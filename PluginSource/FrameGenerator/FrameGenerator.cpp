@@ -8,14 +8,15 @@
 
 std::unordered_map<HWND, VkSurfaceKHR> FrameGenerator::HWNDToSurface{};
 std::unordered_map<VkSurfaceKHR, VkSwapchainKHR> FrameGenerator::SurfaceToSwapchain{};
+std::unordered_map<VkSwapchainKHR, UnityRenderingExtTextureFormat> FrameGenerator::swapchainToBackbufferFormat{};
 FrameGenerator::Swapchain FrameGenerator::swapchain{};
-UnityRenderingExtTextureFormat FrameGenerator::backBufferFormat{};
 
 void FrameGenerator::addMapping(HWND hWnd, VkSurfaceKHR surface) {
     HWNDToSurface[hWnd] = surface;
 }
 
-void FrameGenerator::addMapping(VkSurfaceKHR surface, VkSwapchainKHR swapchain) {
+void FrameGenerator::addMapping(VkSurfaceKHR surface, VkSwapchainKHR swapchain, UnityRenderingExtTextureFormat format) {
+    swapchainToBackbufferFormat[swapchain] = format;
     SurfaceToSwapchain[surface] = swapchain;
 }
 
@@ -29,6 +30,7 @@ void FrameGenerator::removeMapping(VkSurfaceKHR surface) {
 }
 
 void FrameGenerator::removeMapping(VkSwapchainKHR swapchain) {
+    swapchainToBackbufferFormat.erase(swapchain);
     for (auto [surf, swap] : SurfaceToSwapchain) {
         if (swapchain == swap) {
             SurfaceToSwapchain.erase(surf);
@@ -57,8 +59,12 @@ VkSwapchainKHR FrameGenerator::getSwapchain(VkSurfaceKHR surface) {
     return it->second;
 }
 
-UnityRenderingExtTextureFormat FrameGenerator::getBackBufferFormat() {
-    return backBufferFormat;
+UnityRenderingExtTextureFormat FrameGenerator::getBackBufferFormat(HWND hWnd) {
+    if (hWnd == nullptr) return kUnityRenderingExtFormatNone;
+    VkSwapchainKHR swapchain = getSwapchain(hWnd);
+    const auto it = swapchainToBackbufferFormat.find(swapchain);
+    if (it == swapchainToBackbufferFormat.end()) return kUnityRenderingExtFormatNone;
+    return it->second;
 }
 
 bool FrameGenerator::ownsSwapchain(VkSwapchainKHR swapchain) {

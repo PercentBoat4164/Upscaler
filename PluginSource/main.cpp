@@ -194,8 +194,8 @@ extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetFrameGenerationIma
 #endif
 }
 
-extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API GetBackBufferFormat() {
-    return FrameGenerator::getBackBufferFormat();
+extern "C" UNITY_INTERFACE_EXPORT UnityRenderingExtTextureFormat UNITY_INTERFACE_API GetBackBufferFormat(HWND hWnd) {
+    return FrameGenerator::getBackBufferFormat(hWnd);
 }
 #endif
 #pragma endregion

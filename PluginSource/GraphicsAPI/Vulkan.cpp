@@ -195,27 +195,27 @@ PFN_vkVoidFunction Vulkan::hook_vkGetDeviceProcAddr(VkDevice device, const char*
     return m_vkGetDeviceProcAddr(device, name);
 }
 
-VkSurfaceKHR Vulkan::createDummySurface(void*& hwnd) {
+VkSurfaceKHR Vulkan::createDummySurface(void*& hWnd) {
 #    ifdef WIN32
     HINSTANCE hInstance = GetModuleHandle(nullptr);
-    hwnd = CreateWindow("STATIC", "DummyWindow", 0, 0, 0, 0, 0, nullptr, nullptr, hInstance, nullptr);
+    hWnd = CreateWindow("STATIC", "DummyWindow", 0, 0, 0, 0, 0, nullptr, nullptr, hInstance, nullptr);
     VkSurfaceKHR                      surface{VK_NULL_HANDLE};
     const VkWin32SurfaceCreateInfoKHR win32SurfaceCreateInfo {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,
         .hinstance = hInstance,
-        .hwnd = static_cast<HWND>(hwnd)
+        .hwnd = static_cast<HWND>(hWnd)
     };
     m_vkCreateWin32SurfaceKHR(instance, &win32SurfaceCreateInfo, nullptr, &surface);
     return surface;
 #    endif
 }
 
-void Vulkan::destroyDummySurface(void* hwnd, VkSurfaceKHR dummySurface) {
+void Vulkan::destroyDummySurface(void* hWnd, VkSurfaceKHR dummySurface) {
     m_vkDestroySurfaceKHR(instance, dummySurface, nullptr);
 #    ifdef WIN32
-    DestroyWindow(static_cast<HWND>(hwnd));
+    DestroyWindow(static_cast<HWND>(hWnd));
 #    endif
 }
 
@@ -232,10 +232,10 @@ VkResult Vulkan::hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, 
 
 VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
     static VkDeviceCreateInfo createInfo = *pCreateInfo;
-    void* hwnd = nullptr;
+    void* hWnd = nullptr;
     const std::array asyncRequirements {
       VqsQueueRequirements{VK_QUEUE_TRANSFER_BIT, 0.9F, VK_NULL_HANDLE},
-      VqsQueueRequirements{0,                     1.0F, createDummySurface(hwnd)},
+      VqsQueueRequirements{0,                     1.0F, createDummySurface(hWnd)},
       VqsQueueRequirements{VK_QUEUE_COMPUTE_BIT,  1.0F, VK_NULL_HANDLE}
     };
     const std::array noAsyncRequirements {
@@ -289,7 +289,7 @@ VkResult Vulkan::hook_vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDe
 #endif
         overrideQueues = true;
     }
-    destroyDummySurface(hwnd, asyncRequirements[1].requiredPresentQueueSurface);
+    destroyDummySurface(hWnd, asyncRequirements[1].requiredPresentQueueSurface);
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::vector<float> priorities;
     std::vector<float> allPriorities;
@@ -357,7 +357,7 @@ VkResult Vulkan::hook_vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCre
             }
         }
     }
-    FrameGenerator::addMapping(pCreateInfo->surface, *pSwapchain);
+    FrameGenerator::addMapping(pCreateInfo->surface, *pSwapchain, toUnityFormat(pCreateInfo->imageFormat));
     if (surfaceToIntercept == pCreateInfo->surface) swapchainToIntercept = *pSwapchain;
     return result;
 }
@@ -508,4 +508,174 @@ void Vulkan::destroyImageView(VkImageView viewToDestroy) {
 PFN_vkGetDeviceProcAddr Vulkan::getDeviceProcAddr() {
     return m_vkGetDeviceProcAddr;
 }
+
+#ifdef ENABLE_FRAME_GENERATION
+#pragma region Format Conversions
+UnityRenderingExtTextureFormat Vulkan::toUnityFormat(const VkFormat format) {
+    switch (format) {
+        case VK_FORMAT_R8_UNORM: return kUnityRenderingExtFormatR8_UNorm;
+        case VK_FORMAT_R8_SNORM: return kUnityRenderingExtFormatR8_SNorm;
+        case VK_FORMAT_R8_UINT: return kUnityRenderingExtFormatR8_UInt;
+        case VK_FORMAT_R8_SINT: return kUnityRenderingExtFormatR8_SInt;
+        case VK_FORMAT_R8_SRGB: return kUnityRenderingExtFormatR8_SRGB;
+        case VK_FORMAT_R8G8_UNORM: return kUnityRenderingExtFormatR8G8_UNorm;
+        case VK_FORMAT_R8G8_SNORM: return kUnityRenderingExtFormatR8G8_SNorm;
+        case VK_FORMAT_R8G8_UINT: return kUnityRenderingExtFormatR8G8_UInt;
+        case VK_FORMAT_R8G8_SINT: return kUnityRenderingExtFormatR8G8_SInt;
+        case VK_FORMAT_R8G8_SRGB: return kUnityRenderingExtFormatR8G8_SRGB;
+        case VK_FORMAT_R8G8B8_UNORM: return kUnityRenderingExtFormatR8G8B8_UNorm;
+        case VK_FORMAT_R8G8B8_SNORM: return kUnityRenderingExtFormatR8G8B8_SNorm;
+        case VK_FORMAT_R8G8B8_UINT: return kUnityRenderingExtFormatR8G8B8_UInt;
+        case VK_FORMAT_R8G8B8_SINT: return kUnityRenderingExtFormatR8G8B8_SInt;
+        case VK_FORMAT_R8G8B8_SRGB: return kUnityRenderingExtFormatR8G8B8_SRGB;
+        case VK_FORMAT_B8G8R8_UNORM: return kUnityRenderingExtFormatB8G8R8_UNorm;
+        case VK_FORMAT_B8G8R8_SNORM: return kUnityRenderingExtFormatB8G8R8_SNorm;
+        case VK_FORMAT_B8G8R8_UINT: return kUnityRenderingExtFormatB8G8R8_UInt;
+        case VK_FORMAT_B8G8R8_SINT: return kUnityRenderingExtFormatB8G8R8_SInt;
+        case VK_FORMAT_B8G8R8_SRGB: return kUnityRenderingExtFormatB8G8R8_SRGB;
+        case VK_FORMAT_R8G8B8A8_UNORM: return kUnityRenderingExtFormatR8G8B8A8_UNorm;
+        case VK_FORMAT_R8G8B8A8_SNORM: return kUnityRenderingExtFormatR8G8B8A8_SNorm;
+        case VK_FORMAT_R8G8B8A8_UINT: return kUnityRenderingExtFormatR8G8B8A8_UInt;
+        case VK_FORMAT_R8G8B8A8_SINT: return kUnityRenderingExtFormatR8G8B8A8_SInt;
+        case VK_FORMAT_R8G8B8A8_SRGB: return kUnityRenderingExtFormatR8G8B8A8_SRGB;
+        case VK_FORMAT_B8G8R8A8_UNORM: return kUnityRenderingExtFormatB8G8R8A8_UNorm;
+        case VK_FORMAT_B8G8R8A8_SNORM: return kUnityRenderingExtFormatB8G8R8A8_SNorm;
+        case VK_FORMAT_B8G8R8A8_UINT: return kUnityRenderingExtFormatB8G8R8A8_UInt;
+        case VK_FORMAT_B8G8R8A8_SINT: return kUnityRenderingExtFormatB8G8R8A8_SInt;
+        case VK_FORMAT_B8G8R8A8_SRGB: return kUnityRenderingExtFormatB8G8R8A8_SRGB;
+        case VK_FORMAT_R16_UNORM: return kUnityRenderingExtFormatR16_UNorm;
+        case VK_FORMAT_R16_SNORM: return kUnityRenderingExtFormatR16_SNorm;
+        case VK_FORMAT_R16_UINT: return kUnityRenderingExtFormatR16_UInt;
+        case VK_FORMAT_R16_SINT: return kUnityRenderingExtFormatR16_SInt;
+        case VK_FORMAT_R16_SFLOAT: return kUnityRenderingExtFormatR16_SFloat;
+        case VK_FORMAT_R16G16_UNORM: return kUnityRenderingExtFormatR16G16_UNorm;
+        case VK_FORMAT_R16G16_SNORM: return kUnityRenderingExtFormatR16G16_SNorm;
+        case VK_FORMAT_R16G16_UINT: return kUnityRenderingExtFormatR16G16_UInt;
+        case VK_FORMAT_R16G16_SINT: return kUnityRenderingExtFormatR16G16_SInt;
+        case VK_FORMAT_R16G16_SFLOAT: return kUnityRenderingExtFormatR16G16_SFloat;
+        case VK_FORMAT_R16G16B16_UNORM: return kUnityRenderingExtFormatR16G16B16_UNorm;
+        case VK_FORMAT_R16G16B16_SNORM: return kUnityRenderingExtFormatR16G16B16_SNorm;
+        case VK_FORMAT_R16G16B16_UINT: return kUnityRenderingExtFormatR16G16B16_UInt;
+        case VK_FORMAT_R16G16B16_SINT: return kUnityRenderingExtFormatR16G16B16_SInt;
+        case VK_FORMAT_R16G16B16_SFLOAT: return kUnityRenderingExtFormatR16G16B16_SFloat;
+        case VK_FORMAT_R16G16B16A16_UNORM: return kUnityRenderingExtFormatR16G16B16A16_UNorm;
+        case VK_FORMAT_R16G16B16A16_SNORM: return kUnityRenderingExtFormatR16G16B16A16_SNorm;
+        case VK_FORMAT_R16G16B16A16_UINT: return kUnityRenderingExtFormatR16G16B16A16_UInt;
+        case VK_FORMAT_R16G16B16A16_SINT: return kUnityRenderingExtFormatR16G16B16A16_SInt;
+        case VK_FORMAT_R16G16B16A16_SFLOAT: return kUnityRenderingExtFormatR16G16B16A16_SFloat;
+        case VK_FORMAT_R32_UINT: return kUnityRenderingExtFormatR32_UInt;
+        case VK_FORMAT_R32_SINT: return kUnityRenderingExtFormatR32_SInt;
+        case VK_FORMAT_R32_SFLOAT: return kUnityRenderingExtFormatR32_SFloat;
+        case VK_FORMAT_R32G32_UINT: return kUnityRenderingExtFormatR32G32_UInt;
+        case VK_FORMAT_R32G32_SINT: return kUnityRenderingExtFormatR32G32_SInt;
+        case VK_FORMAT_R32G32_SFLOAT: return kUnityRenderingExtFormatR32G32_SFloat;
+        case VK_FORMAT_R32G32B32_UINT: return kUnityRenderingExtFormatR32G32B32_UInt;
+        case VK_FORMAT_R32G32B32_SINT: return kUnityRenderingExtFormatR32G32B32_SInt;
+        case VK_FORMAT_R32G32B32_SFLOAT: return kUnityRenderingExtFormatR32G32B32_SFloat;
+        case VK_FORMAT_R32G32B32A32_UINT: return kUnityRenderingExtFormatR32G32B32A32_UInt;
+        case VK_FORMAT_R32G32B32A32_SINT: return kUnityRenderingExtFormatR32G32B32A32_SInt;
+        case VK_FORMAT_R32G32B32A32_SFLOAT: return kUnityRenderingExtFormatR32G32B32A32_SFloat;
+        case VK_FORMAT_R4G4B4A4_UNORM_PACK16: return kUnityRenderingExtFormatR4G4B4A4_UNormPack16;
+        case VK_FORMAT_B4G4R4A4_UNORM_PACK16: return kUnityRenderingExtFormatB4G4R4A4_UNormPack16;
+        case VK_FORMAT_R5G6B5_UNORM_PACK16: return kUnityRenderingExtFormatR5G6B5_UNormPack16;
+        case VK_FORMAT_B5G6R5_UNORM_PACK16: return kUnityRenderingExtFormatB5G6R5_UNormPack16;
+        case VK_FORMAT_R5G5B5A1_UNORM_PACK16: return kUnityRenderingExtFormatR5G5B5A1_UNormPack16;
+        case VK_FORMAT_B5G5R5A1_UNORM_PACK16: return kUnityRenderingExtFormatB5G5R5A1_UNormPack16;
+        case VK_FORMAT_A1R5G5B5_UNORM_PACK16: return kUnityRenderingExtFormatA1R5G5B5_UNormPack16;
+        case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: return kUnityRenderingExtFormatE5B9G9R9_UFloatPack32;
+        case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return kUnityRenderingExtFormatB10G11R11_UFloatPack32;
+        case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UNormPack32;
+        case VK_FORMAT_A2R10G10B10_UINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_UIntPack32;
+        case VK_FORMAT_A2R10G10B10_SINT_PACK32: return kUnityRenderingExtFormatA2R10G10B10_SIntPack32;
+        case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UNormPack32;
+        case VK_FORMAT_A2B10G10R10_UINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_UIntPack32;
+        case VK_FORMAT_A2B10G10R10_SINT_PACK32: return kUnityRenderingExtFormatA2B10G10R10_SIntPack32;
+        default: return kUnityRenderingExtFormatNone;
+    }
+}
+
+VkFormat Vulkan::toVulkanFormat(const UnityRenderingExtTextureFormat format) {
+    switch (format) {
+        case kUnityRenderingExtFormatR8_UNorm: return VK_FORMAT_R8_UNORM;
+        case kUnityRenderingExtFormatR8_SNorm: return VK_FORMAT_R8_SNORM;
+        case kUnityRenderingExtFormatR8_UInt: return VK_FORMAT_R8_UINT;
+        case kUnityRenderingExtFormatR8_SInt: return VK_FORMAT_R8_SINT;
+        case kUnityRenderingExtFormatR8_SRGB: return VK_FORMAT_R8_SRGB;
+        case kUnityRenderingExtFormatR8G8_UNorm: return VK_FORMAT_R8G8_UNORM;
+        case kUnityRenderingExtFormatR8G8_SNorm: return VK_FORMAT_R8G8_SNORM;
+        case kUnityRenderingExtFormatR8G8_UInt: return VK_FORMAT_R8G8_UINT;
+        case kUnityRenderingExtFormatR8G8_SInt: return VK_FORMAT_R8G8_SINT;
+        case kUnityRenderingExtFormatR8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
+        case kUnityRenderingExtFormatR8G8B8_UNorm: return VK_FORMAT_R8G8B8_UNORM;
+        case kUnityRenderingExtFormatR8G8B8_SNorm: return VK_FORMAT_R8G8B8_SNORM;
+        case kUnityRenderingExtFormatR8G8B8_UInt: return VK_FORMAT_R8G8B8_UINT;
+        case kUnityRenderingExtFormatR8G8B8_SInt: return VK_FORMAT_R8G8B8_SINT;
+        case kUnityRenderingExtFormatR8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
+        case kUnityRenderingExtFormatB8G8R8_UNorm: return VK_FORMAT_B8G8R8_UNORM;
+        case kUnityRenderingExtFormatB8G8R8_SNorm: return VK_FORMAT_B8G8R8_SNORM;
+        case kUnityRenderingExtFormatB8G8R8_UInt: return VK_FORMAT_B8G8R8_UINT;
+        case kUnityRenderingExtFormatB8G8R8_SInt: return VK_FORMAT_B8G8R8_SINT;
+        case kUnityRenderingExtFormatB8G8R8_SRGB: return VK_FORMAT_B8G8R8_SRGB;
+        case kUnityRenderingExtFormatR8G8B8A8_UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
+        case kUnityRenderingExtFormatR8G8B8A8_SNorm: return VK_FORMAT_R8G8B8A8_SNORM;
+        case kUnityRenderingExtFormatR8G8B8A8_UInt: return VK_FORMAT_R8G8B8A8_UINT;
+        case kUnityRenderingExtFormatR8G8B8A8_SInt: return VK_FORMAT_R8G8B8A8_SINT;
+        case kUnityRenderingExtFormatR8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+        case kUnityRenderingExtFormatB8G8R8A8_UNorm: return VK_FORMAT_B8G8R8A8_UNORM;
+        case kUnityRenderingExtFormatB8G8R8A8_SNorm: return VK_FORMAT_B8G8R8A8_SNORM;
+        case kUnityRenderingExtFormatB8G8R8A8_UInt: return VK_FORMAT_B8G8R8A8_UINT;
+        case kUnityRenderingExtFormatB8G8R8A8_SInt: return VK_FORMAT_B8G8R8A8_SINT;
+        case kUnityRenderingExtFormatB8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+        case kUnityRenderingExtFormatR16_UNorm: return VK_FORMAT_R16_UNORM;
+        case kUnityRenderingExtFormatR16_SNorm: return VK_FORMAT_R16_SNORM;
+        case kUnityRenderingExtFormatR16_UInt: return VK_FORMAT_R16_UINT;
+        case kUnityRenderingExtFormatR16_SInt: return VK_FORMAT_R16_SINT;
+        case kUnityRenderingExtFormatR16_SFloat: return VK_FORMAT_R16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
+        case kUnityRenderingExtFormatR16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
+        case kUnityRenderingExtFormatR16G16_UInt: return VK_FORMAT_R16G16_UINT;
+        case kUnityRenderingExtFormatR16G16_SInt: return VK_FORMAT_R16G16_SINT;
+        case kUnityRenderingExtFormatR16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16B16_UNorm: return VK_FORMAT_R16G16B16_UNORM;
+        case kUnityRenderingExtFormatR16G16B16_SNorm: return VK_FORMAT_R16G16B16_SNORM;
+        case kUnityRenderingExtFormatR16G16B16_UInt: return VK_FORMAT_R16G16B16_UINT;
+        case kUnityRenderingExtFormatR16G16B16_SInt: return VK_FORMAT_R16G16B16_SINT;
+        case kUnityRenderingExtFormatR16G16B16_SFloat: return VK_FORMAT_R16G16B16_SFLOAT;
+        case kUnityRenderingExtFormatR16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
+        case kUnityRenderingExtFormatR16G16B16A16_SNorm: return VK_FORMAT_R16G16B16A16_SNORM;
+        case kUnityRenderingExtFormatR16G16B16A16_UInt: return VK_FORMAT_R16G16B16A16_UINT;
+        case kUnityRenderingExtFormatR16G16B16A16_SInt: return VK_FORMAT_R16G16B16A16_SINT;
+        case kUnityRenderingExtFormatR16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case kUnityRenderingExtFormatR32_UInt: return VK_FORMAT_R32_UINT;
+        case kUnityRenderingExtFormatR32_SInt: return VK_FORMAT_R32_SINT;
+        case kUnityRenderingExtFormatR32_SFloat: return VK_FORMAT_R32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32_UInt: return VK_FORMAT_R32G32_UINT;
+        case kUnityRenderingExtFormatR32G32_SInt: return VK_FORMAT_R32G32_SINT;
+        case kUnityRenderingExtFormatR32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
+        case kUnityRenderingExtFormatR32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
+        case kUnityRenderingExtFormatR32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
+        case kUnityRenderingExtFormatR32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
+        case kUnityRenderingExtFormatR32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
+        case kUnityRenderingExtFormatR32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case kUnityRenderingExtFormatR4G4B4A4_UNormPack16: return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+        case kUnityRenderingExtFormatB4G4R4A4_UNormPack16: return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+        case kUnityRenderingExtFormatR5G6B5_UNormPack16: return VK_FORMAT_R5G6B5_UNORM_PACK16;
+        case kUnityRenderingExtFormatB5G6R5_UNormPack16: return VK_FORMAT_B5G6R5_UNORM_PACK16;
+        case kUnityRenderingExtFormatR5G5B5A1_UNormPack16: return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        case kUnityRenderingExtFormatB5G5R5A1_UNormPack16: return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+        case kUnityRenderingExtFormatA1R5G5B5_UNormPack16: return VK_FORMAT_A1R5G5B5_UNORM_PACK16;
+        case kUnityRenderingExtFormatE5B9G9R9_UFloatPack32: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+        case kUnityRenderingExtFormatB10G11R11_UFloatPack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_UNormPack32: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_UIntPack32: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
+        case kUnityRenderingExtFormatA2R10G10B10_SIntPack32: return VK_FORMAT_A2R10G10B10_SINT_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_UNormPack32: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_UIntPack32: return VK_FORMAT_A2B10G10R10_UINT_PACK32;
+        case kUnityRenderingExtFormatA2B10G10R10_SIntPack32: return VK_FORMAT_A2B10G10R10_SINT_PACK32;
+        default: return VK_FORMAT_UNDEFINED;
+    }
+}
+#pragma endregion
+#endif
 #endif

@@ -6,12 +6,14 @@
 #        include <vk/ffx_api_vk.h>
 #    endif
 
+#    ifdef ENABLE_FRAME_GENERATION
+#        include <IUnityRenderingExtensions.h>
+#    endif
+
 #    include <vulkan/vulkan.h>
 
 struct IUnityGraphicsVulkanV2;
-struct SDL_Window;
 
-#endif
 class Vulkan final : public GraphicsAPI {
     static PFN_vkGetInstanceProcAddr    m_vkGetInstanceProcAddr;
     static PFN_vkCreateInstance         m_vkCreateInstance;
@@ -25,15 +27,15 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkSetHdrMetadataEXT      m_vkSetHdrMetadataEXT;
     static PFN_vkCreateWin32SurfaceKHR  m_vkCreateWin32SurfaceKHR;
     static PFN_vkDestroySurfaceKHR      m_vkDestroySurfaceKHR;
-#ifdef ENABLE_FSR
+#    ifdef ENABLE_FSR
     static PFN_vkCreateSwapchainFFXAPI  m_fxCreateSwapchainKHR;
     static PFN_vkDestroySwapchainFFXAPI m_fxDestroySwapchainKHR;
     static PFN_vkGetSwapchainImagesKHR  m_fxGetSwapchainImagesKHR;
     static PFN_vkAcquireNextImageKHR    m_fxAcquireNextImageKHR;
     static PFN_vkQueuePresentKHR        m_fxQueuePresentKHR;
     static PFN_vkSetHdrMetadataEXT      m_fxSetHdrMetadataEXT;
-#endif
-#ifdef ENABLE_DLSS
+#    endif
+#    ifdef ENABLE_DLSS
     static PFN_vkGetInstanceProcAddr   m_slGetInstanceProcAddr;
     static PFN_vkCreateInstance        m_slCreateInstance;
     static PFN_vkCreateDevice          m_slCreateDevice;
@@ -43,7 +45,7 @@ class Vulkan final : public GraphicsAPI {
     static PFN_vkGetSwapchainImagesKHR m_slGetSwapchainImagesKHR;
     static PFN_vkAcquireNextImageKHR   m_slAcquireNextImageKHR;
     static PFN_vkQueuePresentKHR       m_slQueuePresentKHR;
-#endif
+#    endif
     static PFN_vkGetPhysicalDeviceQueueFamilyProperties m_vkGetPhysicalDeviceQueueFamilyProperties;
     static PFN_vkGetPhysicalDeviceSurfaceSupportKHR     m_vkGetPhysicalDeviceSurfaceSupportKHR;
     static PFN_vkDestroyImage                           m_vkDestroyImage;
@@ -57,8 +59,8 @@ class Vulkan final : public GraphicsAPI {
     static VkSurfaceKHR            surfaceToIntercept;
     static VkSwapchainKHR          swapchainToIntercept;
 
-    static VkSurfaceKHR createDummySurface(void*& hwnd);
-    static void         destroyDummySurface(void* hwnd, VkSurfaceKHR dummySurface);
+    static VkSurfaceKHR createDummySurface(void*& hWnd);
+    static void         destroyDummySurface(void* hWnd, VkSurfaceKHR dummySurface);
 
     static VkResult           hook_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance);
     static PFN_vkVoidFunction hook_vkGetInstanceProcAddr(VkInstance instance, const char* name);
@@ -93,4 +95,12 @@ public:
     static void        destroyImageView(VkImageView viewToDestroy);
 
     static PFN_vkGetDeviceProcAddr getDeviceProcAddr();
+
+#    ifdef ENABLE_FRAME_GENERATION
+#    pragma region Format Conversions
+    static UnityRenderingExtTextureFormat toUnityFormat(VkFormat format);
+    static VkFormat                       toVulkanFormat(UnityRenderingExtTextureFormat format);
+#    pragma endregion
+#    endif
 };
+#endif
