@@ -43,7 +43,6 @@ namespace Upscaler.Runtime.URP
         private readonly SetupUpscaleRenderPass _setupUpscale = new();
         private readonly UpscaleRenderPass _upscale = new();
 #if !UNITY_6000_0_OR_NEWER
-        private readonly SetupGenerateRenderPass _setupGenerate = new ();
         private readonly GenerateRenderPass _generate = new();
 #endif
         private readonly HistoryResetRenderPass _historyReset = new();
@@ -114,8 +113,6 @@ namespace Upscaler.Runtime.URP
 #if !UNITY_6000_0_OR_NEWER
             if (!_isResizingThisFrame && upscaler.frameGeneration && previousFrameGeneration && NativeInterface.GetBackBufferFormat() != GraphicsFormat.None)
             {
-                _setupGenerate.ConfigureInput(ScriptableRenderPassInput.Motion);  /**@todo: Remove the SetupGenerateRenderPass*/
-                renderer.EnqueuePass(_setupGenerate);
                 _generate.ConfigureInput(ScriptableRenderPassInput.None);
                 renderer.EnqueuePass(_generate);
                 VolumeManager.instance.stack.GetComponent<MotionBlur>().intensity.value /= 2.0f;

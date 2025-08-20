@@ -16,8 +16,6 @@ namespace Upscaler.Runtime.URP
 #if UNITY_EDITOR
             private static readonly int TempColor = Shader.PropertyToID("Upscaler_TempColor");
 #endif
-            internal static readonly int TempMotion = Shader.PropertyToID("Upscaler_TempMotion");
-            internal static readonly int TempDepth = Shader.PropertyToID("Upscaler_TempDepth");
             private RTHandle _flippedDepth;
             private RTHandle _flippedMotion;
 
