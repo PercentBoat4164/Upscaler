@@ -146,7 +146,7 @@ Upscaler::Status XeSS_Upscaler::VulkanEvaluate(const Resolution inputResolution)
     const xess_vk_execute_params_t params {
       .colorTexture    = resources.at(Plugin::Color).vulkan,
       .velocityTexture = motion,
-      .depthTexture    = resources.at(Plugin::Depth).vulkan,
+      .depthTexture    = {VK_NULL_HANDLE},
       .outputTexture   = resources.at(Plugin::Output).vulkan,
       .jitterOffsetX   = jitter.x,
       .jitterOffsetY   = jitter.y,
@@ -187,7 +187,7 @@ Upscaler::Status XeSS_Upscaler::DX12Evaluate(const Resolution inputResolution) c
     const xess_d3d12_execute_params_t params {
       .pColorTexture    = resources.at(Plugin::Color).dx12,
       .pVelocityTexture = resources.at(Plugin::Motion).dx12,
-      .pDepthTexture    = resources.at(Plugin::Depth).dx12,
+      .pDepthTexture    = nullptr,
       .pOutputTexture   = resources.at(Plugin::Output).dx12,
       .jitterOffsetX    = jitter.x,
       .jitterOffsetY    = jitter.y,
@@ -226,7 +226,7 @@ Upscaler::Status XeSS_Upscaler::DX11Evaluate(const Resolution inputResolution) c
     const xess_d3d11_execute_params_t params {
       .pColorTexture    = resources.at(Plugin::Color).dx11,
       .pVelocityTexture = resources.at(Plugin::Motion).dx11,
-      .pDepthTexture    = resources.at(Plugin::Depth).dx11,
+      .pDepthTexture    = nullptr,
       .pOutputTexture   = resources.at(Plugin::Output).dx11,
       .jitterOffsetX    = jitter.x,
       .jitterOffsetY    = jitter.y,
