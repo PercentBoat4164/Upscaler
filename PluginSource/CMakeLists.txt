@@ -268,7 +268,6 @@ add_library(GfxPluginUpscaler main.cpp
         Upscaler/Upscaler.cpp
         Plugin.hpp
         FrameGenerator/FrameGenerator.cpp
-        FrameGenerator/FrameGenerator.hpp
 )
 
 add_custom_command(TARGET GfxPluginUpscaler PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --blue "Compiling against Unity version ${UNITY_VERSION}.")
