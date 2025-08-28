@@ -27,6 +27,7 @@
 
 HMODULE DLSS_Upscaler::library{nullptr};
 bool DLSS_Upscaler::loaded{false};
+bool DLSS_Upscaler::supported{false};
 
 uint64_t DLSS_Upscaler::applicationID{0xDC98EECU};
 uint32_t DLSS_Upscaler::users{0};
@@ -38,6 +39,7 @@ Upscaler::Status (*DLSS_Upscaler::fpGetCommandBuffer)(void*&){&staticSafeFail};
 decltype(&slInit) DLSS_Upscaler::slInit{nullptr};
 decltype(&slSetD3DDevice) DLSS_Upscaler::slSetD3DDevice{nullptr};
 decltype(&slSetFeatureLoaded) DLSS_Upscaler::slSetFeatureLoaded{nullptr};
+decltype(&slIsFeatureSupported) DLSS_Upscaler::slIsFeatureSupported{nullptr};
 decltype(&slGetFeatureFunction) DLSS_Upscaler::slGetFeatureFunction{nullptr};
 decltype(&slDLSSGetOptimalSettings) DLSS_Upscaler::slDLSSGetOptimalSettings{nullptr};
 decltype(&slDLSSSetOptions) DLSS_Upscaler::slDLSSSetOptions{nullptr};
@@ -212,6 +214,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) 
     slInit               = reinterpret_cast<decltype(&::slInit)>(GetProcAddress(library, "slInit"));
     slSetD3DDevice       = reinterpret_cast<decltype(&::slSetD3DDevice)>(GetProcAddress(library, "slSetD3DDevice"));
     slSetFeatureLoaded   = reinterpret_cast<decltype(&::slSetFeatureLoaded)>(GetProcAddress(library, "slSetFeatureLoaded"));
+    slIsFeatureSupported = reinterpret_cast<decltype(&::slIsFeatureSupported)>(GetProcAddress(library, "slIsFeatureSupported"));
     slGetFeatureFunction = reinterpret_cast<decltype(&::slGetFeatureFunction)>(GetProcAddress(library, "slGetFeatureFunction"));
     slSetTagForFrame     = reinterpret_cast<decltype(&::slSetTagForFrame)>(GetProcAddress(library, "slSetTagForFrame"));
     slGetNewFrameToken   = reinterpret_cast<decltype(&::slGetNewFrameToken)>(GetProcAddress(library, "slGetNewFrameToken"));
@@ -222,7 +225,7 @@ void DLSS_Upscaler::load(const GraphicsAPI::Type type, void* vkGetProcAddrFunc) 
 #ifdef ENABLE_VULKAN
     if (type == GraphicsAPI::VULKAN) *static_cast<PFN_vkGetInstanceProcAddr*>(vkGetProcAddrFunc) = reinterpret_cast<PFN_vkGetInstanceProcAddr>(GetProcAddress(library, "vkGetInstanceProcAddr"));
 #endif
-    if (slInit == nullptr || slSetD3DDevice == nullptr || slSetFeatureLoaded == nullptr || slGetFeatureFunction == nullptr || slSetTagForFrame == nullptr || slGetNewFrameToken == nullptr || slSetConstants == nullptr || slEvaluateFeature == nullptr || slFreeResources == nullptr || slShutdown == nullptr) return (void)(loaded = false);
+    if (slInit == nullptr || slSetD3DDevice == nullptr || slSetFeatureLoaded == nullptr || slIsFeatureSupported == nullptr || slGetFeatureFunction == nullptr || slSetTagForFrame == nullptr || slGetNewFrameToken == nullptr || slSetConstants == nullptr || slEvaluateFeature == nullptr || slFreeResources == nullptr || slShutdown == nullptr) return (void)(loaded = false);
 
     const std::array pathStrings { Plugin::path.wstring() };
     std::array paths { pathStrings[0].c_str() };
@@ -298,6 +301,29 @@ void DLSS_Upscaler::useGraphicsAPI(const GraphicsAPI::Type type) {
 
 DLSS_Upscaler::DLSS_Upscaler() : handle(users++), viewToClip(), clipToView(), clipToPrevClip(), prevClipToClip(), position(), up(), right(), forward(), farPlane(0), nearPlane(0), verticalFOV(0) {
     if (users != 1U) return;
+    sl::AdapterInfo adapterInfo;
+    switch (GraphicsAPI::getType()) {
+        case GraphicsAPI::VULKAN: {
+            adapterInfo.vkPhysicalDevice = Vulkan::getGraphicsInterface()->Instance().physicalDevice;
+            break;
+        }
+        case GraphicsAPI::DX12: {
+            LUID luid = DX12::getGraphicsInterface()->GetDevice()->GetAdapterLuid();
+            adapterInfo.deviceLUID = reinterpret_cast<uint8_t*>(&luid);
+            adapterInfo.deviceLUIDSizeInBytes = sizeof(LUID);
+            break;
+        }
+        case GraphicsAPI::DX11: {
+            LUID luid = DX12::getGraphicsInterface()->GetDevice()->GetAdapterLuid();
+            adapterInfo.deviceLUID = reinterpret_cast<uint8_t*>(&luid);
+            adapterInfo.deviceLUIDSizeInBytes = sizeof(LUID);
+            break;
+        }
+        default: break;
+    }
+    const Status x = setStatus(slIsFeatureSupported(sl::kFeatureDLSS, adapterInfo));
+    supported = x == Success;
+    RETURN_VOID_WITH_MESSAGE_IF(x, "NVIDIA Deep Learning Super Sampling is not supported on this device.");
     RETURN_VOID_WITH_MESSAGE_IF(setStatus(slSetFeatureLoaded(sl::kFeatureDLSS, true)), "Failed to load the NVIDIA Deep Learning Super Sampling feature.");
     void* func{nullptr};
     RETURN_VOID_WITH_MESSAGE_IF(setStatus(slGetFeatureFunction(sl::kFeatureDLSS, "slDLSSGetOptimalSettings", func)), "Failed to get the 'slDLSSGetOptimalSettings' function.");
@@ -315,6 +341,8 @@ DLSS_Upscaler::~DLSS_Upscaler() {
 }
 
 Upscaler::Status DLSS_Upscaler::useSettings(const Resolution resolution, const Preset preset, const enum Quality mode, const Flags flags) {
+    if (!supported) return FatalRuntimeError;
+    RETURN_STATUS_WITH_MESSAGE_IF(slDLSSGetOptimalSettings == nullptr || slDLSSSetOptions == nullptr, FatalRuntimeError, "NVIDIA Deep Learning Super Sampling DLL/SO was not able to be loaded.")
     outputResolution = resolution;
     sl::DLSSOptions options;
     options.mode                 = getQuality(mode);

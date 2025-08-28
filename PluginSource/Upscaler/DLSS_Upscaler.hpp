@@ -14,6 +14,7 @@
 class DLSS_Upscaler final : public Upscaler {
     static HMODULE library;
     static bool loaded;
+    static bool supported;
 
     static uint64_t applicationID;
     static uint32_t users;
@@ -28,6 +29,7 @@ class DLSS_Upscaler final : public Upscaler {
     static decltype(&slInit)                   slInit;
     static decltype(&slSetD3DDevice)           slSetD3DDevice;
     static decltype(&slSetFeatureLoaded)       slSetFeatureLoaded;
+    static decltype(&slIsFeatureSupported)     slIsFeatureSupported;
     static decltype(&slGetFeatureFunction)     slGetFeatureFunction;
     static decltype(&slDLSSGetOptimalSettings) slDLSSGetOptimalSettings;
     static decltype(&slDLSSSetOptions)         slDLSSSetOptions;
